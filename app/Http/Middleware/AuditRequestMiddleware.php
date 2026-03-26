@@ -33,6 +33,9 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AuditRequestMiddleware
 {
+
+
+    
     public function __construct(
         protected AuditLogService $audit
     ) {}
