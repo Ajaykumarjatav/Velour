@@ -1,0 +1,224 @@
+# Implementation Plan: Booking Notifications
+
+## Overview
+
+Implement dedicated appointment action routes and controller methods, three queued tenant Mailable classes with Blade templates, NotificationService extensions for tenant email/SMS dispatch, updated Blade views with context-aware action buttons, and a full property-based + feature test suite.
+
+## Tasks
+
+- [x] 1. Register the four new PATCH routes in `routes/web.php`
+  - Add `confirm`, `cancel`, `reschedule`, and `complete` PATCH routes inside the `tenant` middleware group, alongside the existing `appointments` resource
+  - Route names: `appointments.confirm`, `appointments.cancel`, `appointments.reschedule`, `appointments.complete`
+  - _Requirements: 4.1, 5.1, 6.1, 7.1_
+
+- [x] 2. Create the three queued Mailable classes
+  - [x] 2.1 Create `app/Mail/TenantNewBookingMail.php`
+    - Implement `ShouldQueue`, use `Queueable` + `SerializesModels`
+    - Constructor accepts `Appointment $appointment` (eager-load `client`, `staff`, `services.service`)
+    - Subject: `"New booking: {client full name} — {date}"`
+    - View: `emails.appointments.tenant-new-booking`
+    - _Requirements: 8.1, 8.3, 8.4_
+  - [x] 2.2 Create `app/Mail/TenantCancellationMail.php`
+    - Same structure; subject: `"Booking cancelled: {client full name} — {date}"`
+    - View: `emails.appointments.tenant-cancellation`
+    - _Requirements: 9.1, 9.3, 9.4_
+  - [x] 2.3 Create `app/Mail/TenantRescheduleMail.php`
+    - Constructor additionally accepts `Carbon $originalStartsAt`
+    - Subject: `"Booking rescheduled: {client full name} — {new date}"`
+    - View: `emails.appointments.tenant-reschedule`
+    - _Requirements: 10.1, 10.3, 10.4_
+
+- [-] 3. Create the three tenant email Blade templates
+  - [x] 3.1 Create `resources/views/emails/appointments/tenant-new-booking.blade.php`
+    - Extend `emails.auth._layout` (same pattern as existing email views)
+    - Display: customer full name, service name(s), staff full name, appointment date/time, total price
+    - _Requirements: 8.3_
+  - [ ] 3.2 Create `resources/views/emails/appointments/tenant-cancellation.blade.php`
+    - Display: customer full name, service name(s), original appointment date/time, cancellation reason (if set)
+    - _Requirements: 9.3_
+  - [-] 3.3 Create `resources/views/emails/appointments/tenant-reschedule.blade.php`
+    - Display: customer full name, service name(s), original date/time, new date/time
+    - _Requirements: 10.3_
+
+- [ ] 4. Extend `NotificationService` with tenant notification methods
+  - [ ] 4.1 Add `notifyTenantNewBooking(Appointment $appointment): void`
+    - Call `$this->createNotification(...)` with type `appointment`
+    - Resolve recipient: `$salon->email ?: optional($salon->owner)->email`; skip + log warning if both null
+    - Dispatch `TenantNewBookingMail` via `Mail::to($recipient)->queue(...)` inside try/catch; log error on failure
+    - Call `$this->notifyTenantSms($appointment)` after mail dispatch
+    - _Requirements: 8.1, 8.2, 8.4, 8.5, 11.1, 11.4_
+  - [ ] 4.2 Add `notifyTenantCancellation(Appointment $appointment): void`
+    - Same pattern: `createNotification` (type `cancellation`), resolve recipient, dispatch `TenantCancellationMail`, try/catch log
+    - _Requirements: 9.1, 9.2, 9.4, 11.2, 11.4_
+  - [ ] 4.3 Add `notifyTenantReschedule(Appointment $appointment, Carbon $originalStartsAt): void`
+    - Same pattern: `createNotification` (type `reschedule`), resolve recipient, dispatch `TenantRescheduleMail`, try/catch log
+    - _Requirements: 10.1, 10.2, 10.4, 11.3, 11.4_
+  - [ ] 4.4 Add `notifyTenantSms(Appointment $appointment): void`
+    - Gate on `$appointment->salon->getSetting('sms_new_booking_enabled')`; skip silently if falsy
+    - Dispatch SMS job inside try/catch; log error on failure
+    - _Requirements: 12.1, 12.2, 12.3, 12.4_
+  - [ ] 4.5 Update `appointmentConfirmation` to delegate to `notifyTenantNewBooking`
+    - Replace the stub body with a call to `$this->notifyTenantNewBooking($appointment)`
+    - _Requirements: 8.1, 11.1_
+  - [ ] 4.6 Update `appointmentCancellation` to delegate to `notifyTenantCancellation`
+    - Replace the stub body with a call to `$this->notifyTenantCancellation($appointment)`
+    - _Requirements: 9.1, 11.2_
+  - [ ] 4.7 Update `appointmentRescheduled` to delegate to `notifyTenantReschedule`
+    - Pass `$appointment->starts_at` as `$originalStartsAt` (caller must capture original before saving)
+    - _Requirements: 10.1, 11.3_
+
+- [ ] 5. Add the four action methods to `AppointmentController` (Web)
+  - [ ] 5.1 Add `confirm(Appointment $appointment): RedirectResponse`
+    - Call `$this->authorise($appointment)`
+    - Guard: abort 422 with error if `$appointment->status !== 'pending'`
+    - Update: `status = confirmed`, `confirmed_at = now()`
+    - Call `$this->notificationService->notifyTenantNewBooking($appointment)`
+    - Redirect back with success flash
+    - _Requirements: 4.1, 4.3_
+  - [ ] 5.2 Add `cancel(Request $request, Appointment $appointment): RedirectResponse`
+    - Call `$this->authorise($appointment)`
+    - Guard: abort 422 if status is `completed`, `cancelled`, or `no_show`
+    - Validate optional `cancellation_reason` (nullable, string, max:500)
+    - Update: `status = cancelled`, `cancelled_at = now()`, `cancellation_reason`
+    - Call `$this->notificationService->notifyTenantCancellation($appointment)`
+    - Redirect back with success flash
+    - _Requirements: 5.1, 5.2, 5.4_
+  - [ ] 5.3 Add `reschedule(Request $request, Appointment $appointment): RedirectResponse`
+    - Call `$this->authorise($appointment)`
+    - Guard: abort 422 if status is `completed`, `cancelled`, or `no_show`
+    - Validate `starts_at` (required, date, after:now) and optional `staff_id`
+    - Capture `$originalStartsAt = $appointment->starts_at` before saving
+    - Check for scheduling conflicts (overlapping non-cancelled appointments for same staff/salon, excluding self); return back with error on conflict
+    - Recalculate `ends_at` from `starts_at + duration_minutes`; update `starts_at`, `ends_at`, optionally `staff_id`
+    - Call `$this->notificationService->notifyTenantReschedule($appointment, $originalStartsAt)`
+    - Redirect back with success flash
+    - _Requirements: 6.1, 6.3, 6.4_
+  - [ ] 5.4 Add `complete(Appointment $appointment): RedirectResponse`
+    - Call `$this->authorise($appointment)`
+    - Guard: abort 422 unless status is `confirmed`, `checked_in`, or `in_progress`
+    - Update appointment: `status = completed`
+    - Increment `$appointment->client->visit_count` by 1 and set `last_visit_at = $appointment->starts_at`; save client
+    - Redirect back with success flash
+    - _Requirements: 7.1, 7.2, 7.3_
+  - [ ] 5.5 Inject `NotificationService` into `AppointmentController` constructor
+    - Add constructor with `private NotificationService $notificationService` parameter
+    - _Requirements: 4.1, 5.1, 6.1_
+
+- [ ] 6. Update `resources/views/appointments/show.blade.php` with context-aware action buttons
+  - Replace the generic "Update Status" button grid with four dedicated action forms
+  - Confirm form (PATCH `appointments.confirm`): shown only when `$appointment->status === 'pending'`
+  - Cancel form with optional `cancellation_reason` textarea (PATCH `appointments.cancel`): shown when status not in `completed`, `cancelled`, `no_show`
+  - Reschedule form with `starts_at` datetime input and optional `staff_id` select (PATCH `appointments.reschedule`): shown when status not in `completed`, `cancelled`, `no_show`
+  - Complete form (PATCH `appointments.complete`): shown when status in `confirmed`, `checked_in`, `in_progress`
+  - Display `@error` messages for `status`, `starts_at`, and `cancellation_reason`
+  - _Requirements: 3.1, 3.2, 3.3, 4.1, 4.3, 5.1, 5.2, 5.4, 6.1, 6.3, 6.4, 7.1, 7.3_
+
+- [ ] 7. Update `resources/views/appointments/index.blade.php` to add `pending` to the status filter
+  - Add `pending` as an option in the status `<select>` dropdown (currently missing from the list)
+  - _Requirements: 2.1, 2.2_
+
+- [ ] 8. Wire `BookingController` API to call the new tenant notification methods
+  - [ ] 8.1 Update `BookingController::confirm` to call `notifyTenantNewBooking` instead of `appointmentConfirmation`
+    - Since `appointmentConfirmation` now delegates, this is already covered by task 4.5 — verify the delegation chain works end-to-end
+    - _Requirements: 8.1, 11.1_
+  - [ ] 8.2 Update `BookingController::cancel` to call `notifyTenantCancellation` instead of `appointmentCancellation`
+    - Same delegation verification via task 4.6
+    - _Requirements: 9.1, 11.2_
+  - [ ] 8.3 Update `BookingController::reschedule` to capture `$originalStartsAt` before saving and pass it through
+    - Capture `$originalStartsAt` before `bookingService->reschedule(...)` mutates the model
+    - Call `notifyTenantReschedule($appointment, $originalStartsAt)` instead of `appointmentRescheduled`
+    - _Requirements: 10.1, 10.3, 11.3_
+
+- [ ] 9. Checkpoint — Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 10. Write feature tests for appointment dashboard actions
+  - [ ] 10.1 Write feature tests for `AppointmentController` action methods
+    - `PATCH /appointments/{id}/confirm` on `pending` → 302 redirect with success flash, status becomes `confirmed`
+    - `PATCH /appointments/{id}/confirm` on `confirmed` → 422 / redirect with error, status unchanged
+    - `PATCH /appointments/{id}/cancel` stores `cancellation_reason` when provided
+    - `PATCH /appointments/{id}/cancel` on `completed` → error, status unchanged
+    - `PATCH /appointments/{id}/reschedule` with conflicting slot → error, appointment unchanged
+    - `PATCH /appointments/{id}/complete` on `pending` → error
+    - `PATCH /appointments/{id}/complete` on `confirmed` → success, client `visit_count` incremented
+    - _Requirements: 4.1, 4.3, 5.1, 5.2, 5.4, 6.3, 6.4, 7.1, 7.2, 7.3_
+  - [ ]* 10.2 Write feature tests for tenant email dispatch via BookingController API
+    - `POST /api/book/{slug}/confirm` dispatches `TenantNewBookingMail` to queue (`Mail::fake()`)
+    - `POST /api/book/{slug}/cancel/{ref}` dispatches `TenantCancellationMail` to queue
+    - `POST /api/book/{slug}/reschedule/{ref}` dispatches `TenantRescheduleMail` to queue
+    - When `Mail::to()->queue()` throws, booking API still returns 201
+    - _Requirements: 8.1, 8.4, 8.5, 9.1, 10.1_
+
+- [ ] 11. Write property-based tests (Eris)
+  - [ ]* 11.1 Write property test for tenant isolation (Property 1)
+    - `// Feature: booking-notifications, Property 1: Tenant Isolation`
+    - Generate two salons with random appointment counts; assert appointments for salon A never include salon B records
+    - Minimum 100 iterations
+    - _Requirements: 1.2_
+  - [ ]* 11.2 Write property test for filter correctness (Property 2)
+    - `// Feature: booking-notifications, Property 2: Filter Correctness`
+    - Generate random filter combinations + appointment sets; assert every returned appointment satisfies all active filters simultaneously
+    - _Requirements: 2.2, 2.3, 2.4_
+  - [ ]* 11.3 Write property test for upcoming filter invariant (Property 3)
+    - `// Feature: booking-notifications, Property 3: Upcoming Filter Invariant`
+    - Generate random `starts_at` values; assert `scopeUpcoming` only returns records with `starts_at >= now()`
+    - _Requirements: 1.5_
+  - [ ]* 11.4 Write property test for confirm status transition (Property 4)
+    - `// Feature: booking-notifications, Property 4: Confirm Status Transition`
+    - Generate pending appointments; assert post-confirm `status === confirmed` and `confirmed_at` is non-null
+    - _Requirements: 4.1_
+  - [ ]* 11.5 Write property test for status guard — illegal transitions rejected (Property 5)
+    - `// Feature: booking-notifications, Property 5: Status Guard — Illegal Transitions Rejected`
+    - Generate appointments in each non-applicable state; assert each illegal action returns an error and leaves the appointment unchanged
+    - _Requirements: 4.3, 5.4, 6.4, 7.3_
+  - [ ]* 11.6 Write property test for cancel records timestamp and reason (Property 6)
+    - `// Feature: booking-notifications, Property 6: Cancel Records Timestamp and Reason`
+    - Generate cancellable appointments with random reasons; assert `status === cancelled`, `cancelled_at` non-null, reason persisted
+    - _Requirements: 5.1, 5.2_
+  - [ ]* 11.7 Write property test for reschedule updates time fields (Property 7)
+    - `// Feature: booking-notifications, Property 7: Reschedule Updates Time Fields`
+    - Generate valid new `starts_at` values; assert `starts_at` updated and `ends_at` recalculated from duration
+    - _Requirements: 6.1_
+  - [ ]* 11.8 Write property test for reschedule conflict rejection (Property 8)
+    - `// Feature: booking-notifications, Property 8: Reschedule Conflict Rejection`
+    - Generate overlapping appointments for the same staff; assert reschedule is rejected and appointment unchanged
+    - _Requirements: 6.3_
+  - [ ]* 11.9 Write property test for complete updates client visit stats (Property 9)
+    - `// Feature: booking-notifications, Property 9: Complete Updates Client Visit Stats`
+    - Generate completable appointments; assert `status === completed`, `visit_count` incremented by 1, `last_visit_at` set to `starts_at`
+    - _Requirements: 7.1, 7.2_
+  - [ ]* 11.10 Write property test for tenant email dispatched on booking events (Property 10)
+    - `// Feature: booking-notifications, Property 10: Tenant Email Dispatched on Booking Events`
+    - Use `Mail::fake()`; generate appointments and trigger each event type; assert correct Mailable queued each time
+    - _Requirements: 8.1, 8.4, 9.1, 10.1_
+  - [ ]* 11.11 Write property test for tenant email recipient fallback (Property 11)
+    - `// Feature: booking-notifications, Property 11: Tenant Email Recipient Fallback`
+    - Generate salons with null `email`; assert all three notification types dispatch to `$salon->owner->email`
+    - _Requirements: 8.2, 9.2, 10.2_
+  - [ ]* 11.12 Write property test for email content completeness (Property 12)
+    - `// Feature: booking-notifications, Property 12: Tenant Email Content Completeness`
+    - Generate appointments with random client/service/staff data; assert rendered email HTML contains all required fields for each notification type
+    - _Requirements: 8.3, 9.3, 10.3_
+  - [ ]* 11.13 Write property test for notification failure isolation (Property 13)
+    - `// Feature: booking-notifications, Property 13: Notification Failure Isolation`
+    - Mock `Mail` to throw; assert booking/cancel/reschedule operations still succeed and return successful responses
+    - _Requirements: 8.5, 9.4, 10.4, 12.4_
+  - [ ]* 11.14 Write property test for in-app notification creation (Property 14)
+    - `// Feature: booking-notifications, Property 14: In-App Notification Created for Every Booking Event`
+    - Generate booking events; assert a `SalonNotification` record is created with correct `type` and `data.appointment_id`
+    - _Requirements: 11.1, 11.2, 11.3, 11.4_
+  - [ ]* 11.15 Write property test for SMS gating (Property 15)
+    - `// Feature: booking-notifications, Property 15: SMS Gating`
+    - Generate salons with setting on/off; assert SMS job dispatched only when `sms_new_booking_enabled` is truthy
+    - _Requirements: 12.1, 12.3_
+
+- [ ] 12. Final checkpoint — Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Tasks marked with `*` are optional and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Property tests use the Eris library (`giorgiosironi/eris`) with a minimum of 100 iterations each
+- The `notifyTenantSms` method is a stub that logs intent; full Twilio integration is out of scope for this feature
+- `BookingController` API wiring (task 8) is largely automatic once the `NotificationService` delegation chain (task 4.5–4.7) is in place — task 8.3 is the only one requiring a code change
