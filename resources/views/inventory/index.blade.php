@@ -3,24 +3,29 @@
 @section('page-title', 'Inventory')
 @section('content')
 
-<div class="flex flex-col sm:flex-row gap-3 mb-6">
-    <form action="{{ route('inventory.index') }}" method="GET" class="flex flex-1 gap-2 flex-wrap">
-        <input type="text" name="search" value="{{ $search }}" placeholder="Search name or SKU…" class="form-input flex-1 min-w-[180px]">
-        <select name="category_id" class="form-select">
-            <option value="">All categories</option>
-            @foreach($categories as $cat)
-            <option value="{{ $cat->id }}" {{ $categoryId == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-            @endforeach
-        </select>
-        <label class="flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer text-sm transition-colors
-                      {{ $lowStock ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400' : 'border-gray-300 dark:border-gray-700 text-body bg-white dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-amber-900/20' }}">
-            <input type="checkbox" name="low_stock" value="1" {{ $lowStock ? 'checked' : '' }} onchange="this.form.submit()" class="rounded text-amber-500">
-            Low stock
-            @if($lowStockCount > 0)<span class="bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-md">{{ $lowStockCount }}</span>@endif
-        </label>
-        <button type="submit" class="btn-secondary">Filter</button>
+<div class="flex flex-col lg:flex-row gap-4 mb-6 items-start">
+    <form action="{{ route('inventory.index') }}" method="GET" class="flex flex-1 flex-col gap-3 min-w-0 w-full">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            <input type="text" name="search" value="{{ $search }}" placeholder="Search name or SKU…" class="form-input w-full min-w-0">
+            <select name="category_id" class="form-select w-full min-w-0">
+                <option value="">All categories</option>
+                @foreach($categories as $cat)
+                <option value="{{ $cat->id }}" {{ $categoryId == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                @endforeach
+            </select>
+            <label class="flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer text-sm transition-colors min-h-[42px]
+                          {{ $lowStock ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400' : 'border-gray-300 dark:border-gray-700 text-body bg-white dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-amber-900/20' }}">
+                <input type="checkbox" name="low_stock" value="1" {{ $lowStock ? 'checked' : '' }} onchange="this.form.submit()" class="rounded text-amber-500">
+                Low stock
+                @if($lowStockCount > 0)<span class="bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-md">{{ $lowStockCount }}</span>@endif
+            </label>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="submit" class="btn-secondary">Filter</button>
+            <a href="{{ route('inventory.index') }}" class="btn-outline">Clear</a>
+        </div>
     </form>
-    <a href="{{ route('inventory.create') }}" class="flex-shrink-0 btn-primary">+ Add Item</a>
+    <a href="{{ route('inventory.create') }}" class="btn-primary flex-shrink-0 w-full sm:w-auto text-center">+ Add Item</a>
 </div>
 
 <div class="table-wrap">
@@ -31,8 +36,8 @@
             <th class="hidden sm:table-cell">SKU</th>
             <th class="hidden md:table-cell">Category</th>
             <th>Stock</th>
-            <th class="hidden lg:table-cell">Retail</th>
-            <th></th>
+            <th class="hidden lg:table-cell text-right">Retail</th>
+            <th class="text-right w-[1%] whitespace-nowrap">Actions</th>
         </tr>
         </thead>
         <tbody>

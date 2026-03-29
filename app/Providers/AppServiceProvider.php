@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Stripe\ApiRequestor;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -53,6 +54,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Stripe PHP defaults to ext-curl. Apache (XAMPP) may run PHP without curl while CLI has it.
+        // Use Laravel HTTP (Guzzle + streams) when curl is unavailable so billing/portal works.
+        if (! function_exists('curl_version')) {
+            $stripeHttp = new \App\Services\StripeLaravelHttpClient;
+            ApiRequestor::setHttpClient($stripeHttp);
+            ApiRequestor::setStreamingHttpClient($stripeHttp);
+        }
+
         // ── Eloquent strict mode (catches N+1, lazy loads in dev) ──────────
         Model::shouldBeStrict(! app()->isProduction());
 

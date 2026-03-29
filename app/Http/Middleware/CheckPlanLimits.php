@@ -87,9 +87,9 @@ class CheckPlanLimits
 
         return Cache::remember($cacheKey, 60, function () use ($resource, $salonId) {
             return match ($resource) {
-                'staff'    => Staff::withoutGlobalScopes()->where('salon_id', $salonId)->where('is_active', true)->count(),
-                'services' => Service::withoutGlobalScopes()->where('salon_id', $salonId)->count(),
-                'clients'  => Client::withoutGlobalScopes()->where('salon_id', $salonId)->count(),
+                'staff'    => Staff::withoutGlobalScopes()->where('salon_id', $salonId)->where('is_active', true)->whereNull('deleted_at')->count(),
+                'services' => Service::withoutGlobalScopes()->where('salon_id', $salonId)->whereNull('deleted_at')->where('status', 'active')->count(),
+                'clients'  => Client::withoutGlobalScopes()->where('salon_id', $salonId)->whereNull('deleted_at')->count(),
                 default    => 0,
             };
         });

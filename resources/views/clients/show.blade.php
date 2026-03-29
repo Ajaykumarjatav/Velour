@@ -53,8 +53,8 @@
                 <th>Date</th>
                 <th class="hidden sm:table-cell">Services</th>
                 <th>Staff</th>
-                <th>Amount</th>
-                <th>Status</th>
+                <th class="text-right">Amount</th>
+                <th class="text-center">Status</th>
             </tr>
             </thead>
             <tbody>
@@ -70,8 +70,8 @@
                     {{ $apt->services->pluck('service.name')->filter()->join(', ') ?: '—' }}
                 </td>
                 <td class="text-body">{{ $apt->staff?->name ?? '—' }}</td>
-                <td class="font-semibold text-heading">@money($apt->total_price)</td>
-                <td>
+                <td class="font-semibold text-heading text-right">@money($apt->total_price)</td>
+                <td class="text-center">
                     @php $colors = ['confirmed'=>'badge-blue','completed'=>'badge-green','cancelled'=>'badge-red','no_show'=>'badge-yellow']; @endphp
                     <span class="{{ $colors[$apt->status] ?? 'badge-gray' }}">
                         {{ ucfirst(str_replace('_',' ',$apt->status)) }}

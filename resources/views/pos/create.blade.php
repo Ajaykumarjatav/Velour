@@ -1,126 +1,303 @@
 @extends('layouts.app')
-@section('title', 'New Sale')
-@section('page-title', 'New Sale')
+@section('title', 'Point of Sale')
+@section('page-title', 'Point of Sale')
+
+@php
+    $sym     = \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP');
+    $taxRate = 18;
+    $allServices = $services->map(fn($s) => [
+        'id'       => $s->id,
+        'name'     => $s->name,
+        'price'    => (float) $s->price,
+        'duration' => $s->duration_minutes,
+        'cat'      => $s->category?->name ?? 'Other',
+        'type'     => 'service',
+    ])->values()->toArray();
+    $allProducts = $products->map(fn($p) => [
+        'id'    => $p->id,
+        'name'  => $p->name,
+        'price' => (float) $p->price,
+        'qty'   => $p->quantity,
+        'cat'   => 'Products',
+        'type'  => 'product',
+    ])->values()->toArray();
+    $allItems = array_merge($allServices, $allProducts);
+    $cats = collect($allItems)->pluck('cat')->unique()->sort()->values()->toArray();
+@endphp
+
 @section('content')
+{{-- Full-bleed split layout — overrides the default content padding --}}
+<div
+    x-data="posApp()"
+    x-init="init()"
+    class="flex -mx-4 sm:-mx-6 -mt-4"
+    style="height:calc(100vh - 64px); overflow:hidden;"
+>
 
-@php $currencySymbol = \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP'); @endphp
+    {{-- ══ LEFT PANEL ══ --}}
+    <div class="flex flex-col flex-1 min-w-0 overflow-hidden px-5 py-4">
 
-<div class="max-w-2xl" x-data="posForm('{{ $currencySymbol }}')">
-    <div class="card p-6">
-        <form action="{{ route('pos.store') }}" method="POST">
-            @csrf
+        {{-- Sub-heading --}}
+        <p class="text-sm text-muted mb-4">Walk-in / Checkout billing</p>
 
-            <div class="mb-5">
-                <label class="form-label">Client <span class="text-muted">(optional)</span></label>
-                <select name="client_id" class="form-select">
-                    <option value="">Walk-in</option>
-                    @foreach($clients as $c)
-                    <option value="{{ $c->id }}">{{ $c->first_name }} {{ $c->last_name }}{{ $c->phone ? ' — '.$c->phone : '' }}</option>
-                    @endforeach
-                </select>
+        {{-- Category filter pills --}}
+        <div class="flex items-center gap-2 mb-4 flex-wrap">
+            <button @click="activeCategory = 'All'"
+                    :class="activeCategory === 'All'
+                        ? 'bg-velour-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-body border border-gray-200 dark:border-gray-700 hover:border-velour-300'"
+                    class="px-4 py-1.5 rounded-full text-sm font-semibold transition-all">
+                All
+            </button>
+            @foreach($cats as $cat)
+            <button @click="activeCategory = '{{ $cat }}'"
+                    :class="activeCategory === '{{ $cat }}'
+                        ? 'bg-velour-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-body border border-gray-200 dark:border-gray-700 hover:border-velour-300'"
+                    class="px-4 py-1.5 rounded-full text-sm font-semibold transition-all">
+                {{ $cat }}
+            </button>
+            @endforeach
+        </div>
+
+        {{-- Search --}}
+        <div class="relative mb-4">
+            <span class="absolute inset-y-0 left-3 flex items-center text-muted pointer-events-none text-sm font-bold">#</span>
+            <input x-model="search"
+                   type="text"
+                   placeholder="Scan barcode or search service..."
+                   class="form-input pl-8 w-full">
+        </div>
+
+        {{-- Service grid --}}
+        <div class="flex-1 overflow-y-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-4">
+                <template x-for="item in filteredItems" :key="item.type + item.id">
+                    <button
+                        @click="addToCart(item)"
+                        :class="isInCart(item)
+                            ? 'border-velour-400 ring-1 ring-velour-200 dark:ring-velour-800'
+                            : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm'"
+                        class="card relative text-left p-4 rounded-2xl border transition-all cursor-pointer">
+                        {{-- In-cart tick --}}
+                        <div x-show="isInCart(item)"
+                             class="absolute top-3 right-3 w-5 h-5 bg-velour-600 rounded-full flex items-center justify-center">
+                            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <p class="font-semibold text-heading text-sm leading-tight pr-6" x-text="item.name"></p>
+                        <p class="text-xs text-muted mt-1" x-text="(item.duration ? item.duration + 'min · ' : '') + item.cat"></p>
+                        <p class="text-sm font-bold mt-2 text-velour-600" x-text="'{{ $sym }}' + item.price.toLocaleString()"></p>
+                    </button>
+                </template>
+                <div x-show="filteredItems.length === 0" class="col-span-3 py-12 text-center text-sm text-muted">
+                    No items match your search.
+                </div>
+            </div>
+        </div>
+
+        {{-- Recent transactions --}}
+        <div class="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 pt-3 space-y-0.5 max-h-36 overflow-y-auto">
+            @forelse($recentTransactions as $txn)
+            <div class="flex items-center justify-between py-1.5 text-sm">
+                <div class="min-w-0">
+                    <span class="font-medium text-heading">
+                        {{ $txn->client ? $txn->client->first_name.' '.$txn->client->last_name : 'Walk-in Client' }}
+                    </span>
+                    <span class="text-xs text-muted ml-2">{{ $txn->reference }} · {{ ucfirst(str_replace('_',' ',$txn->payment_method)) }}</span>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+                    <span class="font-bold {{ $txn->status === 'refunded' ? 'text-red-500' : 'text-heading' }}">
+                        {{ $txn->status === 'refunded' ? '-' : '' }}@money($txn->total)
+                    </span>
+                    @php $badge = ['completed'=>'badge-green','refunded'=>'badge-yellow','voided'=>'badge-red'][$txn->status] ?? 'badge-gray'; @endphp
+                    <span class="{{ $badge }}">{{ ucfirst($txn->status) }}</span>
+                    <a href="{{ route('pos.show', $txn->id) }}" class="text-muted hover:text-body">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            @empty
+            <p class="text-xs text-muted py-2">No recent transactions.</p>
+            @endforelse
+        </div>
+    </div>
+
+    {{-- ══ RIGHT PANEL — Current Bill ══ --}}
+    <div class="flex-shrink-0 w-80 xl:w-96 flex flex-col border-l border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+            <h2 class="font-bold text-heading text-base">Current Bill</h2>
+        </div>
+
+        {{-- Cart items --}}
+        <div class="flex-1 overflow-y-auto px-5 py-3 space-y-3">
+            <template x-if="cart.length === 0">
+                <div class="flex flex-col items-center justify-center h-32 text-muted">
+                    <svg class="w-10 h-10 mb-2 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <p class="text-sm">Tap a service to add it</p>
+                </div>
+            </template>
+
+            <template x-for="(item, idx) in cart" :key="item.type + item.id">
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-heading truncate" x-text="item.name"></p>
+                        <p class="text-xs text-muted" x-text="'{{ $sym }}' + item.price.toLocaleString()"></p>
+                    </div>
+                    {{-- Qty controls --}}
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <button @click="decQty(idx)"
+                                class="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center text-muted hover:border-velour-400 hover:text-velour-600 transition-colors text-sm font-bold leading-none">−</button>
+                        <span class="w-5 text-center text-sm font-bold text-heading" x-text="item.qty"></span>
+                        <button @click="incQty(idx)"
+                                class="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center text-muted hover:border-velour-400 hover:text-velour-600 transition-colors text-sm font-bold leading-none">+</button>
+                    </div>
+                    <span class="text-sm font-bold text-heading w-16 text-right flex-shrink-0"
+                          x-text="'{{ $sym }}' + (item.price * item.qty).toLocaleString()"></span>
+                    <button @click="removeItem(idx)" class="text-muted hover:text-red-400 transition-colors flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </template>
+        </div>
+
+        {{-- Totals + actions --}}
+        <div class="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 px-5 py-4 space-y-3">
+
+            {{-- Subtotal / GST / Total --}}
+            <div class="space-y-1.5 text-sm">
+                <div class="flex justify-between text-muted">
+                    <span>Subtotal</span>
+                    <span x-text="'{{ $sym }}' + subtotal.toLocaleString()"></span>
+                </div>
+                <div class="flex justify-between text-muted">
+                    <span>GST ({{ $taxRate }}%)</span>
+                    <span x-text="'{{ $sym }}' + gst.toLocaleString()"></span>
+                </div>
+                <div class="flex justify-between font-bold text-heading text-base pt-1.5 border-t border-gray-100 dark:border-gray-800">
+                    <span>Total</span>
+                    <span x-text="'{{ $sym }}' + total.toLocaleString()"></span>
+                </div>
             </div>
 
-            <div class="mb-5">
-                <label class="form-label mb-2">Items <span class="text-red-500">*</span></label>
-                <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-3">
-                    <div class="bg-gray-50 dark:bg-gray-800/60 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <p class="text-xs font-semibold text-muted uppercase tracking-wide">Services</p>
-                    </div>
-                    @foreach($services as $svc)
-                    <label class="flex items-center gap-3 px-4 py-2.5 hover:bg-velour-50 dark:hover:bg-velour-900/20 cursor-pointer border-b border-gray-50 dark:border-gray-800 last:border-0">
-                        <input type="checkbox" x-on:change="toggleItem($event, 'service', {{ $svc->id }}, {{ $svc->price }})" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                        <span class="flex-1 text-sm text-body">{{ $svc->name }}</span>
-                        <span class="text-sm font-semibold text-heading">@money($svc->price)</span>
-                    </label>
-                    @endforeach
-                </div>
-
-                @if($products->count())
-                <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                    <div class="bg-gray-50 dark:bg-gray-800/60 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <p class="text-xs font-semibold text-muted uppercase tracking-wide">Products</p>
-                    </div>
-                    @foreach($products as $prod)
-                    <label class="flex items-center gap-3 px-4 py-2.5 hover:bg-velour-50 dark:hover:bg-velour-900/20 cursor-pointer border-b border-gray-50 dark:border-gray-800 last:border-0">
-                        <input type="checkbox" x-on:change="toggleItem($event, 'product', {{ $prod->id }}, {{ $prod->price }})" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                        <span class="flex-1 text-sm text-body">{{ $prod->name }}</span>
-                        <span class="text-xs text-muted mr-2">{{ $prod->quantity }} in stock</span>
-                        <span class="text-sm font-semibold text-heading">@money($prod->price)</span>
-                    </label>
-                    @endforeach
-                </div>
-                @endif
-
-                <template x-for="(item, idx) in selectedItems" :key="idx">
-                    <div>
-                        <input type="hidden" :name="'items['+idx+'][type]'" :value="item.type">
+            {{-- Hidden form --}}
+            <form id="pos-form" action="{{ route('pos.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="tax_rate" value="{{ $taxRate }}">
+                <input type="hidden" name="payment_method" x-bind:value="paymentMethod">
+                <input type="hidden" name="client_id" x-bind:value="clientId">
+                <input type="hidden" name="discount_amount" value="0">
+                <template x-for="(item, idx) in cart" :key="item.type + item.id">
+                    <span>
+                        <input type="hidden" :name="'items['+idx+'][type]'"  :value="item.type">
                         <input type="hidden" :name="'items['+idx+'][id]'"    :value="item.id">
                         <input type="hidden" :name="'items['+idx+'][qty]'"   :value="item.qty">
                         <input type="hidden" :name="'items['+idx+'][price]'" :value="item.price">
-                    </div>
+                        <input type="hidden" :name="'items['+idx+'][name]'"  :value="item.name">
+                    </span>
                 </template>
+            </form>
+
+            {{-- Payment method --}}
+            <div class="grid grid-cols-3 gap-1.5">
+                @foreach(['cash' => 'Cash', 'card' => 'Card', 'bank_transfer' => 'Bank'] as $val => $lbl)
+                <button @click="paymentMethod = '{{ $val }}'"
+                        :class="paymentMethod === '{{ $val }}'
+                            ? 'bg-velour-600 text-white border-velour-600'
+                            : 'bg-white dark:bg-gray-800 text-body border-gray-200 dark:border-gray-700 hover:border-gray-300'"
+                        class="py-2 rounded-xl border text-xs font-semibold transition-all">
+                    {{ $lbl }}
+                </button>
+                @endforeach
             </div>
 
-            <div x-show="selectedItems.length > 0" class="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 mb-5 space-y-2">
-                <h3 class="text-sm font-semibold text-heading mb-3">Order Summary</h3>
-                <template x-for="item in selectedItems" :key="item.id+item.type">
-                    <div class="flex justify-between text-sm">
-                        <span x-text="item.label" class="text-body"></span>
-                        <span class="font-medium text-heading" x-text="currencySymbol + (item.price * item.qty).toFixed(2)"></span>
-                    </div>
-                </template>
-                <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-heading">
-                    <span>Total</span>
-                    <span x-text="currencySymbol + total.toFixed(2)"></span>
-                </div>
-            </div>
+            {{-- Client selector --}}
+            <select x-model="clientId" class="form-select w-full text-sm">
+                <option value="">Walk-in Client</option>
+                @foreach($clients as $c)
+                <option value="{{ $c->id }}">{{ $c->first_name }} {{ $c->last_name }}</option>
+                @endforeach
+            </select>
 
-            <div class="mb-5">
-                <label class="form-label mb-2">Payment method <span class="text-red-500">*</span></label>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    @foreach(['cash' => 'Cash', 'card' => 'Card', 'bank_transfer' => 'Bank', 'voucher' => 'Voucher'] as $val => $label)
-                    <label class="flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all
-                                  has-[:checked]:border-velour-600 has-[:checked]:bg-velour-50 dark:has-[:checked]:bg-velour-900/20
-                                  border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600">
-                        <input type="radio" name="payment_method" value="{{ $val }}" class="sr-only" {{ $loop->first ? 'checked' : '' }}>
-                        <span class="text-sm font-medium text-body">{{ $label }}</span>
-                    </label>
-                    @endforeach
-                </div>
+            {{-- Clear / Charge --}}
+            <div class="flex gap-2 pt-1">
+                <button @click="clearCart()"
+                        :disabled="cart.length === 0"
+                        class="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-body hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    Clear
+                </button>
+                <button @click="submitSale()"
+                        :disabled="cart.length === 0"
+                        class="flex-[2] py-2.5 rounded-xl text-sm font-bold text-white bg-velour-600 hover:bg-velour-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    Charge
+                </button>
             </div>
-
-            <div class="mb-5">
-                <label class="form-label">Discount ({{ $currencySymbol }}) <span class="text-muted">(optional)</span></label>
-                <input type="number" name="discount_amount" min="0" step="0.01" placeholder="0.00" class="form-input w-full sm:w-40">
-            </div>
-
-            <div class="mb-6">
-                <label class="form-label">Notes</label>
-                <input type="text" name="notes" placeholder="Receipt note…" class="form-input">
-            </div>
-
-            <div class="flex gap-3">
-                <button type="submit" class="btn-primary flex-1 sm:flex-none">Complete Sale</button>
-                <a href="{{ route('pos.index') }}" class="btn-outline">Cancel</a>
-            </div>
-        </form>
+        </div>
     </div>
+
 </div>
 
 @push('scripts')
 <script>
-function posForm(currencySymbol) {
+const POS_ITEMS    = @json($allItems);
+const POS_TAX_RATE = {{ $taxRate }};
+
+function posApp() {
     return {
-        currencySymbol: currencySymbol,
-        selectedItems: [],
-        get total() { return this.selectedItems.reduce((s, i) => s + i.price * i.qty, 0); },
-        toggleItem(event, type, id, price) {
-            const checked = event.target.checked;
-            const label   = event.target.closest('label').querySelector('span.flex-1').textContent.trim();
-            if (checked) { this.selectedItems.push({ type, id, qty: 1, price, label }); }
-            else { this.selectedItems = this.selectedItems.filter(i => !(i.type === type && i.id === id)); }
-        }
-    }
+        search:         '',
+        activeCategory: 'All',
+        cart:           [],
+        paymentMethod:  'cash',
+        clientId:       '',
+
+        init() {},
+
+        get filteredItems() {
+            return POS_ITEMS.filter(item => {
+                const matchCat    = this.activeCategory === 'All' || item.cat === this.activeCategory;
+                const matchSearch = !this.search || item.name.toLowerCase().includes(this.search.toLowerCase());
+                return matchCat && matchSearch;
+            });
+        },
+
+        isInCart(item) {
+            return this.cart.some(c => c.type === item.type && c.id === item.id);
+        },
+
+        addToCart(item) {
+            const idx = this.cart.findIndex(c => c.type === item.type && c.id === item.id);
+            if (idx >= 0) { this.cart[idx].qty++; }
+            else          { this.cart.push({ ...item, qty: 1 }); }
+        },
+
+        incQty(idx) { this.cart[idx].qty++; },
+
+        decQty(idx) {
+            if (this.cart[idx].qty > 1) { this.cart[idx].qty--; }
+            else                        { this.cart.splice(idx, 1); }
+        },
+
+        removeItem(idx) { this.cart.splice(idx, 1); },
+        clearCart()     { this.cart = []; },
+
+        get subtotal() { return this.cart.reduce((s, i) => s + i.price * i.qty, 0); },
+        get gst()      { return Math.round(this.subtotal * (POS_TAX_RATE / 100) * 100) / 100; },
+        get total()    { return Math.round((this.subtotal + this.gst) * 100) / 100; },
+
+        submitSale() {
+            if (this.cart.length === 0) return;
+            document.getElementById('pos-form').submit();
+        },
+    };
 }
 </script>
 @endpush

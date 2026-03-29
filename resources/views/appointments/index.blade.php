@@ -3,59 +3,71 @@
 @section('page-title', 'Appointments')
 @section('content')
 
-<div class="flex flex-col sm:flex-row gap-3 mb-6">
-    <form action="{{ route('appointments.index') }}" method="GET" class="flex flex-1 gap-2 flex-wrap">
-        <input type="text" name="search" value="{{ $search }}" placeholder="Search client or reference…" class="form-input flex-1 min-w-[180px]">
-        <input type="date" name="date" value="{{ $date }}" class="form-input w-auto">
-        <select name="status" class="form-select w-auto">
+<div class="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
+    <form action="{{ route('appointments.index') }}" method="GET"
+          class="flex flex-1 flex-wrap items-center gap-2 min-w-0">
+        <input type="text" name="search" value="{{ $search }}" placeholder="Search client or reference…"
+               class="form-input w-full min-w-0 sm:flex-1 sm:min-w-[200px] lg:max-w-xs">
+        <input type="date" name="date" value="{{ $date }}"
+               class="form-input w-full min-w-[140px] sm:w-auto sm:flex-initial">
+        <select name="status" class="form-select w-full min-w-0 sm:w-auto sm:min-w-[140px]">
             <option value="">All statuses</option>
-            @foreach(['confirmed','completed','cancelled','no_show'] as $s)
+            @foreach(['pending','confirmed','checked_in','in_progress','completed','cancelled','no_show'] as $s)
             <option value="{{ $s }}" {{ $status === $s ? 'selected' : '' }}>{{ ucfirst(str_replace('_',' ',$s)) }}</option>
             @endforeach
         </select>
-        <select name="staff_id" class="form-select w-auto">
+        <select name="staff_id" class="form-select w-full min-w-0 sm:w-auto sm:min-w-[140px]">
             <option value="">All staff</option>
             @foreach($staff as $s)
             <option value="{{ $s->id }}" {{ $staffId == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
             @endforeach
         </select>
-        <button type="submit" class="btn-secondary">Filter</button>
-        <a href="{{ route('appointments.index') }}" class="btn-outline">Clear</a>
+        <button type="submit" class="btn-secondary shrink-0 w-full sm:w-auto">Filter</button>
+        <a href="{{ route('appointments.index') }}" class="btn-outline shrink-0 w-full sm:w-auto text-center">Clear</a>
     </form>
-    <a href="{{ route('appointments.create') }}" class="btn-primary flex-shrink-0">+ New Appointment</a>
+    <a href="{{ route('appointments.create') }}"
+       class="btn-primary shrink-0 w-full lg:w-auto text-center whitespace-nowrap">
+        + New Appointment
+    </a>
 </div>
 
-<div class="table-wrap">
+<div class="table-wrap [&_thead_th]:py-2.5 [&_tbody_td]:py-2">
     <table class="data-table">
         <thead>
         <tr>
             <th>Client</th>
             <th class="hidden md:table-cell">Service</th>
             <th class="hidden sm:table-cell">Staff</th>
-            <th>Date & Time</th>
-            <th class="hidden lg:table-cell">Amount</th>
-            <th>Status</th>
-            <th></th>
+            <th>Date &amp; time</th>
+            <th class="hidden lg:table-cell text-right">Amount</th>
+            <th class="text-center">Status</th>
+            <th class="text-right w-[1%] whitespace-nowrap">Actions</th>
         </tr>
         </thead>
         <tbody>
         @forelse($appointments as $apt)
         <tr>
-            <td class="px-5 py-3.5">
-                <p class="font-semibold text-heading">{{ $apt->client?->first_name }} {{ $apt->client?->last_name }}</p>
-                <p class="text-xs text-muted">{{ $apt->reference }}</p>
+            <td>
+                <div class="flex flex-col gap-0 leading-snug">
+                    <p class="font-semibold text-heading">{{ $apt->client?->first_name }} {{ $apt->client?->last_name }}</p>
+                    <p class="text-xs text-muted">{{ $apt->reference }}</p>
+                </div>
             </td>
-            <td class="px-4 py-3.5 hidden md:table-cell text-body max-w-[150px] truncate">
-                {{ $apt->services->first()?->service?->name ?? '—' }}
-                @if($apt->services->count() > 1)<span class="text-xs text-muted">+{{ $apt->services->count() - 1 }}</span>@endif
+            <td class="hidden md:table-cell text-body max-w-[150px]">
+                <div class="flex flex-col gap-0 leading-snug max-w-full">
+                    <span class="truncate">{{ $apt->services->first()?->service?->name ?? '—' }}</span>
+                    @if($apt->services->count() > 1)<span class="text-xs text-muted">+{{ $apt->services->count() - 1 }}</span>@endif
+                </div>
             </td>
-            <td class="px-4 py-3.5 hidden sm:table-cell text-body">{{ $apt->staff?->name ?? '—' }}</td>
-            <td class="px-4 py-3.5">
-                <p class="font-medium text-body">{{ $apt->starts_at->format('H:i') }}</p>
-                <p class="text-xs text-muted">{{ $apt->starts_at->format('d M Y') }}</p>
+            <td class="hidden sm:table-cell text-body">{{ $apt->staff?->name ?? '—' }}</td>
+            <td>
+                <div class="flex flex-col gap-0 leading-snug">
+                    <p class="font-medium text-body">{{ $apt->starts_at->format('H:i') }}</p>
+                    <p class="text-xs text-muted">{{ $apt->starts_at->format('d M Y') }}</p>
+                </div>
             </td>
-            <td class="px-4 py-3.5 hidden lg:table-cell font-semibold text-heading">@money($apt->total_price)</td>
-            <td class="px-4 py-3.5">
+            <td class="hidden lg:table-cell font-semibold text-heading text-right">@money($apt->total_price)</td>
+            <td class="text-center">
                 @php
                     $colors = [
                         'confirmed' => 'badge-blue',
@@ -68,8 +80,8 @@
                 @endphp
                 <span class="{{ $cls }}">{{ ucfirst(str_replace('_',' ',$apt->status)) }}</span>
             </td>
-            <td class="px-4 py-3.5">
-                <a href="{{ route('appointments.show', $apt->id) }}" class="text-link text-xs font-medium">View</a>
+            <td class="text-right">
+                <a href="{{ route('appointments.show', $apt->id) }}" class="text-link text-xs font-medium whitespace-nowrap">View</a>
             </td>
         </tr>
         @empty

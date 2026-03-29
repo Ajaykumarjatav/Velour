@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Revenue Report')
 @section('page-title', 'Revenue Report')
 @section('content')
@@ -17,11 +17,11 @@
 </div>
 
 <div class="table-wrap mb-6">
-    <h3 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Daily Breakdown</h3>
+    <h3 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Daily breakdown</h3>
     <table class="data-table">
         <thead>
         <tr>
-            <th class="text-left">Date</th>
+            <th>Date</th>
             <th class="text-right">Transactions</th>
             <th class="text-right">Revenue</th>
         </tr>
@@ -45,7 +45,7 @@
     <table class="data-table">
         <thead>
         <tr>
-            <th class="text-left">Method</th>
+            <th>Method</th>
             <th class="text-right">Count</th>
             <th class="text-right">Total</th>
         </tr>

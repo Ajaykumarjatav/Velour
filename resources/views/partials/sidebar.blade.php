@@ -1,4 +1,4 @@
-<div class="flex flex-col h-full">
+<div class="flex flex-col h-full min-h-0">
 
     {{-- Logo --}}
     <div class="px-5 py-5 border-b border-gray-100 dark:border-gray-800">
@@ -12,7 +12,7 @@
     </div>
 
     {{-- Nav --}}
-    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+    <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-4 space-y-0.5">
 
         <a href="{{ route('dashboard') }}"
            class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">

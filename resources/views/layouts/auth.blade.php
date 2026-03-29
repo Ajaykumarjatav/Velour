@@ -17,10 +17,21 @@
             }
         }
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgb(209 213 219) rgb(243 244 246);
+        }
+        *::-webkit-scrollbar { width: 8px; height: 8px; }
+        *::-webkit-scrollbar-track { background: rgb(243 244 246); border-radius: 4px; }
+        *::-webkit-scrollbar-thumb { background: rgb(209 213 219); border-radius: 4px; }
+        *::-webkit-scrollbar-thumb:hover { background: rgb(156 163 175); }
+    </style>
 </head>
-<body class="h-full flex items-center justify-center bg-gradient-to-br from-velour-50 to-gray-100 p-4">
+<body class="h-full min-h-screen flex items-center justify-center bg-gradient-to-br from-velour-50 to-gray-100 p-4">
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-12 h-12 bg-velour-600 rounded-2xl mb-4 shadow-lg">

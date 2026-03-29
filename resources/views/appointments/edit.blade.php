@@ -3,6 +3,8 @@
 @section('page-title', 'Edit Appointment')
 @section('content')
 
+@php $occupiedSlotsUrl = route('appointments.occupied-slots'); @endphp
+
 <div class="max-w-2xl">
     <div class="card p-6">
         <form action="{{ route('appointments.update', $appointment->id) }}" method="POST" class="space-y-5">
@@ -11,25 +13,60 @@
                 <label class="form-label">Client</label>
                 <select name="client_id" required class="form-select">
                     @foreach($clients as $client)
-                    <option value="{{ $client->id }}" {{ $appointment->client_id == $client->id ? 'selected' : '' }}>
+                    <option value="{{ $client->id }}" {{ old('client_id', $appointment->client_id) == $client->id ? 'selected' : '' }}>
                         {{ $client->first_name }} {{ $client->last_name }}
                     </option>
                     @endforeach
                 </select>
             </div>
-            <div>
-                <label class="form-label">Staff member</label>
-                <select name="staff_id" required class="form-select">
-                    @foreach($staff as $s)
-                    <option value="{{ $s->id }}" {{ $appointment->staff_id == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
-                    @endforeach
-                </select>
+
+            <div x-data="timeslotPickerEdit(@js($occupiedSlotsUrl), {{ $appointment->id }})" x-init="init()">
+                <div>
+                    <label class="form-label">Staff member</label>
+                    <select name="staff_id" required x-model="staffId" class="form-select">
+                        @foreach($staff as $s)
+                        <option value="{{ $s->id }}" {{ (string) old('staff_id', $appointment->staff_id) === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-4 mt-5">
+                    <label class="form-label uppercase tracking-wide text-xs font-bold text-velour-600 dark:text-velour-400">Date <span class="text-red-500">*</span></label>
+                    <input type="date"
+                           x-model="selectedDate"
+                           @change="onDateChange()"
+                           :min="today"
+                           required
+                           class="form-input">
+                </div>
+
+                <div x-show="selectedDate && staffId" x-cloak>
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <label class="form-label uppercase tracking-wide text-xs font-bold text-velour-600 dark:text-velour-400 mb-0">Time slot <span class="text-red-500">*</span></label>
+                        <span x-show="loadingSlots" class="text-xs text-muted">Checking availability…</span>
+                    </div>
+                    <p class="text-xs text-muted mb-2">Unavailable times are already booked for this staff member on this date (this appointment is excluded).</p>
+                    <div class="grid grid-cols-4 gap-2">
+                        <template x-for="slot in timeSlots" :key="slot">
+                            <button type="button"
+                                    @click="pickSlot(slot)"
+                                    :disabled="isBlocked(slot) || loadingSlots"
+                                    :class="isBlocked(slot)
+                                        ? 'bg-gray-100 dark:bg-gray-800/80 text-muted border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60 line-through'
+                                        : (selectedTime === slot
+                                            ? 'bg-velour-600 text-white border-velour-600 font-bold shadow-sm'
+                                            : 'bg-white dark:bg-gray-800 text-body border-gray-200 dark:border-gray-700 hover:border-velour-400 hover:text-velour-600 dark:hover:text-velour-400')"
+                                    class="py-2.5 rounded-xl border text-sm font-medium transition-all disabled:pointer-events-none">
+                                <span x-text="slot"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <input type="hidden" name="starts_at" :value="selectedDate && selectedTime ? selectedDate + ' ' + selectedTime + ':00' : ''">
+                @error('starts_at')<p class="form-error mt-1">{{ $message }}</p>@enderror
             </div>
-            <div>
-                <label class="form-label">Date & Time</label>
-                <input type="datetime-local" name="starts_at"
-                       value="{{ old('starts_at', $appointment->starts_at->format('Y-m-d\TH:i')) }}" required class="form-input">
-            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">Client notes</label>
@@ -47,5 +84,85 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+function timeslotPickerEdit(occupiedUrl, excludeAppointmentId) {
+    const oldStarts = @json(old('starts_at'));
+    let dateInit = '{{ $appointment->starts_at->format('Y-m-d') }}';
+    let timeInit = '{{ $appointment->starts_at->format('H:i') }}';
+    if (oldStarts && oldStarts.length >= 16) {
+        dateInit = oldStarts.substring(0, 10);
+        timeInit = oldStarts.substring(11, 16);
+    }
+    return {
+        occupiedUrl,
+        excludeAppointmentId,
+        today: new Date().toISOString().split('T')[0],
+        staffId: '{{ old('staff_id', $appointment->staff_id) }}',
+        selectedDate: dateInit,
+        selectedTime: timeInit,
+        blocked: [],
+        loadingSlots: false,
+        timeSlots: [
+            '09:00','09:30','10:00','10:30',
+            '11:00','11:30','12:00','12:30',
+            '13:00','14:00','14:30','15:00',
+            '15:30','16:00','16:30','17:00',
+            '17:30','18:00','18:30','19:00',
+        ],
+        init() {
+            this.$watch('staffId', () => {
+                this.selectedTime = '';
+                this.fetchBlocked();
+            });
+            this.$watch('selectedDate', () => {
+                if (this.selectedDate) this.fetchBlocked();
+            });
+            if (this.staffId && this.selectedDate) this.fetchBlocked();
+        },
+        onDateChange() {
+            this.selectedTime = '';
+            this.fetchBlocked();
+        },
+        isBlocked(slot) {
+            return this.blocked.includes(slot);
+        },
+        pickSlot(slot) {
+            if (this.isBlocked(slot) || this.loadingSlots) return;
+            this.selectedTime = slot;
+        },
+        async fetchBlocked() {
+            if (!this.staffId || !this.selectedDate) {
+                this.blocked = [];
+                return;
+            }
+            this.loadingSlots = true;
+            try {
+                const u = new URL(this.occupiedUrl, window.location.origin);
+                u.searchParams.set('date', this.selectedDate);
+                u.searchParams.set('staff_id', String(this.staffId));
+                u.searchParams.set('exclude_appointment_id', String(this.excludeAppointmentId));
+                const r = await fetch(u.toString(), {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+                if (!r.ok) throw new Error('slots');
+                const data = await r.json();
+                this.blocked = data.blocked || [];
+                if (this.isBlocked(this.selectedTime)) this.selectedTime = '';
+            } catch (e) {
+                this.blocked = [];
+            } finally {
+                this.loadingSlots = false;
+            }
+        },
+    };
+}
+</script>
+@endpush
 
 @endsection

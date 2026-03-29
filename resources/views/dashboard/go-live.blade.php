@@ -646,6 +646,7 @@ const _serverData = {
   qrUrl:       "{{ $qrUrl }}",
   embedCodes:  @json($embedCodes),
   shareClicks: @json($shareclicks),
+  socialLinks: @json($salon->social_links ?? []),
   salon: {
     slug:                    "{{ $salon->slug }}",
     online_booking_enabled:  {{ $salon->online_booking_enabled  ? 'true' : 'false' }},
@@ -699,7 +700,8 @@ function goLivePage() {
         border: '#fcd',
         color: '#be185d',
         get href() {
-          return `https://www.instagram.com/`;
+          const profile = (_serverData.socialLinks || {}).instagram;
+          return profile || `https://www.instagram.com/`;
         }
       },
       {
@@ -710,6 +712,8 @@ function goLivePage() {
         border: '#bbf7d0',
         color: '#15803d',
         get href() {
+          const profile = (_serverData.socialLinks || {}).whatsapp;
+          if (profile) return profile;
           const url = _serverData.bookingUrl;
           const text = encodeURIComponent(`Book your next appointment with us! 💅\n${url}`);
           return `https://wa.me/?text=${text}`;
@@ -723,7 +727,8 @@ function goLivePage() {
         border: '#bfdbfe',
         color: '#1d4ed8',
         get href() {
-          return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(_serverData.bookingUrl)}`;
+          const profile = (_serverData.socialLinks || {}).facebook;
+          return profile || `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(_serverData.bookingUrl)}`;
         }
       },
       {
@@ -734,7 +739,8 @@ function goLivePage() {
         border: '#fed7aa',
         color: '#c2410c',
         get href() {
-          return `https://business.google.com/`;
+          const profile = (_serverData.socialLinks || {}).google;
+          return profile || `https://business.google.com/`;
         }
       },
       {
@@ -745,7 +751,8 @@ function goLivePage() {
         border: '#e9d5ff',
         color: '#7e22ce',
         get href() {
-          return `https://www.tiktok.com/`;
+          const profile = (_serverData.socialLinks || {}).tiktok;
+          return profile || `https://www.tiktok.com/`;
         }
       },
       {

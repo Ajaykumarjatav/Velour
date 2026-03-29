@@ -99,12 +99,12 @@
   <div class="table-wrap">
     <h2 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Invoices</h2>
     <table class="data-table">
-      <thead><tr><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th class="text-right">Amount</th><th>Status</th><th class="text-right w-[1%] whitespace-nowrap">Actions</th></tr></thead>
       <tbody>
         @foreach($invoices as $invoice)
         <tr>
           <td class="text-body">{{ $invoice->date()->format('d M Y') }}</td>
-          <td class="font-semibold text-heading">{{ $invoice->total() }}</td>
+          <td class="font-semibold text-heading text-right">{{ $invoice->total() }}</td>
           <td><span class="{{ $invoice->paid ? 'badge-green' : 'badge-yellow' }}">{{ $invoice->paid ? 'Paid' : 'Open' }}</span></td>
           <td class="text-right"><a href="{{ route('billing.invoice.download', $invoice->id) }}" class="text-sm text-link font-medium">PDF</a></td>
         </tr>

@@ -11,9 +11,23 @@
       theme: { extend: { colors: { velour: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95' } } } }
     }
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    /* Dark UI — match tenant app scrollbar (no .dark class on html here) */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgb(75 85 99) rgb(3 7 18);
+    }
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-track { background: rgb(3 7 18); border-radius: 4px; }
+    *::-webkit-scrollbar-thumb { background: rgb(55 65 81); border-radius: 4px; }
+    *::-webkit-scrollbar-thumb:hover { background: rgb(75 85 99); }
+  </style>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="h-full flex" x-data="{ sidebarOpen: false }">
+<body class="h-full min-h-screen flex min-h-0" x-data="{ sidebarOpen: false }">
 
   {{-- Sidebar --}}
   <aside class="w-56 flex-shrink-0 bg-gray-900 flex flex-col h-screen sticky top-0">
@@ -33,7 +47,7 @@
     </div>
     @endif
 
-    <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+    <nav class="flex-1 min-h-0 px-3 py-4 space-y-0.5 overflow-y-auto">
       @php
         $nav = [
           ['route' => 'admin.dashboard',    'icon' => '◼',  'label' => 'Dashboard'],
@@ -82,7 +96,7 @@
   </aside>
 
   {{-- Main --}}
-  <main class="flex-1 min-h-screen overflow-y-auto bg-gray-950">
+  <main class="flex-1 min-h-0 overflow-y-auto bg-gray-950">
     {{-- Top bar --}}
     <div class="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-6 py-3 flex items-center justify-between">
       <h1 class="text-lg font-semibold text-white">@yield('page-title', 'Admin')</h1>
@@ -93,13 +107,21 @@
 
     {{-- Flash messages --}}
     <div class="px-6 pt-4">
-      @foreach(['success' => 'green', 'warning' => 'amber', 'info' => 'blue'] as $type => $color)
-        @if(session($type))
-        <div class="mb-4 px-4 py-3 rounded-xl text-sm bg-{{ $color }}-900/30 text-{{ $color }}-300 border border-{{ $color }}-800/50">
-          {{ session($type) }}
-        </div>
-        @endif
-      @endforeach
+      @if(session('success'))
+      <div class="mb-4 px-4 py-3 rounded-xl text-sm bg-green-900/30 text-green-300 border border-green-800/50">
+        {{ session('success') }}
+      </div>
+      @endif
+      @if(session('warning'))
+      <div class="mb-4 px-4 py-3 rounded-xl text-sm bg-amber-900/30 text-amber-300 border border-amber-800/50">
+        {{ session('warning') }}
+      </div>
+      @endif
+      @if(session('info'))
+      <div class="mb-4 px-4 py-3 rounded-xl text-sm bg-blue-900/30 text-blue-300 border border-blue-800/50">
+        {{ session('info') }}
+      </div>
+      @endif
       @if($errors->any())
       <div class="mb-4 px-4 py-3 rounded-xl text-sm bg-red-900/30 text-red-300 border border-red-800/50">
         {{ $errors->first() }}

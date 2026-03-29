@@ -3,11 +3,11 @@
 @section('page-title', 'Settings')
 @section('content')
 
-<div class="max-w-3xl" x-data="{ tab: '{{ request()->get('tab', 'salon') }}' }">
+<div class="max-w-3xl" x-data="{ tab: '{{ session('tab', request()->get('tab', 'salon')) }}' }">
 
     {{-- Tab bar --}}
     <div class="flex flex-wrap gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl w-fit">
-        @foreach(['salon' => 'Salon', 'hours' => 'Hours', 'notifications' => 'Notifications', 'profile' => 'My Profile', 'security' => 'Security'] as $key => $label)
+        @foreach(['salon' => 'Salon', 'hours' => 'Hours', 'social' => 'Social Links', 'notifications' => 'Notifications', 'profile' => 'My Profile', 'security' => 'Security'] as $key => $label)
         <button @click="tab='{{ $key }}'"
                 :class="tab==='{{ $key }}' ? 'bg-white dark:bg-gray-700 text-velour-700 dark:text-velour-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
                 class="px-4 py-2 text-sm font-medium rounded-xl transition-all">
@@ -118,9 +118,98 @@
         </div>
     </div>
 
-    {{-- ── Notifications ── --}}
-    <div x-show="tab==='notifications'" x-cloak>
+    {{-- ── Social Links ── --}}
+    <div x-show="tab==='social'" x-cloak>
         <div class="card p-6">
+            <h2 class="font-semibold text-heading mb-1">Social Links</h2>
+            <p class="text-xs text-muted mb-5">Add your profile URLs. Each link redirects clients to your profile and tracks inbound clicks.</p>
+
+            <form action="{{ route('settings.social-links') }}" method="POST" class="space-y-4">
+                @csrf @method('PUT')
+
+                @php
+                $platforms = [
+                    'instagram' => ['label' => 'Instagram',       'icon' => '📸', 'placeholder' => 'https://instagram.com/yoursalon'],
+                    'facebook'  => ['label' => 'Facebook',        'icon' => '👍', 'placeholder' => 'https://facebook.com/yoursalon'],
+                    'tiktok'    => ['label' => 'TikTok',          'icon' => '🎵', 'placeholder' => 'https://tiktok.com/@yoursalon'],
+                    'whatsapp'  => ['label' => 'WhatsApp',        'icon' => '💬', 'placeholder' => 'https://wa.me/447700000000'],
+                    'google'    => ['label' => 'Google Business', 'icon' => '🔍', 'placeholder' => 'https://g.page/yoursalon'],
+                    'twitter'   => ['label' => 'X / Twitter',     'icon' => '🐦', 'placeholder' => 'https://x.com/yoursalon'],
+                    'youtube'   => ['label' => 'YouTube',         'icon' => '▶️', 'placeholder' => 'https://youtube.com/@yoursalon'],
+                    'linkedin'  => ['label' => 'LinkedIn',        'icon' => '💼', 'placeholder' => 'https://linkedin.com/company/yoursalon'],
+                    'pinterest' => ['label' => 'Pinterest',       'icon' => '📌', 'placeholder' => 'https://pinterest.com/yoursalon'],
+                ];
+                $saved = $salon->social_links ?? [];
+                @endphp
+
+                @foreach($platforms as $key => $meta)
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-lg flex-shrink-0">
+                        {{ $meta['icon'] }}
+                    </div>
+                    <div class="flex-1">
+                        <label class="form-label mb-1">{{ $meta['label'] }}</label>
+                        <div class="flex items-center gap-2">
+                            <input type="url"
+                                   name="social_links[{{ $key }}]"
+                                   value="{{ old("social_links.{$key}", $saved[$key] ?? '') }}"
+                                   placeholder="{{ $meta['placeholder'] }}"
+                                   class="form-input flex-1">
+                            @if(!empty($saved[$key]))
+                            <a href="{{ $saved[$key] }}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="flex-shrink-0 px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-muted hover:text-body transition-colors">
+                                Visit ↗
+                            </a>
+                            @endif
+                        </div>
+                        @error("social_links.{$key}")
+                        <p class="form-error mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+                @endforeach
+
+                <div class="pt-2 flex items-center gap-3">
+                    <button type="submit" class="btn-primary">Save Social Links</button>
+                    <p class="text-xs text-muted">Links appear on your booking page and Go Live &amp; Share panel.</p>
+                </div>
+            </form>
+        </div>
+
+        {{-- Click stats this month --}}
+        @php
+        $clickStats = \Illuminate\Support\Facades\DB::table('social_share_clicks')
+            ->where('salon_id', $salon->id)
+            ->where('clicked_at', '>=', now()->startOfMonth())
+            ->selectRaw('platform, COUNT(*) as clicks')
+            ->groupBy('platform')
+            ->orderByDesc('clicks')
+            ->get();
+        @endphp
+
+        @if($clickStats->isNotEmpty())
+        <div class="card p-6 mt-4">
+            <h3 class="font-semibold text-heading mb-4">Click Stats — {{ now()->format('F Y') }}</h3>
+            <div class="space-y-3">
+                @foreach($clickStats as $stat)
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-body w-28 capitalize">{{ $stat->platform }}</span>
+                    <div class="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                        <div class="bg-velour-500 h-2 rounded-full"
+                             style="width: {{ min(100, round(($stat->clicks / max($clickStats->max('clicks'), 1)) * 100)) }}%"></div>
+                    </div>
+                    <span class="text-sm font-bold text-heading w-8 text-right">{{ $stat->clicks }}</span>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+    </div>
+
+    {{-- ── Notifications ── --}}
+    <div x-show="tab==='notifications'" x-cloak>        <div class="card p-6">
             <h2 class="font-semibold text-heading mb-5">Notification Settings</h2>
             <form action="{{ route('settings.notifications') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')

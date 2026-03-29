@@ -12,16 +12,16 @@
     @endforeach
 </div>
 
-<div class="flex flex-col sm:flex-row gap-3 mb-6">
-    <form action="{{ route('marketing.index') }}" method="GET" class="flex flex-1 gap-2">
-        <select name="status" onchange="this.form.submit()" class="form-select w-auto">
+<div class="flex flex-col sm:flex-row gap-4 mb-6 items-center justify-between">
+    <form action="{{ route('marketing.index') }}" method="GET" class="flex flex-wrap items-center gap-3 min-w-0">
+        <select name="status" onchange="this.form.submit()" class="form-select w-full sm:w-auto min-w-[180px]">
             <option value="">All statuses</option>
             @foreach(['draft','scheduled','sending','sent'] as $s)
             <option value="{{ $s }}" {{ $status === $s ? 'selected' : '' }}>{{ ucfirst($s) }}</option>
             @endforeach
         </select>
     </form>
-    <a href="{{ route('marketing.create') }}" class="flex-shrink-0 btn-primary">+ New Campaign</a>
+    <a href="{{ route('marketing.create') }}" class="btn-primary flex-shrink-0 w-full sm:w-auto text-center">+ New Campaign</a>
 </div>
 
 <div class="table-wrap">
@@ -33,7 +33,7 @@
             <th class="hidden md:table-cell">Segment</th>
             <th>Status</th>
             <th class="hidden lg:table-cell">Created</th>
-            <th></th>
+            <th class="text-right w-[1%] whitespace-nowrap">Actions</th>
         </tr>
         </thead>
         <tbody>

@@ -58,10 +58,29 @@ class PosController extends Controller
     {
         $salon    = $this->salon();
         $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
-        $services = Service::where('salon_id', $salon->id)->active()->get(['id','name','price']);
-        $products = InventoryItem::where('salon_id', $salon->id)->where('stock_quantity', '>', 0)->get(['id','name','retail_price as price','stock_quantity as quantity']);
+        $services = Service::where('salon_id', $salon->id)
+            ->active()
+            ->with('category:id,name')
+            ->orderBy('sort_order')
+            ->get(['id','name','price','duration_minutes','category_id']);
+        $products = InventoryItem::where('salon_id', $salon->id)
+            ->where('stock_quantity', '>', 0)
+            ->get(['id','name','retail_price as price','stock_quantity as quantity']);
 
-        return view('pos.create', compact('salon', 'clients', 'services', 'products'));
+        // Group services by category for the filter tabs
+        $categories = $services->pluck('category.name', 'category_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        // Recent transactions for the bottom panel
+        $recentTransactions = PosTransaction::where('salon_id', $salon->id)
+            ->with('client')
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('pos.create', compact('salon', 'clients', 'services', 'products', 'categories', 'recentTransactions'));
     }
 
     public function store(Request $request)
@@ -75,22 +94,28 @@ class PosController extends Controller
             'items.*.id'      => ['required', 'integer'],
             'items.*.qty'     => ['required', 'integer', 'min:1'],
             'items.*.price'   => ['required', 'numeric', 'min:0'],
+            'items.*.name'    => ['required', 'string', 'max:200'],
             'payment_method'  => ['required', 'in:cash,card,bank_transfer,voucher'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'tax_rate'        => ['nullable', 'numeric', 'min:0', 'max:100'],
             'notes'           => ['nullable', 'string', 'max:500'],
         ]);
 
         $subtotal = collect($data['items'])->sum(fn($i) => $i['qty'] * $i['price']);
         $discount = $data['discount_amount'] ?? 0;
-        $total    = max(0, $subtotal - $discount);
+        $taxRate  = $data['tax_rate'] ?? 18;
+        $taxable  = max(0, $subtotal - $discount);
+        $tax      = round($taxable * ($taxRate / 100), 2);
+        $total    = $taxable + $tax;
 
-        DB::transaction(function () use ($data, $salon, $subtotal, $discount, $total) {
+        DB::transaction(function () use ($data, $salon, $subtotal, $discount, $tax, $total) {
             $transaction = PosTransaction::create([
                 'salon_id'        => $salon->id,
                 'client_id'       => $data['client_id'] ?? null,
                 'payment_method'  => $data['payment_method'],
                 'subtotal'        => $subtotal,
                 'discount_amount' => $discount,
+                'tax_amount'      => $tax,
                 'total'           => $total,
                 'status'          => 'completed',
                 'notes'           => $data['notes'] ?? null,
@@ -99,11 +124,11 @@ class PosController extends Controller
 
             foreach ($data['items'] as $item) {
                 $transaction->items()->create([
-                    'item_type'  => $item['type'],
-                    'item_id'    => $item['id'],
-                    'quantity'   => $item['qty'],
-                    'unit_price' => $item['price'],
-                    'subtotal'   => $item['qty'] * $item['price'],
+                    'name'        => $item['name'],
+                    'type'        => $item['type'],
+                    'quantity'    => $item['qty'],
+                    'unit_price'  => $item['price'],
+                    'total'       => $item['qty'] * $item['price'],
                 ]);
             }
         });

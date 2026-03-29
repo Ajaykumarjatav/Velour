@@ -3,118 +3,117 @@
 @section('page-title', 'Vouchers & Gift Cards')
 @section('content')
 
-{{-- Stats --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-  <div class="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-    <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['total']) }}</p>
-    <p class="text-xs text-gray-400 mt-1 uppercase tracking-wide">Total</p>
+  <div class="stat-card text-center">
+    <p class="text-2xl font-bold text-heading">{{ number_format($stats['total']) }}</p>
+    <p class="stat-label mt-1">Total</p>
   </div>
-  <div class="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-    <p class="text-2xl font-bold text-green-600">{{ number_format($stats['active']) }}</p>
-    <p class="text-xs text-gray-400 mt-1 uppercase tracking-wide">Active</p>
+  <div class="stat-card text-center">
+    <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ number_format($stats['active']) }}</p>
+    <p class="stat-label mt-1">Active</p>
   </div>
-  <div class="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-    <p class="text-2xl font-bold text-velour-600">{{ number_format($stats['gift_cards']) }}</p>
-    <p class="text-xs text-gray-400 mt-1 uppercase tracking-wide">Gift Cards</p>
+  <div class="stat-card text-center">
+    <p class="text-2xl font-bold text-velour-600 dark:text-velour-400">{{ number_format($stats['gift_cards']) }}</p>
+    <p class="stat-label mt-1">Gift cards</p>
   </div>
-  <div class="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-    <p class="text-2xl font-bold text-gray-900">@money($stats['total_value'])</p>
-    <p class="text-xs text-gray-400 mt-1 uppercase tracking-wide">Remaining Value</p>
+  <div class="stat-card text-center">
+    <p class="text-2xl font-bold text-heading">@money($stats['total_value'])</p>
+    <p class="stat-label mt-1">Remaining value</p>
   </div>
 </div>
 
-{{-- Filters + create --}}
-<div class="flex flex-col sm:flex-row gap-3 mb-6">
-  <form method="GET" action="{{ route('vouchers.index') }}" class="flex flex-1 gap-2 flex-wrap">
-    <input type="search" name="search" value="{{ $search }}" placeholder="Search code or client…"
-           class="flex-1 min-w-[180px] px-4 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-velour-500">
-
-    <select name="type" class="px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-velour-500">
-      <option value="">All types</option>
-      @foreach(['discount'=>'Discount (£)', 'gift_card'=>'Gift Card', 'free_service'=>'Free Service', 'percentage'=>'Percentage (%)'] as $v => $l)
-      <option value="{{ $v }}" {{ $type === $v ? 'selected' : '' }}>{{ $l }}</option>
-      @endforeach
-    </select>
-
-    <select name="status" class="px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-velour-500">
-      <option value="active"   {{ $status === 'active'   ? 'selected' : '' }}>Active</option>
-      <option value="expired"  {{ $status === 'expired'  ? 'selected' : '' }}>Expired</option>
-      <option value="inactive" {{ $status === 'inactive' ? 'selected' : '' }}>Inactive</option>
-      <option value="all"      {{ $status === 'all'      ? 'selected' : '' }}>All</option>
-    </select>
-
-    <button type="submit" class="px-4 py-2 text-sm font-medium rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700">Filter</button>
-    <a href="{{ route('vouchers.index') }}" class="px-4 py-2 text-sm text-gray-400 hover:text-gray-600">Clear</a>
+<div class="flex flex-col lg:flex-row gap-4 mb-6 items-start">
+  <form method="GET" action="{{ route('vouchers.index') }}" class="flex flex-1 flex-col gap-3 min-w-0 w-full">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <input type="search" name="search" value="{{ $search }}" placeholder="Search code or client…" class="form-input w-full min-w-0 xl:col-span-2">
+      <select name="type" class="form-select w-full min-w-0">
+        <option value="">All types</option>
+        @foreach(['discount'=>'Discount (£)', 'gift_card'=>'Gift Card', 'free_service'=>'Free Service', 'percentage'=>'Percentage (%)'] as $v => $l)
+        <option value="{{ $v }}" {{ $type === $v ? 'selected' : '' }}>{{ $l }}</option>
+        @endforeach
+      </select>
+      <select name="status" class="form-select w-full min-w-0">
+        <option value="active"   {{ $status === 'active'   ? 'selected' : '' }}>Active</option>
+        <option value="expired"  {{ $status === 'expired'  ? 'selected' : '' }}>Expired</option>
+        <option value="inactive" {{ $status === 'inactive' ? 'selected' : '' }}>Inactive</option>
+        <option value="all"      {{ $status === 'all'      ? 'selected' : '' }}>All</option>
+      </select>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="submit" class="btn-secondary">Filter</button>
+      <a href="{{ route('vouchers.index') }}" class="btn-outline">Clear</a>
+    </div>
   </form>
-
-  <a href="{{ route('vouchers.create') }}"
-     class="flex-shrink-0 px-5 py-2 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
-    + New Voucher
-  </a>
+  <a href="{{ route('vouchers.create') }}" class="btn-primary flex-shrink-0 w-full sm:w-auto text-center">+ New Voucher</a>
 </div>
 
-{{-- Table --}}
-<div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-  <table class="w-full text-sm">
+<div class="table-wrap">
+  <table class="data-table data-table-fixed">
+    <colgroup>
+      <col class="w-[14%]">
+      <col class="w-[18%]">
+      <col class="w-[14%]">
+      <col class="w-[12%]">
+      <col class="w-[12%]">
+      <col class="w-[14%]">
+      <col class="w-[16%]">
+    </colgroup>
     <thead>
-    <tr class="border-b border-gray-100 bg-gray-50">
-      <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Code</th>
-      <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Client</th>
-      <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-      <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Value</th>
-      <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Expires</th>
-      <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-      <th class="px-4 py-3"></th>
+    <tr>
+      <th>Code</th>
+      <th class="hidden sm:table-cell">Client</th>
+      <th>Type</th>
+      <th class="text-right">Value</th>
+      <th class="hidden md:table-cell">Expires</th>
+      <th class="text-center">Status</th>
+      <th class="text-right w-[1%] whitespace-nowrap">Actions</th>
     </tr>
     </thead>
-    <tbody class="divide-y divide-gray-50">
+    <tbody>
     @forelse($vouchers as $v)
     @php
       $typeLabel = ['discount'=>'£ Discount','gift_card'=>'Gift Card','free_service'=>'Free Service','percentage'=>'% Off'][$v->type] ?? $v->type;
       $isExpired = $v->expires_at && $v->expires_at->isPast();
     @endphp
-    <tr class="hover:bg-gray-50 transition-colors {{ $isExpired ? 'opacity-60' : '' }}">
-      <td class="px-5 py-3.5">
-        <a href="{{ route('vouchers.show', $v->id) }}"
-           class="font-mono font-semibold text-velour-700 hover:underline">{{ $v->code }}</a>
-        <p class="text-xs text-gray-400 mt-0.5">Used {{ $v->usage_count }}x</p>
+    <tr class="{{ $isExpired ? 'opacity-70' : '' }}">
+      <td class="max-w-0">
+        <a href="{{ route('vouchers.show', $v->id) }}" class="font-mono font-semibold text-link truncate block">{{ $v->code }}</a>
+        <p class="text-xs text-muted mt-0.5">Used {{ $v->usage_count }}×</p>
       </td>
-      <td class="px-4 py-3.5 hidden sm:table-cell text-sm text-gray-600">
+      <td class="hidden sm:table-cell text-body max-w-0 truncate">
         @if($v->client)
-        <a href="{{ route('clients.show', $v->client_id) }}" class="hover:text-velour-600">
-          {{ $v->client->first_name }} {{ $v->client->last_name }}
-        </a>
+        <a href="{{ route('clients.show', $v->client_id) }}" class="hover:underline">{{ $v->client->first_name }} {{ $v->client->last_name }}</a>
         @else
-        <span class="text-gray-400">Any client</span>
+        <span class="text-muted">Any client</span>
         @endif
       </td>
-      <td class="px-4 py-3.5 text-xs text-gray-600">{{ $typeLabel }}</td>
-      <td class="px-4 py-3.5 text-right font-semibold text-gray-900">
+      <td class="text-xs text-body">{{ $typeLabel }}</td>
+      <td class="text-right font-semibold text-heading whitespace-nowrap">
         @if($v->type === 'percentage') {{ $v->value }}%
-        @elseif($v->type === 'gift_card') @money($v->remaining_balance) <span class="text-xs text-gray-400">of @money($v->value)</span>
+        @elseif($v->type === 'gift_card') @money($v->remaining_balance) <span class="text-xs text-muted font-normal">of @money($v->value)</span>
         @else @money($v->value)
         @endif
       </td>
-      <td class="px-4 py-3.5 hidden md:table-cell text-xs {{ $isExpired ? 'text-red-500' : 'text-gray-500' }}">
+      <td class="hidden md:table-cell text-xs {{ $isExpired ? 'text-red-500 dark:text-red-400' : 'text-muted' }} whitespace-nowrap">
         {{ $v->expires_at ? $v->expires_at->format('d M Y') : '—' }}
       </td>
-      <td class="px-4 py-3.5">
+      <td class="text-center">
         @if(!$v->is_active)
-        <span class="px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-500 rounded-lg">Inactive</span>
+        <span class="badge-gray">Inactive</span>
         @elseif($isExpired)
-        <span class="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-600 rounded-lg">Expired</span>
+        <span class="badge-red">Expired</span>
         @else
-        <span class="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded-lg">Active</span>
+        <span class="badge-green">Active</span>
         @endif
       </td>
-      <td class="px-4 py-3.5 text-right">
-        <a href="{{ route('vouchers.show', $v->id) }}" class="text-xs text-velour-600 hover:text-velour-700 font-medium">View →</a>
+      <td class="text-right">
+        <a href="{{ route('vouchers.show', $v->id) }}" class="text-xs text-link font-medium whitespace-nowrap">View</a>
       </td>
     </tr>
     @empty
     <tr>
-      <td colspan="7" class="px-5 py-12 text-center text-sm text-gray-400">
-        No vouchers yet. <a href="{{ route('vouchers.create') }}" class="text-velour-600 hover:underline">Create one →</a>
+      <td colspan="7" class="px-5 py-12 text-center text-sm text-muted">
+        No vouchers yet. <a href="{{ route('vouchers.create') }}" class="text-link font-medium">Create one</a>
       </td>
     </tr>
     @endforelse

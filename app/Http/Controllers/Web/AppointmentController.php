@@ -7,12 +7,17 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Staff;
 use App\Models\Service;
+use App\Services\NotificationService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class AppointmentController extends Controller
 {
+    public function __construct(private NotificationService $notificationService) {}
+
     private function salon()
     {
         return Auth::user()->salons()->firstOrFail();
@@ -20,21 +25,25 @@ class AppointmentController extends Controller
 
     public function index(Request $request)
     {
-        $salon  = $this->salon();
-        $search = $request->get('search');
-        $status = $request->get('status');
-        $date   = $request->get('date');
-        $staffId= $request->get('staff_id');
+        $salon   = $this->salon();
+        $search  = $request->get('search');
+        $status  = $request->get('status');
+        $date    = $request->get('date');
+        $staffId = $request->get('staff_id');
 
         $query = Appointment::where('salon_id', $salon->id)
             ->with(['client', 'staff', 'services.service'])
             ->latest('starts_at');
 
         if ($search) {
-            $query->whereHas('client', fn($q) =>
-                $q->where('first_name', 'like', "%$search%")
-                  ->orWhere('last_name',  'like', "%$search%")
-            )->orWhere('reference', 'like', "%$search%");
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('client', fn($c) =>
+                    $c->where('first_name', 'like', "%$search%")
+                      ->orWhere('last_name',  'like', "%$search%")
+                      ->orWhere('email',      'like', "%$search%")
+                      ->orWhere('phone',      'like', "%$search%")
+                )->orWhere('reference', 'like', "%$search%");
+            });
         }
 
         if ($status) {
@@ -62,12 +71,80 @@ class AppointmentController extends Controller
     {
         $salon    = $this->salon();
         $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
-        $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)
-            ->withName()
-            ->get();
+        $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
         $services = Service::where('salon_id', $salon->id)->active()->get(['id','name','duration_minutes','price']);
 
         return view('appointments.create', compact('salon', 'clients', 'staff', 'services'));
+    }
+
+    /**
+     * JSON: HH:MM slot starts that overlap an existing booking for this staff on this date
+     * (uses max single-service duration+buffer in the salon as a conservative window).
+     */
+    public function occupiedSlots(Request $request)
+    {
+        $data = $request->validate([
+            'date'                     => ['required', 'date_format:Y-m-d'],
+            'staff_id'                 => ['required', 'integer', 'exists:staff,id'],
+            'exclude_appointment_id'   => ['nullable', 'integer', 'exists:appointments,id'],
+        ]);
+
+        $salon   = $this->salon();
+        $staffId = (int) $data['staff_id'];
+
+        abort_unless(
+            Staff::where('salon_id', $salon->id)->where('id', $staffId)->exists(),
+            404
+        );
+
+        $excludeId = isset($data['exclude_appointment_id']) ? (int) $data['exclude_appointment_id'] : null;
+        if ($excludeId) {
+            abort_unless(
+                Appointment::where('salon_id', $salon->id)->where('id', $excludeId)->exists(),
+                404
+            );
+        }
+
+        $maxMinutes = Service::where('salon_id', $salon->id)
+            ->active()
+            ->get(['duration_minutes', 'buffer_minutes'])
+            ->map(fn (Service $s) => (int) $s->duration_minutes + (int) ($s->buffer_minutes ?? 0))
+            ->max();
+
+        $maxMinutes = max(30, (int) $maxMinutes);
+
+        $slotTimes = [
+            '09:00', '09:30', '10:00', '10:30',
+            '11:00', '11:30', '12:00', '12:30',
+            '13:00', '14:00', '14:30', '15:00',
+            '15:30', '16:00', '16:30', '17:00',
+            '17:30', '18:00', '18:30', '19:00',
+        ];
+
+        $dateStr = $data['date'];
+        $blocked = [];
+
+        foreach ($slotTimes as $time) {
+            $start = Carbon::parse("{$dateStr} {$time}:00");
+            $end   = $start->copy()->addMinutes($maxMinutes);
+
+            $overlap = Appointment::where('salon_id', $salon->id)
+                ->where('staff_id', $staffId)
+                ->whereNotIn('status', ['cancelled', 'no_show'])
+                ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+                ->where('starts_at', '<', $end)
+                ->where('ends_at', '>', $start)
+                ->exists();
+
+            if ($overlap) {
+                $blocked[] = $time;
+            }
+        }
+
+        return response()->json([
+            'blocked'                    => $blocked,
+            'assumed_duration_minutes'   => $maxMinutes,
+        ]);
     }
 
     public function store(Request $request)
@@ -87,27 +164,39 @@ class AppointmentController extends Controller
         $services = Service::whereIn('id', $data['services'])->get();
         $duration = $services->sum('duration_minutes');
         $total    = $services->sum('price');
-        $endsAt   = \Carbon\Carbon::parse($data['starts_at'])->addMinutes($duration);
+        $startsAt = Carbon::parse($data['starts_at']);
+        $endsAt   = $startsAt->copy()->addMinutes($duration);
 
-        DB::transaction(function () use ($data, $salon, $duration, $total, $endsAt, $services) {
+        $conflict = Appointment::where('salon_id', $salon->id)
+            ->where('staff_id', $data['staff_id'])
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where('starts_at', '<', $endsAt)
+            ->where('ends_at', '>', $startsAt)
+            ->exists();
+
+        if ($conflict) {
+            return back()->withErrors(['starts_at' => 'That time slot is already booked for this staff member. Please choose another time.'])->withInput();
+        }
+
+        DB::transaction(function () use ($data, $salon, $duration, $total, $startsAt, $endsAt, $services) {
             $appointment = Appointment::create([
-                'salon_id'       => $salon->id,
-                'client_id'      => $data['client_id'],
-                'staff_id'       => $data['staff_id'],
-                'starts_at'      => $data['starts_at'],
-                'ends_at'        => $endsAt,
+                'salon_id'         => $salon->id,
+                'client_id'        => $data['client_id'],
+                'staff_id'         => $data['staff_id'],
+                'starts_at'        => $startsAt,
+                'ends_at'          => $endsAt,
                 'duration_minutes' => $duration,
-                'total_price'    => $total,
-                'status'         => 'confirmed',
-                'source'         => 'walk_in',
-                'internal_notes' => $data['internal_notes'] ?? null,
-                'client_notes'   => $data['client_notes'] ?? null,
+                'total_price'      => $total,
+                'status'           => 'confirmed',
+                'source'           => 'walk_in',
+                'internal_notes'   => $data['internal_notes'] ?? null,
+                'client_notes'     => $data['client_notes'] ?? null,
             ]);
 
             foreach ($services as $svc) {
                 $appointment->services()->create([
                     'service_id'       => $svc->id,
-                    'staff_id'         => $data['staff_id'],
+                    'service_name'     => $svc->name,
                     'price'            => $svc->price,
                     'duration_minutes' => $svc->duration_minutes,
                 ]);
@@ -121,8 +210,10 @@ class AppointmentController extends Controller
     {
         $this->authorise($appointment);
         $appointment->load(['client', 'staff', 'services.service', 'transaction', 'review']);
+        $salon = $this->salon();
+        $staff = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
 
-        return view('appointments.show', compact('appointment'));
+        return view('appointments.show', compact('appointment', 'staff'));
     }
 
     public function edit(Appointment $appointment)
@@ -130,9 +221,7 @@ class AppointmentController extends Controller
         $this->authorise($appointment);
         $salon    = $this->salon();
         $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name']);
-        $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)
-            ->withName()
-            ->get();
+        $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
         $services = Service::where('salon_id', $salon->id)->active()->get(['id','name','duration_minutes','price']);
 
         return view('appointments.edit', compact('appointment', 'clients', 'staff', 'services'));
@@ -150,7 +239,30 @@ class AppointmentController extends Controller
             'client_notes'   => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $appointment->update($data);
+        $startsAt = Carbon::parse($data['starts_at']);
+        $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
+        $staffId  = (int) $data['staff_id'];
+
+        $conflict = Appointment::where('salon_id', $appointment->salon_id)
+            ->where('staff_id', $staffId)
+            ->where('id', '!=', $appointment->id)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where('starts_at', '<', $endsAt)
+            ->where('ends_at', '>', $startsAt)
+            ->exists();
+
+        if ($conflict) {
+            return back()->withErrors(['starts_at' => 'That time slot is already booked for this staff member. Please choose another time.'])->withInput();
+        }
+
+        $appointment->update([
+            'client_id'      => $data['client_id'],
+            'staff_id'       => $staffId,
+            'starts_at'      => $startsAt,
+            'ends_at'        => $endsAt,
+            'internal_notes' => $data['internal_notes'] ?? null,
+            'client_notes'   => $data['client_notes'] ?? null,
+        ]);
 
         return redirect()->route('appointments.show', $appointment)->with('success', 'Appointment updated.');
     }
@@ -162,6 +274,112 @@ class AppointmentController extends Controller
         $appointment->update(['status' => $data['status']]);
 
         return back()->with('success', 'Status updated.');
+    }
+
+    /* ── Dedicated action methods ─────────────────────────────────────────── */
+
+    public function confirm(Appointment $appointment): RedirectResponse
+    {
+        $this->authorise($appointment);
+
+        if ($appointment->status !== 'pending') {
+            return back()->withErrors(['status' => 'Only pending appointments can be confirmed.']);
+        }
+
+        $appointment->update([
+            'status'       => 'confirmed',
+            'confirmed_at' => now(),
+        ]);
+
+        $this->notificationService->notifyTenantNewBooking($appointment->fresh(['client', 'staff', 'services.service', 'salon']));
+
+        return back()->with('success', 'Appointment confirmed and client notified.');
+    }
+
+    public function cancel(Request $request, Appointment $appointment): RedirectResponse
+    {
+        $this->authorise($appointment);
+
+        if (in_array($appointment->status, ['completed', 'cancelled', 'no_show'])) {
+            return back()->withErrors(['status' => 'This appointment cannot be cancelled.']);
+        }
+
+        $data = $request->validate([
+            'cancellation_reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $appointment->update([
+            'status'              => 'cancelled',
+            'cancelled_at'        => now(),
+            'cancellation_reason' => $data['cancellation_reason'] ?? null,
+        ]);
+
+        $this->notificationService->notifyTenantCancellation($appointment->fresh(['client', 'staff', 'services.service', 'salon']));
+
+        return back()->with('success', 'Appointment cancelled.');
+    }
+
+    public function reschedule(Request $request, Appointment $appointment): RedirectResponse
+    {
+        $this->authorise($appointment);
+
+        if (in_array($appointment->status, ['completed', 'cancelled', 'no_show'])) {
+            return back()->withErrors(['status' => 'This appointment cannot be rescheduled.']);
+        }
+
+        $data = $request->validate([
+            'starts_at' => ['required', 'date', 'after:now'],
+            'staff_id'  => ['nullable', 'exists:staff,id'],
+        ]);
+
+        $originalStartsAt = $appointment->starts_at->copy();
+        $newStartsAt      = Carbon::parse($data['starts_at']);
+        $newEndsAt        = $newStartsAt->copy()->addMinutes($appointment->duration_minutes);
+        $staffId          = $data['staff_id'] ?? $appointment->staff_id;
+
+        // Conflict check: overlapping non-cancelled appointments for same staff
+        $conflict = Appointment::where('salon_id', $appointment->salon_id)
+            ->where('staff_id', $staffId)
+            ->where('id', '!=', $appointment->id)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where('starts_at', '<', $newEndsAt)
+            ->where('ends_at',   '>', $newStartsAt)
+            ->exists();
+
+        if ($conflict) {
+            return back()->withErrors(['starts_at' => 'That time slot is not available. Please choose another time.']);
+        }
+
+        $appointment->update([
+            'starts_at' => $newStartsAt,
+            'ends_at'   => $newEndsAt,
+            'staff_id'  => $staffId,
+        ]);
+
+        $this->notificationService->notifyTenantReschedule(
+            $appointment->fresh(['client', 'staff', 'services.service', 'salon']),
+            $originalStartsAt
+        );
+
+        return back()->with('success', 'Appointment rescheduled.');
+    }
+
+    public function complete(Appointment $appointment): RedirectResponse
+    {
+        $this->authorise($appointment);
+
+        if (! in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress'])) {
+            return back()->withErrors(['status' => 'Only confirmed or in-progress appointments can be marked as completed.']);
+        }
+
+        $appointment->update(['status' => 'completed']);
+
+        // Update client visit stats
+        $client = $appointment->client;
+        $client->increment('visit_count');
+        $client->update(['last_visit_at' => $appointment->starts_at]);
+
+        return back()->with('success', 'Appointment marked as completed.');
     }
 
     public function destroy(Appointment $appointment)

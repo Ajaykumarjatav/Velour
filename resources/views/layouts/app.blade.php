@@ -8,9 +8,16 @@
     {{-- Apply theme BEFORE any CSS loads to prevent flash of wrong theme --}}
     <script>
         (function () {
+            // v2: default is light — reset any OS-preference-based dark setting
             var saved = localStorage.getItem('velour-theme');
-            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (saved === 'dark' || (!saved && prefersDark)) {
+            var themeVersion = localStorage.getItem('velour-theme-v');
+            if (themeVersion !== '2') {
+                // First load after this update — force light unless user had explicitly set dark before
+                localStorage.setItem('velour-theme', 'light');
+                localStorage.setItem('velour-theme-v', '2');
+                saved = 'light';
+            }
+            if (saved === 'dark') {
                 document.documentElement.classList.add('dark');
             } else {
                 document.documentElement.classList.remove('dark');
@@ -38,6 +45,39 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style type="text/tailwindcss">
         body { font-family: 'Inter', sans-serif; }
+
+        /* ── Scrollbars (match dark UI; avoids bright default thumb) ── */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgb(209 213 219) rgb(243 244 246);
+        }
+        .dark * {
+            scrollbar-color: rgb(75 85 99) rgb(3 7 18);
+        }
+        *::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        *::-webkit-scrollbar-track {
+            background: rgb(243 244 246);
+            border-radius: 4px;
+        }
+        .dark *::-webkit-scrollbar-track {
+            background: rgb(3 7 18);
+        }
+        *::-webkit-scrollbar-thumb {
+            background: rgb(209 213 219);
+            border-radius: 4px;
+        }
+        .dark *::-webkit-scrollbar-thumb {
+            background: rgb(55 65 81);
+        }
+        *::-webkit-scrollbar-thumb:hover {
+            background: rgb(156 163 175);
+        }
+        .dark *::-webkit-scrollbar-thumb:hover {
+            background: rgb(75 85 99);
+        }
 
         /* ── Sidebar links ── */
         .sidebar-link {
@@ -134,24 +174,33 @@
 
         /* ── Tables ── */
         .table-wrap {
-            @apply w-full overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800;
+            @apply w-full overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800
+                   bg-white dark:bg-gray-900;
         }
         table.data-table {
             @apply w-full text-sm;
+        }
+        /* Optional: keeps columns from stretching endlessly on very wide viewports */
+        table.data-table.data-table-fixed {
+            table-layout: fixed;
         }
         table.data-table thead {
             @apply bg-gray-50 dark:bg-gray-800/60;
         }
         table.data-table thead th {
-            @apply px-4 py-3 text-left text-xs font-semibold
+            @apply px-4 py-3 align-middle text-xs font-semibold
                    text-gray-500 dark:text-gray-400 uppercase tracking-wider;
+        }
+        /* Default left; :where() keeps specificity at 0 so .text-right / .text-center on th win */
+        :where(table.data-table thead th) {
+            text-align: left;
         }
         table.data-table tbody tr {
             @apply border-t border-gray-100 dark:border-gray-800
                    hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors;
         }
         table.data-table tbody td {
-            @apply px-4 py-3 text-gray-700 dark:text-gray-300;
+            @apply px-4 py-3 align-middle text-gray-700 dark:text-gray-300;
         }
 
         /* ── Stat / metric cards ── */
@@ -277,10 +326,10 @@
 
 <body class="h-full bg-gray-50 dark:bg-gray-950 transition-colors duration-200"
       x-data="{ sidebarOpen: false }">
-<div class="flex h-full">
+<div class="flex h-full min-h-0">
 
     {{-- Desktop sidebar --}}
-    <aside class="hidden lg:flex lg:flex-col lg:w-56 lg:fixed lg:inset-y-0 z-30
+    <aside class="hidden lg:flex lg:flex-col lg:w-56 lg:min-h-0 lg:fixed lg:inset-y-0 z-30
                   bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-colors duration-200">
         @include('partials.sidebar')
     </aside>
@@ -296,7 +345,7 @@
            x-transition:enter-end="translate-x-0"
            x-transition:leave="transition ease-in duration-150"
            x-transition:leave-end="-translate-x-full"
-           class="fixed inset-y-0 left-0 w-56 z-50 lg:hidden flex flex-col
+           class="fixed inset-y-0 left-0 w-56 z-50 lg:hidden flex flex-col min-h-0
                   bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
         @include('partials.sidebar')
     </aside>
@@ -449,7 +498,7 @@
                 <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                 </svg>
-                <span class="flex-1">{{ session('warning') }}</span>
+                <span class="flex-1">{!! session('warning') !!}</span>
                 <button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100 flex-shrink-0">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>

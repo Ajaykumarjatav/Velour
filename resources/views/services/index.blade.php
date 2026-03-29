@@ -16,6 +16,15 @@
             <span class="text-xs text-muted">{{ $cat->services->count() }} services</span>
         </div>
         <table class="data-table">
+            <thead>
+            <tr>
+                <th>Service</th>
+                <th class="whitespace-nowrap w-[1%]">Duration</th>
+                <th class="text-right whitespace-nowrap w-[1%]">Price</th>
+                <th class="text-center w-[1%]">Status</th>
+                <th class="text-right w-[1%]">Actions</th>
+            </tr>
+            </thead>
             <tbody>
             @foreach($cat->services as $svc)
             <tr>
@@ -26,9 +35,9 @@
                     </div>
                     @if($svc->description)<p class="text-xs text-muted mt-0.5 pl-6">{{ Str::limit($svc->description, 80) }}</p>@endif
                 </td>
-                <td class="text-muted">{{ $svc->duration_minutes }} min</td>
-                <td class="font-semibold text-heading">@money($svc->price)</td>
-                <td>
+                <td class="text-muted whitespace-nowrap">{{ $svc->duration_minutes }} min</td>
+                <td class="font-semibold text-heading text-right whitespace-nowrap">@money($svc->price)</td>
+                <td class="text-center">
                     <span class="{{ $svc->is_active ? 'badge-green' : 'badge-gray' }}">
                         {{ $svc->is_active ? 'Active' : 'Inactive' }}
                     </span>
@@ -57,12 +66,20 @@
             <h3 class="font-semibold text-heading">Uncategorised</h3>
         </div>
         <table class="data-table">
+            <thead>
+            <tr>
+                <th>Service</th>
+                <th class="whitespace-nowrap w-[1%]">Duration</th>
+                <th class="text-right whitespace-nowrap w-[1%]">Price</th>
+                <th class="text-right w-[1%]">Actions</th>
+            </tr>
+            </thead>
             <tbody>
             @foreach($uncategorised as $svc)
             <tr>
                 <td class="font-medium text-heading">{{ $svc->name }}</td>
-                <td class="text-muted">{{ $svc->duration_minutes }} min</td>
-                <td class="font-semibold text-heading">@money($svc->price)</td>
+                <td class="text-muted whitespace-nowrap">{{ $svc->duration_minutes }} min</td>
+                <td class="font-semibold text-heading text-right whitespace-nowrap">@money($svc->price)</td>
                 <td class="text-right">
                     <a href="{{ route('services.edit', $svc->id) }}" class="text-xs text-link font-medium">Edit</a>
                 </td>

@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Services Report')
 @section('page-title', 'Services Report')
 @section('content')
@@ -9,10 +9,10 @@
     <table class="data-table">
         <thead>
         <tr>
-            <th class="text-left">Service</th>
+            <th>Service</th>
             <th class="text-right">Bookings</th>
             <th class="text-right">Revenue</th>
-            <th class="text-right hidden sm:table-cell">Avg Price</th>
+            <th class="text-right hidden sm:table-cell">Avg price</th>
         </tr>
         </thead>
         <tbody>

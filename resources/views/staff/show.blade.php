@@ -36,8 +36,16 @@
     </div>
 
     <div class="table-wrap">
-        <h3 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Recent Appointments</h3>
+        <h3 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Recent appointments</h3>
         <table class="data-table">
+            <thead>
+            <tr>
+                <th>Client</th>
+                <th class="hidden sm:table-cell">Services</th>
+                <th>Date</th>
+                <th class="text-right">Total</th>
+            </tr>
+            </thead>
             <tbody>
             @forelse($completedAppointments as $apt)
             <tr>
@@ -50,7 +58,7 @@
                     {{ $apt->services->pluck('service.name')->filter()->join(', ') ?: '—' }}
                 </td>
                 <td class="text-muted">{{ $apt->starts_at->format('d M Y') }}</td>
-                <td class="font-semibold text-heading">@money($apt->total_price)</td>
+                <td class="font-semibold text-heading text-right">@money($apt->total_price)</td>
             </tr>
             @empty
             <tr><td colspan="4" class="px-5 py-8 text-center text-sm text-muted">No appointments</td></tr>

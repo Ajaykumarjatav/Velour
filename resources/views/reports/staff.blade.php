@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Staff Report')
 @section('page-title', 'Staff Performance Report')
 @section('content')
@@ -9,8 +9,8 @@
     <table class="data-table">
         <thead>
         <tr>
-            <th class="text-left">Staff Member</th>
-            <th class="text-left hidden sm:table-cell">Role</th>
+            <th>Staff member</th>
+            <th class="hidden sm:table-cell">Role</th>
             <th class="text-right">Appointments</th>
             <th class="text-right">Revenue</th>
         </tr>
@@ -24,7 +24,7 @@
                          style="background-color: {{ $member->color ?? '#7C3AED' }}">
                         {{ strtoupper(substr($member->name, 0, 1)) }}
                     </div>
-                    <a href="{{ route('staff.show', $member->id) }}" class="font-semibold text-velour-600 hover:underline">{{ $member->name }}</a>
+                    <a href="{{ route('staff.show', $member->id) }}" class="font-semibold text-link hover:underline">{{ $member->name }}</a>
                 </div>
             </td>
             <td class="hidden sm:table-cell text-muted capitalize">{{ str_replace('_',' ',$member->role) }}</td>

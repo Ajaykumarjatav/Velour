@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Clients Report')
 @section('page-title', 'Clients Report')
 @section('content')
@@ -7,11 +7,11 @@
 
 <div class="grid grid-cols-2 gap-4 mb-6">
     <div class="stat-card text-center">
-        <p class="text-3xl font-bold text-velour-600">{{ $newClients }}</p>
+        <p class="text-3xl font-bold text-velour-600 dark:text-velour-400">{{ $newClients }}</p>
         <p class="text-xs text-muted mt-1 uppercase tracking-wide">New clients</p>
     </div>
     <div class="stat-card text-center">
-        <p class="text-3xl font-bold text-green-600">{{ $returningClients }}</p>
+        <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ $returningClients }}</p>
         <p class="text-xs text-muted mt-1 uppercase tracking-wide">Returning clients</p>
     </div>
 </div>
@@ -21,8 +21,8 @@
     <table class="data-table">
         <thead>
         <tr>
-            <th class="text-left">#</th>
-            <th class="text-left">Client</th>
+            <th class="w-10">#</th>
+            <th>Client</th>
             <th class="text-right">Spent</th>
         </tr>
         </thead>
@@ -31,7 +31,7 @@
         <tr>
             <td class="text-muted font-mono">{{ $i + 1 }}</td>
             <td>
-                <a href="{{ route('clients.show', $client->id) }}" class="font-semibold text-velour-600 hover:underline">
+                <a href="{{ route('clients.show', $client->id) }}" class="font-semibold text-link hover:underline">
                     {{ $client->first_name }} {{ $client->last_name }}
                 </a>
             </td>

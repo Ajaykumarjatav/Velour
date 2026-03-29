@@ -251,8 +251,11 @@ class BookingController extends Controller
             ->whereIn('status', ['confirmed', 'pending'])
             ->firstOrFail();
 
+        // Capture original time before reschedule mutates the model
+        $originalStartsAt = $appointment->starts_at->copy();
+
         $appointment = $this->bookingService->reschedule($appointment, $data);
-        $this->notificationService->appointmentRescheduled($appointment);
+        $this->notificationService->notifyTenantReschedule($appointment, $originalStartsAt);
 
         return response()->json([
             'message'    => 'Appointment rescheduled.',

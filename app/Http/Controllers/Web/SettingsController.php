@@ -112,4 +112,31 @@ class SettingsController extends Controller
 
         return back()->with('success', 'Password changed successfully.');
     }
+
+    public function updateSocialLinks(Request $request)
+    {
+        $salon = $this->salon();
+
+        $platforms = ['instagram', 'facebook', 'tiktok', 'whatsapp', 'google', 'twitter', 'youtube', 'linkedin', 'pinterest'];
+
+        $rules = [];
+        foreach ($platforms as $p) {
+            $rules["social_links.{$p}"] = ['nullable', 'url', 'max:300'];
+        }
+
+        $data = $request->validate($rules);
+
+        // Build clean array — only keep non-empty URLs
+        $links = [];
+        foreach ($platforms as $p) {
+            $url = $data['social_links'][$p] ?? null;
+            if ($url) {
+                $links[$p] = $url;
+            }
+        }
+
+        $salon->update(['social_links' => $links]);
+
+        return back()->with('success', 'Social links updated.')->with('tab', 'social');
+    }
 }

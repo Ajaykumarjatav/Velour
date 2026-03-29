@@ -105,6 +105,9 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
 
         Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
 
+        Route::get('appointments/occupied-slots', [AppointmentController::class, 'occupiedSlots'])
+            ->name('appointments.occupied-slots');
+
         Route::resource('appointments', AppointmentController::class);
         Route::patch('appointments/{appointment}/status',     [AppointmentController::class, 'updateStatus'])->name('appointments.status');
         Route::patch('appointments/{appointment}/confirm',    [AppointmentController::class, 'confirm'])->name('appointments.confirm');
@@ -164,6 +167,7 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');
         Route::put('settings/profile',       [SettingsController::class, 'updateProfile'])->name('settings.profile');
         Route::put('settings/password',      [SettingsController::class, 'updatePassword'])->name('settings.password');
+        Route::put('settings/social-links',  [SettingsController::class, 'updateSocialLinks'])->name('settings.social-links');
 
         // Payment gateway keys (tenant)
         Route::get('payments/gateway',  [PaymentGatewayController::class, 'edit'])->name('payments.gateway');

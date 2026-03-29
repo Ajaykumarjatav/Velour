@@ -35,7 +35,7 @@ class InventoryController extends Controller
         }
 
         if ($categoryId) {
-            $query->where('inventory_category_id', $categoryId);
+            $query->where('category_id', $categoryId);
         }
 
         if ($lowStock) {
@@ -76,7 +76,10 @@ class InventoryController extends Controller
         $data['salon_id'] = $salon->id;
         $data['stock_quantity'] = $data['quantity'];
         $data['min_stock_level'] = $data['low_stock_threshold'];
-        unset($data['quantity'], $data['low_stock_threshold']);
+        $data['category_id'] = $data['inventory_category_id'] ?? null;
+        $data['cost_price']   = $data['cost_price']   ?? 0;
+        $data['retail_price'] = $data['retail_price'] ?? 0;
+        unset($data['quantity'], $data['low_stock_threshold'], $data['inventory_category_id']);
         InventoryItem::create($data);
 
         return redirect()->route('inventory.index')->with('success', 'Item added to inventory.');
@@ -107,7 +110,10 @@ class InventoryController extends Controller
         ]);
 
         $data['min_stock_level'] = $data['low_stock_threshold'];
-        unset($data['low_stock_threshold']);
+        $data['category_id']  = $data['inventory_category_id'] ?? null;
+        $data['cost_price']   = $data['cost_price']   ?? 0;
+        $data['retail_price'] = $data['retail_price'] ?? 0;
+        unset($data['low_stock_threshold'], $data['inventory_category_id']);
         $item->update($data);
 
         return redirect()->route('inventory.index')->with('success', 'Item updated.');
