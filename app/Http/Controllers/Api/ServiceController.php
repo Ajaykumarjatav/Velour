@@ -40,22 +40,40 @@ class ServiceController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'category_id'          => 'required|integer',
-            'name'                 => 'required|string|max:255',
-            'description'          => 'nullable|string|max:1000',
-            'duration_minutes'     => 'required|integer|min:5|max:480',
-            'buffer_minutes'       => 'nullable|integer|min:0|max:60',
-            'price'                => 'required|numeric|min:0',
-            'price_from'           => 'nullable|numeric|min:0',
-            'price_on_consultation'=> 'nullable|boolean',
-            'deposit_type'         => 'nullable|in:none,percentage,fixed,full',
-            'deposit_value'        => 'nullable|numeric|min:0',
-            'online_bookable'      => 'nullable|boolean',
-            'show_in_menu'         => 'nullable|boolean',
-            'status'               => 'nullable|in:active,inactive',
-            'staff_ids'            => 'nullable|array',
-            'staff_ids.*'          => 'integer',
+            'category_id'              => 'required|integer',
+            'name'                     => 'required|string|max:255',
+            'description'              => 'nullable|string|max:1000',
+            'duration_minutes'         => 'required|integer|min:5|max:480',
+            'buffer_minutes'           => 'nullable|integer|min:0|max:60',
+            'price'                    => 'required|numeric|min:0',
+            'price_from'               => 'nullable|numeric|min:0',
+            'price_on_consultation'    => 'nullable|boolean',
+            'deposit_type'             => 'nullable|in:none,percentage,fixed,full',
+            'deposit_value'            => 'nullable|numeric|min:0',
+            'online_bookable'          => 'nullable|boolean',
+            'show_in_menu'             => 'nullable|boolean',
+            'status'                   => 'nullable|in:active,inactive',
+            'staff_ids'                => 'nullable|array',
+            'staff_ids.*'              => 'integer',
+            'color'                    => 'nullable|string|max:7',
+            'variants'                 => 'nullable|array',
+            'variants.*.name'          => 'nullable|string|max:100',
+            'variants.*.price'         => 'nullable|numeric|min:0',
+            'addons'                   => 'nullable|array',
+            'addons.*.name'            => 'nullable|string|max:100',
+            'addons.*.price'           => 'nullable|numeric|min:0',
+            'addons_text'              => 'nullable|string|max:2000',
+            'dynamic_pricing_enabled'  => 'nullable|boolean',
+            'staff_level'              => 'nullable|in:any,standard,senior,apprentice',
         ]);
+
+        $data['dynamic_pricing_enabled'] = $request->boolean('dynamic_pricing_enabled');
+        $data['variants']                = Service::normalizePriceRows($data['variants'] ?? null);
+        $data['addons']                  = Service::mergeAddonsFromText(
+            Service::normalizePriceRows($data['addons'] ?? null),
+            $data['addons_text'] ?? null
+        );
+        unset($data['addons_text']);
 
         $service = Service::create([...$data, 'salon_id' => $request->attributes->get('salon_id')]);
 
@@ -79,21 +97,52 @@ class ServiceController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $data = $request->validate([
-            'category_id'      => 'sometimes|integer',
-            'name'             => 'sometimes|string|max:255',
-            'description'      => 'nullable|string|max:1000',
-            'duration_minutes' => 'sometimes|integer|min:5|max:480',
-            'buffer_minutes'   => 'nullable|integer|min:0|max:60',
-            'price'            => 'sometimes|numeric|min:0',
-            'deposit_type'     => 'nullable|in:none,percentage,fixed,full',
-            'deposit_value'    => 'nullable|numeric|min:0',
-            'online_bookable'  => 'nullable|boolean',
-            'show_in_menu'     => 'nullable|boolean',
-            'status'           => 'nullable|in:active,inactive,archived',
-            'staff_ids'        => 'nullable|array',
+            'category_id'              => 'sometimes|integer',
+            'name'                     => 'sometimes|string|max:255',
+            'description'              => 'nullable|string|max:1000',
+            'duration_minutes'         => 'sometimes|integer|min:5|max:480',
+            'buffer_minutes'           => 'nullable|integer|min:0|max:60',
+            'price'                    => 'sometimes|numeric|min:0',
+            'price_from'               => 'nullable|numeric|min:0',
+            'price_on_consultation'    => 'nullable|boolean',
+            'deposit_type'             => 'nullable|in:none,percentage,fixed,full',
+            'deposit_value'            => 'nullable|numeric|min:0',
+            'online_bookable'          => 'nullable|boolean',
+            'show_in_menu'             => 'nullable|boolean',
+            'status'                   => 'nullable|in:active,inactive,archived',
+            'staff_ids'                => 'nullable|array',
+            'staff_ids.*'              => 'integer',
+            'color'                    => 'nullable|string|max:7',
+            'variants'                 => 'sometimes|nullable|array',
+            'variants.*.name'          => 'nullable|string|max:100',
+            'variants.*.price'         => 'nullable|numeric|min:0',
+            'addons'                   => 'sometimes|nullable|array',
+            'addons.*.name'            => 'nullable|string|max:100',
+            'addons.*.price'           => 'nullable|numeric|min:0',
+            'addons_text'              => 'sometimes|nullable|string|max:2000',
+            'dynamic_pricing_enabled'  => 'sometimes|boolean',
+            'staff_level'              => 'nullable|in:any,standard,senior,apprentice',
         ]);
 
         $service = Service::where('salon_id', $request->attributes->get('salon_id'))->findOrFail($id);
+
+        if (array_key_exists('variants', $data)) {
+            $data['variants'] = Service::normalizePriceRows($data['variants'] ?? null);
+        }
+        if (array_key_exists('addons', $data) || array_key_exists('addons_text', $data)) {
+            $fromRows = array_key_exists('addons', $data)
+                ? ($data['addons'] ?? null)
+                : $service->addons;
+            $data['addons'] = Service::mergeAddonsFromText(
+                Service::normalizePriceRows(is_array($fromRows) ? $fromRows : null),
+                $data['addons_text'] ?? null
+            );
+            unset($data['addons_text']);
+        }
+        if (array_key_exists('dynamic_pricing_enabled', $data)) {
+            $data['dynamic_pricing_enabled'] = $request->boolean('dynamic_pricing_enabled');
+        }
+
         $service->update($data);
 
         if (array_key_exists('staff_ids', $data)) {

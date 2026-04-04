@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\AppointmentController;
 use App\Http\Controllers\Web\ClientController;
 use App\Http\Controllers\Web\StaffController;
 use App\Http\Controllers\Web\ServiceController;
+use App\Http\Controllers\Web\AvailabilityResourcesController;
 use App\Http\Controllers\Web\ServiceCategoryController;
 use App\Http\Controllers\Billing\BillingController;
 use App\Http\Controllers\Web\CheckoutController;
@@ -115,26 +116,56 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         Route::patch('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
         Route::patch('appointments/{appointment}/complete',   [AppointmentController::class, 'complete'])->name('appointments.complete');
 
+        Route::get('clients/export', [ClientController::class, 'export'])->name('clients.export');
+        Route::post('clients/import', [ClientController::class, 'import'])->name('clients.import');
         Route::resource('clients', ClientController::class);
+        Route::get('staff/payroll/export', [StaffController::class, 'exportPayroll'])->name('staff.payroll.export');
+        Route::put('staff/{staff}/weekly-schedule', [StaffController::class, 'updateWeeklySchedule'])->name('staff.weekly-schedule');
+        Route::patch('staff/{staff}/base-salary', [StaffController::class, 'updateBaseSalary'])->name('staff.base-salary');
         Route::resource('staff', StaffController::class)->middleware('plan.limit:staff');
+        Route::put('services/pricing-rules', [ServiceController::class, 'updatePricingRules'])->name('services.pricing-rules');
+        Route::put('services/{service}/variants', [ServiceController::class, 'updateVariants'])->name('services.variants');
         Route::resource('services', ServiceController::class)->middleware('plan.limit:services');
+
+        Route::get('availability', [AvailabilityResourcesController::class, 'index'])->name('availability.index');
+        Route::post('availability/resources', [AvailabilityResourcesController::class, 'storeResource'])->name('availability.resources.store');
+        Route::put('availability/resources/{resource}', [AvailabilityResourcesController::class, 'updateResource'])->name('availability.resources.update');
+        Route::delete('availability/resources/{resource}', [AvailabilityResourcesController::class, 'destroyResource'])->name('availability.resources.destroy');
+        Route::post('availability/leave', [AvailabilityResourcesController::class, 'storeLeave'])->name('availability.leave.store');
+        Route::patch('availability/leave/{leave}/approve', [AvailabilityResourcesController::class, 'approveLeave'])->name('availability.leave.approve');
+        Route::patch('availability/leave/{leave}/reject', [AvailabilityResourcesController::class, 'rejectLeave'])->name('availability.leave.reject');
+        Route::put('availability/buffer-rules', [AvailabilityResourcesController::class, 'updateBufferRules'])->name('availability.buffer-rules.update');
+        Route::post('availability/staff/{staff}/toggle-day', [AvailabilityResourcesController::class, 'toggleStaffDay'])->name('availability.staff.toggle-day');
         Route::get('service-categories', [ServiceCategoryController::class, 'index'])->name('service-categories.index');
         Route::post('service-categories', [ServiceCategoryController::class, 'store'])->name('service-categories.store');
         Route::put('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'update'])->name('service-categories.update');
         Route::delete('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
+        Route::get('inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+        Route::post('inventory/barcode-lookup', [InventoryController::class, 'barcodeLookup'])->name('inventory.barcode-lookup');
+        Route::post('inventory/reorder', [InventoryController::class, 'reorder'])->name('inventory.reorder');
+        Route::post('inventory/adjust-hub', [InventoryController::class, 'adjustHub'])->name('inventory.adjust-hub');
         Route::resource('inventory', InventoryController::class);
         Route::post('inventory/{item}/adjust', [InventoryController::class, 'adjust'])
              ->name('inventory.adjust');
 
         Route::resource('pos', PosController::class)->only(['index','create','store','show']);
 
-        // Marketing — requires Pro plan or above
-        Route::resource('marketing', MarketingController::class)
-             ->only(['index','create','store','show','destroy'])
-             ->middleware('subscription:feature:marketing');
-        Route::post('marketing/{campaign}/send', [MarketingController::class, 'send'])
-             ->name('marketing.send')
-             ->middleware('subscription:feature:marketing');
+        // Marketing — requires Pro plan or above (specific routes before {marketing} wildcard)
+        Route::middleware('subscription:feature:marketing')->group(function () {
+            Route::get('marketing/growth', [MarketingController::class, 'growth'])->name('marketing.growth');
+            Route::post('marketing/loyalty/tiers', [MarketingController::class, 'storeLoyaltyTier'])->name('marketing.loyalty.tiers.store');
+            Route::put('marketing/loyalty/tiers/{loyalty_tier}', [MarketingController::class, 'updateLoyaltyTier'])->name('marketing.loyalty.tiers.update');
+            Route::delete('marketing/loyalty/tiers/{loyalty_tier}', [MarketingController::class, 'destroyLoyaltyTier'])->name('marketing.loyalty.tiers.destroy');
+            Route::get('marketing/loyalty/tiers/{loyalty_tier}/members', [MarketingController::class, 'loyaltyTierMembers'])->name('marketing.loyalty.tiers.members');
+            Route::put('marketing/referral-settings', [MarketingController::class, 'updateReferralSettings'])->name('marketing.referral-settings.update');
+            Route::patch('marketing/automation-templates/{marketing_automation_template}', [MarketingController::class, 'toggleAutomationTemplate'])->name('marketing.automation-templates.toggle');
+            Route::put('marketing/automation-templates/{marketing_automation_template}', [MarketingController::class, 'updateAutomationTemplate'])->name('marketing.automation-templates.update');
+            Route::post('marketing/sms/threads/{marketing_sms_thread}/messages', [MarketingController::class, 'storeSmsReply'])->name('marketing.sms.reply');
+            Route::post('marketing/{marketing}/duplicate', [MarketingController::class, 'duplicate'])->name('marketing.duplicate');
+            Route::post('marketing/{marketing}/send', [MarketingController::class, 'send'])->name('marketing.send');
+            Route::resource('marketing', MarketingController::class)
+                 ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+        });
 
         // Reports — requires Pro plan or above
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index')

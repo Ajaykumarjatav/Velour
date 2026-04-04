@@ -3,10 +3,23 @@
 @section('page-title', 'Calendar')
 @section('content')
 
+@php
+    $filterStaffId = $filterStaffId ?? null;
+    $calRoute = fn ($v, $d) => route('calendar', array_filter(['view' => $v, 'date' => $d, 'staff_id' => $filterStaffId]));
+@endphp
+
+@if($filterStaffId)
+    @php $filterStaffMember = \App\Models\Staff::where('salon_id', $salon->id)->whereKey($filterStaffId)->first(); @endphp
+    <div class="mb-4 px-4 py-3 rounded-xl bg-velour-50 dark:bg-velour-900/20 border border-velour-100 dark:border-velour-800 text-sm text-body flex flex-wrap items-center justify-between gap-2">
+        <span>Showing calendar for <strong>{{ $filterStaffMember?->name ?? 'staff #' . $filterStaffId }}</strong> only.</span>
+        <a href="{{ route('calendar', ['view' => $view, 'date' => $date->toDateString()]) }}" class="text-velour-700 dark:text-velour-300 font-semibold hover:underline">Show all staff</a>
+    </div>
+@endif
+
 <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
     <div class="flex gap-2">
         @foreach(['day'=>'Day','week'=>'Week','month'=>'Month'] as $v => $label)
-        <a href="{{ route('calendar', ['view' => $v, 'date' => $date->toDateString()]) }}"
+        <a href="{{ $calRoute($v, $date->toDateString()) }}"
            class="px-4 py-2 text-sm font-medium rounded-xl border transition-colors
                   {{ $view === $v ? 'bg-velour-600 text-white border-velour-600' : 'border-gray-300 dark:border-gray-700 text-body hover:border-velour-400 bg-white dark:bg-gray-900' }}">
             {{ $label }}
@@ -19,7 +32,7 @@
             $prevDate = $view === 'day' ? $date->copy()->subDay() : ($view === 'month' ? $date->copy()->subMonth() : $date->copy()->subWeek());
             $nextDate = $view === 'day' ? $date->copy()->addDay() : ($view === 'month' ? $date->copy()->addMonth() : $date->copy()->addWeek());
         @endphp
-        <a href="{{ route('calendar', ['view' => $view, 'date' => $prevDate->toDateString()]) }}"
+        <a href="{{ $calRoute($view, $prevDate->toDateString()) }}"
            class="p-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-body">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </a>
@@ -29,11 +42,11 @@
             @else {{ $start->format('d M') }} – {{ $end->format('d M Y') }}
             @endif
         </span>
-        <a href="{{ route('calendar', ['view' => $view, 'date' => $nextDate->toDateString()]) }}"
+        <a href="{{ $calRoute($view, $nextDate->toDateString()) }}"
            class="p-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-body">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </a>
-        <a href="{{ route('calendar', ['view' => $view, 'date' => now()->toDateString()]) }}" class="btn-outline btn-sm">Today</a>
+        <a href="{{ $calRoute($view, now()->toDateString()) }}" class="btn-outline btn-sm">Today</a>
         <a href="{{ route('appointments.create') }}" class="btn-primary btn-sm">+ New</a>
     </div>
 </div>

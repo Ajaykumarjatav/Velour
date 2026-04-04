@@ -7,6 +7,8 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Staff;
 use App\Models\Service;
+use App\Models\StaffLeaveRequest;
+use App\Services\AppointmentService as AppointmentBookingService;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -72,7 +74,11 @@ class AppointmentController extends Controller
         $salon    = $this->salon();
         $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
         $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
-        $services = Service::where('salon_id', $salon->id)->active()->get(['id','name','duration_minutes','price']);
+        $services = Service::where('salon_id', $salon->id)
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
         return view('appointments.create', compact('salon', 'clients', 'staff', 'services'));
     }
@@ -122,6 +128,14 @@ class AppointmentController extends Controller
         ];
 
         $dateStr = $data['date'];
+
+        if (StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $staffId, $dateStr)) {
+            return response()->json([
+                'blocked'                  => $slotTimes,
+                'assumed_duration_minutes' => $maxMinutes,
+            ]);
+        }
+
         $blocked = [];
 
         foreach ($slotTimes as $time) {
@@ -152,20 +166,48 @@ class AppointmentController extends Controller
         $salon = $this->salon();
 
         $data = $request->validate([
-            'client_id'      => ['required', 'exists:clients,id'],
-            'staff_id'       => ['required', 'exists:staff,id'],
-            'starts_at'      => ['required', 'date'],
-            'services'       => ['required', 'array', 'min:1'],
-            'services.*'     => ['exists:services,id'],
-            'internal_notes' => ['nullable', 'string', 'max:1000'],
-            'client_notes'   => ['nullable', 'string', 'max:1000'],
+            'client_id'            => ['required', 'exists:clients,id'],
+            'staff_id'             => ['required', 'exists:staff,id'],
+            'starts_at'            => ['required', 'date'],
+            'services'             => ['required', 'array', 'min:1'],
+            'services.*'           => ['exists:services,id'],
+            'service_variant'      => ['nullable', 'array'],
+            'service_variant.*'    => ['nullable', 'string', 'max:100'],
+            'service_addons'       => ['nullable', 'array'],
+            'service_addons.*'     => ['nullable', 'array'],
+            'service_addons.*.*'   => ['nullable', 'string', 'max:100'],
+            'internal_notes'       => ['nullable', 'string', 'max:1000'],
+            'client_notes'         => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $services = Service::whereIn('id', $data['services'])->get();
-        $duration = $services->sum('duration_minutes');
-        $total    = $services->sum('price');
+        $orderedIds = array_map('intval', $data['services']);
+        $options    = [];
+        foreach ($orderedIds as $sid) {
+            $options[$sid] = [
+                'variant' => $data['service_variant'][$sid] ?? null,
+                'addons'  => array_values(array_filter($data['service_addons'][$sid] ?? [])),
+            ];
+        }
+
+        try {
+            $snapshot = Service::summarizeForAppointment($salon->id, $orderedIds, $options);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['services' => $e->getMessage()])->withInput();
+        }
+
         $startsAt = Carbon::parse($data['starts_at']);
-        $endsAt   = $startsAt->copy()->addMinutes($duration);
+        $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
+
+        try {
+            app(AppointmentBookingService::class)->assertStaffNotOnBlockingLeave(
+                $salon->id,
+                (int) $data['staff_id'],
+                $startsAt,
+                $endsAt
+            );
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['starts_at' => $e->getMessage()])->withInput();
+        }
 
         $conflict = Appointment::where('salon_id', $salon->id)
             ->where('staff_id', $data['staff_id'])
@@ -178,27 +220,29 @@ class AppointmentController extends Controller
             return back()->withErrors(['starts_at' => 'That time slot is already booked for this staff member. Please choose another time.'])->withInput();
         }
 
-        DB::transaction(function () use ($data, $salon, $duration, $total, $startsAt, $endsAt, $services) {
+        DB::transaction(function () use ($data, $salon, $snapshot, $startsAt, $endsAt) {
             $appointment = Appointment::create([
                 'salon_id'         => $salon->id,
                 'client_id'        => $data['client_id'],
                 'staff_id'         => $data['staff_id'],
                 'starts_at'        => $startsAt,
                 'ends_at'          => $endsAt,
-                'duration_minutes' => $duration,
-                'total_price'      => $total,
+                'duration_minutes' => $snapshot['total_span_minutes'],
+                'total_price'      => $snapshot['total_price'],
                 'status'           => 'confirmed',
                 'source'           => 'walk_in',
                 'internal_notes'   => $data['internal_notes'] ?? null,
                 'client_notes'     => $data['client_notes'] ?? null,
             ]);
 
-            foreach ($services as $svc) {
+            foreach ($snapshot['lines'] as $line) {
                 $appointment->services()->create([
-                    'service_id'       => $svc->id,
-                    'service_name'     => $svc->name,
-                    'price'            => $svc->price,
-                    'duration_minutes' => $svc->duration_minutes,
+                    'service_id'       => $line['service_id'],
+                    'service_name'     => $line['service_name'],
+                    'price'            => $line['price'],
+                    'duration_minutes' => $line['duration_minutes'],
+                    'line_meta'        => $line['line_meta'],
+                    'sort_order'       => $line['sort_order'],
                 ]);
             }
         });
@@ -222,7 +266,11 @@ class AppointmentController extends Controller
         $salon    = $this->salon();
         $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name']);
         $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
-        $services = Service::where('salon_id', $salon->id)->active()->get(['id','name','duration_minutes','price']);
+        $services = Service::where('salon_id', $salon->id)
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
         return view('appointments.edit', compact('appointment', 'clients', 'staff', 'services'));
     }
@@ -242,6 +290,17 @@ class AppointmentController extends Controller
         $startsAt = Carbon::parse($data['starts_at']);
         $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
         $staffId  = (int) $data['staff_id'];
+
+        try {
+            app(AppointmentBookingService::class)->assertStaffNotOnBlockingLeave(
+                $appointment->salon_id,
+                $staffId,
+                $startsAt,
+                $endsAt
+            );
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['starts_at' => $e->getMessage()])->withInput();
+        }
 
         $conflict = Appointment::where('salon_id', $appointment->salon_id)
             ->where('staff_id', $staffId)

@@ -36,7 +36,7 @@ class SalonSeeder extends Seeder
             'email'    => 'demo@velour.app',
             'password' => Hash::make('password'),
             'phone'    => '+44 7700 900456',
-            'plan'     => 'growth',
+            'plan'     => 'pro',
             'is_active'=> true,
         ]);
 

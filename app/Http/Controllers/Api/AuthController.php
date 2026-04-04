@@ -24,14 +24,14 @@ class AuthController extends Controller
             'password'      => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
             'salon_name'    => 'required|string|max:255',
             'salon_phone'   => 'nullable|string|max:30',
-            'plan'          => 'nullable|in:starter,growth,pro,enterprise',
+            'plan'          => 'nullable|in:free,starter,pro,enterprise',
         ]);
 
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
-            'plan'     => $data['plan'] ?? 'growth',
+            'plan'     => $data['plan'] ?? 'free',
         ]);
 
         $slug = Str::slug($data['salon_name']);

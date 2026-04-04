@@ -21,6 +21,12 @@
   </div>
   @endif
 
+  @if(session('email_error'))
+  <div class="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl mb-4 text-sm" role="alert">
+    {{ session('email_error') }}
+  </div>
+  @endif
+
   <div class="bg-white rounded-2xl border border-gray-200 p-6 text-center space-y-4">
     <p class="text-sm text-gray-500">Didn't receive the email? Check your spam folder, or request a new link.</p>
 

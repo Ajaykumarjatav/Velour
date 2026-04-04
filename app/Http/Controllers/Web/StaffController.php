@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Staff;
-use App\Models\Service;
 use App\Models\Appointment;
+use App\Models\Service;
+use App\Models\Staff;
+use App\Models\StaffLeaveRequest;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffController extends Controller
 {
@@ -18,13 +21,164 @@ class StaffController extends Controller
 
     public function index()
     {
-        $salon = $this->salon();
+        $salon       = $this->salon();
+        $monthStart  = now()->startOfMonth();
+        $monthEnd    = now()->endOfMonth();
+        $todayStr    = now()->toDateString();
+        $taxRate     = 0.10;
+
         $staff = Staff::where('salon_id', $salon->id)
-            ->withCount(['appointments as total_appointments', 'appointments as completed_appointments' => fn($q) => $q->where('status', 'completed')])
+            ->withCount([
+                'appointments as total_appointments',
+                'appointments as completed_appointments' => fn ($q) => $q->where('status', 'completed'),
+            ])
+            ->withAvg('reviews', 'rating')
             ->orderBy('first_name')
             ->get();
 
-        return view('staff.index', compact('salon', 'staff'));
+        $revenueByStaff = Appointment::where('salon_id', $salon->id)
+            ->where('status', 'completed')
+            ->whereBetween('starts_at', [$monthStart, $monthEnd])
+            ->selectRaw('staff_id, COALESCE(SUM(total_price),0) as rev')
+            ->groupBy('staff_id')
+            ->pluck('rev', 'staff_id');
+
+        $apptsMonthByStaff = Appointment::where('salon_id', $salon->id)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->whereBetween('starts_at', [$monthStart, $monthEnd])
+            ->selectRaw('staff_id, COUNT(*) as c')
+            ->groupBy('staff_id')
+            ->pluck('c', 'staff_id');
+
+        $payrollRows = [];
+        $chart       = [];
+
+        foreach ($staff as $m) {
+            $rev   = (float) ($revenueByStaff[$m->id] ?? 0);
+            $apptM = (int) ($apptsMonthByStaff[$m->id] ?? 0);
+            $onLeave = StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $m->id, $todayStr);
+
+            $base          = (float) ($m->base_salary ?? 0);
+            $commPct       = (float) ($m->commission_rate ?? 0);
+            $commissionAmt = round($rev * $commPct / 100, 2);
+            $gross         = $base + $commissionAmt;
+            $tax           = round($gross * $taxRate, 2);
+            $net           = round($gross - $tax, 2);
+
+            $payrollRows[] = [
+                'staff'       => $m,
+                'base'        => $base,
+                'commission'  => $commissionAmt,
+                'tax'         => $tax,
+                'net'         => $net,
+            ];
+            $chart[] = ['name' => $m->name, 'revenue' => $rev];
+
+            $m->setAttribute('hub_revenue_month', $rev);
+            $m->setAttribute('hub_appts_month', $apptM);
+            $m->setAttribute('hub_on_leave_today', $onLeave);
+        }
+
+        $maxRev    = $chart === [] ? 1 : max(1, ...array_column($chart, 'revenue'));
+        $totalTeam = $staff->count();
+        $onDuty    = $staff->filter(fn ($m) => $m->is_active && ! $m->hub_on_leave_today)->count();
+
+        return view('staff.index', compact(
+            'salon',
+            'staff',
+            'payrollRows',
+            'chart',
+            'maxRev',
+            'monthStart',
+            'totalTeam',
+            'onDuty',
+            'taxRate'
+        ));
+    }
+
+    public function updateWeeklySchedule(Request $request, Staff $staff)
+    {
+        $this->authorise($staff);
+
+        $data = $request->validate([
+            'working_days'   => ['nullable', 'array'],
+            'working_days.*' => ['string', 'in:Mon,Tue,Wed,Thu,Fri,Sat,Sun'],
+            'start_time'     => ['nullable', 'string', 'max:8'],
+            'end_time'       => ['nullable', 'string', 'max:8'],
+        ]);
+
+        $staff->update([
+            'working_days' => $data['working_days'] ?? [],
+            'start_time'   => $data['start_time'] ?? $staff->start_time,
+            'end_time'     => $data['end_time'] ?? $staff->end_time,
+        ]);
+
+        return redirect()->route('staff.index')->with('success', 'Weekly schedule updated.');
+    }
+
+    public function updateBaseSalary(Request $request, Staff $staff)
+    {
+        $this->authorise($staff);
+
+        $data = $request->validate([
+            'base_salary' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999'],
+        ]);
+
+        $staff->update(['base_salary' => $data['base_salary'] ?? null]);
+
+        return redirect()->route('staff.index')->with('success', 'Base salary saved.');
+    }
+
+    public function exportPayroll(Request $request): StreamedResponse
+    {
+        $salon = $this->salon();
+
+        $month = $request->query('month', now()->format('Y-m'));
+        if (! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = now()->format('Y-m');
+        }
+
+        $monthStart = Carbon::parse($month . '-01')->startOfMonth();
+        $monthEnd   = $monthStart->copy()->endOfMonth();
+        $taxRate    = 0.10;
+
+        $staff = Staff::where('salon_id', $salon->id)->orderBy('first_name')->get();
+
+        $revenueByStaff = Appointment::where('salon_id', $salon->id)
+            ->where('status', 'completed')
+            ->whereBetween('starts_at', [$monthStart, $monthEnd])
+            ->selectRaw('staff_id, COALESCE(SUM(total_price),0) as rev')
+            ->groupBy('staff_id')
+            ->pluck('rev', 'staff_id');
+
+        $filename = 'payroll-' . $month . '.csv';
+
+        return response()->streamDownload(function () use ($staff, $revenueByStaff, $taxRate) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Staff', 'Base', 'Commission', 'Tax', 'Net pay']);
+
+            foreach ($staff as $m) {
+                $rev           = (float) ($revenueByStaff[$m->id] ?? 0);
+                $base          = (float) ($m->base_salary ?? 0);
+                $commPct       = (float) ($m->commission_rate ?? 0);
+                $commissionAmt = round($rev * $commPct / 100, 2);
+                $gross         = $base + $commissionAmt;
+                $tax           = round($gross * $taxRate, 2);
+                $net           = round($gross - $tax, 2);
+
+                fputcsv($out, [
+                    $m->name,
+                    number_format($base, 2, '.', ''),
+                    number_format($commissionAmt, 2, '.', ''),
+                    number_format($tax, 2, '.', ''),
+                    number_format($net, 2, '.', ''),
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function create()

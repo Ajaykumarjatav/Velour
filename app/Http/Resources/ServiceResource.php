@@ -23,9 +23,14 @@ class ServiceResource extends JsonResource
             'online_bookable'       => (bool) $this->online_bookable,
             'show_in_menu'          => (bool) $this->show_in_menu,
             'status'                => $this->status,
-            'sort_order'            => (int) $this->sort_order,
-            'category'              => new ServiceCategoryResource($this->whenLoaded('category')),
-            'staff'                 => StaffResource::collection($this->whenLoaded('staff')),
+            'sort_order'                => (int) $this->sort_order,
+            'color'                     => $this->color,
+            'variants'                  => $this->normalizedVariants(),
+            'addons'                    => $this->normalizedAddons(),
+            'dynamic_pricing_enabled'   => (bool) $this->dynamic_pricing_enabled,
+            'staff_level'               => $this->staff_level,
+            'category'                  => new ServiceCategoryResource($this->whenLoaded('category')),
+            'staff'                     => StaffResource::collection($this->whenLoaded('staff')),
         ];
     }
 }

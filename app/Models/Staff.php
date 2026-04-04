@@ -20,14 +20,14 @@ class Staff extends Model
 
     protected $fillable = [
         'salon_id','user_id','first_name','last_name','email','phone',
-        'avatar','initials','color','role','bio','specialisms','commission_rate',
+        'avatar','initials','color','role','bio','specialisms','commission_rate','base_salary',
         'access_level','start_time','end_time','working_days','hired_at',
         'is_active','bookable_online','sort_order',
     ];
     protected $casts = [
         'specialisms'=>'array','working_days'=>'array',
         'is_active'=>'boolean','bookable_online'=>'boolean',
-        'commission_rate'=>'decimal:2','hired_at'=>'date',
+        'commission_rate'=>'decimal:2','base_salary'=>'decimal:2','hired_at'=>'date',
     ];
     // Virtual 'name' attribute so controllers/views can use $staff->name
     public function getNameAttribute(): string
@@ -64,6 +64,8 @@ class Staff extends Model
     public function user()         { return $this->belongsTo(User::class); }
     public function services()     { return $this->belongsToMany(Service::class,'service_staff')->withPivot('price_override')->withTimestamps(); }
     public function appointments() { return $this->hasMany(Appointment::class); }
+    public function leaveRequests() { return $this->hasMany(StaffLeaveRequest::class); }
+    public function reviews()        { return $this->hasMany(Review::class); }
     public function adjustments()  { return $this->hasMany(InventoryAdjustment::class); }
     protected static function newFactory()
     {

@@ -54,4 +54,25 @@ class InventoryItem extends Model
         $this->attributes['stock_quantity'] = $value;
     }
     public function scopePro($q)      { return $q->whereIn('type',['professional','both']); }
+
+    /** In stock vs low vs critical (UI / alerts). Critical = well below minimum or out of stock. */
+    public static function stockStatusLevelFrom(int $stock, int $min): string
+    {
+        if ($min <= 0) {
+            return 'in_stock';
+        }
+        if ($stock >= $min) {
+            return 'in_stock';
+        }
+        if ($stock === 0 || $stock <= intdiv($min, 2)) {
+            return 'critical';
+        }
+
+        return 'low';
+    }
+
+    public function stockStatusLevel(): string
+    {
+        return self::stockStatusLevelFrom((int) $this->stock_quantity, (int) $this->min_stock_level);
+    }
 }

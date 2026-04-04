@@ -130,10 +130,12 @@ class BookingController extends Controller
     public function hold(Request $request, string $salonSlug): JsonResponse
     {
         $data = $request->validate([
-            'service_ids'  => 'required|array',
-            'service_ids.*'=> 'integer',
-            'staff_id'     => 'nullable|integer',
-            'starts_at'    => 'required|date|after:now',
+            'service_ids'       => 'required|array',
+            'service_ids.*'     => 'integer',
+            'service_options'   => 'nullable|array',
+            'service_options.*' => 'array',
+            'staff_id'          => 'nullable|integer',
+            'starts_at'         => 'required|date|after:now',
         ]);
 
         $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();

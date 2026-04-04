@@ -62,7 +62,7 @@ class PosController extends Controller
             ->active()
             ->with('category:id,name')
             ->orderBy('sort_order')
-            ->get(['id','name','price','duration_minutes','category_id']);
+            ->get();
         $products = InventoryItem::where('salon_id', $salon->id)
             ->where('stock_quantity', '>', 0)
             ->get(['id','name','retail_price as price','stock_quantity as quantity']);

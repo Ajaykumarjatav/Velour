@@ -34,7 +34,7 @@
                 <select name="inventory_category_id" class="form-select @error('inventory_category_id') form-input-error @enderror">
                     <option value="">No category</option>
                     @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}" {{ old('inventory_category_id', $item->inventory_category_id) == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    <option value="{{ $cat->id }}" {{ old('inventory_category_id', $item->category_id) == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                     @endforeach
                 </select>
                 @error('inventory_category_id')<p class="form-error">{{ $message }}</p>@enderror

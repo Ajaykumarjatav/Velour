@@ -4,6 +4,7 @@ use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use InvalidArgumentException;
 
 class Service extends Model
 {
@@ -12,10 +13,12 @@ class Service extends Model
         'salon_id','category_id','name','slug','description','duration_minutes',
         'buffer_minutes','price','price_from','price_on_consultation','deposit_type',
         'deposit_value','online_bookable','online_booking','show_in_menu','status','sort_order','color',
+        'variants','addons','dynamic_pricing_enabled','staff_level',
     ];
     protected $casts = [
         'price'=>'decimal:2','price_from'=>'decimal:2','deposit_value'=>'decimal:2',
         'online_bookable'=>'boolean','show_in_menu'=>'boolean','price_on_consultation'=>'boolean',
+        'variants'=>'array','addons'=>'array','dynamic_pricing_enabled'=>'boolean',
     ];
     public function salon()    { return $this->belongsTo(Salon::class); }
     public function category() { return $this->belongsTo(ServiceCategory::class,'category_id'); }
@@ -25,6 +28,243 @@ class Service extends Model
 
     public function scopeActive($q) { return $q->where('status','active'); }
     public function scopeOnline($q) { return $q->where('online_bookable',true); }
+
+    /** @return list<array{name: string, price: float|int}> */
+    public function normalizedVariants(): array
+    {
+        $v = $this->variants;
+        if (! is_array($v)) {
+            return [];
+        }
+
+        return array_values(array_filter($v, fn ($row) => is_array($row) && trim((string) ($row['name'] ?? '')) !== ''));
+    }
+
+    /** @return list<array{name: string, price: float|int}> */
+    public function normalizedAddons(): array
+    {
+        $v = $this->addons;
+        if (! is_array($v)) {
+            return [];
+        }
+
+        return array_values(array_filter($v, fn ($row) => is_array($row) && trim((string) ($row['name'] ?? '')) !== ''));
+    }
+
+    /**
+     * Price + display name for one appointment line (variant + optional add-ons).
+     *
+     * @param  list<string>  $addonNames
+     * @return array{
+     *   price: float,
+     *   service_name: string,
+     *   duration_minutes: int,
+     *   buffer_minutes: int,
+     *   line_meta: array{variant: ?string, addons: list<array{name: string, price: float}>, base_unit_price: float, service_base_price: float}
+     * }
+     */
+    public function computeAppointmentLine(?string $variantName, array $addonNames): array
+    {
+        $variantName = $variantName !== null ? trim($variantName) : null;
+        if ($variantName === '') {
+            $variantName = null;
+        }
+
+        $unit            = (float) $this->price;
+        $matchedVariant  = null;
+
+        foreach ($this->normalizedVariants() as $v) {
+            if ($variantName !== null && strcasecmp((string) $v['name'], $variantName) === 0) {
+                $unit           = (float) $v['price'];
+                $matchedVariant = (string) $v['name'];
+                break;
+            }
+        }
+
+        $addonDetails = [];
+        $addonTotal   = 0.0;
+
+        foreach ($addonNames as $an) {
+            $an = trim((string) $an);
+            if ($an === '') {
+                continue;
+            }
+            foreach ($this->normalizedAddons() as $ad) {
+                if (strcasecmp((string) $ad['name'], $an) === 0) {
+                    $p = (float) $ad['price'];
+                    $addonTotal += $p;
+                    $addonDetails[] = ['name' => (string) $ad['name'], 'price' => round($p, 2)];
+                    break;
+                }
+            }
+        }
+
+        $displayName = $this->name;
+        if ($matchedVariant) {
+            $displayName .= ' (' . $matchedVariant . ')';
+        }
+        if ($addonDetails !== []) {
+            $displayName .= ' +' . implode(', ', array_column($addonDetails, 'name'));
+        }
+
+        $linePrice = round($unit + $addonTotal, 2);
+        $meta      = [
+            'variant'            => $matchedVariant,
+            'addons'             => $addonDetails,
+            'base_unit_price'    => round($unit, 2),
+            'service_base_price' => round((float) $this->price, 2),
+        ];
+
+        return [
+            'price'              => $linePrice,
+            'service_name'       => $displayName,
+            'duration_minutes'   => (int) $this->duration_minutes,
+            'buffer_minutes'     => (int) ($this->buffer_minutes ?? 0),
+            'line_meta'          => $meta,
+        ];
+    }
+
+    /**
+     * Ordered appointment lines with totals (duration includes per-service buffer).
+     *
+     * @param  array<int>  $orderedServiceIds
+     * @param  array<int, array{variant?: ?string, addons?: list<string>}>  $optionsByServiceId
+     * @return array{
+     *   total_duration_minutes: int,
+     *   total_buffer_minutes: int,
+     *   total_span_minutes: int,
+     *   total_price: float,
+     *   lines: list<array{service_id: int, service_name: string, duration_minutes: int, price: float, line_meta: array, sort_order: int}>
+     * }
+     */
+    public static function summarizeForAppointment(int $salonId, array $orderedServiceIds, array $optionsByServiceId = []): array
+    {
+        if ($orderedServiceIds === []) {
+            throw new InvalidArgumentException('No services selected.');
+        }
+
+        $unique = array_values(array_unique($orderedServiceIds));
+        $map    = static::where('salon_id', $salonId)->whereIn('id', $unique)->get()->keyBy('id');
+
+        if ($map->count() !== count($unique)) {
+            throw new InvalidArgumentException('One or more services not found.');
+        }
+
+        $totalDuration = 0;
+        $totalBuffer   = 0;
+        $totalPrice    = 0.0;
+        $lines         = [];
+        $sort          = 0;
+
+        foreach ($orderedServiceIds as $sid) {
+            $service = $map->get($sid);
+            if ($service === null) {
+                throw new InvalidArgumentException('Invalid service in list.');
+            }
+            $opt     = $optionsByServiceId[$sid] ?? [];
+            $variant = isset($opt['variant']) && $opt['variant'] !== '' ? trim((string) $opt['variant']) : null;
+            $addons  = isset($opt['addons']) && is_array($opt['addons']) ? $opt['addons'] : [];
+
+            $line = $service->computeAppointmentLine($variant, $addons);
+
+            $totalDuration += $line['duration_minutes'];
+            $totalBuffer += $line['buffer_minutes'];
+            $totalPrice += $line['price'];
+
+            $lines[] = [
+                'service_id'       => (int) $service->id,
+                'service_name'       => $line['service_name'],
+                'duration_minutes'   => $line['duration_minutes'],
+                'price'              => $line['price'],
+                'line_meta'          => $line['line_meta'],
+                'sort_order'         => $sort,
+            ];
+            $sort++;
+        }
+
+        return [
+            'total_duration_minutes' => $totalDuration,
+            'total_buffer_minutes'   => $totalBuffer,
+            'total_span_minutes'     => $totalDuration + $totalBuffer,
+            'total_price'            => round($totalPrice, 2),
+            'lines'                  => $lines,
+        ];
+    }
+
+    /**
+     * @param  list<array{name?: string, price?: mixed}>|null  $rows
+     * @return list<array{name: string, price: float}>|null
+     */
+    public static function normalizePriceRows(?array $rows): ?array
+    {
+        if ($rows === null || $rows === []) {
+            return null;
+        }
+
+        $out = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $out[] = [
+                'name'  => $name,
+                'price' => round((float) ($row['price'] ?? 0), 2),
+            ];
+        }
+
+        return $out === [] ? null : $out;
+    }
+
+    /**
+     * Parses lines like "Head Massage +200, Conditioning +₹300".
+     *
+     * @return list<array{name: string, price: float}>
+     */
+    public static function parseAddonsCommaText(?string $text): array
+    {
+        if ($text === null || trim($text) === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*,\s*/', $text) ?: [];
+        $out   = [];
+
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            if (preg_match('/^(.+?)\s*\+\s*[₹£$]?\s*([\d.,]+)\s*$/u', $part, $m)) {
+                $out[] = [
+                    'name'  => trim($m[1]),
+                    'price' => round((float) str_replace(',', '', $m[2]), 2),
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array{name: string, price: float}>|null  $fromRows
+     * @return list<array{name: string, price: float}>|null
+     */
+    public static function mergeAddonsFromText(?array $fromRows, ?string $text): ?array
+    {
+        $parsed = static::parseAddonsCommaText($text);
+        $base   = $fromRows ?? [];
+        if ($parsed === []) {
+            return $base === [] ? null : $base;
+        }
+
+        $merged = array_merge($base, $parsed);
+
+        return $merged === [] ? null : $merged;
+    }
 
     public function getIsActiveAttribute(): bool
     {

@@ -14,7 +14,7 @@ class RegisterRequest extends FormRequest
             'password'   => ['required','confirmed', Password::min(8)->letters()->mixedCase()->numbers()],
             'phone'      => ['nullable','string','max:30','regex:/^[\+\d\s\(\)\-]+$/'],
             'salon_name' => ['required','string','max:150'],
-            'plan'       => ['nullable','in:starter,growth,pro'],
+            'plan'       => ['nullable','in:free,starter,pro,enterprise'],
         ];
     }
 }

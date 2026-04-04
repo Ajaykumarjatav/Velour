@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Models\Staff;
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\StaffLeaveRequest;
 use App\Scopes\TenantScope;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -98,6 +99,10 @@ class BookingService
             $availableStaff = [];
 
             foreach ($staffList as $staff) {
+                if (StaffLeaveRequest::approvedBlockingLeaveExists($salonId, $staff->id, $date->toDateString())) {
+                    continue;
+                }
+
                 // Normalize time — DB may store HH:MM:SS or HH:MM
                 $staffStartTime = substr($staff->start_time ?? '09:00', 0, 5);
                 $staffEndTime   = substr($staff->end_time   ?? '18:00', 0, 5);
@@ -156,12 +161,30 @@ class BookingService
         $token   = Str::uuid()->toString();
         $cacheKey = "hold:{$salonId}:{$token}";
 
+        $serviceOptions = [];
+        if (! empty($data['service_options']) && is_array($data['service_options'])) {
+            foreach ($data['service_options'] as $k => $entry) {
+                if (! is_array($entry)) {
+                    continue;
+                }
+                $serviceOptions[(int) $k] = [
+                    'variant' => isset($entry['variant']) && $entry['variant'] !== ''
+                        ? trim((string) $entry['variant'])
+                        : null,
+                    'addons' => isset($entry['addons']) && is_array($entry['addons'])
+                        ? array_values(array_filter(array_map('strval', $entry['addons'])))
+                        : [],
+                ];
+            }
+        }
+
         Cache::put($cacheKey, [
-            'salon_id'    => $salonId,
-            'service_ids' => $data['service_ids'],
-            'staff_id'    => $data['staff_id'] ?? null,
-            'starts_at'   => $data['starts_at'],
-            'token'       => $token,
+            'salon_id'         => $salonId,
+            'service_ids'      => $data['service_ids'],
+            'service_options'  => $serviceOptions,
+            'staff_id'         => $data['staff_id'] ?? null,
+            'starts_at'        => $data['starts_at'],
+            'token'            => $token,
         ], now()->addMinutes(10));
 
         return $token;
@@ -200,7 +223,7 @@ class BookingService
 
             foreach ($staff as $s) {
                 $apptSvc = app(AppointmentService::class);
-                if ($apptSvc->isAvailable($s->id, $startsAt, $endsAt)) {
+                if ($apptSvc->isAvailable($salon->id, $s->id, $startsAt, $endsAt)) {
                     $staffId = $s->id;
                     break;
                 }
@@ -212,14 +235,13 @@ class BookingService
         }
 
         $appointment = app(AppointmentService::class)->create($salon->id, [
-            'client_id'    => $client->id,
-            'staff_id'     => $staffId,
-            'service_ids'  => $hold['service_ids'],
-            'starts_at'    => $hold['starts_at'],
-            'source'       => 'online',
-            'client_notes' => $data['notes'] ?? null,
-            'deposit_required' => $salon->deposit_required,
-            'stripe_payment_intent_id' => $data['stripe_payment_intent_id'] ?? null,
+            'client_id'       => $client->id,
+            'staff_id'        => $staffId,
+            'service_ids'     => $hold['service_ids'],
+            'service_options' => $hold['service_options'] ?? [],
+            'starts_at'       => $hold['starts_at'],
+            'source'          => 'online',
+            'client_notes'    => $data['notes'] ?? null,
         ]);
 
         // Update client marketing consent

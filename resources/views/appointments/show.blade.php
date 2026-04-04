@@ -97,12 +97,27 @@
         <h3 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Services</h3>
         <div class="divide-y divide-gray-100 dark:divide-gray-800">
             @foreach($appointment->services as $svc)
-            <div class="flex items-center justify-between px-6 py-3.5">
-                <div>
-                    <p class="font-medium text-heading">{{ $svc->service?->name ?? $svc->service_name }}</p>
+            <div class="flex items-center justify-between px-6 py-3.5 gap-3">
+                <div class="min-w-0">
+                    <p class="font-medium text-heading">{{ $svc->service_name }}</p>
                     <p class="text-xs text-muted">{{ $svc->duration_minutes }} min</p>
+                    @if(! empty($svc->line_meta['variant']) || ! empty($svc->line_meta['addons']))
+                        <p class="text-[11px] text-muted mt-1">
+                            @if(! empty($svc->line_meta['variant']))
+                                <span>Variant: {{ $svc->line_meta['variant'] }}</span>
+                            @endif
+                            @if(! empty($svc->line_meta['addons']))
+                                @if(! empty($svc->line_meta['variant'])) · @endif
+                                <span>Add-ons:
+                                    @foreach($svc->line_meta['addons'] as $ad)
+                                        {{ $ad['name'] ?? '' }}@if(!$loop->last), @endif
+                                    @endforeach
+                                </span>
+                            @endif
+                        </p>
+                    @endif
                 </div>
-                <p class="font-semibold text-heading">@money($svc->price)</p>
+                <p class="font-semibold text-heading shrink-0">@money($svc->price)</p>
             </div>
             @endforeach
         </div>

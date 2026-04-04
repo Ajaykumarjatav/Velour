@@ -23,7 +23,7 @@
 <h2>4. Subscriptions &amp; Billing</h2>
 <ul>
   <li>Subscriptions are billed monthly or annually in advance via Stripe.</li>
-  <li>Your free trial period is {{ config('billing.plans.growth.trial_days', 14) }} days. No credit card required during trial.</li>
+  <li>Your free trial period is {{ config('billing.trial_days', 14) }} days. No credit card required during trial.</li>
   <li>After trial, a valid payment method is required to continue using paid features.</li>
   <li>You may cancel at any time. Cancellation takes effect at the end of the current billing period. No partial refunds.</li>
   <li>We may change pricing with 30 days' notice. You may cancel before the new price takes effect.</li>

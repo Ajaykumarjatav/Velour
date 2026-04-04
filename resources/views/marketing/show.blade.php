@@ -52,7 +52,8 @@
     </div>
 
     @if(in_array($campaign->status, ['draft','scheduled']))
-    <div class="flex gap-3">
+    <div class="flex flex-wrap gap-3">
+        <a href="{{ route('marketing.edit', $campaign) }}" class="btn-outline">Edit</a>
         <form action="{{ route('marketing.send', $campaign->id) }}" method="POST"
               onsubmit="return confirm('Send this campaign now to all eligible clients?')">
             @csrf

@@ -7,6 +7,7 @@ use App\Mail\TenantNewBookingMail;
 use App\Mail\TenantRescheduleMail;
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\MarketingCampaign;
 use App\Models\SalonNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -53,6 +54,29 @@ class NotificationService
     public function sendDirectMessage(Client $client, array $data): void
     {
         // Route to Twilio (SMS) or Mailgun (email) via queued job
+    }
+
+    /**
+     * Marketing campaign SMS — integrate Twilio/Vonage in production.
+     */
+    public function sendSms(Client $client, string $body): void
+    {
+        Log::info('Marketing SMS (stub)', [
+            'client_id' => $client->id,
+            'preview'   => mb_substr($body, 0, 120),
+        ]);
+    }
+
+    /**
+     * Marketing campaign email — integrate Mailgun/SES in production.
+     */
+    public function sendEmail(Client $client, MarketingCampaign $campaign): void
+    {
+        Log::info('Marketing email (stub)', [
+            'client_id'    => $client->id,
+            'campaign_id'  => $campaign->id,
+            'subject'      => $campaign->subject,
+        ]);
     }
 
     /* ── Tenant notification methods ─────────────────────────────────────── */

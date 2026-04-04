@@ -45,7 +45,7 @@
                         <label class="form-label uppercase tracking-wide text-xs font-bold text-velour-600 dark:text-velour-400 mb-0">Time slot <span class="text-red-500">*</span></label>
                         <span x-show="loadingSlots" class="text-xs text-muted">Checking availability…</span>
                     </div>
-                    <p class="text-xs text-muted mb-2">Unavailable times are already booked for this staff member on this date (this appointment is excluded).</p>
+                    <p class="text-xs text-muted mb-2">Unavailable times are booked or the staff member is off; this appointment is excluded from conflicts.</p>
                     <div class="grid grid-cols-4 gap-2">
                         <template x-for="slot in timeSlots" :key="slot">
                             <button type="button"

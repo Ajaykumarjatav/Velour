@@ -25,21 +25,29 @@ class CalendarController extends Controller
             default => [$start, $end] = [$date->copy()->startOfWeek(), $date->copy()->endOfWeek()],
         };
 
+        $filterStaffId = $request->filled('staff_id')
+            ? (int) $request->get('staff_id')
+            : null;
+        if ($filterStaffId && ! Staff::where('salon_id', $salon->id)->whereKey($filterStaffId)->exists()) {
+            $filterStaffId = null;
+        }
+
         $appointments = Appointment::where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$start, $end])
+            ->when($filterStaffId, fn ($q) => $q->where('staff_id', $filterStaffId))
             ->with(['client', 'staff', 'services'])
             ->get()
-            ->map(fn($a) => [
-                'id'         => $a->id,
-                'title'      => $a->client?->first_name . ' ' . $a->client?->last_name,
-                'start'      => $a->starts_at->toIso8601String(),
-                'end'        => $a->ends_at->toIso8601String(),
-                'status'     => $a->status,
-                'staff'      => $a->staff?->name,
-                'staff_id'   => $a->staff_id,
-                'reference'  => $a->reference,
-                'url'        => route('appointments.show', $a->id),
-                'color'      => $this->statusColor($a->status),
+            ->map(fn ($a) => [
+                'id'        => $a->id,
+                'title'     => $a->client?->first_name . ' ' . $a->client?->last_name,
+                'start'     => $a->starts_at->toIso8601String(),
+                'end'       => $a->ends_at->toIso8601String(),
+                'status'    => $a->status,
+                'staff'     => $a->staff?->name,
+                'staff_id'  => $a->staff_id,
+                'reference' => $a->reference,
+                'url'       => route('appointments.show', $a->id),
+                'color'     => $this->statusColor($a->status),
             ]);
 
         $staff = Staff::where('salon_id', $salon->id)
@@ -52,7 +60,7 @@ class CalendarController extends Controller
 
         return view('calendar.index', compact(
             'salon', 'view', 'date', 'calendarData', 'staffData',
-            'appointments', 'start', 'end'
+            'appointments', 'start', 'end', 'filterStaffId'
         ));
     }
 

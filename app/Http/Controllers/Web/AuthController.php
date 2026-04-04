@@ -84,7 +84,7 @@ class AuthController extends Controller
             'name'     => $data['name'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
-            'plan'     => 'growth',
+            'plan'     => 'free',
             'is_active'=> true,
         ]);
 
@@ -107,17 +107,35 @@ class AuthController extends Controller
             'is_active'  => true,
         ]);
 
-        // Fire Registered event → triggers verification email
-        event(new Registered($user));
+        // Registered event queues/sends verification email — don't block signup if mail fails
+        $verificationEmailSent = true;
+        try {
+            event(new Registered($user));
+        } catch (\Throwable $e) {
+            $verificationEmailSent = false;
+            report($e);
+        }
 
-        // Dispatch onboarding job
         dispatch(new OnboardNewTenant($user, $salon));
 
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('verification.notice')
-            ->with('success', 'Account created! Please check your email to verify your address.');
+        $redirect = redirect()->route('verification.notice')->with(
+            'success',
+            $verificationEmailSent
+                ? 'Account created! Please check your email to verify your address.'
+                : 'Account created!'
+        );
+
+        if (! $verificationEmailSent) {
+            $redirect->with(
+                'email_error',
+                'We could not send the verification email (mail server error). Check your SMTP settings in .env, then use “Resend verification email” below.'
+            );
+        }
+
+        return $redirect;
     }
 
     // ── Logout ────────────────────────────────────────────────────────────────
@@ -153,7 +171,16 @@ class AuthController extends Controller
             return back()->with('info', 'Email already verified.');
         }
 
-        $request->user()->sendEmailVerificationNotification();
+        try {
+            $request->user()->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with(
+                'email_error',
+                'We could not send the email. Verify your mail configuration (MAIL_* in .env) and try again.'
+            );
+        }
 
         return back()->with('success', 'Verification email resent. Please check your inbox.');
     }

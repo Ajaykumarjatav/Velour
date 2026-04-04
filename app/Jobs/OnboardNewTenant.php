@@ -13,12 +13,16 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Spatie\Multitenancy\Jobs\NotTenantAware;
 
 /**
  * Fired after a new salon owner registers.
  * Provisions default settings, sends welcome email, and seeds starter notifications.
+ *
+ * NotTenantAware — registration runs before any tenant is resolved for the request,
+ * so this job must not require tenant context in the queue payload (Spatie default).
  */
-class OnboardNewTenant implements ShouldQueue
+class OnboardNewTenant implements ShouldQueue, NotTenantAware
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -65,21 +69,21 @@ class OnboardNewTenant implements ShouldQueue
                 'title'      => '👋 Welcome to Velour!',
                 'body'       => 'Your salon is set up and ready. Start by adding your services and staff.',
                 'action_url' => '/services',
-                'action_label'=> 'Add Services',
+                'data'       => ['action_label' => 'Add Services'],
             ],
             [
                 'type'       => 'onboarding',
                 'title'      => '📅 Set your opening hours',
                 'body'       => 'Update your salon hours so clients know when to book.',
                 'action_url' => '/settings/hours',
-                'action_label'=> 'Set Hours',
+                'data'       => ['action_label' => 'Set Hours'],
             ],
             [
                 'type'       => 'onboarding',
                 'title'      => '🔗 Share your booking link',
                 'body'       => 'Your online booking widget is live. Share it with your clients.',
                 'action_url' => '/go-live',
-                'action_label'=> 'Go Live',
+                'data'       => ['action_label' => 'Go Live'],
             ],
         ];
 

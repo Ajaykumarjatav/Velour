@@ -66,6 +66,9 @@
                     <span class="text-sm text-body">Online booking</span>
                 </label>
             </div>
+
+            @include('services.partials.form-extras', ['service' => null])
+
             <div class="flex gap-3 pt-2">
                 <button type="submit" class="btn-primary flex-1 sm:flex-none">{{ isset($service) ? 'Save Changes' : 'Add Service' }}</button>
                 <a href="{{ route('services.index') }}" class="btn-outline">Cancel</a>

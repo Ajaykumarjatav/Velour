@@ -11,6 +11,16 @@
         </div>
         <div class="flex-1">
             <h2 class="text-xl font-bold text-heading">{{ $client->first_name }} {{ $client->last_name }}</h2>
+            @if($client->loyaltyTier)
+                <p class="mt-2">
+                    <span class="inline-flex items-center rounded-full bg-velour-100 dark:bg-velour-900/40 text-velour-800 dark:text-velour-200 text-xs font-semibold px-3 py-1">
+                        {{ $client->loyaltyTier->name }}
+                        @if($client->loyaltyTier->service_discount_percent > 0)
+                            · {{ $client->loyaltyTier->service_discount_percent }}% service discount
+                        @endif
+                    </span>
+                </p>
+            @endif
             <div class="flex flex-wrap gap-4 mt-2 text-sm text-muted">
                 @if($client->email)<span>✉ {{ $client->email }}</span>@endif
                 @if($client->phone)<span>📞 {{ $client->phone }}</span>@endif

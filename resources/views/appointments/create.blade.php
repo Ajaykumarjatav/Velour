@@ -53,7 +53,7 @@
                         <label class="form-label uppercase tracking-wide text-xs font-bold text-velour-600 dark:text-velour-400 mb-0">Time slot <span class="text-red-500">*</span></label>
                         <span x-show="loadingSlots" class="text-xs text-muted">Checking availability…</span>
                     </div>
-                    <p class="text-xs text-muted mb-2">Unavailable times are already booked for this staff member on this date.</p>
+                    <p class="text-xs text-muted mb-2">Unavailable times are booked, or the staff member is off (approved leave / day off).</p>
                     <div class="grid grid-cols-4 gap-2">
                         <template x-for="slot in timeSlots" :key="slot">
                             <button type="button"
@@ -79,16 +79,54 @@
 
             <div>
                 <label class="form-label">Services <span class="text-red-500">*</span></label>
-                <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 @error('services') border-red-400 dark:border-red-500 @enderror">
+                <div class="space-y-3 max-h-[28rem] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 @error('services') border-red-400 dark:border-red-500 @enderror">
                     @foreach($services as $svc)
-                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20 cursor-pointer">
-                        <input type="checkbox" name="services[]" value="{{ $svc->id }}"
-                               {{ in_array($svc->id, old('services', [])) ? 'checked' : '' }}
-                               class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                        <span class="flex-1 text-sm text-body">{{ $svc->name }}</span>
-                        <span class="text-xs text-muted">{{ $svc->duration_minutes }}min</span>
-                        <span class="text-sm font-semibold text-heading">{{ \App\Helpers\CurrencyHelper::format($svc->price, $currentSalon->currency ?? 'GBP') }}</span>
-                    </label>
+                        @php
+                            $vOpts = $svc->normalizedVariants();
+                            $aOpts = $svc->normalizedAddons();
+                        @endphp
+                        <div class="rounded-lg border border-gray-100 dark:border-gray-800 p-2">
+                            <label class="flex items-center gap-3 p-1 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20 cursor-pointer">
+                                <input type="checkbox" name="services[]" value="{{ $svc->id }}"
+                                       {{ in_array($svc->id, old('services', [])) ? 'checked' : '' }}
+                                       class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                <span class="flex-1 text-sm font-medium text-body">{{ $svc->name }}</span>
+                                <span class="text-xs text-muted whitespace-nowrap">{{ $svc->duration_minutes }} min</span>
+                                <span class="text-sm font-semibold text-heading whitespace-nowrap">{{ \App\Helpers\CurrencyHelper::format($svc->price, $currentSalon->currency ?? 'GBP') }}</span>
+                            </label>
+                            @if(count($vOpts) || count($aOpts))
+                                <div class="mt-2 ml-8 space-y-2 text-xs border-t border-gray-100 dark:border-gray-800 pt-2">
+                                    @if(count($vOpts))
+                                        <div>
+                                            <span class="text-muted block mb-1">Variant</span>
+                                            <select name="service_variant[{{ $svc->id }}]" class="form-select text-xs py-1.5">
+                                                <option value="">Base price ({{ \App\Helpers\CurrencyHelper::format($svc->price, $currentSalon->currency ?? 'GBP') }})</option>
+                                                @foreach($vOpts as $vo)
+                                                    <option value="{{ $vo['name'] }}" {{ old('service_variant.'.$svc->id) === $vo['name'] ? 'selected' : '' }}>
+                                                        {{ $vo['name'] }} — {{ \App\Helpers\CurrencyHelper::format($vo['price'], $currentSalon->currency ?? 'GBP') }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    @endif
+                                    @if(count($aOpts))
+                                        <div>
+                                            <span class="text-muted block mb-1">Add-ons</span>
+                                            <div class="flex flex-wrap gap-2">
+                                                @foreach($aOpts as $ao)
+                                                    <label class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/80 cursor-pointer">
+                                                        <input type="checkbox" name="service_addons[{{ $svc->id }}][]" value="{{ $ao['name'] }}"
+                                                               {{ is_array(old('service_addons.'.$svc->id, [])) && in_array($ao['name'], old('service_addons.'.$svc->id, []), true) ? 'checked' : '' }}
+                                                               class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                                        <span>{{ $ao['name'] }} +{{ \App\Helpers\CurrencyHelper::format($ao['price'], $currentSalon->currency ?? 'GBP') }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
                     @endforeach
                 </div>
                 @error('services')<p class="form-error">{{ $message }}</p>@enderror

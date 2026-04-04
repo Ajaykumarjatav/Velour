@@ -6,12 +6,14 @@
     $sym     = \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP');
     $taxRate = 18;
     $allServices = $services->map(fn($s) => [
-        'id'       => $s->id,
-        'name'     => $s->name,
-        'price'    => (float) $s->price,
-        'duration' => $s->duration_minutes,
-        'cat'      => $s->category?->name ?? 'Other',
-        'type'     => 'service',
+        'id'        => $s->id,
+        'name'      => $s->name,
+        'price'     => (float) $s->price,
+        'duration'  => $s->duration_minutes,
+        'cat'       => $s->category?->name ?? 'Other',
+        'type'      => 'service',
+        'variants'  => $s->normalizedVariants(),
+        'addons'    => $s->normalizedAddons(),
     ])->values()->toArray();
     $allProducts = $products->map(fn($p) => [
         'id'    => $p->id,
@@ -74,13 +76,13 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-4">
                 <template x-for="item in filteredItems" :key="item.type + item.id">
                     <button
-                        @click="addToCart(item)"
-                        :class="isInCart(item)
+                        @click="openServicePicker(item)"
+                        :class="hasAnyLineForItem(item)
                             ? 'border-velour-400 ring-1 ring-velour-200 dark:ring-velour-800'
                             : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm'"
                         class="card relative text-left p-4 rounded-2xl border transition-all cursor-pointer">
                         {{-- In-cart tick --}}
-                        <div x-show="isInCart(item)"
+                        <div x-show="hasAnyLineForItem(item)"
                              class="absolute top-3 right-3 w-5 h-5 bg-velour-600 rounded-full flex items-center justify-center">
                             <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
@@ -125,6 +127,45 @@
             <p class="text-xs text-muted py-2">No recent transactions.</p>
             @endforelse
         </div>
+
+        {{-- Service variant / add-on picker --}}
+        <div x-show="pickerOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+             @keydown.escape.window="pickerOpen = false">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-4" @click.outside="pickerOpen = false">
+                <div class="flex justify-between items-start gap-2">
+                    <h3 class="font-semibold text-heading text-sm" x-text="pickItem ? pickItem.name : ''"></h3>
+                    <button type="button" class="text-muted hover:text-heading" @click="pickerOpen = false">&times;</button>
+                </div>
+                <template x-if="pickItem && pickItem.variants && pickItem.variants.length">
+                    <div>
+                        <label class="form-label text-xs">Variant</label>
+                        <select x-model="pickVariantName" class="form-select text-sm">
+                            <option value="">Use base list price</option>
+                            <template x-for="v in pickItem.variants" :key="v.name">
+                                <option :value="v.name" x-text="v.name + ' — {{ $sym }}' + Number(v.price).toFixed(2)"></option>
+                            </template>
+                        </select>
+                    </div>
+                </template>
+                <template x-if="pickItem && pickItem.addons && pickItem.addons.length">
+                    <div>
+                        <label class="form-label text-xs">Add-ons</label>
+                        <div class="space-y-2 max-h-40 overflow-y-auto">
+                            <template x-for="a in pickItem.addons" :key="a.name">
+                                <label class="flex items-center gap-2 text-sm text-body cursor-pointer">
+                                    <input type="checkbox" :value="a.name" x-model="pickAddonNames" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                    <span x-text="a.name + ' +{{ $sym }}' + Number(a.price).toFixed(2)"></span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" class="btn-outline text-sm" @click="pickerOpen = false">Cancel</button>
+                    <button type="button" class="btn-primary text-sm" @click="confirmServicePick()">Add to bill</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- ══ RIGHT PANEL — Current Bill ══ --}}
@@ -145,7 +186,7 @@
                 </div>
             </template>
 
-            <template x-for="(item, idx) in cart" :key="item.type + item.id">
+            <template x-for="(item, idx) in cart" :key="lineSignature(item)">
                 <div class="flex items-center gap-2">
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-heading truncate" x-text="item.name"></p>
@@ -196,7 +237,7 @@
                 <input type="hidden" name="payment_method" x-bind:value="paymentMethod">
                 <input type="hidden" name="client_id" x-bind:value="clientId">
                 <input type="hidden" name="discount_amount" value="0">
-                <template x-for="(item, idx) in cart" :key="item.type + item.id">
+                <template x-for="(item, idx) in cart" :key="lineSignature(item)">
                     <span>
                         <input type="hidden" :name="'items['+idx+'][type]'"  :value="item.type">
                         <input type="hidden" :name="'items['+idx+'][id]'"    :value="item.id">
@@ -258,6 +299,10 @@ function posApp() {
         cart:           [],
         paymentMethod:  'cash',
         clientId:       '',
+        pickerOpen:     false,
+        pickItem:       null,
+        pickVariantName:'',
+        pickAddonNames: [],
 
         init() {},
 
@@ -269,14 +314,64 @@ function posApp() {
             });
         },
 
-        isInCart(item) {
+        lineSignature(line) {
+            return line.type + '-' + line.id + '-' + line.name;
+        },
+
+        hasAnyLineForItem(item) {
             return this.cart.some(c => c.type === item.type && c.id === item.id);
         },
 
+        openServicePicker(item) {
+            if (item.type !== 'service') {
+                this.addToCart({ ...item });
+                return;
+            }
+            const hasV = item.variants && item.variants.length;
+            const hasA = item.addons && item.addons.length;
+            if (!hasV && !hasA) {
+                this.addToCart({ ...item });
+                return;
+            }
+            this.pickItem        = JSON.parse(JSON.stringify(item));
+            this.pickVariantName = '';
+            this.pickAddonNames  = [];
+            this.pickerOpen      = true;
+        },
+
+        confirmServicePick() {
+            const item = this.pickItem;
+            if (!item) return;
+            let price = Number(item.price);
+            let name  = item.name;
+            if (this.pickVariantName && item.variants) {
+                const v = item.variants.find(x => x.name === this.pickVariantName);
+                if (v) {
+                    price = Number(v.price);
+                    name += ' (' + v.name + ')';
+                }
+            }
+            if (item.addons && this.pickAddonNames.length) {
+                for (const an of this.pickAddonNames) {
+                    const ad = item.addons.find(x => x.name === an);
+                    if (ad) {
+                        price += Number(ad.price);
+                        name += ' +' + ad.name;
+                    }
+                }
+            }
+            this.addToCart({ ...item, price, name });
+            this.pickerOpen = false;
+        },
+
         addToCart(item) {
-            const idx = this.cart.findIndex(c => c.type === item.type && c.id === item.id);
+            const line = { ...item };
+            delete line.variants;
+            delete line.addons;
+            const sig = this.lineSignature(line);
+            const idx = this.cart.findIndex(c => this.lineSignature(c) === sig);
             if (idx >= 0) { this.cart[idx].qty++; }
-            else          { this.cart.push({ ...item, qty: 1 }); }
+            else          { this.cart.push({ ...line, qty: 1 }); }
         },
 
         incQty(idx) { this.cart[idx].qty++; },

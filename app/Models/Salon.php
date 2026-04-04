@@ -33,9 +33,16 @@ class Salon extends Model
     public function appointments()         { return $this->hasMany(Appointment::class); }
     public function transactions()         { return $this->hasMany(PosTransaction::class); }
     public function campaigns()            { return $this->hasMany(MarketingCampaign::class); }
+    public function loyaltyTiers()         { return $this->hasMany(LoyaltyTier::class)->orderBy('sort_order'); }
+    public function referralSetting()      { return $this->hasOne(SalonReferralSetting::class); }
+    public function marketingAutomationTemplates() { return $this->hasMany(MarketingAutomationTemplate::class)->orderBy('name'); }
+    public function marketingSmsThreads()  { return $this->hasMany(MarketingSmsThread::class)->orderByDesc('last_message_at'); }
     public function reviews()              { return $this->hasMany(Review::class); }
     public function notifications()        { return $this->hasMany(SalonNotification::class); }
     public function settings()             { return $this->hasMany(SalonSetting::class); }
+    public function dynamicPricingRules()  { return $this->hasMany(DynamicPricingRule::class)->orderBy('sort_order'); }
+    public function salonResources()       { return $this->hasMany(SalonResource::class)->orderBy('sort_order')->orderBy('name'); }
+    public function bufferRule()           { return $this->hasOne(SalonBufferRule::class); }
     public function vouchers()             { return $this->hasMany(Voucher::class); }
     public function getSetting(string $key, mixed $default=null): mixed {
         $s = $this->settings()->where('key',$key)->first();

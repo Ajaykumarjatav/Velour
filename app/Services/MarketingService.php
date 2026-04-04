@@ -41,7 +41,7 @@ class MarketingService
             'status'          => 'sent',
             'sent_at'         => now(),
             'recipient_count' => $audience->count(),
-            'sent_count'      => $audience->count(),
+            'sent_count'      => 0,
         ]);
 
         // In production: dispatch \App\Jobs\SendMarketingCampaign::
@@ -51,7 +51,7 @@ class MarketingService
         }
 
         return [
-            'sent'       => $campaign->sent_count,
+            'sent'       => $audience->count(),
             'recipients' => $audience->count(),
         ];
     }

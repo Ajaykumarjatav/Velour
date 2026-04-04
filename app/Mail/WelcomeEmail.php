@@ -10,8 +10,12 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Spatie\Multitenancy\Jobs\NotTenantAware;
 
-class WelcomeEmail extends Mailable implements ShouldQueue
+/**
+ * Queued from onboarding before any tenant HTTP context; must not require tenantId on the queue.
+ */
+class WelcomeEmail extends Mailable implements ShouldQueue, NotTenantAware
 {
     use Queueable, SerializesModels;
 

@@ -40,6 +40,18 @@
                 <textarea name="notes" rows="3" class="form-textarea @error('notes') form-input-error @enderror">{{ old('notes', $client->notes) }}</textarea>
                 @error('notes')<p class="form-error">{{ $message }}</p>@enderror
             </div>
+            @if(isset($loyaltyTiers) && $loyaltyTiers->isNotEmpty())
+            <div>
+                <label class="form-label">Loyalty plan</label>
+                <select name="loyalty_tier_id" class="form-select">
+                    <option value="">— None —</option>
+                    @foreach($loyaltyTiers as $tier)
+                        <option value="{{ $tier->id }}" {{ (string) old('loyalty_tier_id', $client->loyalty_tier_id) === (string) $tier->id ? 'selected' : '' }}>{{ $tier->name }}</option>
+                    @endforeach
+                </select>
+                <p class="form-hint">Used for marketing member counts and optional checkout discounts.</p>
+            </div>
+            @endif
             <div>
                 <label class="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" name="marketing_consent" value="1" {{ old('marketing_consent', $client->marketing_consent) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">

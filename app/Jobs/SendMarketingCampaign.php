@@ -37,8 +37,9 @@ class SendMarketingCampaign implements ShouldQueue
         try {
             $type = $this->campaign->type;
 
+            $textBody = $this->campaign->body ?? $this->campaign->content ?? '';
             if ($type === 'sms') {
-                $notifications->sendSms($this->client, $this->campaign->content ?? '');
+                $notifications->sendSms($this->client, $textBody);
             } else {
                 $notifications->sendEmail($this->client, $this->campaign);
             }

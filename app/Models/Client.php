@@ -12,7 +12,7 @@ class Client extends Model
     use AuditLog, BelongsToTenant;
     use HasFactory, SoftDeletes;
     protected $fillable = [
-        'salon_id','referred_by_client_id','first_name','last_name','email','phone',
+        'salon_id','loyalty_tier_id','referred_by_client_id','first_name','last_name','email','phone',
         'date_of_birth','avatar','color','tags','preferred_staff_id','allergies',
         'medical_notes','marketing_consent','sms_consent','email_consent','status',
         'is_vip','total_spent','visit_count','last_visit_at','next_appointment_at',
@@ -26,6 +26,7 @@ class Client extends Model
     ];
     public function getFullNameAttribute(): string { return "{$this->first_name} {$this->last_name}"; }
     public function salon()          { return $this->belongsTo(Salon::class); }
+    public function loyaltyTier()    { return $this->belongsTo(LoyaltyTier::class, 'loyalty_tier_id'); }
     public function referredBy()     { return $this->belongsTo(Client::class,'referred_by_client_id'); }
     public function preferredStaff() { return $this->belongsTo(Staff::class,'preferred_staff_id'); }
     public function notes()          { return $this->hasMany(ClientNote::class)->latest(); }
