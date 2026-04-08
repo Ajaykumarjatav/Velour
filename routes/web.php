@@ -16,8 +16,12 @@ use App\Http\Controllers\Web\InventoryController;
 use App\Http\Controllers\Web\PaymentGatewayController;
 use App\Http\Controllers\Web\PosController;
 use App\Http\Controllers\Web\MarketingController;
+use App\Http\Controllers\Web\MultiLocationController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\ReviewController;
+use App\Http\Controllers\Web\CustomizationController;
+use App\Http\Controllers\Web\SecuritySupportController;
+use App\Http\Controllers\Web\WebsiteSeoController;
 use App\Http\Controllers\Web\SettingsController;
 use App\Http\Controllers\Admin\SuperAdminController;
 use App\Http\Controllers\Admin\TenantAdminController;
@@ -126,6 +130,13 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         Route::put('services/pricing-rules', [ServiceController::class, 'updatePricingRules'])->name('services.pricing-rules');
         Route::put('services/{service}/variants', [ServiceController::class, 'updateVariants'])->name('services.variants');
         Route::resource('services', ServiceController::class)->middleware('plan.limit:services');
+        Route::middleware('subscription:feature:multi_location')->group(function () {
+            Route::get('multi-location', [MultiLocationController::class, 'index'])->name('multi-location.index');
+            Route::post('multi-location', [MultiLocationController::class, 'store'])->name('multi-location.store');
+            Route::put('multi-location/{location}', [MultiLocationController::class, 'update'])->name('multi-location.update');
+            Route::delete('multi-location/{location}', [MultiLocationController::class, 'destroy'])->name('multi-location.destroy');
+            Route::post('multi-location/{location}/switch', [MultiLocationController::class, 'switch'])->name('multi-location.switch');
+        });
 
         Route::get('availability', [AvailabilityResourcesController::class, 'index'])->name('availability.index');
         Route::post('availability/resources', [AvailabilityResourcesController::class, 'storeResource'])->name('availability.resources.store');
@@ -170,6 +181,8 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         // Reports — requires Pro plan or above
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index')
              ->middleware('subscription:feature:reports');
+        Route::get('reports/analytics', [ReportController::class, 'analytics'])->name('reports.analytics')
+             ->middleware('subscription:feature:reports');
         Route::get('reports/{type}', [ReportController::class, 'show'])->name('reports.show')
              ->middleware('subscription:feature:reports');
 
@@ -191,6 +204,13 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         Route::get('go-live', [\App\Http\Controllers\Web\GoLiveController::class, 'index'])->name('go-live');
         Route::post('go-live/photos', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadPhoto'])->name('go-live.photos.upload');
         Route::delete('go-live/photos/{photo}', [\App\Http\Controllers\Web\GoLiveController::class, 'deletePhoto'])->name('go-live.photos.delete');
+        Route::get('website-seo', [WebsiteSeoController::class, 'index'])->name('website-seo.index');
+        Route::post('website-seo/publish', [WebsiteSeoController::class, 'publish'])->name('website-seo.publish');
+        Route::get('security-support', [SecuritySupportController::class, 'index'])->name('security-support.index');
+        Route::put('security-support/security', [SecuritySupportController::class, 'updateSecurity'])->name('security-support.security.update');
+        Route::get('customization', [CustomizationController::class, 'index'])->name('customization.index');
+        Route::post('customization/brand', [CustomizationController::class, 'updateBrand'])->name('customization.brand.update');
+        Route::put('customization/options', [CustomizationController::class, 'updateOptions'])->name('customization.options.update');
 
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::put('settings/salon',         [SettingsController::class, 'updateSalon'])->name('settings.salon');

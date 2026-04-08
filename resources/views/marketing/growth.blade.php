@@ -43,7 +43,7 @@
         <div class="p-6 sm:p-8 pb-5 sm:pb-6">
             <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                 <div class="min-w-0 flex-1">
-                    <h1 class="font-serif text-3xl sm:text-4xl font-semibold tracking-tight leading-tight
+                    <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight
                                text-gray-900 dark:text-white">
                         Marketing &amp; Growth
                     </h1>
@@ -223,7 +223,7 @@
         <div class="grid md:grid-cols-3 gap-4">
             @foreach($loyaltyTiers as $tier)
                 <div class="card p-6 border-stone-200/80 dark:border-gray-800 flex flex-col">
-                    <h3 class="font-serif text-xl text-heading mb-1">{{ $tier->name }}</h3>
+                    <h3 class="text-xl text-heading mb-1">{{ $tier->name }}</h3>
                     <p class="text-2xl font-bold text-heading">@money((float) $tier->price_monthly)<span class="text-sm font-normal text-muted">/mo</span></p>
                     <p class="text-sm text-muted mt-2">{{ $tier->member_count }} active {{ Str::plural('member', $tier->member_count) }}</p>
                     @if($tier->service_discount_percent > 0)
@@ -278,7 +278,7 @@
     @if($tab === 'referrals')
         <div class="card p-6 border-stone-200/80 dark:border-gray-800">
             <div class="flex flex-wrap justify-between gap-3 mb-6">
-                <h2 class="font-serif text-xl text-heading">Referral program</h2>
+                <h2 class="text-xl text-heading">Referral program</h2>
                 <button type="button" class="btn-outline btn-sm" x-on:click="referralOpen = true">Edit program</button>
             </div>
             <div class="grid sm:grid-cols-3 gap-4 mb-8">
@@ -327,7 +327,7 @@
     @if($tab === 'communications')
         <div class="card p-6 border-stone-200/80 dark:border-gray-800">
             <div class="flex flex-wrap justify-between gap-3 mb-4">
-                <h2 class="font-serif text-xl text-heading">SMS &amp; Email templates</h2>
+                <h2 class="text-xl text-heading">SMS &amp; Email templates</h2>
             </div>
             <p class="text-sm text-muted mb-4">Toggles and copy are stored per salon. Connect Twilio/Mailgun to send automatically from booking and POS events.</p>
             <ul class="divide-y divide-stone-200 dark:divide-gray-700">
@@ -357,7 +357,7 @@
 
         <div class="card p-6 border-stone-200/80 dark:border-gray-800">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-                <h2 class="font-serif text-xl text-heading">Two-way SMS inbox</h2>
+                <h2 class="text-xl text-heading">Two-way SMS inbox</h2>
                 @if($unreadSms > 0)
                     <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">{{ $unreadSms }} unread</span>
                 @endif

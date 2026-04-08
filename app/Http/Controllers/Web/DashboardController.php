@@ -15,7 +15,12 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $salon = Auth::user()->salons()->firstOrFail();
+        $user = Auth::user();
+        $activeSalonId = (int) session('active_salon_id', 0);
+        $salon = $activeSalonId > 0
+            ? $user->salons()->where('id', $activeSalonId)->first()
+            : null;
+        $salon = $salon ?: $user->salons()->firstOrFail();
 
         // KPI Metrics
         $today          = today();

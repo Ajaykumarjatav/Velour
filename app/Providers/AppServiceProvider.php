@@ -69,7 +69,12 @@ class AppServiceProvider extends ServiceProvider
         View::composer('*', function ($view) {
             if (auth()->check()) {
                 try {
-                    $salon = auth()->user()->salons()->first();
+                    $user = auth()->user();
+                    $activeSalonId = (int) session('active_salon_id', 0);
+                    $salon = $activeSalonId > 0
+                        ? $user->salons()->where('id', $activeSalonId)->first()
+                        : null;
+                    $salon = $salon ?: $user->salons()->first();
                     $view->with('currentSalon', $salon);
                 } catch (\Throwable) {}
             }

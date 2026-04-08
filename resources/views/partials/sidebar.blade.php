@@ -6,7 +6,7 @@
             velour<span class="text-velour-500">.</span>
         </p>
         @if(Auth::check() && Auth::user()->salons()->exists())
-        @php $sidebarSalonName = Auth::user()->salons()->first()->name; @endphp
+        @php $sidebarSalonName = $currentSalon->name ?? Auth::user()->salons()->first()->name; @endphp
         <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{{ $sidebarSalonName }}</p>
         @endif
     </div>
@@ -65,6 +65,14 @@
             Services
         </a>
 
+        <a href="{{ route('multi-location.index') }}"
+           class="sidebar-link {{ request()->routeIs('multi-location.*') ? 'active' : '' }}">
+            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7m0 0l4-4 4 4m-8 0h8m0 14V11m0 0l3-3 3 3m-6 0h6"/>
+            </svg>
+            Multi-Location
+        </a>
+
         <a href="{{ route('availability.index') }}"
            class="sidebar-link {{ request()->routeIs('availability.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -100,6 +108,22 @@
             Go Live &amp; Share
         </a>
 
+        <a href="{{ route('website-seo.index') }}"
+           class="sidebar-link {{ request()->routeIs('website-seo.*') ? 'active' : '' }}">
+            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/>
+            </svg>
+            Website &amp; SEO
+        </a>
+
+        <a href="{{ route('customization.index') }}"
+           class="sidebar-link {{ request()->routeIs('customization.*') ? 'active' : '' }}">
+            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1-2v2m0 14v2m-7-9H3m18 0h-2M6.8 6.8L5.4 5.4m13.2 13.2-1.4-1.4M6.8 17.2l-1.4 1.4m13.2-13.2-1.4 1.4M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+            </svg>
+            Customization
+        </a>
+
         <a href="{{ route('marketing.growth') }}"
            class="sidebar-link {{ request()->routeIs('marketing.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -114,6 +138,14 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
             </svg>
             Reviews
+        </a>
+
+        <a href="{{ route('reports.analytics') }}"
+           class="sidebar-link {{ request()->routeIs('reports.analytics') ? 'active' : '' }}">
+            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12v7m7-12v12m7-9v9"/>
+            </svg>
+            Analytics
         </a>
 
         {{-- Reports sub-menu --}}
@@ -197,8 +229,8 @@
             Settings
         </a>
 
-        <a href="{{ route('two-factor.setup') }}"
-           class="sidebar-link {{ request()->routeIs('two-factor.*') ? 'active' : '' }}">
+        <a href="{{ route('security-support.index') }}"
+           class="sidebar-link {{ request()->routeIs('security-support.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
             </svg>
