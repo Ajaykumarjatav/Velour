@@ -8,6 +8,7 @@ use App\Models\Staff;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\StaffLeaveRequest;
+use App\Services\NotificationService;
 use App\Scopes\TenantScope;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -204,6 +205,9 @@ class BookingService
 
         // Find or create client
         $client = $this->findOrCreateClient($salon->id, $data);
+        if ($client->wasRecentlyCreated) {
+            app(NotificationService::class)->notifyTenantNewClientRegistered($salon, $client);
+        }
 
         // Resolve staff
         $staffId = $hold['staff_id'];

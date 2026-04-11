@@ -8,6 +8,7 @@ use App\Mail\TenantRescheduleMail;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\MarketingCampaign;
+use App\Models\Salon;
 use App\Models\SalonNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -15,11 +16,25 @@ use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
+    private function notificationConfig(): NotificationConfigService
+    {
+        return app(NotificationConfigService::class);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function salonSettingsPluck(Salon $salon): array
+    {
+        return $salon->settings()->pluck('value', 'key')->all();
+    }
+
     /* ── Public API (called by controllers & BookingService) ─────────────── */
 
     public function appointmentConfirmation(Appointment $appointment): void
     {
         $this->notifyTenantNewBooking($appointment);
+        $this->sendClientBookingConfirmationIfEnabled($appointment);
     }
 
     public function appointmentReminder(Appointment $appointment): void
@@ -29,6 +44,144 @@ class NotificationService
             'body'  => "Reminder sent to {$appointment->client->first_name} for {$appointment->starts_at->format('D j M')}",
             'data'  => ['appointment_id' => $appointment->id],
         ]);
+    }
+
+    /**
+     * Instant client email after online booking (stub — wire Mail/queue in production).
+     */
+    public function sendClientBookingConfirmationIfEnabled(Appointment $appointment): void
+    {
+        $salon = $appointment->salon ?? $appointment->load('salon')->salon;
+        if (! $salon) {
+            return;
+        }
+
+        $cfg = $this->notificationConfig();
+        $pluck = $this->salonSettingsPluck($salon);
+        if (! $cfg->isRuleEnabled($salon, 'client_booking_confirmation_email', $pluck)) {
+            return;
+        }
+
+        $appointment->loadMissing(['client', 'staff', 'services.service']);
+        $client = $appointment->client;
+        if (! $client?->email) {
+            return;
+        }
+
+        $tpl = $cfg->templatesForRule($salon, 'client_booking_confirmation_email', $pluck);
+        $ctx = $cfg->buildAppointmentContext($appointment);
+        $subject = $cfg->render($tpl['email_subject'] ?? 'Booking confirmed', $ctx);
+        $body = $cfg->render($tpl['email_body'] ?? '', $ctx);
+
+        Log::info('Client booking confirmation email (stub)', [
+            'appointment_id' => $appointment->id,
+            'to'               => $client->email,
+            'subject'          => $subject,
+            'preview'          => mb_substr($body, 0, 200),
+        ]);
+    }
+
+    /**
+     * Scheduled reminder for one rule id (email or SMS). Returns whether a send was recorded.
+     */
+    public function sendClientScheduledReminder(Appointment $appointment, string $ruleId, array $settingsPluck): bool
+    {
+        $salon = $appointment->salon ?? $appointment->load('salon')->salon;
+        if (! $salon) {
+            return false;
+        }
+
+        $cfg = $this->notificationConfig();
+        if (! $cfg->isRuleEnabled($salon, $ruleId, $settingsPluck)) {
+            return false;
+        }
+        if ($cfg->shouldSkipForQuietHours($salon, $settingsPluck)) {
+            return false;
+        }
+
+        $offset = $cfg->offsetHours($salon, $ruleId, $settingsPluck);
+        $key = NotificationConfigService::dispatchKey($ruleId, $offset);
+        $appointment->refresh();
+
+        if ($cfg->hasDispatchKey($appointment, $key)) {
+            return false;
+        }
+
+        $appointment->loadMissing(['client', 'staff', 'services.service']);
+        $tpl = $cfg->templatesForRule($salon, $ruleId, $settingsPluck);
+        $ctx = $cfg->buildAppointmentContext($appointment);
+
+        if ($ruleId === 'client_appointment_reminder_email') {
+            $client = $appointment->client;
+            if (! $client?->email) {
+                return false;
+            }
+            $subject = $cfg->render($tpl['email_subject'] ?? 'Reminder', $ctx);
+            $body = $cfg->render($tpl['email_body'] ?? '', $ctx);
+            Log::info('Client appointment reminder email (stub)', [
+                'appointment_id' => $appointment->id,
+                'to'             => $client->email,
+                'subject'        => $subject,
+                'preview'        => mb_substr($body, 0, 200),
+            ]);
+            $cfg->markDispatchKey($appointment->fresh(), $key);
+            $this->appointmentReminder($appointment->fresh());
+
+            return true;
+        }
+
+        if ($ruleId === 'client_appointment_reminder_sms') {
+            $client = $appointment->client;
+            if (! $client?->phone) {
+                return false;
+            }
+            $sms = $cfg->render($tpl['sms_body'] ?? '', $ctx);
+            Log::info('Client appointment reminder SMS (stub)', [
+                'appointment_id' => $appointment->id,
+                'to'             => $client->phone,
+                'preview'        => mb_substr($sms, 0, 160),
+            ]);
+            $cfg->markDispatchKey($appointment->fresh(), $key);
+            $this->appointmentReminder($appointment->fresh());
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function notifyTenantNewClientRegistered(Salon $salon, Client $client): void
+    {
+        $pluck = $this->salonSettingsPluck($salon);
+        $cfg = $this->notificationConfig();
+        if (! $cfg->isRuleEnabled($salon, 'tenant_new_client_email', $pluck)) {
+            return;
+        }
+
+        $tpl = $cfg->templatesForRule($salon, 'tenant_new_client_email', $pluck);
+        $ctx = $cfg->buildClientContext($client, $salon);
+        $subject = $cfg->render($tpl['email_subject'] ?? 'New client', $ctx);
+        $body = $cfg->render($tpl['email_body'] ?? '', $ctx);
+
+        $this->createNotification($salon->id, 'client', [
+            'title' => $subject,
+            'body'  => trim($client->first_name.' '.$client->last_name).' — '.($client->email ?: $client->phone ?: ''),
+            'data'  => ['client_id' => $client->id],
+        ]);
+
+        $recipient = $salon->email ?: optional($salon->owner)->email;
+        if ($recipient) {
+            try {
+                Log::info('Tenant new-client email (stub)', [
+                    'salon_id' => $salon->id,
+                    'to'       => $recipient,
+                    'subject'  => $subject,
+                    'preview'  => mb_substr($body, 0, 200),
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Tenant new-client email failed', ['error' => $e->getMessage()]);
+            }
+        }
     }
 
     public function appointmentCancellation(Appointment $appointment): void

@@ -9,30 +9,34 @@
     <div class="card p-6">
         <form action="{{ route('appointments.store') }}" method="POST" class="space-y-5">
             @csrf
-            <div>
-                <label class="form-label">Client <span class="text-red-500">*</span></label>
-                <select name="client_id" required class="form-select @error('client_id') form-input-error @enderror">
-                    <option value="">Select a client…</option>
-                    @foreach($clients as $client)
-                    <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
-                        {{ $client->first_name }} {{ $client->last_name }} {{ $client->phone ? '— '.$client->phone : '' }}
-                    </option>
-                    @endforeach
-                </select>
-                @error('client_id')<p class="form-error">{{ $message }}</p>@enderror
-            </div>
+            <x-relation-field-with-create
+                label="Client"
+                name="client_id"
+                select-id="appt-create-client"
+                type="client"
+                :required="true">
+                <option value="">Select a client…</option>
+                @foreach($clients as $client)
+                <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
+                    {{ $client->first_name }} {{ $client->last_name }} {{ $client->phone ? '— '.$client->phone : '' }}
+                </option>
+                @endforeach
+            </x-relation-field-with-create>
 
             <div x-data="timeslotPicker(@js($occupiedSlotsUrl))" x-init="init()">
-                <div>
-                    <label class="form-label">Staff member <span class="text-red-500">*</span></label>
-                    <select name="staff_id" required x-model="staffId"
-                            class="form-select @error('staff_id') form-input-error @enderror">
-                        <option value="">Select staff…</option>
-                        @foreach($staff as $s)
-                        <option value="{{ $s->id }}" {{ (string) old('staff_id', '') === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('staff_id')<p class="form-error">{{ $message }}</p>@enderror
+                <div class="flex items-end gap-2">
+                    <div class="flex-1 min-w-0">
+                        <label class="form-label" for="appt-create-staff">Staff member <span class="text-red-500">*</span></label>
+                        <select name="staff_id" id="appt-create-staff" required x-model="staffId"
+                                class="form-select w-full @error('staff_id') form-input-error @enderror">
+                            <option value="">Select staff…</option>
+                            @foreach($staff as $s)
+                            <option value="{{ $s->id }}" {{ (string) old('staff_id', '') === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('staff_id')<p class="form-error">{{ $message }}</p>@enderror
+                    </div>
+                    <x-relation-quick-create-trigger type="staff" select-id="appt-create-staff" />
                 </div>
 
                 {{-- Date --}}

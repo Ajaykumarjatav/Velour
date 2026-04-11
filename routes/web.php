@@ -22,6 +22,7 @@ use App\Http\Controllers\Web\ReviewController;
 use App\Http\Controllers\Web\CustomizationController;
 use App\Http\Controllers\Web\SecuritySupportController;
 use App\Http\Controllers\Web\WebsiteSeoController;
+use App\Http\Controllers\Web\RelationQuickCreateController;
 use App\Http\Controllers\Web\SettingsController;
 use App\Http\Controllers\Admin\SuperAdminController;
 use App\Http\Controllers\Admin\TenantAdminController;
@@ -122,6 +123,12 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
 
         Route::get('clients/export', [ClientController::class, 'export'])->name('clients.export');
         Route::post('clients/import', [ClientController::class, 'import'])->name('clients.import');
+        Route::post('quick-create/client', [RelationQuickCreateController::class, 'storeClient'])->name('quick-create.client');
+        Route::post('quick-create/staff', [RelationQuickCreateController::class, 'storeStaff'])
+            ->middleware('plan.limit:staff')
+            ->name('quick-create.staff');
+        Route::post('quick-create/inventory-category', [RelationQuickCreateController::class, 'storeInventoryCategory'])
+            ->name('quick-create.inventory-category');
         Route::resource('clients', ClientController::class);
         Route::get('staff/payroll/export', [StaffController::class, 'exportPayroll'])->name('staff.payroll.export');
         Route::put('staff/{staff}/weekly-schedule', [StaffController::class, 'updateWeeklySchedule'])->name('staff.weekly-schedule');

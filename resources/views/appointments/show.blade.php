@@ -205,14 +205,17 @@
                                class="form-input">
                         @error('starts_at')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                     </div>
-                    <div>
-                        <label class="form-label">Reassign staff (optional)</label>
-                        <select name="staff_id" class="form-select">
-                            <option value="">Keep current ({{ $appointment->staff?->name }})</option>
-                            @foreach($staff as $s)
-                            <option value="{{ $s->id }}" {{ old('staff_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
-                            @endforeach
-                        </select>
+                    <div class="flex items-end gap-2">
+                        <div class="flex-1 min-w-0">
+                            <label class="form-label" for="appt-reschedule-staff">Reassign staff (optional)</label>
+                            <select name="staff_id" id="appt-reschedule-staff" class="form-select w-full">
+                                <option value="">Keep current ({{ $appointment->staff?->name }})</option>
+                                @foreach($staff as $s)
+                                <option value="{{ $s->id }}" {{ old('staff_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <x-relation-quick-create-trigger type="staff" select-id="appt-reschedule-staff" />
                     </div>
                 </div>
                 <div class="flex gap-2">

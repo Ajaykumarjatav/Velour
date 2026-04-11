@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Services\NotificationConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -20,7 +21,17 @@ class SettingsController extends Controller
         $settings = $salon->settings()->pluck('value', 'key');
         $user     = Auth::user();
 
-        return view('settings.index', compact('salon', 'settings', 'user'));
+        $notificationDefinitions = NotificationConfigService::definitions();
+        $settingsArr = $salon->settings()->pluck('value', 'key')->all();
+        $notificationConfig = app(NotificationConfigService::class)->mergedConfigArray($salon, $settingsArr);
+
+        return view('settings.index', compact(
+            'salon',
+            'settings',
+            'user',
+            'notificationDefinitions',
+            'notificationConfig'
+        ));
     }
 
     public function updateSalon(Request $request)
@@ -64,20 +75,71 @@ class SettingsController extends Controller
     public function updateNotifications(Request $request)
     {
         $salon = $this->salon();
+        $definitions = NotificationConfigService::definitions();
 
-        $settings = [
-            'email_appointment_confirmation' => $request->boolean('email_appointment_confirmation'),
-            'email_appointment_reminder'     => $request->boolean('email_appointment_reminder'),
-            'sms_appointment_reminder'       => $request->boolean('sms_appointment_reminder'),
-            'reminder_hours_before'          => (int) $request->get('reminder_hours_before', 24),
-            'email_new_client'               => $request->boolean('email_new_client'),
+        $rules = [
+            'qh_enabled' => ['sometimes', 'boolean'],
+            'qh_from'    => ['nullable', 'regex:/^\d{2}:\d{2}$/'],
+            'qh_to'      => ['nullable', 'regex:/^\d{2}:\d{2}$/'],
+            'qh_mode'    => ['nullable', 'in:skip,delay'],
         ];
 
-        foreach ($settings as $key => $value) {
-            $salon->settings()->updateOrCreate(['key' => $key], ['value' => $value]);
+        foreach ($definitions as $id => $def) {
+            $rules["notification_rules.{$id}.enabled"] = ['sometimes', 'boolean'];
+            if (($def['timing'] ?? '') === 'scheduled') {
+                $rules["notification_rules.{$id}.offset_hours"] = ['nullable', 'integer', 'min:1', 'max:168'];
+            }
+            if (in_array('email', $def['channels'] ?? [], true)) {
+                $rules["notification_templates.{$id}.email_subject"] = ['nullable', 'string', 'max:200'];
+                $rules["notification_templates.{$id}.email_body"] = ['nullable', 'string', 'max:8000'];
+            }
+            if (in_array('sms', $def['channels'] ?? [], true)) {
+                $rules["notification_templates.{$id}.sms_body"] = ['nullable', 'string', 'max:640'];
+            }
         }
 
-        return back()->with('success', 'Notification settings updated.');
+        $request->validate($rules);
+
+        $payload = [
+            'version'     => 2,
+            'rules'       => [],
+            'templates'   => [],
+            'quiet_hours' => [
+                'enabled' => $request->boolean('qh_enabled'),
+                'from'    => $request->input('qh_from', '22:00'),
+                'to'      => $request->input('qh_to', '07:00'),
+                'mode'    => $request->input('qh_mode', 'skip') === 'delay' ? 'delay' : 'skip',
+            ],
+        ];
+
+        foreach ($definitions as $id => $def) {
+            $payload['rules'][$id] = [
+                'enabled' => $request->boolean("notification_rules.{$id}.enabled"),
+                'offset_hours' => ($def['timing'] ?? '') === 'scheduled'
+                    ? (int) $request->input("notification_rules.{$id}.offset_hours", $def['default_offset_hours'] ?? 24)
+                    : null,
+            ];
+
+            $tplIn = (array) $request->input("notification_templates.{$id}", []);
+            $tplOut = [];
+            if (in_array('email', $def['channels'] ?? [], true)) {
+                foreach (['email_subject', 'email_body'] as $k) {
+                    if (isset($tplIn[$k]) && $tplIn[$k] !== null) {
+                        $tplOut[$k] = (string) $tplIn[$k];
+                    }
+                }
+            }
+            if (in_array('sms', $def['channels'] ?? [], true) && array_key_exists('sms_body', $tplIn)) {
+                $tplOut['sms_body'] = (string) $tplIn['sms_body'];
+            }
+            if ($tplOut !== []) {
+                $payload['templates'][$id] = $tplOut;
+            }
+        }
+
+        app(NotificationConfigService::class)->persist($salon, $payload);
+
+        return back()->with('success', 'Notification settings updated.')->with('tab', 'notifications');
     }
 
     public function updateProfile(Request $request)

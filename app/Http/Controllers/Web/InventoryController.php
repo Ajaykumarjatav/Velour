@@ -83,6 +83,22 @@ class InventoryController extends Controller
         return compact('totalSkus', 'lowStockSkus', 'criticalSkus', 'alertCount');
     }
 
+    /**
+     * Distinct supplier names already used on items in this salon (for picklists).
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    private function supplierNamesForSalon(int $salonId)
+    {
+        return InventoryItem::where('salon_id', $salonId)
+            ->whereNotNull('supplier')
+            ->where('supplier', '!=', '')
+            ->distinct()
+            ->orderBy('supplier')
+            ->pluck('supplier')
+            ->values();
+    }
+
     private function filteredInventoryQuery(Salon $salon, Request $request)
     {
         $search     = $request->get('search');
@@ -205,10 +221,15 @@ class InventoryController extends Controller
 
     public function create()
     {
-        $salon      = $this->salon();
-        $categories = InventoryCategory::where('salon_id', $salon->id)->orderBy('name')->get(['id','name']);
+        $salon       = $this->salon();
+        $categories  = InventoryCategory::where('salon_id', $salon->id)->orderBy('name')->get(['id','name']);
+        $suppliers = $this->supplierNamesForSalon($salon->id);
+        $oldSupplier = old('supplier');
+        if (is_string($oldSupplier) && $oldSupplier !== '' && ! $suppliers->contains(fn (string $s): bool => $s === $oldSupplier)) {
+            $suppliers = $suppliers->push($oldSupplier)->sort()->values();
+        }
 
-        return view('inventory.create', compact('salon', 'categories'));
+        return view('inventory.create', compact('salon', 'categories', 'suppliers'));
     }
 
     public function store(Request $request)
@@ -244,8 +265,16 @@ class InventoryController extends Controller
         $this->authorise($inventory);
         $salon      = $this->salon();
         $categories = InventoryCategory::where('salon_id', $salon->id)->orderBy('name')->get(['id','name']);
+        $suppliers    = $this->supplierNamesForSalon($salon->id);
+        if ($inventory->supplier !== null && $inventory->supplier !== '' && ! $suppliers->contains(fn (string $s): bool => $s === $inventory->supplier)) {
+            $suppliers = $suppliers->push($inventory->supplier)->sort()->values();
+        }
+        $oldSupplier = old('supplier');
+        if (is_string($oldSupplier) && $oldSupplier !== '' && ! $suppliers->contains(fn (string $s): bool => $s === $oldSupplier)) {
+            $suppliers = $suppliers->push($oldSupplier)->sort()->values();
+        }
 
-        return view('inventory.edit', ['item' => $inventory, 'categories' => $categories]);
+        return view('inventory.edit', ['item' => $inventory, 'categories' => $categories, 'suppliers' => $suppliers]);
     }
 
     public function update(Request $request, InventoryItem $inventory)

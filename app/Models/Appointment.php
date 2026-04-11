@@ -15,7 +15,7 @@ class Appointment extends Model
     protected $fillable = [
         'salon_id','client_id','staff_id','reference','starts_at','ends_at',
         'duration_minutes','total_price','deposit_paid','amount_paid','status','source',
-        'client_notes','internal_notes','reminder_sent','review_requested',
+        'client_notes','internal_notes','reminder_sent','reminder_dispatch_keys','review_requested',
         'confirmed_at','cancelled_at','cancellation_reason','deposit_required','deposit_paid_flag',
     ];
     protected $casts = [
@@ -23,6 +23,7 @@ class Appointment extends Model
         'confirmed_at'=>'datetime','cancelled_at'=>'datetime',
         'total_price'=>'decimal:2','deposit_paid'=>'decimal:2','amount_paid'=>'decimal:2',
         'reminder_sent'=>'boolean','review_requested'=>'boolean',
+        'reminder_dispatch_keys'=>'array',
         'deposit_required'=>'boolean','deposit_paid_flag'=>'boolean',
     ];
     protected static function boot() {

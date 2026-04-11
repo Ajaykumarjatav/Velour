@@ -129,10 +129,13 @@ class AppointmentService
         $this->assertNoConflict($staffId, $startsAt, $endsAt, $appointment->id);
 
         $appointment->update([
-            'staff_id'  => $staffId,
-            'starts_at' => $startsAt,
-            'ends_at'   => $endsAt,
-            'status'    => 'confirmed',
+            'staff_id'               => $staffId,
+            'starts_at'              => $startsAt,
+            'ends_at'                => $endsAt,
+            'status'                 => 'confirmed',
+            'reminder_sent'          => false,
+            'reminder_sent_at'       => null,
+            'reminder_dispatch_keys' => null,
         ]);
 
         return $appointment->fresh();

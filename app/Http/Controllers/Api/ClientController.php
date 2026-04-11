@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientNote;
 use App\Models\ClientFormula;
+use App\Models\Salon;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -110,6 +111,10 @@ class ClientController extends Controller
         $data['salon_id']  = $salonId;
 
         $client = Client::create($data);
+        $salon = Salon::query()->find($salonId);
+        if ($salon) {
+            $this->notificationService->notifyTenantNewClientRegistered($salon, $client);
+        }
 
         if ($notes) {
             ClientNote::create([

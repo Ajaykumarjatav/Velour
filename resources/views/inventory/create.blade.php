@@ -30,16 +30,18 @@
                     @error('barcode')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
             </div>
-            <div>
-                <label class="form-label">Category</label>
-                <select name="inventory_category_id" class="form-select @error('inventory_category_id') form-input-error @enderror">
-                    <option value="">No category</option>
-                    @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}" {{ old('inventory_category_id', $item->inventory_category_id ?? '') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                    @endforeach
-                </select>
-                @error('inventory_category_id')<p class="form-error">{{ $message }}</p>@enderror
-            </div>
+            <x-relation-field-with-create
+                label="Category"
+                name="inventory_category_id"
+                select-id="inv-create-category"
+                type="inventory_category"
+                :required="false"
+                error-name="inventory_category_id">
+                <option value="">No category</option>
+                @foreach($categories as $cat)
+                <option value="{{ $cat->id }}" @selected(old('inventory_category_id', isset($item) ? $item->category_id : null) == $cat->id)>{{ $cat->name }}</option>
+                @endforeach
+            </x-relation-field-with-create>
             <div class="grid grid-cols-2 gap-4">
                 @if(!isset($item))
                 <div>
@@ -73,11 +75,19 @@
                     @error('retail_price')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
             </div>
-            <div>
-                <label class="form-label">Supplier</label>
-                <input type="text" name="supplier" value="{{ old('supplier', $item->supplier ?? '') }}"
-                       class="form-input @error('supplier') form-input-error @enderror">
-                @error('supplier')<p class="form-error">{{ $message }}</p>@enderror
+            <div class="flex items-end gap-2">
+                <div class="flex-1 min-w-0">
+                    <label class="form-label" for="inv-create-supplier">Supplier</label>
+                    <select name="supplier" id="inv-create-supplier"
+                            class="form-select w-full @error('supplier') form-input-error @enderror">
+                        <option value="">No supplier</option>
+                        @foreach($suppliers as $s)
+                        <option value="{{ $s }}" @selected(old('supplier', isset($item) ? $item->supplier : null) === $s)>{{ $s }}</option>
+                        @endforeach
+                    </select>
+                    @error('supplier')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <x-relation-quick-create-trigger type="inventory_supplier" select-id="inv-create-supplier" />
             </div>
             <div class="flex gap-3 pt-2">
                 <button type="submit" class="btn-primary flex-1 sm:flex-none">{{ isset($item) ? 'Save Changes' : 'Add Item' }}</button>

@@ -262,12 +262,15 @@
             </div>
 
             {{-- Client selector --}}
-            <select x-model="clientId" class="form-select w-full text-sm">
-                <option value="">Walk-in Client</option>
-                @foreach($clients as $c)
-                <option value="{{ $c->id }}">{{ $c->first_name }} {{ $c->last_name }}</option>
-                @endforeach
-            </select>
+            <div class="flex items-end gap-2">
+                <select x-model="clientId" id="pos-client-select" class="form-select flex-1 min-w-0 text-sm">
+                    <option value="">Walk-in Client</option>
+                    @foreach($clients as $c)
+                    <option value="{{ $c->id }}">{{ $c->first_name }} {{ $c->last_name }}</option>
+                    @endforeach
+                </select>
+                <x-relation-quick-create-trigger type="client" select-id="pos-client-select" />
+            </div>
 
             {{-- Clear / Charge --}}
             <div class="flex gap-2 pt-1">

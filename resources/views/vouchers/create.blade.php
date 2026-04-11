@@ -50,17 +50,20 @@
         </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">Assign to client <span class="text-gray-400 font-normal">(optional)</span></label>
-        <select name="client_id" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-velour-500">
-          <option value="">Any client</option>
-          @foreach($clients as $c)
-          <option value="{{ $c->id }}" {{ old('client_id') == $c->id ? 'selected' : '' }}>
-            {{ $c->first_name }} {{ $c->last_name }}
-          </option>
-          @endforeach
-        </select>
-      </div>
+      <x-relation-field-with-create
+        label="Assign to client (optional)"
+        name="client_id"
+        select-id="voucher-create-client"
+        type="client"
+        :required="false"
+        select-class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-velour-500">
+        <option value="">Any client</option>
+        @foreach($clients as $c)
+        <option value="{{ $c->id }}" {{ old('client_id') == $c->id ? 'selected' : '' }}>
+          {{ $c->first_name }} {{ $c->last_name }}
+        </option>
+        @endforeach
+      </x-relation-field-with-create>
 
       <div class="grid grid-cols-2 gap-4">
         <div>

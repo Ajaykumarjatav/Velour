@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\LoyaltyTier;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -266,7 +267,8 @@ class ClientController extends Controller
         }
 
         $data['salon_id'] = $salon->id;
-        Client::create($data);
+        $client = Client::create($data);
+        app(NotificationService::class)->notifyTenantNewClientRegistered($salon, $client);
 
         return redirect()->route('clients.index')->with('success', 'Client added successfully.');
     }

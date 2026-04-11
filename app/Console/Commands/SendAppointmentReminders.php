@@ -3,69 +3,88 @@
 namespace App\Console\Commands;
 
 use App\Models\Appointment;
+use App\Services\NotificationConfigService;
 use App\Services\NotificationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 /**
- * SendAppointmentReminders — AUDIT FIX: Notification System
- *
- * Sends SMS/email reminders to clients before appointments.
- * Reminder windows configured in config/velour.php booking.reminder_hours_before.
- * Default: [24, 2] — reminds 24h before and 2h before.
- *
- * Scheduled: every 15 minutes (console.php)
+ * Sends client email/SMS reminders using per-salon notification rules and offsets.
  */
 class SendAppointmentReminders extends Command
 {
-    protected $signature   = 'velour:send-appointment-reminders';
+    protected $signature = 'velour:send-appointment-reminders';
+
     protected $description = 'Send appointment reminder notifications to clients';
 
-    public function __construct(private NotificationService $notificationService)
-    {
+    private const SCHEDULED_RULES = [
+        'client_appointment_reminder_email',
+        'client_appointment_reminder_sms',
+    ];
+
+    public function __construct(
+        private NotificationService $notificationService,
+        private NotificationConfigService $notificationConfig,
+    ) {
         parent::__construct();
     }
 
     public function handle(): int
     {
-        $windows = config('velour.booking.reminder_hours_before', [24, 2]);
-        $sent    = 0;
-        $failed  = 0;
+        $sent = 0;
+        $failed = 0;
 
-        foreach ($windows as $hoursAhead) {
-            $windowStart = now()->addHours($hoursAhead)->subMinutes(8);
-            $windowEnd   = now()->addHours($hoursAhead)->addMinutes(7);
+        /** @var array<int, array<string, mixed>> $pluckCache */
+        $pluckCache = [];
 
-            $appointments = Appointment::with(['client', 'staff', 'salon', 'services'])
-                ->where('status', 'confirmed')
-                ->whereBetween('starts_at', [$windowStart, $windowEnd])
-                ->where('reminder_sent', false)
-                ->get();
+        Appointment::query()
+            ->with(['client', 'staff', 'salon', 'services.service'])
+            ->where('status', 'confirmed')
+            ->where('starts_at', '>', now())
+            ->where('starts_at', '<', now()->addDays(14))
+            ->orderBy('starts_at')
+            ->chunkById(100, function ($chunk) use (&$pluckCache, &$sent, &$failed) {
+                foreach ($chunk as $appointment) {
+                    $salonId = $appointment->salon_id;
+                    if (! isset($pluckCache[$salonId])) {
+                        $pluckCache[$salonId] = $appointment->salon
+                            ? $appointment->salon->settings()->pluck('value', 'key')->all()
+                            : [];
+                    }
+                    $pluck = $pluckCache[$salonId];
 
-            foreach ($appointments as $appointment) {
-                try {
-                    $this->notificationService->appointmentReminder($appointment);
+                    foreach (self::SCHEDULED_RULES as $ruleId) {
+                        $hoursAhead = $this->notificationConfig->offsetHours($appointment->salon, $ruleId, $pluck);
+                        $windowStart = now()->addHours($hoursAhead)->subMinutes(8);
+                        $windowEnd = now()->addHours($hoursAhead)->addMinutes(7);
 
-                    $appointment->update(['reminder_sent' => true, 'reminder_sent_at' => now()]);
-                    $sent++;
+                        if ($appointment->starts_at->lt($windowStart) || $appointment->starts_at->gt($windowEnd)) {
+                            continue;
+                        }
 
-                    Log::info('Appointment reminder sent', [
-                        'appointment_id' => $appointment->id,
-                        'client_id'      => $appointment->client_id,
-                        'starts_at'      => $appointment->starts_at,
-                        'hours_ahead'    => $hoursAhead,
-                    ]);
-                } catch (\Throwable $e) {
-                    $failed++;
-                    Log::error('Failed to send appointment reminder', [
-                        'appointment_id' => $appointment->id,
-                        'error'          => $e->getMessage(),
-                    ]);
+                        try {
+                            if ($this->notificationService->sendClientScheduledReminder($appointment, $ruleId, $pluck)) {
+                                $sent++;
+                                Log::info('Appointment reminder dispatched', [
+                                    'appointment_id' => $appointment->id,
+                                    'rule'           => $ruleId,
+                                    'hours_ahead'    => $hoursAhead,
+                                ]);
+                            }
+                        } catch (\Throwable $e) {
+                            $failed++;
+                            Log::error('Failed to send appointment reminder', [
+                                'appointment_id' => $appointment->id,
+                                'rule'           => $ruleId,
+                                'error'          => $e->getMessage(),
+                            ]);
+                        }
+                    }
                 }
-            }
-        }
+            });
 
         $this->info("Reminders sent: {$sent}, failed: {$failed}");
+
         return self::SUCCESS;
     }
 }

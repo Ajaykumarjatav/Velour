@@ -208,35 +208,134 @@
         @endif
     </div>
 
-    {{-- ── Notifications ── --}}
-    <div x-show="tab==='notifications'" x-cloak>        <div class="card p-6">
-            <h2 class="font-semibold text-heading mb-5">Notification Settings</h2>
+    {{-- ── Notifications (rules, timing, templates, quiet hours) ── --}}
+    <div x-show="tab==='notifications'" x-cloak x-data="{ open: {} }">
+        <div class="card p-6">
+            <h2 class="font-semibold text-heading mb-1">Notification settings</h2>
+            <p class="text-sm text-muted mb-6">Turn channels on or off, set when scheduled reminders go out, and customise message text. Use placeholders in curly braces in your templates.</p>
+
             <form action="{{ route('settings.notifications') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
-                @foreach([
-                    'email_appointment_confirmation' => 'Send email confirmation when appointment is booked',
-                    'email_appointment_reminder'     => 'Send email reminder before appointment',
-                    'sms_appointment_reminder'       => 'Send SMS reminder before appointment',
-                    'email_new_client'               => 'Notify me when a new client registers',
-                ] as $key => $label)
-                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                    <input type="checkbox" name="{{ $key }}" value="1"
-                           {{ ($settings[$key] ?? false) ? 'checked' : '' }}
-                           class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                    <span class="text-sm text-body">{{ $label }}</span>
-                </label>
+
+                @foreach($notificationDefinitions as $id => $def)
+                    @php
+                        $rule = $notificationConfig['rules'][$id] ?? ['enabled' => false, 'offset_hours' => null];
+                        $tpl = $notificationConfig['templates'][$id] ?? [];
+                        $timing = $def['timing'] ?? 'instant';
+                    @endphp
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 overflow-hidden">
+                        <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <h3 class="font-semibold text-heading text-sm sm:text-base">{{ $def['label'] }}</h3>
+                                    @if($timing === 'instant')
+                                        <span class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">Instant</span>
+                                    @else
+                                        <span class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">Scheduled</span>
+                                    @endif
+                                </div>
+                                <p class="text-xs text-muted leading-relaxed">{{ $def['description'] }}</p>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <input type="hidden" name="notification_rules[{{ $id }}][enabled]" value="0">
+                                <label class="flex items-center gap-2 cursor-pointer text-sm text-body whitespace-nowrap">
+                                    <input type="checkbox" name="notification_rules[{{ $id }}][enabled]" value="1"
+                                           class="rounded border-gray-300 dark:border-gray-600 text-velour-600"
+                                           @checked((bool) old("notification_rules.$id.enabled", $rule['enabled'] ?? false))>
+                                    <span>On</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        @if($timing === 'scheduled')
+                            <div class="px-4 sm:px-5 pb-4 flex flex-wrap items-center gap-2 border-t border-gray-100 dark:border-gray-800 pt-4">
+                                <label class="text-xs font-medium text-body">Send</label>
+                                <select name="notification_rules[{{ $id }}][offset_hours]" class="form-select text-sm w-auto min-w-[8rem]">
+                                    @foreach([1,2,4,6,12,24,48,72,96,168] as $h)
+                                        <option value="{{ $h }}" @selected((int) old("notification_rules.$id.offset_hours", $rule['offset_hours'] ?? 24) === $h)>
+                                            {{ $h }} hour{{ $h !== 1 ? 's' : '' }} before start
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+
+                        <div class="border-t border-gray-100 dark:border-gray-800 px-4 sm:px-5 py-3 bg-gray-50/80 dark:bg-gray-800/30">
+                            <button type="button"
+                                    @click="open['{{ $id }}'] = !open['{{ $id }}']"
+                                    class="text-sm font-medium text-velour-600 dark:text-velour-400 hover:underline">
+                                <span x-text="open['{{ $id }}'] ? 'Hide message templates' : 'Edit message templates'"></span>
+                            </button>
+
+                            <div x-show="open['{{ $id }}']" x-cloak class="mt-4 space-y-4">
+                                @if(in_array('email', $def['channels'] ?? [], true))
+                                    <div>
+                                        <label class="form-label text-xs">Email subject</label>
+                                        <input type="text" name="notification_templates[{{ $id }}][email_subject]"
+                                               value="{{ old("notification_templates.$id.email_subject", $tpl['email_subject'] ?? '') }}"
+                                               class="form-input text-sm" placeholder="Subject line">
+                                    </div>
+                                    <div>
+                                        <label class="form-label text-xs">Email body</label>
+                                        <textarea name="notification_templates[{{ $id }}][email_body]" rows="5"
+                                                  class="form-textarea text-sm font-mono"
+                                                  placeholder="Email text">{{ old("notification_templates.$id.email_body", $tpl['email_body'] ?? '') }}</textarea>
+                                    </div>
+                                @endif
+                                @if(in_array('sms', $def['channels'] ?? [], true))
+                                    <div>
+                                        <label class="form-label text-xs">SMS body <span class="text-muted font-normal">(keep short; ~160 chars recommended)</span></label>
+                                        <textarea name="notification_templates[{{ $id }}][sms_body]" rows="3"
+                                                  maxlength="640"
+                                                  class="form-textarea text-sm font-mono"
+                                                  placeholder="SMS text">{{ old("notification_templates.$id.sms_body", $tpl['sms_body'] ?? '') }}</textarea>
+                                    </div>
+                                @endif
+                                @if(!empty($def['variables']))
+                                    <p class="text-xs text-muted">
+                                        <span class="font-medium text-body">Placeholders:</span>
+                                        @foreach($def['variables'] as $v)
+                                            <code class="ml-1 px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-[11px]">{!! '{{'.$v.'}}' !!}</code>
+                                        @endforeach
+                                    </p>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 @endforeach
-                <div class="mt-2">
-                    <label class="form-label">Send reminder how many hours before?</label>
-                    <select name="reminder_hours_before" class="form-select w-auto">
-                        @foreach([1,2,4,6,12,24,48] as $h)
-                        <option value="{{ $h }}" {{ ($settings['reminder_hours_before'] ?? 24) == $h ? 'selected' : '' }}>
-                            {{ $h }} hour{{ $h !== 1 ? 's' : '' }}
-                        </option>
-                        @endforeach
-                    </select>
+
+                @php $qh = $notificationConfig['quiet_hours'] ?? []; @endphp
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
+                    <h3 class="font-semibold text-heading text-sm mb-1">Quiet hours</h3>
+                    <p class="text-xs text-muted mb-4">When enabled, scheduled client reminders are skipped during this window (salon timezone).</p>
+                    <div class="flex flex-wrap items-center gap-4 mb-4">
+                        <input type="hidden" name="qh_enabled" value="0">
+                        <label class="flex items-center gap-2 cursor-pointer text-sm text-body">
+                            <input type="checkbox" name="qh_enabled" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600"
+                                   @checked(old('qh_enabled', $qh['enabled'] ?? false) ? true : false)>
+                            Enable quiet hours
+                        </label>
+                    </div>
+                    <div class="flex flex-wrap items-end gap-4">
+                        <div>
+                            <label class="form-label text-xs">From</label>
+                            <input type="time" name="qh_from" value="{{ old('qh_from', $qh['from'] ?? '22:00') }}" class="form-input text-sm w-auto">
+                        </div>
+                        <div>
+                            <label class="form-label text-xs">To</label>
+                            <input type="time" name="qh_to" value="{{ old('qh_to', $qh['to'] ?? '07:00') }}" class="form-input text-sm w-auto">
+                        </div>
+                        <div>
+                            <label class="form-label text-xs">Behaviour</label>
+                            <select name="qh_mode" class="form-select text-sm w-auto min-w-[10rem]">
+                                <option value="skip" @selected(old('qh_mode', $qh['mode'] ?? 'skip') === 'skip')>Skip send (recommended)</option>
+                                <option value="delay" @selected(old('qh_mode', $qh['mode'] ?? 'skip') === 'delay')>Delay (reserved)</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="btn-primary">Save Notifications</button>
+
+                <button type="submit" class="btn-primary">Save notification settings</button>
             </form>
         </div>
     </div>
