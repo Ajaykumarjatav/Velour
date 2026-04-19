@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -182,7 +182,7 @@
 
                 {{-- Step pills --}}
                 <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-                    @php $stepLabels = ['Service','Staff','Date & Time','Details','Confirm']; @endphp
+                    @php $stepLabels = ['Services','Staff','Date & Time','Details','Confirm']; @endphp
                     @foreach($stepLabels as $i => $label)
                     <div class="step-pill"
                          :class="step > {{ $i }} ? 'done' : (step === {{ $i }} ? 'active' : 'idle')">
@@ -226,8 +226,8 @@
         <div x-show="step === 0 && !loading" x-cloak class="animate-in">
             <div class="booking-card" style="padding:28px 24px;">
                 <div style="margin-bottom:24px;">
-                    <h2 style="font-size:22px;font-weight:800;color:#111827;margin-bottom:4px;">Choose a service</h2>
-                    <p style="font-size:13px;color:#9ca3af;">Select the service you'd like to book today</p>
+                    <h2 style="font-size:22px;font-weight:800;color:#111827;margin-bottom:4px;">Choose your services</h2>
+                    <p style="font-size:13px;color:#9ca3af;">Select one or more services — duration and price combine for your visit</p>
                 </div>
 
                 <div x-show="allServices.length === 0"
@@ -242,13 +242,14 @@
                         <div class="cat-label" x-show="cat.name !== 'Uncategorised'" x-text="cat.name"></div>
                         <div style="display:flex;flex-direction:column;gap:8px;">
                             <template x-for="svc in cat.services" :key="svc.id">
-                                <button @click="selectService(svc)"
+                                <button type="button"
+                                        @click="toggleService(svc)"
                                         class="svc-card"
-                                        :class="selected.service?.id === svc.id ? 'selected' : ''">
+                                        :class="isServiceSelected(svc) ? 'selected' : ''">
                                     <div style="flex:1;min-width:0;">
                                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
                                             <span style="font-weight:700;font-size:15px;color:#111827;" x-text="svc.name"></span>
-                                            <span x-show="selected.service?.id === svc.id"
+                                            <span x-show="isServiceSelected(svc)"
                                                   style="width:18px;height:18px;background:#7c3aed;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;flex-shrink:0;">✓</span>
                                         </div>
                                         <div style="font-size:12px;color:#9ca3af;display:flex;align-items:center;gap:8px;">
@@ -262,6 +263,27 @@
                         </div>
                     </div>
                 </template>
+
+                <div x-show="allServices.length > 0" style="margin-top:20px;padding-top:20px;border-top:2px solid #f1f5f9;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;color:#6b7280;">
+                        <span>Selected</span>
+                        <span style="font-weight:700;color:#111827;" x-text="selected.services.length + ' service(s)'"></span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px;color:#6b7280;">
+                        <span>Total time (services)</span>
+                        <span style="font-weight:700;color:#7c3aed;" x-text="totalServiceMinutes() + ' min'"></span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:15px;">
+                        <span style="font-weight:700;color:#111827;">Estimated total</span>
+                        <span style="font-weight:800;color:#7c3aed;font-size:18px;" x-text="CURRENCY + totalPrice().toFixed(2)"></span>
+                    </div>
+                    <button type="button" @click="continueToStaff()"
+                            class="btn-primary"
+                            style="width:100%;"
+                            :disabled="selected.services.length === 0">
+                        Continue to team →
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -334,16 +356,20 @@
                     <p style="font-size:13px;color:#9ca3af;">Choose when you'd like to come in</p>
                 </div>
 
-                {{-- Selected service summary --}}
-                <div style="background:linear-gradient(135deg,#faf5ff,#f5f3ff);border:2px solid #e9d5ff;border-radius:14px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <div style="width:36px;height:36px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;">✂️</div>
-                        <div>
-                            <div style="font-weight:700;font-size:14px;color:#111827;" x-text="selected.service?.name"></div>
-                            <div style="font-size:12px;color:#7c3aed;" x-text="(selected.service?.duration_minutes ?? 0) + ' min'"></div>
+                {{-- Selected services summary --}}
+                <div style="background:linear-gradient(135deg,#faf5ff,#f5f3ff);border:2px solid #e9d5ff;border-radius:14px;padding:12px 16px;margin-bottom:20px;">
+                    <div style="display:flex;align-items:flex-start;gap:10px;">
+                        <div style="width:36px;height:36px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;flex-shrink:0;">✂️</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;font-size:14px;color:#111827;line-height:1.35;" x-text="serviceNamesSummary()"></div>
+                            <div style="font-size:12px;color:#7c3aed;margin-top:4px;">
+                                <span x-text="(combinedInfo?.duration_minutes ?? totalServiceMinutes()) + ' min services'"></span>
+                                <span x-show="combinedInfo"> · </span>
+                                <span x-show="combinedInfo" x-text="(combinedInfo?.appointment_minutes ?? '') + ' min with buffers'"></span>
+                            </div>
                         </div>
                     </div>
-                    <div style="font-weight:800;font-size:16px;color:#7c3aed;" x-text="CURRENCY + parseFloat(selected.service?.price || 0).toFixed(2)"></div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:10px;font-weight:800;font-size:16px;color:#7c3aed;" x-text="CURRENCY + totalPrice().toFixed(2)"></div>
                 </div>
 
                 {{-- Date picker --}}
@@ -473,13 +499,12 @@
                 <div style="background:linear-gradient(135deg,#faf5ff,#f5f3ff);border:2px solid #e9d5ff;border-radius:16px;padding:20px;margin-bottom:16px;">
                     <div style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Booking Summary</div>
                     <div class="summary-row">
-                        <span style="color:#6b7280;font-size:13px;">Service</span>
-                        <span style="font-weight:700;color:#111827;" x-text="selected.service?.name"></span>
+                        <span style="color:#6b7280;font-size:13px;">Services</span>
+                        <span style="font-weight:700;color:#111827;text-align:right;max-width:62%;" x-text="serviceNamesSummary()"></span>
                     </div>
                     <div class="summary-row">
                         <span style="color:#6b7280;font-size:13px;">With</span>
-                        <span style="font-weight:700;color:#111827;"
-                              x-text="selected.staff ? (selected.staff.first_name + ' ' + selected.staff.last_name) : 'Any available'"></span>
+                        <span style="font-weight:700;color:#111827;" x-text="staffDisplayName()"></span>
                     </div>
                     <div class="summary-row">
                         <span style="color:#6b7280;font-size:13px;">Date</span>
@@ -491,11 +516,11 @@
                     </div>
                     <div class="summary-row">
                         <span style="color:#6b7280;font-size:13px;">Duration</span>
-                        <span style="font-weight:700;color:#111827;" x-text="(selected.service?.duration_minutes ?? 0) + ' minutes'"></span>
+                        <span style="font-weight:700;color:#111827;text-align:right;" x-text="(combinedInfo?.appointment_minutes ?? totalBufferedMinutes()) + ' minutes (incl. buffers)'"></span>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;margin-top:4px;border-top:2px solid #e9d5ff;">
                         <span style="font-weight:800;color:#111827;font-size:16px;">Total</span>
-                        <span style="font-weight:800;color:#7c3aed;font-size:22px;" x-text="CURRENCY + parseFloat(selected.service?.price || 0).toFixed(2)"></span>
+                        <span style="font-weight:800;color:#7c3aed;font-size:22px;" x-text="CURRENCY + totalPrice().toFixed(2)"></span>
                     </div>
                 </div>
 
@@ -555,21 +580,20 @@
                 {{-- Summary card --}}
                 <div style="background:linear-gradient(135deg,#faf5ff,#f5f3ff);border:2px solid #e9d5ff;border-radius:16px;padding:20px;text-align:left;max-width:380px;margin:0 auto 28px;">
                     <div class="summary-row">
-                        <span style="color:#6b7280;font-size:13px;">Service</span>
-                        <span style="font-weight:700;" x-text="selected.service?.name"></span>
+                        <span style="color:#6b7280;font-size:13px;">Services</span>
+                        <span style="font-weight:700;text-align:right;max-width:62%;" x-text="serviceNamesSummary()"></span>
                     </div>
                     <div class="summary-row">
                         <span style="color:#6b7280;font-size:13px;">Date</span>
-                        <span style="font-weight:700;" x-text="formatDate(selected.date)"></span>
+                        <span style="font-weight:700;" x-text="confirmDisplay?.date_long ?? formatDate(selected.date)"></span>
                     </div>
                     <div class="summary-row">
                         <span style="color:#6b7280;font-size:13px;">Time</span>
-                        <span style="font-weight:700;" x-text="selected.slot?.time"></span>
+                        <span style="font-weight:700;" x-text="confirmDisplay?.time ?? selected.slot?.time"></span>
                     </div>
                     <div class="summary-row">
                         <span style="color:#6b7280;font-size:13px;">With</span>
-                        <span style="font-weight:700;"
-                              x-text="selected.staff ? (selected.staff.first_name + ' ' + selected.staff.last_name) : 'Any available'"></span>
+                        <span style="font-weight:700;" x-text="staffDisplayName()"></span>
                     </div>
                 </div>
 
@@ -610,10 +634,13 @@ function bookingApp() {
         bookingError: '',
         bookingRef:   '',
         holdToken:    '',
+        confirmedStaff: null,
+        confirmDisplay: null,
 
         allServices: [],
         staffList:   [],
-        slots:       [],
+        slots:         [],
+        combinedInfo:  null,
 
         today:   new Date().toISOString().split('T')[0],
         maxDate: (() => {
@@ -622,7 +649,7 @@ function bookingApp() {
             return d.toISOString().split('T')[0];
         })(),
 
-        selected: { service: null, staff: undefined, date: '', slot: null },
+        selected: { services: [], staff: undefined, date: '', slot: null },
         client:   { first_name: '', last_name: '', email: '', phone: '', notes: '', marketing_consent: false },
 
         async init() {
@@ -644,10 +671,63 @@ function bookingApp() {
             this.loading = false;
         },
 
+        isServiceSelected(svc) {
+            return this.selected.services.some((s) => s.id === svc.id);
+        },
+
+        totalServiceMinutes() {
+            return this.selected.services.reduce((a, s) => a + (parseInt(s.duration_minutes, 10) || 0), 0);
+        },
+
+        totalBufferedMinutes() {
+            return this.selected.services.reduce((a, s) => {
+                const buf = s.buffer_minutes != null ? parseInt(s.buffer_minutes, 10) : 15;
+                return a + (parseInt(s.duration_minutes, 10) || 0) + buf;
+            }, 0);
+        },
+
+        totalPrice() {
+            return this.selected.services.reduce((a, s) => a + parseFloat(s.price || 0), 0);
+        },
+
+        serviceNamesSummary() {
+            if (!this.selected.services.length) return '';
+            return this.selected.services.map((s) => s.name).join(', ');
+        },
+
+        toggleService(svc) {
+            const idx = this.selected.services.findIndex((s) => s.id === svc.id);
+            if (idx >= 0) {
+                if (this.selected.services.length <= 1) return;
+                this.selected.services.splice(idx, 1);
+            } else {
+                this.selected.services.push(svc);
+            }
+            this.onServicesChanged();
+        },
+
+        onServicesChanged() {
+            this.selected.staff = undefined;
+            this.selected.date   = '';
+            this.selected.slot   = null;
+            this.slots           = [];
+            this.combinedInfo    = null;
+            if (this.step >= 1) {
+                this.step = 1;
+                if (this.selected.services.length) this.loadStaff();
+            }
+        },
+
         async loadStaff() {
+            if (!this.selected.services.length) {
+                this.staffList = [];
+                return;
+            }
             this.staffLoading = true;
             try {
-                const res  = await fetch(API + '/staff?service_id=' + this.selected.service.id);
+                const params = new URLSearchParams();
+                this.selected.services.forEach((s) => params.append('service_ids[]', s.id));
+                const res  = await fetch(API + '/staff?' + params.toString());
                 const data = await res.json();
                 this.staffList = data.staff ?? [];
             } catch(e) {
@@ -656,12 +736,8 @@ function bookingApp() {
             this.staffLoading = false;
         },
 
-        selectService(svc) {
-            this.selected.service = svc;
-            this.selected.staff   = undefined;
-            this.selected.date    = '';
-            this.selected.slot    = null;
-            this.slots            = [];
+        continueToStaff() {
+            if (this.selected.services.length === 0) return;
             this.loadStaff();
             this.step = 1;
         },
@@ -677,18 +753,18 @@ function bookingApp() {
         },
 
         async loadSlots() {
-            if (!this.selected.date || !this.selected.service) return;
+            if (!this.selected.date || !this.selected.services.length) return;
             this.slotsLoading = true;
             this.slots = [];
+            this.combinedInfo = null;
             try {
-                const params = new URLSearchParams({
-                    service_id: this.selected.service.id,
-                    date:       this.selected.date,
-                });
+                const params = new URLSearchParams({ date: this.selected.date });
+                this.selected.services.forEach((s) => params.append('service_ids[]', s.id));
                 if (this.selected.staff) params.set('staff_id', this.selected.staff.id);
                 const res  = await fetch(API + '/availability?' + params);
                 const data = await res.json();
                 this.slots = data.slots ?? [];
+                this.combinedInfo = data.combined ?? null;
             } catch(e) {
                 this.slots = [];
             }
@@ -714,6 +790,33 @@ function bookingApp() {
             this.step = 4;
         },
 
+        /**
+         * Explicit staff choice, or — for "Any available" — the first staff listed for this slot
+         * (must match BookingService slot order: sort_order, id) so we do not assign a different person at confirm.
+         */
+        resolveHoldStaffId() {
+            if (this.selected.staff && this.selected.staff.id != null) {
+                return this.selected.staff.id;
+            }
+            const first = this.selected.slot?.available_staff?.[0];
+            return first && first.id != null ? first.id : null;
+        },
+
+        /** Shown on confirm + success: after booking, prefer server staff; else explicit pick, then slot order (matches hold). */
+        staffDisplayName() {
+            if (this.confirmedStaff) {
+                return ((this.confirmedStaff.first_name || '') + ' ' + (this.confirmedStaff.last_name || '')).trim();
+            }
+            if (this.selected.staff) {
+                return ((this.selected.staff.first_name || '') + ' ' + (this.selected.staff.last_name || '')).trim();
+            }
+            const fb = this.selected.slot?.available_staff?.[0];
+            if (fb) {
+                return ((fb.first_name || '') + ' ' + (fb.last_name || '')).trim();
+            }
+            return 'Any available';
+        },
+
         async confirmBooking() {
             this.confirming   = true;
             this.bookingError = '';
@@ -724,8 +827,8 @@ function bookingApp() {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
                     body:    JSON.stringify({
-                        service_ids: [this.selected.service.id],
-                        staff_id:    this.selected.staff?.id ?? null,
+                        service_ids: this.selected.services.map((s) => s.id),
+                        staff_id:    this.resolveHoldStaffId(),
                         starts_at:   this.selected.date + ' ' + this.selected.slot.time + ':00',
                     }),
                 });
@@ -756,6 +859,8 @@ function bookingApp() {
                     this.bookingError = confirmData.message ?? 'Booking failed. Please try again.';
                 } else {
                     this.bookingRef = confirmData.reference ?? confirmData.appointment?.reference ?? '';
+                    this.confirmedStaff = confirmData.appointment?.staff ?? null;
+                    this.confirmDisplay = confirmData.display ?? null;
                     this.step = 5;
                 }
             } catch(e) {

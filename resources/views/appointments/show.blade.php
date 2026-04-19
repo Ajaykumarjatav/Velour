@@ -46,11 +46,11 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
             <div>
                 <p class="stat-label mb-1">Date</p>
-                <p class="font-semibold text-heading">{{ $appointment->starts_at->format('d M Y') }}</p>
+                <p class="font-semibold text-heading">@bizdate($appointment->starts_at)</p>
             </div>
             <div>
                 <p class="stat-label mb-1">Time</p>
-                <p class="font-semibold text-heading">{{ $appointment->starts_at->format('H:i') }} – {{ $appointment->ends_at->format('H:i') }}</p>
+                <p class="font-semibold text-heading">{{ \App\Support\DisplayFormatter::businessTimeRange($salon, $appointment->starts_at, $appointment->ends_at) }}</p>
             </div>
             <div>
                 <p class="stat-label mb-1">Staff</p>

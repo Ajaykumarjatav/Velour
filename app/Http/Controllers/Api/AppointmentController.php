@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Staff;
 use App\Services\AppointmentService;
 use App\Services\NotificationService;
+use App\Services\Scheduling\AvailabilityRejectedException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -94,6 +95,11 @@ class AppointmentController extends Controller
                 'message'     => 'Appointment booked.',
                 'appointment' => $appointment->load(['client', 'staff', 'services']),
             ], 201);
+        } catch (AvailabilityRejectedException $e) {
+            return response()->json([
+                'message' => $e->result->firstMessage(),
+                'reasons' => $e->result->reasons,
+            ], 422);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -225,7 +231,15 @@ class AppointmentController extends Controller
         $appointment = Appointment::where('salon_id', $request->attributes->get('salon_id'))
             ->findOrFail($id);
 
-        $appointment = $this->appointmentService->reschedule($appointment, $data);
+        try {
+            $appointment = $this->appointmentService->reschedule($appointment, $data);
+        } catch (AvailabilityRejectedException $e) {
+            return response()->json([
+                'message' => $e->result->firstMessage(),
+                'reasons' => $e->result->reasons,
+            ], 422);
+        }
+
         $this->notificationService->appointmentRescheduled($appointment);
 
         return response()->json([

@@ -26,6 +26,15 @@
                 @if($client->phone)<span>📞 {{ $client->phone }}</span>@endif
                 @if($client->date_of_birth)<span>🎂 {{ \Carbon\Carbon::parse($client->date_of_birth)->format('d M Y') }}</span>@endif
             </div>
+            <div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-sm">
+                <span class="text-muted">Marketing</span>
+                @if($client->marketing_consent)
+                    <span class="badge-green">Opted in</span>
+                @else
+                    <span class="badge-gray">Opted out</span>
+                @endif
+                <x-marketing-consent-help mode="tooltip" />
+            </div>
         </div>
         <a href="{{ route('clients.edit', $client->id) }}" class="flex-shrink-0 btn-outline">Edit</a>
     </div>

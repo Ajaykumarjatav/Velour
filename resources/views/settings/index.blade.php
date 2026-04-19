@@ -58,6 +58,23 @@
                             </optgroup>
                             @endforeach
                         </select>
+                        <p class="form-hint">Dashboard, revenue, and calendar “days” follow this clock.</p>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="form-label">Booking confirmations show times in</label>
+                        <div class="flex flex-col sm:flex-row gap-3 mt-1">
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="radio" name="booking_time_display" value="business" class="rounded-full border-gray-300 text-velour-600"
+                                       {{ old('booking_time_display', $bookingTimeDisplay ?? 'business') === 'business' ? 'checked' : '' }}>
+                                Business timezone (above)
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="radio" name="booking_time_display" value="customer" class="rounded-full border-gray-300 text-velour-600"
+                                       {{ old('booking_time_display', $bookingTimeDisplay ?? 'business') === 'customer' ? 'checked' : '' }}>
+                                Customer’s local timezone (when we can detect it)
+                            </label>
+                        </div>
+                        <p class="form-hint">Used for emails and online booking messages. Internal calendar always uses business time.</p>
                     </div>
                     <div class="col-span-2">
                         <label class="form-label">Description</label>
@@ -354,6 +371,34 @@
                     <label class="form-label">Email address</label>
                     <input type="email" name="email" value="{{ old('email', $user->email) }}" required class="form-input">
                 </div>
+                <div>
+                    <label class="form-label">Phone</label>
+                    <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" class="form-input" autocomplete="tel">
+                </div>
+                <div>
+                    <label class="form-label">Your timezone</label>
+                    <select name="timezone" class="form-select">
+                        <option value="">Same as salon / browser</option>
+                        @foreach(\App\Helpers\TimezoneHelper::grouped() as $region => $zones)
+                        <optgroup label="{{ $region }}">
+                            @foreach($zones as $tz => $label)
+                            <option value="{{ $tz }}" {{ old('timezone', $user->timezone) === $tz ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </optgroup>
+                        @endforeach
+                    </select>
+                    <p class="form-hint">Used for account activity and notifications. Salon schedule and calendar use the <a href="{{ route('settings.index') }}?tab=salon" class="text-link">business timezone</a>.</p>
+                </div>
+                <div>
+                    <label class="form-label">Display language</label>
+                    <select name="locale" class="form-select">
+                        <option value="">Default (English)</option>
+                        @foreach($localeOptions as $code => $label)
+                        <option value="{{ $code }}" {{ old('locale', $user->locale) === $code ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="form-hint">Month and day names in dates follow this setting where supported.</p>
+                </div>
                 <button type="submit" class="btn-primary">Update Profile</button>
             </form>
         </div>
@@ -412,7 +457,7 @@
                 </svg>
                 <span class="text-body">
                     Last login:
-                    <strong class="text-heading">{{ $user->last_login_at ? \Carbon\Carbon::parse($user->last_login_at)->format('d M Y, H:i') : 'Unknown' }}</strong>
+                    <strong class="text-heading">{{ $user->last_login_at ? \App\Support\DisplayFormatter::userDateTime($user, $currentSalon ?? null, $user->last_login_at) : 'Unknown' }}</strong>
                 </span>
             </div>
         </div>

@@ -90,8 +90,14 @@
                             {{ $card['status'] === 'active' ? 'Active' : 'Opening Soon' }}
                         </span>
                         <div class="relative" x-on:click.outside="if(menuOpen === {{ $card['id'] }}) menuOpen = null">
-                            <button type="button" class="p-2 rounded-lg border border-stone-200 dark:border-gray-700 hover:bg-stone-50 dark:hover:bg-gray-800"
-                                    x-on:click.stop="menuOpen = menuOpen === {{ $card['id'] }} ? null : {{ $card['id'] }}">⋯</button>
+                            <button type="button"
+                                    class="p-2 rounded-lg border border-stone-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-stone-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                                    title="Location actions"
+                                    x-on:click.stop="menuOpen = menuOpen === {{ $card['id'] }} ? null : {{ $card['id'] }}">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01"/>
+                                </svg>
+                            </button>
                             <div x-show="menuOpen === {{ $card['id'] }}" x-cloak
                                  class="absolute right-0 mt-1 w-44 rounded-xl border border-stone-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl z-50 py-1 text-sm text-gray-800 dark:text-gray-100">
                                 <form action="{{ route('multi-location.switch', $card['id']) }}" method="POST">@csrf

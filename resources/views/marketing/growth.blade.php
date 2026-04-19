@@ -167,17 +167,23 @@
                         <div class="flex items-center gap-3 shrink-0">
                             <p class="text-lg font-bold text-heading">@money((float) $c->revenue_generated)</p>
                             <div class="relative" x-on:click.outside="if(menuOpen === {{ $c->id }}) menuOpen = null">
-                                <button type="button" class="p-2 rounded-lg border border-stone-200 dark:border-gray-700 hover:bg-stone-50 dark:hover:bg-gray-800"
-                                        x-on:click.stop="menuOpen = menuOpen === {{ $c->id }} ? null : {{ $c->id }}">⋯</button>
+                                <button type="button"
+                                        class="p-2 rounded-lg border border-stone-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-stone-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                                        title="Campaign actions"
+                                        x-on:click.stop="menuOpen = menuOpen === {{ $c->id }} ? null : {{ $c->id }}">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01"/>
+                                    </svg>
+                                </button>
                                 <div x-show="menuOpen === {{ $c->id }}" x-cloak
-                                     class="absolute right-0 mt-1 w-48 rounded-xl border border-stone-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-50 py-1 text-sm">
-                                    <a href="{{ route('marketing.show', $c) }}" class="flex items-center gap-2 px-3 py-2 hover:bg-stone-50 dark:hover:bg-gray-800">View details</a>
+                                     class="absolute right-0 mt-1 w-48 rounded-xl border border-stone-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-50 py-1 text-sm text-gray-800 dark:text-gray-100">
+                                    <a href="{{ route('marketing.show', $c) }}" class="flex items-center gap-2 px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-stone-50 dark:hover:bg-gray-800">View details</a>
                                     <form action="{{ route('marketing.duplicate', $c) }}" method="POST" class="block">
                                         @csrf
-                                        <button type="submit" class="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-stone-50 dark:hover:bg-gray-800">Duplicate</button>
+                                        <button type="submit" class="w-full text-left flex items-center gap-2 px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-stone-50 dark:hover:bg-gray-800">Duplicate</button>
                                     </form>
                                     @if(in_array($c->status, ['draft','scheduled'], true))
-                                        <a href="{{ route('marketing.edit', $c) }}" class="flex items-center gap-2 px-3 py-2 hover:bg-stone-50 dark:hover:bg-gray-800">Edit</a>
+                                        <a href="{{ route('marketing.edit', $c) }}" class="flex items-center gap-2 px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-stone-50 dark:hover:bg-gray-800">Edit</a>
                                     @endif
                                     @if($c->status === 'draft')
                                         <form action="{{ route('marketing.destroy', $c) }}" method="POST" onsubmit="return confirm('Delete this campaign?')">

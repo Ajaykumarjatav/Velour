@@ -79,6 +79,13 @@ class PosTransaction extends Model
         return $query->whereBetween('completed_at', [$from, $to]);
     }
 
+    /** Revenue recognition: completion time, falling back to created_at when not set. */
+    public function scopeRecognizedBetweenUtc($query, $fromUtc, $toUtc)
+    {
+        return $query->where('status', 'completed')
+            ->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$fromUtc, $toUtc]);
+    }
+
     /* ── Accessors ─────────────────────────────────────────────────────── */
 
     public function getNetTotalAttribute(): float

@@ -11,9 +11,12 @@ use App\Models\Client;
 use App\Scopes\TenantScope;
 use App\Services\BookingService;
 use App\Services\NotificationService;
+use App\Services\Scheduling\AvailabilityRejectedException;
+use App\Support\SalonTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class BookingController extends Controller
@@ -64,16 +67,31 @@ class BookingController extends Controller
     /* ── GET /book/{slug}/staff ─────────────────────────────────────────── */
     public function staff(Request $request, string $salonSlug): JsonResponse
     {
+        $validated = $request->validate([
+            'service_id'    => ['nullable', 'integer'],
+            'service_ids'   => ['nullable', 'array'],
+            'service_ids.*' => ['integer'],
+        ]);
+
         $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
-        $staff = Staff::withoutGlobalScope(TenantScope::class)
+
+        $ids = array_values(array_unique(array_merge(
+            $validated['service_ids'] ?? [],
+            isset($validated['service_id']) ? [(int) $validated['service_id']] : []
+        )));
+
+        $query = Staff::withoutGlobalScope(TenantScope::class)
             ->where('salon_id', $salon->id)
             ->where('is_active', true)
-            ->where('bookable_online', true)
-            ->when($request->service_id, fn($q) =>
-                $q->whereHas('services', fn($s) => $s->where('service_id', $request->service_id))
-            )
+            ->where('bookable_online', true);
+
+        foreach ($ids as $serviceId) {
+            $query->whereHas('services', fn ($s) => $s->where('services.id', $serviceId));
+        }
+
+        $staff = $query
             ->orderBy('sort_order')
-            ->get(['id','first_name','last_name','role','initials','color','avatar','bio','specialisms']);
+            ->get(['id', 'first_name', 'last_name', 'role', 'initials', 'color', 'avatar', 'bio', 'specialisms']);
 
         return response()->json(['staff' => $staff]);
     }
@@ -82,47 +100,64 @@ class BookingController extends Controller
     public function availability(Request $request, string $salonSlug): JsonResponse
     {
         $validated = $request->validate([
-            'service_id' => 'required|integer|exists:services,id',
-            'date'       => 'required|date_format:Y-m-d|after_or_equal:today',
-            'staff_id'   => 'nullable|integer|exists:staff,id',
+            'service_id'    => ['nullable', 'integer'],
+            'service_ids'   => ['nullable', 'array'],
+            'service_ids.*' => ['integer'],
+            'date'          => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'staff_id'      => ['nullable', 'integer', 'exists:staff,id'],
         ]);
+
+        $ids = array_values(array_unique(array_merge(
+            $validated['service_ids'] ?? [],
+            isset($validated['service_id']) ? [(int) $validated['service_id']] : []
+        )));
+
+        if ($ids === []) {
+            return response()->json(['message' => 'Provide service_id or service_ids.'], 422);
+        }
 
         $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
 
         abort_unless($salon->online_booking_enabled, 503, 'Online booking is unavailable');
 
-        $service = Service::withoutGlobalScope(TenantScope::class)
-            ->where('salon_id', $salon->id)
-            ->where('status', 'active')
-            ->where('online_bookable', true)
-            ->findOrFail($validated['service_id']);
+        try {
+            $services = $this->orderedOnlineServices($salon, $ids);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
-        // ✅ FIX: Better date parsing with proper formatting
         try {
             $date = Carbon::createFromFormat('Y-m-d', $validated['date'])->startOfDay();
         } catch (\Exception $e) {
             return response()->json(['error' => 'Invalid date format'], 422);
         }
 
-        // Enforce booking advance days limit
         $maxDays = $salon->booking_advance_days ?? 60;
         if ($date->diffInDays(now()->startOfDay(), false) < -$maxDays) {
             return response()->json([
-                'error' => "Bookings can only be made up to $maxDays days in advance"
+                'error' => "Bookings can only be made up to $maxDays days in advance",
             ], 422);
         }
 
         $slots = $this->bookingService->getAvailableSlots(
             $salon->id,
-            $service,
+            $services,
             $date,
             $validated['staff_id'] ?? null
         );
 
+        $first = $services->first();
+
         return response()->json([
-            'date'    => $validated['date'],
-            'service' => $service->only(['id', 'name', 'duration_minutes', 'price']),
-            'slots'   => $slots,
+            'date'     => $validated['date'],
+            'service'  => $first->only(['id', 'name', 'duration_minutes', 'price']),
+            'services' => $services->map(fn (Service $s) => $s->only(['id', 'name', 'duration_minutes', 'price']))->values()->all(),
+            'combined' => [
+                'duration_minutes'      => (int) $services->sum('duration_minutes'),
+                'appointment_minutes'   => BookingService::combinedDurationMinutes($services, $salon->id),
+                'price'                 => round((float) $services->sum('price'), 2),
+            ],
+            'slots'    => $slots,
         ]);
     }
 
@@ -130,7 +165,7 @@ class BookingController extends Controller
     public function hold(Request $request, string $salonSlug): JsonResponse
     {
         $data = $request->validate([
-            'service_ids'       => 'required|array',
+            'service_ids'       => 'required|array|min:1',
             'service_ids.*'     => 'integer',
             'service_options'   => 'nullable|array',
             'service_options.*' => 'array',
@@ -139,6 +174,38 @@ class BookingController extends Controller
         ]);
 
         $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+
+        abort_unless($salon->online_booking_enabled, 503, 'Online booking is unavailable');
+
+        $data['service_ids'] = array_values(array_unique(array_map('intval', $data['service_ids'])));
+
+        $data['staff_id'] = isset($data['staff_id']) ? (int) $data['staff_id'] : null;
+        if ($data['staff_id'] === 0) {
+            $data['staff_id'] = null;
+        }
+
+        try {
+            $this->orderedOnlineServices($salon, $data['service_ids']);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        if ($data['staff_id'] !== null) {
+            $stylist = Staff::withoutGlobalScope(TenantScope::class)
+                ->where('salon_id', $salon->id)
+                ->where('id', $data['staff_id'])
+                ->where('is_active', true)
+                ->where('bookable_online', true)
+                ->first();
+            if (! $stylist) {
+                return response()->json(['message' => 'That stylist is not available for online booking.'], 422);
+            }
+            foreach ($data['service_ids'] as $sid) {
+                if (! $stylist->services()->where('services.id', (int) $sid)->exists()) {
+                    return response()->json(['message' => 'That stylist cannot perform one of the selected services.'], 422);
+                }
+            }
+        }
 
         try {
             $holdToken = $this->bookingService->holdSlot($salon->id, $data);
@@ -183,10 +250,17 @@ class BookingController extends Controller
             $appointment = $this->bookingService->confirmFromHold($salon, $data);
             $this->notificationService->appointmentConfirmation($appointment);
 
+            $tz     = SalonTime::timezone($salon);
+            $starts = $appointment->starts_at->timezone($tz);
+
             return response()->json([
                 'message'     => 'Appointment confirmed!',
                 'reference'   => $appointment->reference,
                 'appointment' => $appointment->load(['services', 'staff:id,first_name,last_name']),
+                'display'     => [
+                    'time'       => $starts->format('H:i'),
+                    'date_long'  => $starts->format('l, j F Y'),
+                ],
             ], 201);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -256,12 +330,52 @@ class BookingController extends Controller
         // Capture original time before reschedule mutates the model
         $originalStartsAt = $appointment->starts_at->copy();
 
-        $appointment = $this->bookingService->reschedule($appointment, $data);
+        try {
+            $appointment = $this->bookingService->reschedule($appointment, $data);
+        } catch (AvailabilityRejectedException $e) {
+            return response()->json([
+                'message' => $e->result->firstMessage(),
+                'reasons' => $e->result->reasons,
+            ], 422);
+        }
+
         $this->notificationService->notifyTenantReschedule($appointment, $originalStartsAt);
 
         return response()->json([
             'message'    => 'Appointment rescheduled.',
             'starts_at'  => $appointment->starts_at,
         ]);
+    }
+
+    /**
+     * Active, online-bookable services for this salon, in the order given by $ids.
+     *
+     * @param  list<int>  $ids
+     * @return Collection<int, Service>
+     */
+    private function orderedOnlineServices(Salon $salon, array $ids): Collection
+    {
+        $ordered = array_values(array_unique(array_map('intval', $ids)));
+        if ($ordered === []) {
+            throw new \InvalidArgumentException('Select at least one service.');
+        }
+
+        $found = Service::withoutGlobalScope(TenantScope::class)
+            ->where('salon_id', $salon->id)
+            ->where('status', 'active')
+            ->where('online_bookable', true)
+            ->whereIn('id', $ordered)
+            ->get()
+            ->keyBy('id');
+
+        $out = collect();
+        foreach ($ordered as $id) {
+            if (! $found->has($id)) {
+                throw new \InvalidArgumentException('One or more services are invalid or not available for online booking.');
+            }
+            $out->push($found->get($id));
+        }
+
+        return $out;
     }
 }

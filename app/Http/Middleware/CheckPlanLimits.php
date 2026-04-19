@@ -18,8 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Enforces numeric resource caps defined in config/billing.php per plan.
  *
- * Applied to write operations (store/create routes) to block creation
- * once the current count hits the plan limit.
+ * Applied to create operations (HTTP POST) so hitting the cap blocks new
+ * records only. Updates (PUT/PATCH) are not limited — the row already exists.
  *
  * Usage in routes:
  *   ->middleware('plan.limit:staff')
@@ -33,8 +33,9 @@ class CheckPlanLimits
 {
     public function handle(Request $request, Closure $next, string $resource = ''): Response
     {
-        // Only enforce on write operations
-        if (! in_array($request->method(), ['POST', 'PUT', 'PATCH'], true)) {
+        // Only enforce when creating a new resource (POST). Updates do not
+        // change the total count, so PUT/PATCH must not be blocked at the cap.
+        if ($request->method() !== 'POST') {
             return $next($request);
         }
 

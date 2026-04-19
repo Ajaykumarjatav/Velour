@@ -10,6 +10,7 @@ use App\Models\StaffLeaveRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffController extends Controller
@@ -203,9 +204,13 @@ class StaffController extends Controller
             'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
             'services'          => ['nullable', 'array'],
             'services.*'        => ['exists:services,id'],
+            'avatar'            => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
         $nameParts = explode(' ', trim($data['name']), 2);
+        $avatarFile = $request->file('avatar');
+        unset($data['avatar']);
+
         $staff = Staff::create([
             'salon_id'        => $salon->id,
             'first_name'      => $nameParts[0],
@@ -218,6 +223,12 @@ class StaffController extends Controller
             'commission_rate' => $data['commission_rate'] ?? 0,
             'is_active'       => true,
         ]);
+
+        if ($avatarFile) {
+            $staff->update([
+                'avatar' => $avatarFile->store('salons/'.$salon->id.'/staff', 'public'),
+            ]);
+        }
 
         if (!empty($data['services'])) {
             $staff->services()->sync($data['services']);
@@ -273,6 +284,7 @@ class StaffController extends Controller
             'is_active'       => ['boolean'],
             'services'        => ['nullable', 'array'],
             'services.*'      => ['exists:services,id'],
+            'avatar'          => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
         // Split 'name' into first_name / last_name for the Staff model
@@ -283,11 +295,19 @@ class StaffController extends Controller
             unset($data['name']);
         }
 
+        unset($data['avatar']);
+
+        $syncServices = array_key_exists('services', $data);
+        $serviceIds   = $data['services'] ?? [];
+        unset($data['services']);
+
         $staff->update($data);
 
-        if (isset($data['services'])) {
-            $staff->services()->sync($data['services']);
+        if ($syncServices) {
+            $staff->services()->sync($serviceIds);
         }
+
+        $this->syncStaffAvatarFromRequest($request, $staff);
 
         return redirect()->route('staff.show', $staff)->with('success', 'Staff member updated.');
     }
@@ -303,5 +323,26 @@ class StaffController extends Controller
     private function authorise(Staff $staff): void
     {
         abort_unless($staff->salon_id === $this->salon()->id, 403);
+    }
+
+    /** Replace or remove profile photo; matches API storage path `salons/{id}/staff`. */
+    private function syncStaffAvatarFromRequest(Request $request, Staff $staff): void
+    {
+        if ($request->hasFile('avatar')) {
+            if ($staff->avatar) {
+                Storage::disk('public')->delete($staff->avatar);
+            }
+            $path = $request->file('avatar')->store('salons/'.$staff->salon_id.'/staff', 'public');
+            $staff->update(['avatar' => $path]);
+
+            return;
+        }
+
+        if ($request->boolean('remove_avatar')) {
+            if ($staff->avatar) {
+                Storage::disk('public')->delete($staff->avatar);
+            }
+            $staff->update(['avatar' => null]);
+        }
     }
 }

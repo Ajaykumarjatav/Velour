@@ -3,33 +3,33 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\PosTransaction;
 use App\Models\Client;
 use App\Models\Staff;
 use App\Models\Service;
+use App\Helpers\CurrencyHelper;
+use App\Support\SalonTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    private function salon()
-    {
-        return Auth::user()->salons()->firstOrFail();
-    }
+    use ResolvesActiveSalon;
 
     public function index()
     {
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
 
         return view('reports.index', compact('salon'));
     }
 
     public function analytics(Request $request)
     {
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
 
         $period = $request->get('period', '12m');
         $days = match ($period) {
@@ -232,43 +232,219 @@ class ReportController extends Controller
 
     public function show(Request $request, string $type)
     {
-        $salon = $this->salon();
-        $from  = $request->get('from', now()->startOfMonth()->toDateString());
-        $to    = $request->get('to',   now()->toDateString());
+        $salon = $this->activeSalon();
+        $from = $request->get('from', SalonTime::monthStartDateString($salon));
+        $to = $request->get('to', SalonTime::todayDateString($salon));
 
-        $data = match($type) {
-            'revenue'      => $this->revenueReport($salon, $from, $to),
+        $data = match ($type) {
+            'revenue' => $this->revenueReport($salon, $from, $to, $request),
             'appointments' => $this->appointmentsReport($salon, $from, $to),
-            'staff'        => $this->staffReport($salon, $from, $to),
-            'clients'      => $this->clientsReport($salon, $from, $to),
-            'services'     => $this->servicesReport($salon, $from, $to),
-            default        => abort(404),
+            'staff' => $this->staffReport($salon, $from, $to),
+            'clients' => $this->clientsReport($salon, $from, $to),
+            'services' => $this->servicesReport($salon, $from, $to),
+            default => abort(404),
         };
 
         return view("reports.$type", array_merge($data, compact('salon', 'from', 'to', 'type')));
     }
 
-    private function revenueReport($salon, $from, $to): array
+    /**
+     * CSV export for completed POS transactions in the selected period (salon-local dates).
+     */
+    public function exportRevenue(Request $request): StreamedResponse
     {
-        $daily = PosTransaction::where('salon_id', $salon->id)
-            ->whereBetween('created_at', [$from, $to . ' 23:59:59'])
-            ->where('status', 'completed')
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total) as revenue'), DB::raw('COUNT(*) as transactions'))
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
+        $salon = $this->activeSalon();
+        $from = $request->get('from', SalonTime::monthStartDateString($salon));
+        $to = $request->get('to', SalonTime::todayDateString($salon));
+        [$rangeStart, $rangeEnd] = $this->revenueRecognizedRangeUtc($salon, $from, $to);
+        $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
+        if ($staffId && ! Staff::where('salon_id', $salon->id)->whereKey($staffId)->exists()) {
+            $staffId = null;
+        }
+        $paymentMethod = $request->get('payment_method');
 
-        $byMethod = PosTransaction::where('salon_id', $salon->id)
-            ->whereBetween('created_at', [$from, $to . ' 23:59:59'])
-            ->where('status', 'completed')
-            ->select('payment_method', DB::raw('SUM(total) as total'), DB::raw('COUNT(*) as count'))
+        $filename = 'revenue-' . $from . '-to-' . $to . '.csv';
+
+        return response()->streamDownload(function () use ($salon, $rangeStart, $rangeEnd, $staffId, $paymentMethod) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['# Salon timezone (day boundaries): ' . SalonTime::timezone($salon)]);
+            fputcsv($out, ['# Amounts in ' . CurrencyHelper::label($salon->currency ?? 'GBP')]);
+            fputcsv($out, ['# Recognized at: UTC (ISO 8601).']);
+            fputcsv($out, []);
+            fputcsv($out, ['Reference', 'Recognized at (UTC)', 'Total', 'Payment method', 'Staff', 'Client']);
+
+            $q = PosTransaction::query()
+                ->where('salon_id', $salon->id)
+                ->recognizedBetweenUtc($rangeStart, $rangeEnd)
+                ->with(['client', 'staff'])
+                ->when($staffId, fn ($q2) => $q2->where('staff_id', $staffId))
+                ->when($paymentMethod, fn ($q2) => $q2->where('payment_method', $paymentMethod))
+                ->orderByRaw('COALESCE(completed_at, created_at)');
+
+            foreach ($q->cursor() as $tx) {
+                $at = $tx->completed_at ?? $tx->created_at;
+                fputcsv($out, [
+                    $tx->reference,
+                    $at?->toIso8601String(),
+                    $tx->total,
+                    $tx->payment_method,
+                    $tx->staff?->name ?? '',
+                    $tx->client
+                        ? trim($tx->client->first_name . ' ' . $tx->client->last_name)
+                        : 'Walk-in',
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    private function revenueRecognizedRangeUtc($salon, string $from, string $to): array
+    {
+        return [
+            SalonTime::dayRangeUtcFromYmd($salon, $from)[0],
+            SalonTime::dayRangeUtcFromYmd($salon, $to)[1],
+        ];
+    }
+
+    private function revenueReport($salon, string $from, string $to, Request $request): array
+    {
+        $tz = SalonTime::timezone($salon);
+        [$rangeStart, $rangeEnd] = $this->revenueRecognizedRangeUtc($salon, $from, $to);
+
+        $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
+        if ($staffId && ! Staff::where('salon_id', $salon->id)->whereKey($staffId)->exists()) {
+            $staffId = null;
+        }
+
+        $paymentMethod = $request->get('payment_method');
+        $compare = $request->boolean('compare');
+
+        $staffList = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->orderBy('first_name')->get();
+        $staffById = Staff::where('salon_id', $salon->id)->get()->keyBy('id');
+
+        $daily = collect();
+        $fromDay = Carbon::createFromFormat('Y-m-d', $from, $tz)->startOfDay();
+        $toDay = Carbon::createFromFormat('Y-m-d', $to, $tz)->startOfDay();
+        if ($fromDay->gt($toDay)) {
+            [$fromDay, $toDay] = [$toDay, $fromDay];
+        }
+
+        $cursor = $fromDay->copy();
+        while ($cursor->lte($toDay)) {
+            $ymd = $cursor->toDateString();
+            [$ds, $de] = SalonTime::dayRangeUtcFromYmd($salon, $ymd);
+            $q = PosTransaction::where('salon_id', $salon->id)->recognizedBetweenUtc($ds, $de);
+            if ($staffId) {
+                $q->where('staff_id', $staffId);
+            }
+            if ($paymentMethod) {
+                $q->where('payment_method', $paymentMethod);
+            }
+            $daily->push((object) [
+                'date' => $ymd,
+                'revenue' => (float) $q->sum('total'),
+                'transactions' => (int) $q->count(),
+            ]);
+            $cursor->addDay();
+        }
+
+        $base = PosTransaction::where('salon_id', $salon->id)->recognizedBetweenUtc($rangeStart, $rangeEnd);
+        if ($staffId) {
+            $base->where('staff_id', $staffId);
+        }
+        if ($paymentMethod) {
+            $base->where('payment_method', $paymentMethod);
+        }
+
+        $byMethod = (clone $base)->select('payment_method', DB::raw('SUM(total) as total'), DB::raw('COUNT(*) as count'))
             ->groupBy('payment_method')
             ->get();
 
-        $totalRevenue  = $daily->sum('revenue');
-        $totalTransactions = $daily->sum('transactions');
+        $byStaff = (clone $base)->select('staff_id', DB::raw('SUM(total) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('staff_id')
+            ->get()
+            ->map(function ($row) use ($staffById) {
+                $name = $row->staff_id
+                    ? ($staffById->get($row->staff_id)?->name ?? 'Staff #' . $row->staff_id)
+                    : 'Unassigned';
 
-        return compact('daily', 'byMethod', 'totalRevenue', 'totalTransactions');
+                return (object) [
+                    'staff_id' => $row->staff_id,
+                    'name' => $name,
+                    'total' => (float) $row->total,
+                    'count' => (int) $row->count,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        $byService = DB::table('pos_transaction_items as pti')
+            ->join('pos_transactions as pt', 'pt.id', '=', 'pti.transaction_id')
+            ->where('pt.salon_id', $salon->id)
+            ->where('pt.status', 'completed')
+            ->whereRaw('COALESCE(pt.completed_at, pt.created_at) BETWEEN ? AND ?', [$rangeStart, $rangeEnd])
+            ->when($staffId, fn ($q) => $q->where('pt.staff_id', $staffId))
+            ->when($paymentMethod, fn ($q) => $q->where('pt.payment_method', $paymentMethod))
+            ->where('pti.type', 'service')
+            ->select('pti.name', DB::raw('SUM(pti.total) as total'), DB::raw('SUM(pti.quantity) as qty'))
+            ->groupBy('pti.name')
+            ->orderByDesc('total')
+            ->limit(25)
+            ->get();
+
+        $totalRevenue = (float) (clone $base)->sum('total');
+        $totalTransactions = (int) (clone $base)->count();
+
+        $appointmentCountScheduled = Appointment::where('salon_id', $salon->id)
+            ->whereBetween('starts_at', [$rangeStart, $rangeEnd])
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->count();
+
+        $prevTotalRevenue = null;
+        $prevAppointmentCount = null;
+        $prevFrom = null;
+        $prevTo = null;
+        if ($compare) {
+            $days = $fromDay->diffInDays($toDay) + 1;
+            $prevEnd = $fromDay->copy()->subDay();
+            $prevStart = $prevEnd->copy()->subDays($days - 1);
+            $prevFrom = $prevStart->toDateString();
+            $prevTo = $prevEnd->toDateString();
+            [$p0, $p1] = $this->revenueRecognizedRangeUtc($salon, $prevFrom, $prevTo);
+            $pq = PosTransaction::where('salon_id', $salon->id)->recognizedBetweenUtc($p0, $p1);
+            if ($staffId) {
+                $pq->where('staff_id', $staffId);
+            }
+            if ($paymentMethod) {
+                $pq->where('payment_method', $paymentMethod);
+            }
+            $prevTotalRevenue = (float) $pq->sum('total');
+            $prevAppointmentCount = Appointment::where('salon_id', $salon->id)
+                ->whereBetween('starts_at', [$p0, $p1])
+                ->whereNotIn('status', ['cancelled', 'no_show'])
+                ->count();
+        }
+
+        return compact(
+            'daily',
+            'byMethod',
+            'byStaff',
+            'byService',
+            'totalRevenue',
+            'totalTransactions',
+            'appointmentCountScheduled',
+            'staffList',
+            'staffId',
+            'paymentMethod',
+            'compare',
+            'prevTotalRevenue',
+            'prevAppointmentCount',
+            'prevFrom',
+            'prevTo'
+        );
     }
 
     private function appointmentsReport($salon, $from, $to): array

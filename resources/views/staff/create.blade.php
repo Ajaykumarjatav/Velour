@@ -9,11 +9,18 @@
             $action = isset($staff) ? route('staff.update', $staff->id) : route('staff.store');
             $method = isset($staff) ? 'PUT' : 'POST';
         @endphp
-        <form action="{{ $action }}" method="POST" class="space-y-5">
+        <form action="{{ $action }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             @csrf
             @if($method === 'PUT') @method('PUT') @endif
 
             <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="form-label">Photo <span class="text-muted font-normal">(optional)</span></label>
+                    <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"
+                           class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
+                    <p class="form-hint">JPG, PNG or WebP · max 2&nbsp;MB</p>
+                    @error('avatar')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
                 <div class="col-span-2">
                     <label class="form-label">Full name <span class="text-red-500">*</span></label>
                     <input type="text" name="name" value="{{ old('name', $staff->name ?? '') }}" required

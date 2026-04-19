@@ -48,7 +48,7 @@
             <th class="hidden sm:table-cell">Client</th>
             <th>Date</th>
             <th class="hidden md:table-cell">Method</th>
-            <th class="text-right">Total</th>
+            <th class="text-right"><abbr title="@currencyLabel">Total</abbr></th>
             <th class="text-center">Status</th>
             <th class="text-right w-[1%] whitespace-nowrap">Actions</th>
         </tr>
@@ -60,7 +60,7 @@
             <td class="hidden sm:table-cell text-body truncate max-w-0">
                 {{ $txn->client ? $txn->client->first_name.' '.$txn->client->last_name : 'Walk-in' }}
             </td>
-            <td class="text-muted text-xs whitespace-nowrap">{{ $txn->created_at->format('d M Y H:i') }}</td>
+            <td class="text-muted text-xs whitespace-nowrap">@bizdatetime($txn->completed_at ?? $txn->created_at)</td>
             <td class="hidden md:table-cell">
                 <span class="badge-gray capitalize">{{ str_replace('_',' ',$txn->payment_method) }}</span>
             </td>

@@ -8,7 +8,7 @@
         <div class="bg-velour-600 text-white px-6 py-5 text-center">
             <p class="text-xs font-semibold uppercase tracking-widest opacity-75 mb-1">Receipt</p>
             <p class="text-2xl font-bold">@money($transaction->total)</p>
-            <p class="text-sm opacity-75 mt-1">{{ $transaction->created_at->format('d M Y, H:i') }}</p>
+            <p class="text-sm opacity-75 mt-1">@bizdatetime($transaction->completed_at ?? $transaction->created_at)</p>
         </div>
 
         <div class="p-6 space-y-5">

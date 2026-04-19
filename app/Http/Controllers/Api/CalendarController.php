@@ -152,26 +152,52 @@ class CalendarController extends Controller
     /* ── GET /calendar/slots ────────────────────────────────────────────── */
     public function availableSlots(Request $request): JsonResponse
     {
-        $request->validate([
-            'date'       => 'required|date|after_or_equal:today',
-            'service_id' => 'required|integer',
-            'staff_id'   => 'nullable|integer',
+        $data = $request->validate([
+            'date'          => 'required|date|after_or_equal:today',
+            'service_id'    => 'nullable|integer',
+            'service_ids'   => 'nullable|array',
+            'service_ids.*' => 'integer',
+            'staff_id'      => 'nullable|integer',
         ]);
 
+        $ids = array_values(array_unique(array_merge(
+            $data['service_ids'] ?? [],
+            isset($data['service_id']) ? [(int) $data['service_id']] : []
+        )));
+
+        if ($ids === []) {
+            return response()->json(['message' => 'Provide service_id or service_ids.'], 422);
+        }
+
         $salonId = $request->attributes->get('salon_id');
-        $service = Service::where('salon_id', $salonId)->findOrFail($request->service_id);
+
+        $byId = Service::where('salon_id', $salonId)->whereIn('id', $ids)->get()->keyBy('id');
+        $services = collect();
+        foreach ($ids as $id) {
+            if (! $byId->has($id)) {
+                abort(404);
+            }
+            $services->push($byId->get($id));
+        }
 
         $slots = $this->bookingService->getAvailableSlots(
             $salonId,
-            $service,
+            $services,
             Carbon::parse($request->date),
             $request->staff_id
         );
 
+        $first = $services->first();
+
         return response()->json([
-            'date'    => $request->date,
-            'service' => $service->only(['id', 'name', 'duration_minutes']),
-            'slots'   => $slots,
+            'date'     => $request->date,
+            'service'  => $first->only(['id', 'name', 'duration_minutes']),
+            'services' => $services->map(fn (Service $s) => $s->only(['id', 'name', 'duration_minutes']))->values()->all(),
+            'combined' => [
+                'duration_minutes'    => (int) $services->sum('duration_minutes'),
+                'appointment_minutes' => BookingService::combinedDurationMinutes($services, $salonId),
+            ],
+            'slots'    => $slots,
         ]);
     }
 

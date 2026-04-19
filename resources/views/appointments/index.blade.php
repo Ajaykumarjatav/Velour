@@ -39,7 +39,7 @@
             <th class="hidden md:table-cell">Service</th>
             <th class="hidden sm:table-cell">Staff</th>
             <th>Date &amp; time</th>
-            <th class="hidden lg:table-cell text-right">Amount</th>
+            <th class="hidden lg:table-cell text-right"><abbr title="@currencyLabel">Amount</abbr></th>
             <th class="text-center">Status</th>
             <th class="text-right w-[1%] whitespace-nowrap">Actions</th>
         </tr>
@@ -62,8 +62,8 @@
             <td class="hidden sm:table-cell text-body">{{ $apt->staff?->name ?? '—' }}</td>
             <td>
                 <div class="flex flex-col gap-0 leading-snug">
-                    <p class="font-medium text-body">{{ $apt->starts_at->format('H:i') }}</p>
-                    <p class="text-xs text-muted">{{ $apt->starts_at->format('d M Y') }}</p>
+                    <p class="font-medium text-body">@bizclock($apt->starts_at)</p>
+                    <p class="text-xs text-muted">@bizdate($apt->starts_at)</p>
                 </div>
             </td>
             <td class="hidden lg:table-cell font-semibold text-heading text-right">@money($apt->total_price)</td>

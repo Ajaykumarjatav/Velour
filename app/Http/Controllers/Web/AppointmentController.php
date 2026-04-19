@@ -3,26 +3,32 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Services\BookingService;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Staff;
 use App\Models\Service;
 use App\Models\StaffLeaveRequest;
 use App\Services\AppointmentService as AppointmentBookingService;
+use App\Services\AvailabilityService;
 use App\Services\NotificationService;
+use App\Services\Scheduling\AvailabilityRejectedException;
+use App\Support\SalonTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class AppointmentController extends Controller
 {
+    use ResolvesActiveSalon;
+
     public function __construct(private NotificationService $notificationService) {}
 
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index(Request $request)
@@ -84,8 +90,51 @@ class AppointmentController extends Controller
     }
 
     /**
-     * JSON: HH:MM slot starts that overlap an existing booking for this staff on this date
+     * POST JSON: validate a proposed window using the same rules as booking / reschedule.
+     */
+    public function validateWindow(Request $request)
+    {
+        $data = $request->validate([
+            'staff_id'               => ['required', 'integer', 'exists:staff,id'],
+            'starts_at'              => ['required', 'date'],
+            'ends_at'                => ['nullable', 'date', 'required_without:duration_minutes', 'after:starts_at'],
+            'duration_minutes'       => ['nullable', 'integer', 'min:5', 'max:960', 'required_without:ends_at'],
+            'exclude_appointment_id' => ['nullable', 'integer', 'exists:appointments,id'],
+        ]);
+
+        $salon = $this->salon();
+        abort_unless(
+            Staff::where('salon_id', $salon->id)->where('id', $data['staff_id'])->exists(),
+            404
+        );
+
+        $staff = Staff::where('salon_id', $salon->id)->findOrFail($data['staff_id']);
+        $starts = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
+        $ends = isset($data['ends_at'])
+            ? SalonTime::parseAppointmentStartsAt($salon, $data['ends_at'])
+            : $starts->copy()->addMinutes((int) $data['duration_minutes']);
+
+        $exclude = isset($data['exclude_appointment_id']) ? (int) $data['exclude_appointment_id'] : null;
+        if ($exclude) {
+            abort_unless(
+                Appointment::where('salon_id', $salon->id)->whereKey($exclude)->exists(),
+                404
+            );
+        }
+
+        $result = app(AvailabilityService::class)->validateProposedWindow($salon, $staff, $starts, $ends, $exclude, false);
+
+        return response()->json([
+            'ok'       => $result->ok,
+            'reasons'  => $result->reasons,
+            'message'  => $result->ok ? null : $result->firstMessage(),
+        ]);
+    }
+
+    /**
+     * JSON: HH:MM slot starts that are not viable for this staff on this date
      * (uses max single-service duration+buffer in the salon as a conservative window).
+     * Blocked reasons use the unified availability engine (salon hours, staff shift, leave, overlap).
      */
     public function occupiedSlots(Request $request)
     {
@@ -93,6 +142,8 @@ class AppointmentController extends Controller
             'date'                     => ['required', 'date_format:Y-m-d'],
             'staff_id'                 => ['required', 'integer', 'exists:staff,id'],
             'exclude_appointment_id'   => ['nullable', 'integer', 'exists:appointments,id'],
+            'service_ids'              => ['nullable', 'array'],
+            'service_ids.*'            => ['integer', 'exists:services,id'],
         ]);
 
         $salon   = $this->salon();
@@ -111,13 +162,23 @@ class AppointmentController extends Controller
             );
         }
 
-        $maxMinutes = Service::where('salon_id', $salon->id)
-            ->active()
-            ->get(['duration_minutes', 'buffer_minutes'])
-            ->map(fn (Service $s) => (int) $s->duration_minutes + (int) ($s->buffer_minutes ?? 0))
-            ->max();
+        $serviceIds = array_values(array_unique(array_map('intval', $data['service_ids'] ?? [])));
 
-        $maxMinutes = max(30, (int) $maxMinutes);
+        if ($serviceIds !== []) {
+            $svcRows = Service::where('salon_id', $salon->id)->active()->whereIn('id', $serviceIds)->get();
+            if ($svcRows->count() !== count(array_unique($serviceIds))) {
+                abort(422, 'Invalid services selection.');
+            }
+            $maxMinutes = max(30, BookingService::combinedDurationMinutes($svcRows, $salon->id));
+        } else {
+            $maxMinutes = Service::where('salon_id', $salon->id)
+                ->active()
+                ->get(['duration_minutes', 'buffer_minutes'])
+                ->map(fn (Service $s) => (int) $s->duration_minutes + (int) ($s->buffer_minutes ?? 0))
+                ->max();
+
+            $maxMinutes = max(30, (int) $maxMinutes);
+        }
 
         $slotTimes = [
             '09:00', '09:30', '10:00', '10:30',
@@ -130,33 +191,38 @@ class AppointmentController extends Controller
         $dateStr = $data['date'];
 
         if (StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $staffId, $dateStr)) {
+            $blockedDetails = collect($slotTimes)->mapWithKeys(fn ($t) => [
+                $t => 'Approved leave or time off — adjust under Availability or Staff.',
+            ])->all();
+
             return response()->json([
                 'blocked'                  => $slotTimes,
+                'blocked_details'          => $blockedDetails,
                 'assumed_duration_minutes' => $maxMinutes,
             ]);
         }
 
+        $staffMember = Staff::where('salon_id', $salon->id)->whereKey($staffId)->firstOrFail();
+        $tz          = SalonTime::timezone($salon);
+        $availability = app(AvailabilityService::class);
+
         $blocked = [];
+        $blockedDetails = [];
 
         foreach ($slotTimes as $time) {
-            $start = Carbon::parse("{$dateStr} {$time}:00");
+            $start = Carbon::createFromFormat('Y-m-d H:i', $dateStr . ' ' . $time, $tz);
             $end   = $start->copy()->addMinutes($maxMinutes);
 
-            $overlap = Appointment::where('salon_id', $salon->id)
-                ->where('staff_id', $staffId)
-                ->whereNotIn('status', ['cancelled', 'no_show'])
-                ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
-                ->where('starts_at', '<', $end)
-                ->where('ends_at', '>', $start)
-                ->exists();
-
-            if ($overlap) {
+            $result = $availability->validateProposedWindow($salon, $staffMember, $start, $end, $excludeId, false);
+            if (! $result->ok) {
                 $blocked[] = $time;
+                $blockedDetails[$time] = $result->firstMessage();
             }
         }
 
         return response()->json([
             'blocked'                    => $blocked,
+            'blocked_details'            => $blockedDetails,
             'assumed_duration_minutes'   => $maxMinutes,
         ]);
     }
@@ -190,62 +256,21 @@ class AppointmentController extends Controller
         }
 
         try {
-            $snapshot = Service::summarizeForAppointment($salon->id, $orderedIds, $options);
+            app(AppointmentBookingService::class)->create($salon->id, [
+                'client_id'         => (int) $data['client_id'],
+                'staff_id'          => (int) $data['staff_id'],
+                'starts_at'         => $data['starts_at'],
+                'service_ids'       => $orderedIds,
+                'service_options'   => $options,
+                'source'            => 'walk_in',
+                'internal_notes'    => $data['internal_notes'] ?? null,
+                'client_notes'      => $data['client_notes'] ?? null,
+            ]);
+        } catch (AvailabilityRejectedException $e) {
+            return back()->withErrors(['starts_at' => $e->result->firstMessage()])->withInput();
         } catch (\InvalidArgumentException $e) {
             return back()->withErrors(['services' => $e->getMessage()])->withInput();
         }
-
-        $startsAt = Carbon::parse($data['starts_at']);
-        $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
-
-        try {
-            app(AppointmentBookingService::class)->assertStaffNotOnBlockingLeave(
-                $salon->id,
-                (int) $data['staff_id'],
-                $startsAt,
-                $endsAt
-            );
-        } catch (\InvalidArgumentException $e) {
-            return back()->withErrors(['starts_at' => $e->getMessage()])->withInput();
-        }
-
-        $conflict = Appointment::where('salon_id', $salon->id)
-            ->where('staff_id', $data['staff_id'])
-            ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->where('starts_at', '<', $endsAt)
-            ->where('ends_at', '>', $startsAt)
-            ->exists();
-
-        if ($conflict) {
-            return back()->withErrors(['starts_at' => 'That time slot is already booked for this staff member. Please choose another time.'])->withInput();
-        }
-
-        DB::transaction(function () use ($data, $salon, $snapshot, $startsAt, $endsAt) {
-            $appointment = Appointment::create([
-                'salon_id'         => $salon->id,
-                'client_id'        => $data['client_id'],
-                'staff_id'         => $data['staff_id'],
-                'starts_at'        => $startsAt,
-                'ends_at'          => $endsAt,
-                'duration_minutes' => $snapshot['total_span_minutes'],
-                'total_price'      => $snapshot['total_price'],
-                'status'           => 'confirmed',
-                'source'           => 'walk_in',
-                'internal_notes'   => $data['internal_notes'] ?? null,
-                'client_notes'     => $data['client_notes'] ?? null,
-            ]);
-
-            foreach ($snapshot['lines'] as $line) {
-                $appointment->services()->create([
-                    'service_id'       => $line['service_id'],
-                    'service_name'     => $line['service_name'],
-                    'price'            => $line['price'],
-                    'duration_minutes' => $line['duration_minutes'],
-                    'line_meta'        => $line['line_meta'],
-                    'sort_order'       => $line['sort_order'],
-                ]);
-            }
-        });
 
         return redirect()->route('appointments.index')->with('success', 'Appointment booked successfully.');
     }
@@ -257,7 +282,7 @@ class AppointmentController extends Controller
         $salon = $this->salon();
         $staff = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
 
-        return view('appointments.show', compact('appointment', 'staff'));
+        return view('appointments.show', compact('appointment', 'staff', 'salon'));
     }
 
     public function edit(Appointment $appointment)
@@ -287,38 +312,21 @@ class AppointmentController extends Controller
             'client_notes'   => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $startsAt = Carbon::parse($data['starts_at']);
+        $salon    = $this->salon();
+        $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
         $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
         $staffId  = (int) $data['staff_id'];
-
-        try {
-            app(AppointmentBookingService::class)->assertStaffNotOnBlockingLeave(
-                $appointment->salon_id,
-                $staffId,
-                $startsAt,
-                $endsAt
-            );
-        } catch (\InvalidArgumentException $e) {
-            return back()->withErrors(['starts_at' => $e->getMessage()])->withInput();
-        }
-
-        $conflict = Appointment::where('salon_id', $appointment->salon_id)
-            ->where('staff_id', $staffId)
-            ->where('id', '!=', $appointment->id)
-            ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->where('starts_at', '<', $endsAt)
-            ->where('ends_at', '>', $startsAt)
-            ->exists();
-
-        if ($conflict) {
-            return back()->withErrors(['starts_at' => 'That time slot is already booked for this staff member. Please choose another time.'])->withInput();
+        $staff  = Staff::where('salon_id', $salon->id)->findOrFail($staffId);
+        $result = app(AvailabilityService::class)->validateProposedWindow($salon, $staff, $startsAt, $endsAt, $appointment->id, false);
+        if (! $result->ok) {
+            return back()->withErrors(['starts_at' => $result->firstMessage()])->withInput();
         }
 
         $appointment->update([
             'client_id'      => $data['client_id'],
             'staff_id'       => $staffId,
-            'starts_at'      => $startsAt,
-            'ends_at'        => $endsAt,
+            'starts_at'      => $startsAt->copy()->utc(),
+            'ends_at'        => $endsAt->copy()->utc(),
             'internal_notes' => $data['internal_notes'] ?? null,
             'client_notes'   => $data['client_notes'] ?? null,
         ]);
@@ -392,28 +400,15 @@ class AppointmentController extends Controller
         ]);
 
         $originalStartsAt = $appointment->starts_at->copy();
-        $newStartsAt      = Carbon::parse($data['starts_at']);
-        $newEndsAt        = $newStartsAt->copy()->addMinutes($appointment->duration_minutes);
-        $staffId          = $data['staff_id'] ?? $appointment->staff_id;
 
-        // Conflict check: overlapping non-cancelled appointments for same staff
-        $conflict = Appointment::where('salon_id', $appointment->salon_id)
-            ->where('staff_id', $staffId)
-            ->where('id', '!=', $appointment->id)
-            ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->where('starts_at', '<', $newEndsAt)
-            ->where('ends_at',   '>', $newStartsAt)
-            ->exists();
-
-        if ($conflict) {
-            return back()->withErrors(['starts_at' => 'That time slot is not available. Please choose another time.']);
+        try {
+            $appointment = app(AppointmentBookingService::class)->reschedule($appointment, [
+                'starts_at' => $data['starts_at'],
+                'staff_id'  => $data['staff_id'] ?? null,
+            ]);
+        } catch (AvailabilityRejectedException $e) {
+            return back()->withErrors(['starts_at' => $e->result->firstMessage()])->withInput();
         }
-
-        $appointment->update([
-            'starts_at' => $newStartsAt,
-            'ends_at'   => $newEndsAt,
-            'staff_id'  => $staffId,
-        ]);
 
         $this->notificationService->notifyTenantReschedule(
             $appointment->fresh(['client', 'staff', 'services.service', 'salon']),

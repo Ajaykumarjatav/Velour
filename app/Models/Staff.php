@@ -60,6 +60,12 @@ class Staff extends Model
     }
 
     public function getFullNameAttribute(): string { return $this->name; }
+
+    /** Public URL for uploaded profile photo (stored path is relative to the public disk). */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->avatar ? asset('storage/'.$this->avatar) : null;
+    }
     public function salon()        { return $this->belongsTo(Salon::class); }
     public function user()         { return $this->belongsTo(User::class); }
     public function services()     { return $this->belongsToMany(Service::class,'service_staff')->withPivot('price_override')->withTimestamps(); }

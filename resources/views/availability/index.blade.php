@@ -23,6 +23,9 @@
 @endphp
 
 @section('content')
+<div class="alert-info mb-2 text-sm max-w-6xl mx-auto w-full">
+    <p class="font-medium">Staff templates, leave, and buffer rules here feed online booking and the <a href="{{ route('calendar') }}" class="underline font-semibold">calendar</a>. For one-off bookings, use <a href="{{ route('appointments.create') }}" class="underline font-semibold">Appointments</a>.</p>
+</div>
 <div class="space-y-5 max-w-6xl mx-auto w-full"
      x-data="{
         leaveOpen: false,

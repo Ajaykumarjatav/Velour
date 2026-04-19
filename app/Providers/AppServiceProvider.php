@@ -18,6 +18,7 @@ use App\Policies\InventoryPolicy;
 use App\Policies\MarketingCampaignPolicy;
 use App\Policies\PosTransactionPolicy;
 use App\Helpers\CurrencyHelper;
+use App\Support\DisplayFormatter;
 use App\Policies\ReportPolicy;
 use App\Policies\ReviewPolicy;
 use App\Policies\SalonPolicy;
@@ -44,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // ── Service container bindings ─────────────────────────────────────
         $this->app->singleton(\App\Services\AppointmentService::class);
+        $this->app->singleton(\App\Services\AvailabilityService::class);
         $this->app->singleton(\App\Services\BookingService::class);
         $this->app->singleton(\App\Services\PosService::class);
         $this->app->singleton(\App\Services\MarketingService::class);
@@ -65,11 +67,12 @@ class AppServiceProvider extends ServiceProvider
         // ── Eloquent strict mode (catches N+1, lazy loads in dev) ──────────
         Model::shouldBeStrict(! app()->isProduction());
 
-        // ── Share current salon with all views (for currency/timezone) ─────
+        // ── Share current salon + apply viewer locale for translated dates ─
         View::composer('*', function ($view) {
             if (auth()->check()) {
                 try {
                     $user = auth()->user();
+                    DisplayFormatter::applyUserLocale($user);
                     $activeSalonId = (int) session('active_salon_id', 0);
                     $salon = $activeSalonId > 0
                         ? $user->salons()->where('id', $activeSalonId)->first()
@@ -85,9 +88,42 @@ class AppServiceProvider extends ServiceProvider
             return "<?php echo \\App\\Helpers\\CurrencyHelper::format((float)($expression), isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? 'GBP' : 'GBP'); ?>";
         });
 
+        // ── @moneycode(amount) — include ISO code when symbol is ambiguous ─
+        Blade::directive('moneycode', function ($expression) {
+            return "<?php echo \\App\\Helpers\\CurrencyHelper::formatWithCode((float)($expression), isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? 'GBP' : 'GBP'); ?>";
+        });
+
         // ── @currency Blade directive — outputs just the symbol ───────────
         Blade::directive('currency', function ($expression) {
             return "<?php echo \\App\\Helpers\\CurrencyHelper::symbol($expression ?? (isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? 'GBP' : 'GBP')); ?>";
+        });
+
+        Blade::directive('currencyLabel', function () {
+            return "<?php echo \\App\\Helpers\\CurrencyHelper::label(isset(\$currentSalon) && \$currentSalon ? (\$currentSalon->currency ?? 'GBP') : 'GBP'); ?>";
+        });
+
+        Blade::directive('bizdatetime', function ($expression) {
+            return "<?php echo \\App\\Support\\DisplayFormatter::businessDateTime(isset(\$currentSalon) && \$currentSalon ? \$currentSalon : null, $expression); ?>";
+        });
+
+        Blade::directive('bizdate', function ($expression) {
+            return "<?php echo \\App\\Support\\DisplayFormatter::businessDate(isset(\$currentSalon) && \$currentSalon ? \$currentSalon : null, $expression); ?>";
+        });
+
+        Blade::directive('bizshortdate', function ($expression) {
+            return "<?php echo \\App\\Support\\DisplayFormatter::businessShortDate(isset(\$currentSalon) && \$currentSalon ? \$currentSalon : null, $expression); ?>";
+        });
+
+        Blade::directive('biztime', function ($expression) {
+            return "<?php echo \\App\\Support\\DisplayFormatter::businessTime(isset(\$currentSalon) && \$currentSalon ? \$currentSalon : null, $expression); ?>";
+        });
+
+        Blade::directive('bizclock', function ($expression) {
+            return "<?php echo \\App\\Support\\DisplayFormatter::businessClock(isset(\$currentSalon) && \$currentSalon ? \$currentSalon : null, $expression); ?>";
+        });
+
+        Blade::directive('userdatetime', function ($expression) {
+            return "<?php echo \\App\\Support\\DisplayFormatter::userDateTime(auth()->user(), isset(\$currentSalon) && \$currentSalon ? \$currentSalon : null, $expression); ?>";
         });
 
         // ── Force HTTPS ────────────────────────────────────────────────────

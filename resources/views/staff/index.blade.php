@@ -109,8 +109,12 @@
             @endphp
             <div class="card p-5 hover:shadow-md transition-shadow flex flex-col relative">
                 <div class="flex items-start gap-3">
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
-                         style="background-color: {{ $member->color ?? '#7C3AED' }}">{{ $initials }}</div>
+                    @if($member->avatar_url)
+                        <img src="{{ $member->avatar_url }}" alt="" width="48" height="48" class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0">
+                    @else
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                             style="background-color: {{ $member->color ?? '#7C3AED' }}">{{ $initials }}</div>
+                    @endif
                     <div class="flex-1 min-w-0">
                         <h3 class="font-semibold text-heading truncate">{{ $member->name }}</h3>
                         <p class="text-xs text-muted capitalize">{{ str_replace('_', ' ', $member->role) }}</p>
@@ -123,14 +127,20 @@
                             {{ $member->is_active ? 'Active' : 'Inactive' }}
                         </span>
                         <div class="relative">
-                            <button type="button" @click.stop="toggleMenu({{ $member->id }})" class="p-1 rounded-lg text-muted hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="More">⋯</button>
+                            <button type="button" @click.stop="toggleMenu({{ $member->id }})"
+                                    class="p-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                                    aria-label="More actions" aria-haspopup="true" :aria-expanded="menuOpenId === {{ $member->id }}">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01"/>
+                                </svg>
+                            </button>
                             <div x-show="menuOpenId === {{ $member->id }}" x-cloak @click.outside="menuOpenId = null"
-                                 class="absolute right-0 mt-1 w-44 py-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20 text-sm">
-                                <a href="{{ route('staff.show', $member) }}" class="block px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">View profile</a>
-                                <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}" class="block px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">View schedule</a>
-                                <a href="{{ route('staff.edit', $member) }}" class="block px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">Edit</a>
-                                <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="block px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">Leave &amp; blocks</a>
-                                <button type="button" @click="openPayroll(); menuOpenId = null" class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">Payroll</button>
+                                 class="absolute right-0 mt-1 w-44 py-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20 text-sm text-gray-800 dark:text-gray-100">
+                                <a href="{{ route('staff.show', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View profile</a>
+                                <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View schedule</a>
+                                <a href="{{ route('staff.edit', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Edit</a>
+                                <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Leave &amp; blocks</a>
+                                <button type="button" @click="openPayroll(); menuOpenId = null" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Payroll</button>
                             </div>
                         </div>
                     </div>

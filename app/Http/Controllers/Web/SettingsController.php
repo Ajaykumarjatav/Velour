@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
+use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,9 +12,11 @@ use Illuminate\Support\Facades\Hash;
 
 class SettingsController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index()
@@ -25,12 +29,17 @@ class SettingsController extends Controller
         $settingsArr = $salon->settings()->pluck('value', 'key')->all();
         $notificationConfig = app(NotificationConfigService::class)->mergedConfigArray($salon, $settingsArr);
 
+        $bookingTimeDisplay = $salon->getSetting('booking_time_display', 'business');
+        $localeOptions = \App\Support\DisplayFormatter::localeOptions();
+
         return view('settings.index', compact(
             'salon',
             'settings',
             'user',
             'notificationDefinitions',
-            'notificationConfig'
+            'notificationConfig',
+            'bookingTimeDisplay',
+            'localeOptions'
         ));
     }
 
@@ -50,11 +59,17 @@ class SettingsController extends Controller
             'county'        => ['nullable', 'string', 'max:100'],
             'postcode'      => ['nullable', 'string', 'max:20'],
             'country'       => ['nullable', 'string', 'max:2'],
-            'timezone'      => ['required', 'string', 'timezone'],
-            'currency'      => ['required', 'string', 'size:3', 'in:' . implode(',', array_keys(\App\Helpers\CurrencyHelper::all()))],
+            'timezone'              => ['required', 'string', 'timezone'],
+            'currency'              => ['required', 'string', 'size:3', 'in:' . implode(',', array_keys(\App\Helpers\CurrencyHelper::all()))],
+            'booking_time_display'  => ['nullable', 'in:business,customer'],
         ]);
 
         $salon->update($data);
+
+        SalonSetting::updateOrCreate(
+            ['salon_id' => $salon->id, 'key' => 'booking_time_display'],
+            ['value' => $request->input('booking_time_display', 'business'), 'type' => 'string']
+        );
 
         return back()->with('success', 'Salon profile updated.');
     }
@@ -146,10 +161,17 @@ class SettingsController extends Controller
     {
         $user = Auth::user();
 
+        $request->merge([
+            'locale' => $request->filled('locale') ? $request->input('locale') : null,
+            'timezone' => $request->filled('timezone') ? $request->input('timezone') : null,
+        ]);
+
         $data = $request->validate([
-            'name'  => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'unique:users,email,' . $user->id],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'name'      => ['required', 'string', 'max:100'],
+            'email'     => ['required', 'email', 'unique:users,email,' . $user->id],
+            'phone'     => ['nullable', 'string', 'max:20'],
+            'timezone'  => ['nullable', 'string', 'timezone:all'],
+            'locale'    => ['nullable', 'string', 'in:' . implode(',', array_keys(\App\Support\DisplayFormatter::localeOptions()))],
         ]);
 
         $user->update($data);

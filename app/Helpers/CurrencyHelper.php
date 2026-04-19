@@ -169,15 +169,41 @@ class CurrencyHelper
         ];
     }
 
+    /** ISO 4217 currencies commonly using zero decimal places in UI. */
+    public static function zeroDecimalCodes(): array
+    {
+        return [
+            'BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW', 'PYG',
+            'RWF', 'UGX', 'UYI', 'VND', 'VUV', 'XAF', 'XOF', 'XPF',
+        ];
+    }
+
+    public static function decimalPlaces(string $code): int
+    {
+        return in_array($code, static::zeroDecimalCodes(), true) ? 0 : 2;
+    }
+
     /** Get symbol for a currency code, fallback to code itself */
     public static function symbol(string $code): string
     {
         return static::all()[$code]['symbol'] ?? $code;
     }
 
-    /** Format an amount with the correct currency symbol and position */
-    public static function format(float $amount, string $code, int $decimals = 2): string
+    /** "INR (₹)" for table headers and ambiguous-symbol contexts */
+    public static function label(string $code): string
     {
+        $sym = static::symbol($code);
+
+        return $code . ' (' . $sym . ')';
+    }
+
+    /**
+     * Format an amount with the correct currency symbol and position.
+     * Decimal places follow currency conventions unless overridden.
+     */
+    public static function format(float $amount, string $code, ?int $decimals = null): string
+    {
+        $decimals ??= static::decimalPlaces($code);
         $currencies = static::all();
         $symbol   = $currencies[$code]['symbol']   ?? $code;
         $position = $currencies[$code]['position'] ?? 'before';
@@ -186,6 +212,18 @@ class CurrencyHelper
         return $position === 'after'
             ? $formatted . $symbol
             : $symbol . $formatted;
+    }
+
+    /** Symbol + numeric + code when the symbol alone is ambiguous (e.g. $). */
+    public static function formatWithCode(float $amount, string $code, ?int $decimals = null): string
+    {
+        $decimals ??= static::decimalPlaces($code);
+        $sym = static::symbol($code);
+        $ambiguous = in_array($sym, ['$', '£', 'Fr', 'kr', 'Rs'], true);
+
+        $base = static::format($amount, $code, $decimals);
+
+        return $ambiguous ? ($base . ' ' . $code) : $base;
     }
 
     /** Dropdown-friendly list: code => "CODE (symbol) — Name" */

@@ -45,7 +45,12 @@
             <th>Name</th>
             <th class="hidden sm:table-cell">Contact</th>
             <th class="hidden md:table-cell">Added</th>
-            <th class="hidden lg:table-cell">Marketing</th>
+            <th scope="col" class="hidden lg:table-cell">
+                <span class="inline-flex items-center gap-1">
+                    Marketing
+                    <x-marketing-consent-help mode="tooltip" />
+                </span>
+            </th>
             <th class="text-right w-[1%] whitespace-nowrap">Actions</th>
         </tr>
         </thead>

@@ -7,6 +7,8 @@ use App\Models\Client;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\Salon;
+use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Staff;
 use App\Models\Tenant;
 use App\Services\NotificationService;
@@ -149,5 +151,86 @@ class RelationQuickCreateController extends Controller
             'id'    => $category->id,
             'label' => $category->name,
         ]);
+    }
+
+    /**
+     * Minimal service for manual booking — full editing remains under Services.
+     */
+    public function storeService(Request $request): JsonResponse
+    {
+        Gate::authorize('create', Service::class);
+
+        $salon = $this->currentSalon();
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'duration_minutes' => ['required', 'integer', 'min:5', 'max:480'],
+            'price' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $categoryId = $this->defaultServiceCategoryId($salon);
+
+        $base = Str::slug($data['name']);
+        if ($base === '') {
+            $base = 'service';
+        }
+        $slug = $base;
+        $n = 0;
+        while (Service::where('salon_id', $salon->id)->where('slug', $slug)->exists()) {
+            $n++;
+            $slug = $base.'-'.$n;
+        }
+
+        $sortOrder = (int) Service::where('salon_id', $salon->id)->max('sort_order');
+
+        $service = Service::create([
+            'salon_id' => $salon->id,
+            'category_id' => $categoryId,
+            'name' => $data['name'],
+            'slug' => $slug,
+            'duration_minutes' => $data['duration_minutes'],
+            'buffer_minutes' => 10,
+            'price' => $data['price'],
+            'status' => 'active',
+            'online_bookable' => true,
+            'show_in_menu' => true,
+            'sort_order' => $sortOrder + 1,
+        ]);
+
+        $currency = $salon->currency ?? 'GBP';
+
+        return response()->json([
+            'id' => $service->id,
+            'name' => $service->name,
+            'duration_minutes' => (int) $service->duration_minutes,
+            'price_formatted' => \App\Helpers\CurrencyHelper::format((float) $service->price, $currency),
+        ]);
+    }
+
+    private function defaultServiceCategoryId(Salon $salon): int
+    {
+        $existing = ServiceCategory::where('salon_id', $salon->id)->orderBy('sort_order')->first();
+        if ($existing) {
+            return (int) $existing->id;
+        }
+
+        $base = 'general';
+        $slug = $base;
+        $n = 0;
+        while (ServiceCategory::where('salon_id', $salon->id)->where('slug', $slug)->exists()) {
+            $n++;
+            $slug = $base.'-'.$n;
+        }
+
+        $sortOrder = (int) ServiceCategory::where('salon_id', $salon->id)->max('sort_order');
+        $category = ServiceCategory::create([
+            'salon_id' => $salon->id,
+            'name' => 'General',
+            'slug' => $slug,
+            'sort_order' => $sortOrder + 1,
+            'is_active' => true,
+        ]);
+
+        return (int) $category->id;
     }
 }

@@ -111,6 +111,8 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
 
         Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
 
+        Route::post('appointments/validate-window', [AppointmentController::class, 'validateWindow'])
+            ->name('appointments.validate-window');
         Route::get('appointments/occupied-slots', [AppointmentController::class, 'occupiedSlots'])
             ->name('appointments.occupied-slots');
 
@@ -129,6 +131,9 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
             ->name('quick-create.staff');
         Route::post('quick-create/inventory-category', [RelationQuickCreateController::class, 'storeInventoryCategory'])
             ->name('quick-create.inventory-category');
+        Route::post('quick-create/service', [RelationQuickCreateController::class, 'storeService'])
+            ->middleware('plan.limit:services')
+            ->name('quick-create.service');
         Route::resource('clients', ClientController::class);
         Route::get('staff/payroll/export', [StaffController::class, 'exportPayroll'])->name('staff.payroll.export');
         Route::put('staff/{staff}/weekly-schedule', [StaffController::class, 'updateWeeklySchedule'])->name('staff.weekly-schedule');
@@ -186,9 +191,26 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         });
 
         // Reports — requires Pro plan or above
+        Route::get('revenue', function () {
+            $user = auth()->user();
+            $activeSalonId = (int) session('active_salon_id', 0);
+            $salon = $activeSalonId > 0
+                ? $user->salons()->where('id', $activeSalonId)->first()
+                : null;
+            $salon = $salon ?: $user->salons()->firstOrFail();
+
+            return redirect()->route('reports.show', [
+                'type' => 'revenue',
+                'from' => \App\Support\SalonTime::monthStartDateString($salon),
+                'to'   => \App\Support\SalonTime::todayDateString($salon),
+            ]);
+        })->name('revenue.index')->middleware('subscription:feature:reports');
+
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index')
              ->middleware('subscription:feature:reports');
         Route::get('reports/analytics', [ReportController::class, 'analytics'])->name('reports.analytics')
+             ->middleware('subscription:feature:reports');
+        Route::get('reports/revenue/export', [ReportController::class, 'exportRevenue'])->name('reports.revenue.export')
              ->middleware('subscription:feature:reports');
         Route::get('reports/{type}', [ReportController::class, 'show'])->name('reports.show')
              ->middleware('subscription:feature:reports');

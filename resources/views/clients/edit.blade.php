@@ -53,9 +53,15 @@
             </div>
             @endif
             <div>
-                <label class="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" name="marketing_consent" value="1" {{ old('marketing_consent', $client->marketing_consent) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                    <span class="text-sm text-body">Marketing consent</span>
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" name="marketing_consent" value="1" {{ old('marketing_consent', $client->marketing_consent) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600 mt-1 shrink-0">
+                    <span class="flex-1 min-w-0">
+                        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-body">
+                            Marketing consent
+                            <x-marketing-consent-help mode="tooltip" />
+                        </span>
+                        <x-marketing-consent-help mode="hint" class="mt-1.5" />
+                    </span>
                 </label>
             </div>
             <div class="flex gap-3 pt-2">

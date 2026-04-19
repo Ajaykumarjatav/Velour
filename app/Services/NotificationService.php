@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Mail\ClientBookingConfirmationMail;
 use App\Mail\TenantCancellationMail;
 use App\Mail\TenantNewBookingMail;
 use App\Mail\TenantRescheduleMail;
@@ -47,7 +48,7 @@ class NotificationService
     }
 
     /**
-     * Instant client email after online booking (stub — wire Mail/queue in production).
+     * Instant client email after online booking (queued; requires queue worker unless QUEUE_CONNECTION=sync).
      */
     public function sendClientBookingConfirmationIfEnabled(Appointment $appointment): void
     {
@@ -73,12 +74,29 @@ class NotificationService
         $subject = $cfg->render($tpl['email_subject'] ?? 'Booking confirmed', $ctx);
         $body = $cfg->render($tpl['email_body'] ?? '', $ctx);
 
-        Log::info('Client booking confirmation email (stub)', [
-            'appointment_id' => $appointment->id,
-            'to'               => $client->email,
-            'subject'          => $subject,
-            'preview'          => mb_substr($body, 0, 200),
-        ]);
+        $bodyHtml = $this->clientConfirmationBodyAsHtml($body);
+
+        try {
+            Mail::to($client->email)->queue(new ClientBookingConfirmationMail($subject, $bodyHtml));
+        } catch (\Throwable $e) {
+            Log::error('Client booking confirmation email failed', [
+                'appointment_id' => $appointment->id,
+                'to'             => $client->email,
+                'error'          => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function clientConfirmationBodyAsHtml(string $body): string
+    {
+        $body = trim($body);
+        if ($body === '') {
+            return '<p>Your booking is confirmed.</p>';
+        }
+
+        return '<p style="margin:0;font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111827;">'
+            . nl2br(htmlspecialchars($body, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'))
+            . '</p>';
     }
 
     /**

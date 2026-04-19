@@ -3,27 +3,34 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\Staff;
+use App\Support\SalonTime;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class CalendarController extends Controller
 {
+    use ResolvesActiveSalon;
+
     public function index(Request $request)
     {
-        $salon = Auth::user()->salons()->firstOrFail();
+        $salon = $this->activeSalon();
+        $tz = SalonTime::timezone($salon);
 
-        $view     = $request->get('view', 'week');  // day | week | month
-        $dateStr  = $request->get('date', now()->toDateString());
-        $date     = \Carbon\Carbon::parse($dateStr);
+        $view = $request->get('view', 'week');
+        $dateStr = $request->get('date', Carbon::now($tz)->toDateString());
+        $date = SalonTime::parseLocalDate($salon, $dateStr);
 
-        // Date range based on view
         match ($view) {
-            'day'   => [$start, $end] = [$date->copy()->startOfDay(), $date->copy()->endOfDay()],
+            'day' => [$start, $end] = [$date->copy(), $date->copy()->endOfDay()],
             'month' => [$start, $end] = [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()],
-            default => [$start, $end] = [$date->copy()->startOfWeek(), $date->copy()->endOfWeek()],
+            default => [$start, $end] = [$date->copy()->startOfWeek(Carbon::MONDAY), $date->copy()->endOfWeek(Carbon::SUNDAY)],
         };
+
+        $startUtc = $start->copy()->utc();
+        $endUtc = $end->copy()->utc();
 
         $filterStaffId = $request->filled('staff_id')
             ? (int) $request->get('staff_id')
@@ -33,7 +40,7 @@ class CalendarController extends Controller
         }
 
         $appointments = Appointment::where('salon_id', $salon->id)
-            ->whereBetween('starts_at', [$start, $end])
+            ->whereBetween('starts_at', [$startUtc, $endUtc])
             ->when($filterStaffId, fn ($q) => $q->where('staff_id', $filterStaffId))
             ->with(['client', 'staff', 'services'])
             ->get()
@@ -58,15 +65,20 @@ class CalendarController extends Controller
         $calendarData = json_encode($appointments);
         $staffData    = json_encode($staff);
 
+        $salonTz = $tz;
+        $salonTodayYmd = Carbon::now($tz)->toDateString();
+        $tzAbbrev = SalonTime::abbrev($salon);
+
         return view('calendar.index', compact(
             'salon', 'view', 'date', 'calendarData', 'staffData',
-            'appointments', 'start', 'end', 'filterStaffId'
+            'appointments', 'start', 'end', 'filterStaffId',
+            'salonTz', 'salonTodayYmd', 'tzAbbrev'
         ));
     }
 
     private function statusColor(string $status): string
     {
-        return match($status) {
+        return match ($status) {
             'confirmed'  => '#7C3AED',
             'completed'  => '#059669',
             'cancelled'  => '#DC2626',

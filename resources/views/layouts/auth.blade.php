@@ -30,6 +30,27 @@
         *::-webkit-scrollbar-thumb { background: rgb(209 213 219); border-radius: 4px; }
         *::-webkit-scrollbar-thumb:hover { background: rgb(156 163 175); }
     </style>
+    {{-- Toggle visibility for password fields (login, register, reset) --}}
+    <script>
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-password-target]');
+            if (!btn || btn.type !== 'button') return;
+            e.preventDefault();
+            var id = btn.getAttribute('data-password-target');
+            var input = document.getElementById(id);
+            if (!input) return;
+            var show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+            btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            var eye = btn.querySelector('.auth-password-eye');
+            var eyeOff = btn.querySelector('.auth-password-eye-off');
+            if (eye && eyeOff) {
+                eye.classList.toggle('hidden', show);
+                eyeOff.classList.toggle('hidden', !show);
+            }
+        });
+    </script>
 </head>
 <body class="h-full min-h-screen flex items-center justify-center bg-gradient-to-br from-velour-50 to-gray-100 p-4">
     <div class="w-full max-w-md">

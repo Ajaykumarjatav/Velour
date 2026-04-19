@@ -30,14 +30,20 @@
             @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-            <input type="password" name="password" required autocomplete="new-password"
-                   class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-velour-500 focus:border-transparent">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5" for="register-password">Password</label>
+            <div class="relative">
+                <input id="register-password" type="password" name="password" required autocomplete="new-password"
+                       class="w-full pl-4 pr-11 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-velour-500 focus:border-transparent">
+                @include('auth._password-visibility-toggle', ['targetId' => 'register-password'])
+            </div>
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Confirm password</label>
-            <input type="password" name="password_confirmation" required
-                   class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-velour-500 focus:border-transparent">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5" for="register-password-confirmation">Confirm password</label>
+            <div class="relative">
+                <input id="register-password-confirmation" type="password" name="password_confirmation" required autocomplete="new-password"
+                       class="w-full pl-4 pr-11 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-velour-500 focus:border-transparent">
+                @include('auth._password-visibility-toggle', ['targetId' => 'register-password-confirmation'])
+            </div>
         </div>
     </div>
 

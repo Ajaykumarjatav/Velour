@@ -4,15 +4,22 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\AppointmentService as ApptService;
+use App\Models\Salon;
 use App\Models\Service;
-use App\Models\StaffLeaveRequest;
+use App\Models\Staff;
+use App\Services\Scheduling\AvailabilityRejectedException;
+use App\Support\SalonTime;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class AppointmentService
 {
+    public function __construct(
+        private AvailabilityService $availability,
+    ) {}
+
     /**
-     * Create a new appointment with conflict checking.
+     * Create a new appointment with unified availability checking.
      *
      * @param  array{
      *   client_id: int,
@@ -34,18 +41,18 @@ class AppointmentService
                 $data['service_options'] ?? []
             );
 
-            $startsAt = Carbon::parse($data['starts_at']);
-            $endsAt    = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
+            $salon    = Salon::findOrFail($salonId);
+            $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
+            $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
 
-            $this->assertStaffNotOnBlockingLeave($salonId, $data['staff_id'], $startsAt, $endsAt);
-            $this->assertNoConflict($data['staff_id'], $startsAt, $endsAt);
+            $this->assertWindowAllowed($salonId, (int) $data['staff_id'], $startsAt, $endsAt, null, false);
 
             $appointment = Appointment::create([
                 'salon_id'          => $salonId,
                 'client_id'         => $data['client_id'],
                 'staff_id'          => $data['staff_id'],
-                'starts_at'         => $startsAt,
-                'ends_at'           => $endsAt,
+                'starts_at'         => $startsAt->copy()->utc(),
+                'ends_at'           => $endsAt->copy()->utc(),
                 'duration_minutes'  => $snapshot['total_span_minutes'],
                 'total_price'       => $snapshot['total_price'],
                 'status'            => 'confirmed',
@@ -84,12 +91,14 @@ class AppointmentService
                     $data['service_options'] ?? []
                 );
 
-                $startsAt = isset($data['starts_at']) ? Carbon::parse($data['starts_at']) : Carbon::parse($appointment->starts_at);
+                $salonForParse = Salon::findOrFail($appointment->salon_id);
+                $startsAt = isset($data['starts_at'])
+                    ? SalonTime::parseAppointmentStartsAt($salonForParse, $data['starts_at'])
+                    : Carbon::parse($appointment->starts_at);
                 $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
 
                 $staffId = $data['staff_id'] ?? $appointment->staff_id;
-                $this->assertStaffNotOnBlockingLeave($appointment->salon_id, $staffId, $startsAt, $endsAt);
-                $this->assertNoConflict($staffId, $startsAt, $endsAt, $appointment->id);
+                $this->assertWindowAllowed($appointment->salon_id, (int) $staffId, $startsAt, $endsAt, $appointment->id, false);
 
                 $appointment->services()->delete();
                 foreach ($snapshot['lines'] as $line) {
@@ -105,9 +114,9 @@ class AppointmentService
                 }
 
                 $data['duration_minutes'] = $snapshot['total_span_minutes'];
-                $data['ends_at']          = $endsAt;
+                $data['ends_at']          = $endsAt->copy()->utc();
                 $data['total_price']      = $snapshot['total_price'];
-                $data['starts_at']        = $startsAt;
+                $data['starts_at']        = $startsAt->copy()->utc();
             }
 
             $appointment->update($data);
@@ -118,20 +127,22 @@ class AppointmentService
 
     /**
      * Reschedule to a new time, optionally with a different staff member.
+     *
+     * @param  array{starts_at: string, staff_id?: int|null}  $data
      */
     public function reschedule(Appointment $appointment, array $data): Appointment
     {
-        $startsAt = Carbon::parse($data['starts_at']);
+        $salon    = Salon::findOrFail($appointment->salon_id);
+        $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
         $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
-        $staffId  = $data['staff_id'] ?? $appointment->staff_id;
+        $staffId  = (int) ($data['staff_id'] ?? $appointment->staff_id);
 
-        $this->assertStaffNotOnBlockingLeave($appointment->salon_id, $staffId, $startsAt, $endsAt);
-        $this->assertNoConflict($staffId, $startsAt, $endsAt, $appointment->id);
+        $this->assertWindowAllowed($appointment->salon_id, $staffId, $startsAt, $endsAt, $appointment->id, false);
 
         $appointment->update([
             'staff_id'               => $staffId,
-            'starts_at'              => $startsAt,
-            'ends_at'                => $endsAt,
+            'starts_at'              => $startsAt->copy()->utc(),
+            'ends_at'                => $endsAt->copy()->utc(),
             'status'                 => 'confirmed',
             'reminder_sent'          => false,
             'reminder_sent_at'       => null,
@@ -142,26 +153,60 @@ class AppointmentService
     }
 
     /**
-     * @throws \InvalidArgumentException
+     * Online booking / public API: same rules plus staff must be bookable online.
+     *
+     * @param  array{starts_at: string, staff_id?: int|null}  $data
      */
-    public function assertStaffNotOnBlockingLeave(int $salonId, int $staffId, Carbon $startsAt, Carbon $endsAt): void
+    public function rescheduleForOnlineBooking(Appointment $appointment, array $data): Appointment
     {
-        $cursor = $startsAt->copy()->startOfDay();
-        $endDay = $endsAt->copy()->startOfDay();
-        if ($endDay->lt($cursor)) {
-            $endDay = $cursor;
-        }
+        $salon    = Salon::findOrFail($appointment->salon_id);
+        $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
+        $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
+        $staffId  = (int) ($data['staff_id'] ?? $appointment->staff_id);
 
-        while ($cursor->lte($endDay)) {
-            if (StaffLeaveRequest::approvedBlockingLeaveExists($salonId, $staffId, $cursor->toDateString())) {
-                throw new \InvalidArgumentException('This staff member is on approved leave on that date. Choose another day or staff member.');
-            }
-            $cursor->addDay();
+        $this->assertWindowAllowed($appointment->salon_id, $staffId, $startsAt, $endsAt, $appointment->id, true);
+
+        $appointment->update([
+            'staff_id'               => $staffId,
+            'starts_at'              => $startsAt->copy()->utc(),
+            'ends_at'                => $endsAt->copy()->utc(),
+            'status'                   => 'confirmed',
+            'reminder_sent'            => false,
+            'reminder_sent_at'         => null,
+            'reminder_dispatch_keys'   => null,
+        ]);
+
+        return $appointment->fresh();
+    }
+
+    /**
+     * Return true if the staff member is free for the given window (all checks).
+     */
+    public function isAvailable(int $salonId, int $staffId, Carbon $startsAt, Carbon $endsAt, ?int $excludeId = null, bool $requireBookableOnline = false): bool
+    {
+        try {
+            $this->assertWindowAllowed($salonId, $staffId, $startsAt, $endsAt, $excludeId, $requireBookableOnline);
+
+            return true;
+        } catch (AvailabilityRejectedException) {
+            return false;
         }
     }
 
     /**
-     * Check whether a staff member is free for the given window.
+     * @deprecated Prefer AvailabilityService::validateProposedWindow
+     */
+    public function assertStaffNotOnBlockingLeave(int $salonId, int $staffId, Carbon $startsAt, Carbon $endsAt): void
+    {
+        try {
+            $this->assertWindowAllowed($salonId, $staffId, $startsAt, $endsAt, null, false);
+        } catch (AvailabilityRejectedException $e) {
+            throw new \InvalidArgumentException($e->getMessage());
+        }
+    }
+
+    /**
+     * @deprecated Prefer AvailabilityService::validateProposedWindow
      */
     public function assertNoConflict(
         int    $staffId,
@@ -169,34 +214,36 @@ class AppointmentService
         Carbon $endsAt,
         ?int   $excludeId = null
     ): void {
-        $query = Appointment::where('staff_id', $staffId)
-            ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->where(fn ($q) => $q
-                ->whereBetween('starts_at', [$startsAt, $endsAt->copy()->subSecond()])
-                ->orWhereBetween('ends_at', [$startsAt->copy()->addSecond(), $endsAt])
-                ->orWhere(fn ($sq) => $sq->where('starts_at', '<=', $startsAt)->where('ends_at', '>=', $endsAt)));
-
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-
-        if ($query->exists()) {
-            throw new \InvalidArgumentException('The selected time slot is no longer available.');
+        $staff = Staff::findOrFail($staffId);
+        try {
+            $this->assertWindowAllowed($staff->salon_id, $staffId, $startsAt, $endsAt, $excludeId, false);
+        } catch (AvailabilityRejectedException $e) {
+            throw new \InvalidArgumentException($e->getMessage());
         }
     }
 
-    /**
-     * Return true if the staff member is free at the given window.
-     */
-    public function isAvailable(int $salonId, int $staffId, Carbon $startsAt, Carbon $endsAt, ?int $excludeId = null): bool
-    {
-        try {
-            $this->assertStaffNotOnBlockingLeave($salonId, $staffId, $startsAt, $endsAt);
-            $this->assertNoConflict($staffId, $startsAt, $endsAt, $excludeId);
+    private function assertWindowAllowed(
+        int $salonId,
+        int $staffId,
+        Carbon $startsAt,
+        Carbon $endsAt,
+        ?int $excludeAppointmentId,
+        bool $requireBookableOnline,
+    ): void {
+        $salon = Salon::findOrFail($salonId);
+        $staff = Staff::where('salon_id', $salonId)->findOrFail($staffId);
 
-            return true;
-        } catch (\InvalidArgumentException) {
-            return false;
+        $result = $this->availability->validateProposedWindow(
+            $salon,
+            $staff,
+            $startsAt,
+            $endsAt,
+            $excludeAppointmentId,
+            $requireBookableOnline,
+        );
+
+        if (! $result->ok) {
+            throw new AvailabilityRejectedException($result);
         }
     }
 }

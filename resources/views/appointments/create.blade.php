@@ -7,7 +7,10 @@
 
 <div class="max-w-2xl">
     <div class="card p-6">
-        <form action="{{ route('appointments.store') }}" method="POST" class="space-y-5">
+        <form id="appt-create-form" action="{{ route('appointments.store') }}" method="POST" class="space-y-5"
+              x-data="{ dirty: {{ $errors->any() ? 'true' : 'false' }} }"
+              @input="dirty = true"
+              @change="dirty = true">
             @csrf
             <x-relation-field-with-create
                 label="Client"
@@ -82,8 +85,11 @@
             </div>
 
             <div>
-                <label class="form-label">Services <span class="text-red-500">*</span></label>
-                <div class="space-y-3 max-h-[28rem] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 @error('services') border-red-400 dark:border-red-500 @enderror">
+                <div class="flex items-end gap-2">
+                    <label class="form-label flex-1 min-w-0">Services <span class="text-red-500">*</span></label>
+                    <x-service-quick-create-trigger list-id="appt-services-list" />
+                </div>
+                <div id="appt-services-list" class="space-y-3 max-h-[28rem] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 @error('services') border-red-400 dark:border-red-500 @enderror">
                     @foreach($services as $svc)
                         @php
                             $vOpts = $svc->normalizedVariants();
@@ -151,7 +157,8 @@
             </div>
             <div class="flex gap-3 pt-2">
                 <button type="submit" class="btn-primary flex-1 sm:flex-none">Book Appointment</button>
-                <a href="{{ route('appointments.index') }}" class="btn-outline">Cancel</a>
+                <a href="{{ route('appointments.index') }}" class="btn-outline"
+                   @click="if (dirty && ! confirm('Discard changes? Any unsaved information will be lost.')) { $event.preventDefault() }">Cancel</a>
             </div>
         </form>
     </div>
@@ -183,6 +190,20 @@ function timeslotPicker(occupiedUrl) {
             this.$watch('selectedDate', () => {
                 if (this.selectedDate) this.fetchBlocked();
             });
+            const form = document.getElementById('appt-create-form');
+            if (form) {
+                form.addEventListener('change', (e) => {
+                    const t = e.target;
+                    if (t && t.matches && t.matches('#appt-services-list input[name="services[]"]')) {
+                        this.selectedTime = '';
+                        this.fetchBlocked();
+                    }
+                });
+            }
+            window.addEventListener('appt-services-changed', () => {
+                this.selectedTime = '';
+                this.fetchBlocked();
+            });
             if (this.staffId && this.selectedDate) this.fetchBlocked();
         },
         onDateChange() {
@@ -206,6 +227,9 @@ function timeslotPicker(occupiedUrl) {
                 const u = new URL(this.occupiedUrl, window.location.origin);
                 u.searchParams.set('date', this.selectedDate);
                 u.searchParams.set('staff_id', String(this.staffId));
+                document.querySelectorAll('#appt-services-list input[name="services[]"]:checked').forEach((el) => {
+                    u.searchParams.append('service_ids[]', el.value);
+                });
                 const r = await fetch(u.toString(), {
                     headers: {
                         'Accept': 'application/json',

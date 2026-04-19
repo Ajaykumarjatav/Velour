@@ -5,16 +5,31 @@
 
 <div class="max-w-3xl space-y-6">
     <div class="card p-6 flex items-start gap-5">
-        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl flex-shrink-0"
-             style="background-color: {{ $staff->color ?? '#7C3AED' }}">
-            {{ strtoupper(substr($staff->name, 0, 1)) }}
-        </div>
+        @if($staff->avatar_url)
+            <img src="{{ $staff->avatar_url }}" alt="" width="64" height="64" class="w-16 h-16 rounded-2xl object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0">
+        @else
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl flex-shrink-0"
+                 style="background-color: {{ $staff->color ?? '#7C3AED' }}">
+                {{ strtoupper(substr($staff->name, 0, 1)) }}
+            </div>
+        @endif
         <div class="flex-1">
             <h2 class="text-xl font-bold text-heading">{{ $staff->name }}</h2>
             <p class="text-sm text-muted capitalize mt-0.5">{{ str_replace('_',' ',$staff->role) }}</p>
-            <div class="flex gap-4 mt-2 text-sm text-muted">
-                @if($staff->email)<span>✉ {{ $staff->email }}</span>@endif
-                @if($staff->phone)<span>📞 {{ $staff->phone }}</span>@endif
+            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
+                @if($staff->email)
+                    <a href="mailto:{{ $staff->email }}" class="text-link inline-flex items-center gap-1.5 hover:underline">
+                        <span class="text-muted" aria-hidden="true">✉</span>
+                        <span>{{ $staff->email }}</span>
+                    </a>
+                @endif
+                @if($staff->phone)
+                    @php $phoneHref = preg_replace('/[^\d+]/', '', $staff->phone) ?: $staff->phone; @endphp
+                    <a href="tel:{{ $phoneHref }}" class="text-link inline-flex items-center gap-1.5 hover:underline">
+                        <span class="text-muted" aria-hidden="true">📞</span>
+                        <span>{{ $staff->phone }}</span>
+                    </a>
+                @endif
             </div>
         </div>
         <a href="{{ route('staff.edit', $staff->id) }}" class="flex-shrink-0 btn-outline">Edit</a>

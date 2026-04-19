@@ -114,7 +114,7 @@
 
         /* ── Page headings ── */
         .page-title   { @apply text-xl font-bold text-gray-900 dark:text-white; }
-        .page-subtitle{ @apply text-sm text-gray-500 dark:text-gray-400; }
+        .page-subtitle{ @apply text-sm text-gray-500 dark:text-gray-300; }
         .section-title{ @apply text-base font-semibold text-gray-800 dark:text-gray-100; }
 
         /* ── Form elements ── */
@@ -137,7 +137,7 @@
             @apply form-input resize-none;
         }
         .form-hint {
-            @apply mt-1 text-xs text-gray-500 dark:text-gray-400;
+            @apply mt-1 text-xs text-gray-500 dark:text-gray-300;
         }
         .form-error {
             @apply mt-1 text-xs text-red-600 dark:text-red-400;
@@ -164,8 +164,8 @@
             @apply btn bg-red-600 hover:bg-red-700 text-white focus:ring-red-500;
         }
         .btn-outline {
-            @apply btn border border-gray-300 dark:border-gray-700
-                   text-gray-700 dark:text-gray-300
+            @apply btn border border-gray-300 dark:border-gray-600
+                   text-gray-700 dark:text-gray-200
                    hover:bg-gray-50 dark:hover:bg-gray-800
                    focus:ring-gray-400;
         }
@@ -208,7 +208,7 @@
             @apply card p-5;
         }
         .stat-label {
-            @apply text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1;
+            @apply text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1;
         }
         .stat-value {
             @apply text-2xl font-bold text-gray-900 dark:text-white;
@@ -316,7 +316,8 @@
         }
 
         /* ── Text helpers ── */
-        .text-muted  { @apply text-gray-500 dark:text-gray-400; }
+        /* Muted: readable on white and on dark card / panel backgrounds */
+        .text-muted  { @apply text-gray-500 dark:text-gray-300; }
         .text-body   { @apply text-gray-700 dark:text-gray-300; }
         .text-heading{ @apply text-gray-900 dark:text-white; }
         .text-link   { @apply text-velour-600 dark:text-velour-400 hover:underline; }

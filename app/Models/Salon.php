@@ -48,6 +48,44 @@ class Salon extends Model
         $s = $this->settings()->where('key',$key)->first();
         return $s ? $s->value : $default;
     }
+
+    /**
+     * Opening-hours row for one weekday. Keys in DB may be "monday" (settings form) or "Monday"
+     * (legacy seed/API) — PHP array keys are case-sensitive, so we resolve case-insensitively.
+     *
+     * @param  string  $lowercaseEnglishWeekday  e.g. "monday" from Carbon::format('l') + strtolower
+     * @return array<string, mixed>|null
+     */
+    public function openingHoursForWeekdayKey(string $lowercaseEnglishWeekday): ?array
+    {
+        $hours = $this->opening_hours;
+        if (! is_array($hours) || $hours === []) {
+            return null;
+        }
+
+        $want = strtolower($lowercaseEnglishWeekday);
+
+        if (isset($hours[$want]) && is_array($hours[$want])) {
+            return $hours[$want];
+        }
+
+        $ucfirst = ucfirst($want);
+        if (isset($hours[$ucfirst]) && is_array($hours[$ucfirst])) {
+            return $hours[$ucfirst];
+        }
+
+        foreach ($hours as $k => $config) {
+            if (! is_string($k) || ! is_array($config)) {
+                continue;
+            }
+            if (strtolower($k) === $want) {
+                return $config;
+            }
+        }
+
+        return null;
+    }
+
     protected static function newFactory()
     {
         return \Database\Factories\SalonFactory::new();
