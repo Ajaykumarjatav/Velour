@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\BusinessType;
 use App\Models\Appointment;
 use App\Models\AppointmentService;
 use App\Models\Client;
@@ -42,6 +43,7 @@ class SalonSeeder extends Seeder
 
         Salon::create([
             'owner_id'               => $owner->id,
+            'business_type_id'       => BusinessType::defaultId(),
             'name'                   => 'Maison Lumière',
             'slug'                   => 'maison-lumiere',
             'description'            => 'A luxury boutique salon in the heart of Chelsea. Specialising in colour, balayage, and advanced treatments.',

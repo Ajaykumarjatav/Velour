@@ -62,8 +62,9 @@
         </a>
         @foreach($categoryChips as $chip)
             <a href="{{ route('services.index', array_filter(['category_id' => $chip->id, 'search' => $search])) }}"
-               class="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors {{ (string) $filterCategoryId === (string) $chip->id ? 'bg-velour-600 border-velour-600 text-white' : 'border-gray-300 dark:border-gray-600 text-body hover:bg-gray-50 dark:hover:bg-gray-800' }}">
-                {{ $chip->name }}
+               class="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors {{ (string) $filterCategoryId === (string) $chip->id ? 'bg-velour-600 border-velour-600 text-white' : 'border-gray-300 dark:border-gray-600 text-body hover:bg-gray-50 dark:hover:bg-gray-800' }}"
+               title="{{ $chip->businessType?->name ?? '' }}">
+                {{ $chip->name }}@if($chip->businessType)<span class="text-muted font-normal"> · {{ $chip->businessType->name }}</span>@endif
             </a>
         @endforeach
     </div>
@@ -81,7 +82,12 @@
         @forelse($categories as $cat)
             <div class="table-wrap">
                 <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 flex items-center justify-between">
-                    <h3 class="font-semibold text-heading">{{ $cat->name }}</h3>
+                    <div>
+                        <h3 class="font-semibold text-heading">{{ $cat->name }}</h3>
+                        @if($cat->businessType)
+                            <p class="text-xs text-muted mt-0.5">{{ $cat->businessType->name }}</p>
+                        @endif
+                    </div>
                     <span class="text-xs text-muted">{{ $cat->services->count() }} services</span>
                 </div>
                 <table class="data-table">
@@ -103,7 +109,11 @@
                         <tr>
                             <td>
                                 <div class="flex items-center gap-3">
-                                    <div class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: {{ $svc->color ?? '#7C3AED' }}"></div>
+                                    @if($svc->image_url)
+                                        <img src="{{ $svc->image_url }}" alt="" width="40" height="40" class="w-10 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                                    @else
+                                        <div class="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-xs font-bold" style="background-color: {{ $svc->color ?? '#7C3AED' }}">{{ strtoupper(mb_substr($svc->name, 0, 1)) }}</div>
+                                    @endif
                                     <div class="min-w-0 flex-1">
                                         <div class="flex flex-wrap items-center gap-2">
                                             <p class="font-medium text-heading">{{ $svc->name }}</p>
@@ -188,7 +198,16 @@
                     <tbody>
                     @foreach($uncategorised as $svc)
                         <tr>
-                            <td class="font-medium text-heading">{{ $svc->name }}</td>
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    @if($svc->image_url)
+                                        <img src="{{ $svc->image_url }}" alt="" width="40" height="40" class="w-10 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                                    @else
+                                        <div class="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-xs font-bold" style="background-color: {{ $svc->color ?? '#7C3AED' }}">{{ strtoupper(mb_substr($svc->name, 0, 1)) }}</div>
+                                    @endif
+                                    <span class="font-medium text-heading">{{ $svc->name }}</span>
+                                </div>
+                            </td>
                             <td class="text-muted whitespace-nowrap">{{ $svc->duration_minutes }} min</td>
                             <td class="font-semibold text-heading text-right whitespace-nowrap">@money($svc->price)</td>
                             <td class="text-right">

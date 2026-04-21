@@ -13,6 +13,7 @@ class ServiceResource extends JsonResource
             'id'                    => $this->id,
             'name'                  => $this->name,
             'description'           => $this->description,
+            'image'                 => $this->image_url,
             'duration_minutes'      => (int) $this->duration_minutes,
             'buffer_minutes'        => (int) $this->buffer_minutes,
             'price'                 => number_format((float) $this->price, 2, '.', ''),

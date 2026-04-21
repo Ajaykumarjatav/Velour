@@ -33,6 +33,10 @@ class CheckPlanLimits
 {
     public function handle(Request $request, Closure $next, string $resource = ''): Response
     {
+        if (! config('billing.subscriptions_enabled')) {
+            return $next($request);
+        }
+
         // Only enforce when creating a new resource (POST). Updates do not
         // change the total count, so PUT/PATCH must not be blocked at the cap.
         if ($request->method() !== 'POST') {

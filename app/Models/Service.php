@@ -3,14 +3,16 @@ namespace App\Models;
 use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class Service extends Model
 {
     use BelongsToTenant, HasFactory, SoftDeletes;
     protected $fillable = [
-        'salon_id','category_id','name','slug','description','duration_minutes',
+        'salon_id','business_type_id','category_id','name','slug','description','image','duration_minutes',
         'buffer_minutes','price','price_from','price_on_consultation','deposit_type',
         'deposit_value','online_bookable','online_booking','show_in_menu','status','sort_order','color',
         'variants','addons','dynamic_pricing_enabled','staff_level',
@@ -21,6 +23,12 @@ class Service extends Model
         'variants'=>'array','addons'=>'array','dynamic_pricing_enabled'=>'boolean',
     ];
     public function salon()    { return $this->belongsTo(Salon::class); }
+
+    public function businessType(): BelongsTo
+    {
+        return $this->belongsTo(BusinessType::class, 'business_type_id');
+    }
+
     public function category() { return $this->belongsTo(ServiceCategory::class,'category_id'); }
     public function staff()    { return $this->belongsToMany(Staff::class,'service_staff')->withPivot('price_override')->withTimestamps(); }
     public function appointmentServices() { return $this->hasMany(AppointmentService::class); }
@@ -28,6 +36,50 @@ class Service extends Model
 
     public function scopeActive($q) { return $q->where('status','active'); }
     public function scopeOnline($q) { return $q->where('online_bookable',true); }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Service $service): void {
+            if ($service->category_id) {
+                $cat = $service->relationLoaded('category')
+                    ? $service->category
+                    : ServiceCategory::query()->find($service->category_id);
+
+                if ($cat === null || (int) $cat->salon_id !== (int) $service->salon_id) {
+                    throw ValidationException::withMessages([
+                        'category_id' => ['Invalid category for this location.'],
+                    ]);
+                }
+
+                $service->business_type_id = $cat->business_type_id;
+            }
+
+            if ($service->business_type_id === null) {
+                throw ValidationException::withMessages([
+                    'business_type_id' => ['Each service must be linked to a business type.'],
+                ]);
+            }
+
+            $salon = $service->relationLoaded('salon')
+                ? $service->salon
+                : Salon::query()->find($service->salon_id);
+
+            if ($salon === null) {
+                return;
+            }
+
+            $allowed = $salon->businessTypes()->pluck('business_types.id')->map(fn ($id) => (int) $id)->all();
+            if ($allowed === []) {
+                $allowed = $salon->business_type_id ? [(int) $salon->business_type_id] : [];
+            }
+
+            if (! in_array((int) $service->business_type_id, $allowed, true)) {
+                throw ValidationException::withMessages([
+                    'business_type_id' => ['Choose a business type that this location offers.'],
+                ]);
+            }
+        });
+    }
 
     /** @return list<array{name: string, price: float|int}> */
     public function normalizedVariants(): array
@@ -264,6 +316,12 @@ class Service extends Model
         $merged = array_merge($base, $parsed);
 
         return $merged === [] ? null : $merged;
+    }
+
+    /** Public URL for uploaded image (path is relative to the public disk). */
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image ? asset('storage/'.$this->image) : null;
     }
 
     public function getIsActiveAttribute(): bool

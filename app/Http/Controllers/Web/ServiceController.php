@@ -8,7 +8,10 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ServiceController extends Controller
 {
@@ -24,8 +27,8 @@ class ServiceController extends Controller
         $filterCategoryId = $request->get('category_id');
         $search           = $request->get('search');
 
-        $categoriesQuery = ServiceCategory::where('salon_id', $salon->id)
-            ->when($filterCategoryId, fn ($q) => $q->where('id', $filterCategoryId))
+        $categoriesQuery = ServiceCategory::where('service_categories.salon_id', $salon->id)
+            ->when($filterCategoryId, fn ($q) => $q->where('service_categories.id', $filterCategoryId))
             ->with(['services' => function ($q) use ($search) {
                 $q->orderBy('sort_order');
                 if ($search) {
@@ -35,8 +38,11 @@ class ServiceController extends Controller
                             ->orWhere('description', 'like', "%{$s}%");
                     });
                 }
-            }])
-            ->orderBy('sort_order');
+            }, 'businessType'])
+            ->join('business_types', 'business_types.id', '=', 'service_categories.business_type_id')
+            ->orderBy('business_types.sort_order')
+            ->orderBy('service_categories.sort_order')
+            ->select('service_categories.*');
 
         $categories = $categoriesQuery->get();
         if ($search) {
@@ -58,8 +64,10 @@ class ServiceController extends Controller
         $totalServices = Service::where('salon_id', $salon->id)->count();
 
         $categoryChips = ServiceCategory::where('salon_id', $salon->id)
-            ->orderBy('sort_order')
-            ->get(['id', 'name']);
+            ->with('businessType')
+            ->get()
+            ->sortBy(fn ($c) => [(int) ($c->businessType?->sort_order ?? 0), (int) $c->sort_order])
+            ->values();
 
         $pricingRules = DynamicPricingRule::where('salon_id', $salon->id)
             ->orderBy('sort_order')
@@ -80,9 +88,14 @@ class ServiceController extends Controller
     public function create()
     {
         $salon      = $this->salon();
-        $categories = ServiceCategory::where('salon_id', $salon->id)->orderBy('sort_order')->get(['id','name']);
+        $categories = ServiceCategory::where('salon_id', $salon->id)
+            ->with('businessType')
+            ->orderBy('business_type_id')
+            ->orderBy('sort_order')
+            ->get();
+        $assignedBusinessTypes = $salon->businessTypes()->orderBy('business_types.sort_order')->get();
 
-        return view('services.create', compact('salon', 'categories'));
+        return view('services.create', compact('salon', 'categories', 'assignedBusinessTypes'));
     }
 
     public function store(Request $request)
@@ -92,7 +105,11 @@ class ServiceController extends Controller
         $data = $request->validate([
             'name'                     => ['required', 'string', 'max:150'],
             'description'              => ['nullable', 'string', 'max:1000'],
-            'category_id'              => ['nullable', 'exists:service_categories,id'],
+            'category_id'              => [
+                'required',
+                'integer',
+                Rule::exists('service_categories', 'id')->where('salon_id', $salon->id),
+            ],
             'duration_minutes'         => ['required', 'integer', 'min:5', 'max:480'],
             'price'                    => ['required', 'numeric', 'min:0'],
             'is_active'                => ['boolean'],
@@ -107,7 +124,11 @@ class ServiceController extends Controller
             'addons_text'              => ['nullable', 'string', 'max:2000'],
             'dynamic_pricing_enabled'  => ['sometimes', 'boolean'],
             'staff_level'              => ['nullable', 'in:any,standard,senior,apprentice'],
+            'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
+
+        $imageFile = $request->file('image');
+        unset($data['image']);
 
         $data['salon_id']                = $salon->id;
         $data['status']                  = isset($data['is_active']) ? ($data['is_active'] ? 'active' : 'inactive') : 'active';
@@ -120,7 +141,15 @@ class ServiceController extends Controller
         );
         unset($data['is_active'], $data['online_booking'], $data['addons_text']);
 
-        Service::create($data);
+        $data['slug'] = $this->uniqueServiceSlug($salon->id, $data['name']);
+
+        $service = Service::create($data);
+
+        if ($imageFile) {
+            $service->update([
+                'image' => $imageFile->store('salons/'.$salon->id.'/services', 'public'),
+            ]);
+        }
 
         return redirect()->route('services.index')->with('success', 'Service created successfully.');
     }
@@ -128,20 +157,31 @@ class ServiceController extends Controller
     public function edit(Service $service)
     {
         $this->authorise($service);
+        $service->loadMissing('category');
         $salon      = $this->salon();
-        $categories = ServiceCategory::where('salon_id', $salon->id)->orderBy('sort_order')->get(['id','name']);
+        $categories = ServiceCategory::where('salon_id', $salon->id)
+            ->with('businessType')
+            ->orderBy('business_type_id')
+            ->orderBy('sort_order')
+            ->get();
+        $assignedBusinessTypes = $salon->businessTypes()->orderBy('business_types.sort_order')->get();
 
-        return view('services.edit', compact('service', 'categories'));
+        return view('services.edit', compact('service', 'salon', 'categories', 'assignedBusinessTypes'));
     }
 
     public function update(Request $request, Service $service)
     {
         $this->authorise($service);
+        $salon = $this->salon();
 
         $data = $request->validate([
             'name'                     => ['required', 'string', 'max:150'],
             'description'              => ['nullable', 'string', 'max:1000'],
-            'category_id'              => ['nullable', 'exists:service_categories,id'],
+            'category_id'              => [
+                'required',
+                'integer',
+                Rule::exists('service_categories', 'id')->where('salon_id', $salon->id),
+            ],
             'duration_minutes'         => ['required', 'integer', 'min:5', 'max:480'],
             'price'                    => ['required', 'numeric', 'min:0'],
             'is_active'                => ['boolean'],
@@ -156,6 +196,7 @@ class ServiceController extends Controller
             'addons_text'              => ['nullable', 'string', 'max:2000'],
             'dynamic_pricing_enabled'  => ['sometimes', 'boolean'],
             'staff_level'              => ['nullable', 'in:any,standard,senior,apprentice'],
+            'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
         if (array_key_exists('is_active', $data)) {
@@ -174,9 +215,15 @@ class ServiceController extends Controller
             Service::normalizePriceRows($data['addons'] ?? null),
             $data['addons_text'] ?? null
         );
-        unset($data['addons_text']);
+        unset($data['addons_text'], $data['image']);
+
+        if (trim((string) $data['name']) !== trim((string) $service->name)) {
+            $data['slug'] = $this->uniqueServiceSlug($service->salon_id, $data['name'], $service->id);
+        }
 
         $service->update($data);
+
+        $this->syncServiceImage($request, $service);
 
         return redirect()->route('services.index')->with('success', 'Service updated.');
     }
@@ -184,6 +231,9 @@ class ServiceController extends Controller
     public function destroy(Service $service)
     {
         $this->authorise($service);
+        if ($service->image) {
+            Storage::disk('public')->delete($service->image);
+        }
         $service->delete();
 
         return redirect()->route('services.index')->with('success', 'Service deleted.');
@@ -249,5 +299,47 @@ class ServiceController extends Controller
     private function authorise(Service $service): void
     {
         abort_unless($service->salon_id === $this->salon()->id, 403);
+    }
+
+    private function uniqueServiceSlug(int $salonId, string $name, ?int $exceptId = null): string
+    {
+        $base = Str::slug($name) ?: 'service';
+        $slug = $base;
+        $n    = 1;
+        while ($this->serviceSlugTaken($salonId, $slug, $exceptId)) {
+            $slug = $base.'-'.(++$n);
+        }
+
+        return $slug;
+    }
+
+    private function serviceSlugTaken(int $salonId, string $slug, ?int $exceptId): bool
+    {
+        $q = Service::withoutGlobalScopes()->where('salon_id', $salonId)->where('slug', $slug);
+        if ($exceptId !== null) {
+            $q->where('id', '!=', $exceptId);
+        }
+
+        return $q->exists();
+    }
+
+    private function syncServiceImage(Request $request, Service $service): void
+    {
+        if ($request->hasFile('image')) {
+            if ($service->image) {
+                Storage::disk('public')->delete($service->image);
+            }
+            $path = $request->file('image')->store('salons/'.$service->salon_id.'/services', 'public');
+            $service->update(['image' => $path]);
+
+            return;
+        }
+
+        if ($request->boolean('remove_image')) {
+            if ($service->image) {
+                Storage::disk('public')->delete($service->image);
+            }
+            $service->update(['image' => null]);
+        }
     }
 }

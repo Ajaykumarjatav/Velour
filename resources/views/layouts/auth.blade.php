@@ -52,9 +52,9 @@
         });
     </script>
 </head>
-<body class="h-full min-h-screen flex items-center justify-center bg-gradient-to-br from-velour-50 to-gray-100 p-4">
-    <div class="w-full max-w-md">
-        <div class="text-center mb-8">
+<body class="min-h-screen bg-gradient-to-br from-velour-50 to-gray-100 py-6 px-3 sm:px-4 md:py-10 md:px-6 lg:px-8">
+    <div class="w-full mx-auto min-w-0 @yield('auth_container_class', 'max-w-md sm:max-w-lg')">
+        <div class="text-center mb-6 sm:mb-8">
             <div class="inline-flex items-center justify-center w-12 h-12 bg-velour-600 rounded-2xl mb-4 shadow-lg">
                 <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
@@ -63,7 +63,7 @@
             <h1 class="text-2xl font-bold text-gray-900">Velour</h1>
             <p class="text-sm text-gray-500 mt-1">Salon Management Platform</p>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6 md:p-8 lg:p-10">
             @if(session('success'))
                 <div class="mb-5 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl text-sm">{{ session('success') }}</div>
             @endif

@@ -194,6 +194,7 @@
         {{-- ACCOUNT --}}
         <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Account</p>
 
+        @if(config('billing.subscriptions_enabled'))
         <a href="{{ route('billing.dashboard') }}"
            class="sidebar-link {{ request()->routeIs('billing.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -228,6 +229,7 @@
                   hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
             ⚠️ Payment failed
         </a>
+        @endif
         @endif
 
         <a href="{{ route('settings.index') }}"
@@ -280,6 +282,7 @@
             </svg>
             Team
         </a>
+        @if(config('billing.subscriptions_enabled'))
         <a href="{{ route('salon-admin.subscription') }}"
            class="sidebar-link {{ request()->routeIs('salon-admin.subscription*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,6 +290,7 @@
             </svg>
             Subscription
         </a>
+        @endif
         @endif
 
     </nav>

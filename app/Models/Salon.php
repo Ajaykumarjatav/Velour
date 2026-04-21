@@ -2,13 +2,16 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\ValidationException;
 
 class Salon extends Model
 {
     use HasFactory, SoftDeletes;
     protected $fillable = [
-        'owner_id','name','slug','subdomain','description','phone','email','website',
+        'owner_id','business_type_id','name','slug','subdomain','description','phone','email','website',
         'address_line1','address_line2','city','county','postcode','country',
         'latitude','longitude','timezone','currency','locale',
         'logo','cover_image','social_links','booking_url','google_place_id',
@@ -23,6 +26,34 @@ class Salon extends Model
         'deposit_percentage'=>'decimal:2','latitude'=>'decimal:7','longitude'=>'decimal:7',
     ];
     public function owner()                { return $this->belongsTo(User::class,'owner_id'); }
+
+    public function businessType(): BelongsTo
+    {
+        return $this->belongsTo(BusinessType::class, 'business_type_id');
+    }
+
+    /** Business verticals this location operates under (services must use one of these). */
+    public function businessTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(BusinessType::class, 'salon_business_types')->withTimestamps();
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Salon $salon): void {
+            if ($salon->business_type_id === null) {
+                throw ValidationException::withMessages([
+                    'business_type_id' => ['A business type is required for every location.'],
+                ]);
+            }
+        });
+
+        static::created(function (Salon $salon): void {
+            if ($salon->business_type_id) {
+                $salon->businessTypes()->syncWithoutDetaching([(int) $salon->business_type_id]);
+            }
+        });
+    }
     public function staff()                { return $this->hasMany(Staff::class); }
     public function serviceCategories()    { return $this->hasMany(ServiceCategory::class); }
     public function services()             { return $this->hasMany(Service::class); }

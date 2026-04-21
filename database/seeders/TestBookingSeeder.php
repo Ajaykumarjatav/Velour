@@ -42,8 +42,12 @@ class TestBookingSeeder extends Seeder
 
         // ── 2. Ensure service category exists ────────────────────────────
         $category = ServiceCategory::firstOrCreate(
-            ['salon_id' => $salon->id, 'name' => 'Hair Services'],
-            ['slug' => 'hair-services', 'sort_order' => 1]
+            [
+                'salon_id'         => $salon->id,
+                'business_type_id' => $salon->business_type_id,
+                'slug'             => 'hair-services',
+            ],
+            ['name' => 'Hair Services', 'sort_order' => 1, 'is_active' => true]
         );
 
         // ── 3. Ensure services exist and are bookable ─────────────────────

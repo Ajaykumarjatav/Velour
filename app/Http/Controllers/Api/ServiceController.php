@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
@@ -17,7 +18,7 @@ class ServiceController extends Controller
     {
         $salonId = $request->attributes->get('salon_id');
 
-        $services = Service::with(['category', 'staff'])
+        $services = Service::with(['category', 'staff', 'businessType'])
             ->where('salon_id', $salonId)
             ->when($request->category_id, fn($q) => $q->where('category_id', $request->category_id))
             ->when($request->status,      fn($q) => $q->where('status', $request->status))
@@ -39,8 +40,9 @@ class ServiceController extends Controller
     /* ── POST /services ─────────────────────────────────────────────────── */
     public function store(Request $request): JsonResponse
     {
+        $salonId = (int) $request->attributes->get('salon_id');
         $data = $request->validate([
-            'category_id'              => 'required|integer',
+            'category_id'              => ['required', 'integer', Rule::exists('service_categories', 'id')->where('salon_id', $salonId)],
             'name'                     => 'required|string|max:255',
             'description'              => 'nullable|string|max:1000',
             'duration_minutes'         => 'required|integer|min:5|max:480',
@@ -81,13 +83,13 @@ class ServiceController extends Controller
             $service->staff()->sync($data['staff_ids']);
         }
 
-        return response()->json(['message' => 'Service created.', 'service' => $service->load(['category','staff'])], 201);
+        return response()->json(['message' => 'Service created.', 'service' => $service->load(['category','staff','businessType'])], 201);
     }
 
     /* ── GET /services/{id} ─────────────────────────────────────────────── */
     public function show(Request $request, int $id): JsonResponse
     {
-        $service = Service::with(['category', 'staff'])
+        $service = Service::with(['category', 'staff', 'businessType'])
             ->where('salon_id', $request->attributes->get('salon_id'))
             ->findOrFail($id);
         return response()->json($service);
@@ -96,8 +98,9 @@ class ServiceController extends Controller
     /* ── PUT /services/{id} ─────────────────────────────────────────────── */
     public function update(Request $request, int $id): JsonResponse
     {
+        $salonId = (int) $request->attributes->get('salon_id');
         $data = $request->validate([
-            'category_id'              => 'sometimes|integer',
+            'category_id'              => ['sometimes', 'integer', Rule::exists('service_categories', 'id')->where('salon_id', $salonId)],
             'name'                     => 'sometimes|string|max:255',
             'description'              => 'nullable|string|max:1000',
             'duration_minutes'         => 'sometimes|integer|min:5|max:480',
@@ -149,7 +152,7 @@ class ServiceController extends Controller
             $service->staff()->sync($data['staff_ids'] ?? []);
         }
 
-        return response()->json(['message' => 'Service updated.', 'service' => $service->load(['category','staff'])]);
+        return response()->json(['message' => 'Service updated.', 'service' => $service->load(['category','staff','businessType'])]);
     }
 
     /* ── DELETE /services/{id} ──────────────────────────────────────────── */

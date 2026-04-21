@@ -10,7 +10,19 @@ class ServiceFactory extends Factory
     {
         return [
             'salon_id'         => Salon::factory(),
-            'category_id'      => ServiceCategory::factory(),
+            'business_type_id' => function (array $attributes) {
+                $salon = Salon::find($attributes['salon_id']);
+
+                return $salon ? (int) $salon->business_type_id : \App\Models\BusinessType::defaultId();
+            },
+            'category_id'      => function (array $attributes) {
+                $salon = Salon::query()->find($attributes['salon_id']);
+
+                return ServiceCategory::factory()->create([
+                    'salon_id'         => $salon->id,
+                    'business_type_id' => $salon->business_type_id,
+                ])->id;
+            },
             'name'             => $this->faker->randomElement(['Balayage','Cut & Blowdry','Gel Manicure','Signature Facial','Swedish Massage']),
             'duration_minutes' => $this->faker->randomElement([30, 45, 60, 90, 120]),
             'buffer_minutes'   => 10,

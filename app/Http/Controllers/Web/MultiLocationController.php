@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\PosTransaction;
 use App\Models\Review;
+use App\Models\BusinessType;
 use App\Models\Salon;
 use App\Models\SalonNotification;
 use App\Models\SalonSetting;
@@ -114,6 +115,7 @@ class MultiLocationController extends Controller
 
         $salon = Salon::create([
             'owner_id' => $owner->id,
+            'business_type_id' => $baseSalon?->business_type_id ?? BusinessType::defaultId(),
             'name' => $data['name'],
             'slug' => $slug,
             'subdomain' => $slug,
@@ -128,6 +130,14 @@ class MultiLocationController extends Controller
             'online_booking_enabled' => (bool) ($data['online_booking_enabled'] ?? false),
             'new_client_booking_enabled' => (bool) ($data['online_booking_enabled'] ?? false),
         ]);
+
+        $typeIds = $baseSalon
+            ? $baseSalon->businessTypes()->pluck('business_types.id')->map(fn ($id) => (int) $id)->all()
+            : [];
+        if ($typeIds === []) {
+            $typeIds = [(int) $salon->business_type_id];
+        }
+        $salon->businessTypes()->sync($typeIds);
 
         if (! empty($data['branch_manager'])) {
             SalonSetting::updateOrCreate(

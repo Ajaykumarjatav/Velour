@@ -142,9 +142,11 @@
         <h2 class="text-xl font-semibold text-heading mb-2">Scalability</h2>
         <p class="text-sm text-muted">Plan: <span class="font-semibold text-heading">{{ $data['plan_label'] }}</span></p>
         <p class="text-sm text-muted mt-1">Need higher limits? Upgrade your plan to unlock enterprise scale controls.</p>
+        @if(config('billing.subscriptions_enabled'))
         <div class="mt-4">
             <a href="{{ route('billing.plans') }}" class="btn-outline btn-sm">View Plans</a>
         </div>
+        @endif
     </div>
 </div>
 @endsection

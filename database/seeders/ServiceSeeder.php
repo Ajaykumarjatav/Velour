@@ -147,6 +147,7 @@ class ServiceSeeder extends Seeder
 
             Service::create([
                 'salon_id'              => $salon->id,
+                'business_type_id'      => (int) $salon->business_type_id,
                 'category_id'           => $cat->id,
                 'name'                  => $svc['name'],
                 'duration_minutes'      => $svc['duration'],

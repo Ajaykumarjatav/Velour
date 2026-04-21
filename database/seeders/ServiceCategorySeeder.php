@@ -41,7 +41,10 @@ class ServiceCategorySeeder extends Seeder
         ];
 
         foreach ($categories as $cat) {
-            ServiceCategory::create(array_merge($cat, ['salon_id' => $salon->id]));
+            ServiceCategory::create(array_merge($cat, [
+                'salon_id'         => $salon->id,
+                'business_type_id' => $salon->business_type_id,
+            ]));
         }
 
         $this->command->info('   ✓  8 service categories created.');

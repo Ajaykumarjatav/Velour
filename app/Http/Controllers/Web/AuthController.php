@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\OnboardNewTenant;
+use App\Models\BusinessType;
 use App\Models\Salon;
-use App\Models\Tenant;
 use App\Models\User;
+use App\Support\RegistrationStaff;
+use App\Support\RegistrationStarterServices;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -67,18 +70,73 @@ class AuthController extends Controller
 
     public function showRegister()
     {
-        return view('auth.register');
+        return view('auth.register', [
+            'businessTypes'   => BusinessType::query()->orderBy('sort_order')->get(),
+            'starterCatalog' => config('registration_starter_services'),
+        ]);
     }
 
     public function register(Request $request)
     {
         $data = $request->validate([
-            'name'        => ['required', 'string', 'max:100'],
-            'email'       => ['required', 'email', 'unique:users,email'],
-            'password'    => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
-            'salon_name'  => ['required', 'string', 'max:150'],
-            'salon_phone' => ['nullable', 'string', 'max:20'],
+            'name'                 => ['required', 'string', 'max:100'],
+            'email'                => ['required', 'email', 'unique:users,email'],
+            'password'             => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
+            'salon_name'           => ['required', 'string', 'max:150'],
+            'business_type_ids'    => ['required', 'array', 'min:1'],
+            'business_type_ids.*'  => ['integer', 'exists:business_types,id'],
+            'salon_phone'          => ['nullable', 'string', 'max:20'],
+            'starter_categories'   => ['nullable', 'array'],
+            'starter_categories.*' => ['string'],
+            'starter_services'     => ['nullable', 'array'],
+            'starter_services.*'   => ['string'],
+            'staff_members'          => ['nullable', 'array', 'max:10'],
+            'staff_members.*.name'   => ['nullable', 'string', 'max:100'],
+            'staff_members.*.email'  => ['nullable', 'email', 'max:150'],
+            'staff_members.*.phone'  => ['nullable', 'string', 'max:20'],
+            'staff_members.*.role'   => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
+            'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
         ]);
+
+        $typeIds = array_values(array_unique(array_map('intval', $data['business_type_ids'])));
+        $allowedCategoryKeys = RegistrationStarterServices::allowedCategoryKeysForTypeIds($typeIds);
+        foreach ($data['starter_categories'] ?? [] as $k) {
+            if (! in_array($k, $allowedCategoryKeys, true)) {
+                throw ValidationException::withMessages([
+                    'starter_categories' => ['One or more selected categories are not valid for your business types.'],
+                ]);
+            }
+        }
+        $allowedStarterKeys = RegistrationStarterServices::allowedKeysForTypeIds($typeIds);
+        foreach ($data['starter_services'] ?? [] as $k) {
+            if (! in_array($k, $allowedStarterKeys, true)) {
+                throw ValidationException::withMessages([
+                    'starter_services' => ['One or more selected services are not valid for your business types.'],
+                ]);
+            }
+        }
+
+        $rawStaff = $request->input('staff_members', []);
+        $staffRows  = [];
+        foreach ($data['staff_members'] ?? [] as $idx => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (trim((string) ($row['name'] ?? '')) === '') {
+                continue;
+            }
+            if (empty($row['role']) || ! is_string($row['role'])) {
+                throw ValidationException::withMessages([
+                    "staff_members.{$idx}.role" => ['Choose a role for each team member you add.'],
+                ]);
+            }
+            $v = $rawStaff[$idx]['assign_services'] ?? null;
+            $row['assign_services'] = $v === '1' || $v === true || $v === 1
+                || (is_array($v) && (in_array('1', $v, true) || in_array(1, $v, true)));
+            $staffRows[] = $row;
+        }
 
         $user = User::create([
             'name'     => $data['name'],
@@ -97,15 +155,23 @@ class AuthController extends Controller
         if ($count) $slug .= '-' . ($count + 1);
 
         $salon = Salon::withoutGlobalScopes()->create([
-            'owner_id'   => $user->id,
-            'name'       => $data['salon_name'],
-            'slug'       => $slug,
-            'subdomain'  => $slug,
-            'phone'      => $data['salon_phone'] ?? null,
-            'currency'   => 'GBP',
-            'timezone'   => 'Europe/London',
-            'is_active'  => true,
+            'owner_id'         => $user->id,
+            'business_type_id' => $typeIds[0],
+            'name'             => $data['salon_name'],
+            'slug'             => $slug,
+            'subdomain'        => $slug,
+            'phone'            => $data['salon_phone'] ?? null,
+            'currency'         => 'GBP',
+            'timezone'         => 'Europe/London',
+            'is_active'        => true,
         ]);
+
+        $salon->businessTypes()->sync($typeIds);
+
+        RegistrationStarterServices::seedStarterCategories($salon, $data['starter_categories'] ?? []);
+        RegistrationStarterServices::seedSalon($salon, $data['starter_services'] ?? []);
+
+        RegistrationStaff::seed($salon, $staffRows);
 
         // Registered event queues/sends verification email — don't block signup if mail fails
         $verificationEmailSent = true;

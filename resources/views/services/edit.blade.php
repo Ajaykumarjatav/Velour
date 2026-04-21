@@ -5,7 +5,7 @@
 
 <div class="max-w-xl">
     <div class="card p-6">
-        <form action="{{ route('services.update', $service->id) }}" method="POST" class="space-y-5">
+        <form action="{{ route('services.update', $service->id) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             @csrf
             @method('PUT')
 
@@ -15,13 +15,54 @@
                        class="form-input @error('name') form-input-error @enderror">
                 @error('name')<p class="form-error">{{ $message }}</p>@enderror
             </div>
+            @if($assignedBusinessTypes->isEmpty())
+                <div class="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+                    Add at least one business type for this location under <a href="{{ route('settings.index') }}?tab=salon" class="font-medium underline">Settings → Salon</a> before you can assign a category to this service.
+                </div>
+            @else
+            @if($categories->isEmpty())
+                <div class="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-900 dark:text-amber-100 mb-2">
+                    You need at least one service category. Use <span class="font-medium">+ New</span> below or <a href="{{ route('service-categories.index') }}" class="font-medium underline">Manage Categories</a>.
+                </div>
+            @endif
             <div>
-                <label class="form-label">Category</label>
+                <label class="form-label">Photo</label>
+                <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+                    @if($service->image_url)
+                        <img src="{{ $service->image_url }}" alt="" width="80" height="80" class="w-20 h-20 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shrink-0">
+                    @else
+                        <div class="w-20 h-20 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0"
+                             style="background-color: {{ $service->color ?? '#7C3AED' }}">{{ strtoupper(mb_substr($service->name, 0, 1)) }}</div>
+                    @endif
+                    <div class="flex-1 min-w-0 space-y-2">
+                        <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
+                               class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
+                        <p class="form-hint">JPG, PNG or WebP · max 2&nbsp;MB</p>
+                        @if($service->image)
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="checkbox" name="remove_image" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                Remove current photo
+                            </label>
+                        @endif
+                    </div>
+                </div>
+                @error('image')<p class="form-error">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="form-label">Category <span class="text-red-500">*</span></label>
+                <p class="form-hint mb-2">Business type is set on the category — pick the category that matches this service.</p>
                 <div class="flex items-center gap-2">
-                    <select name="category_id" class="form-select @error('category_id') form-input-error @enderror flex-1" id="category-select">
-                        <option value="">No category</option>
-                        @foreach($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ old('category_id', $service->category_id) == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    <select name="category_id" required class="form-select @error('category_id') form-input-error @enderror flex-1" id="category-select">
+                        <option value="" disabled {{ old('category_id', $service->category_id) ? '' : 'selected' }}>Select a category</option>
+                        @foreach($assignedBusinessTypes as $bt)
+                            @php $catsForBt = $categories->where('business_type_id', $bt->id); @endphp
+                            @if($catsForBt->isNotEmpty())
+                            <optgroup label="{{ $bt->name }}">
+                                @foreach($catsForBt as $cat)
+                                <option value="{{ $cat->id }}" {{ (string) old('category_id', $service->category_id) === (string) $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                                @endforeach
+                            </optgroup>
+                            @endif
                         @endforeach
                     </select>
                     <button type="button" onclick="document.getElementById('inline-cat-modal').classList.remove('hidden')"
@@ -68,8 +109,9 @@
 
             @include('services.partials.form-extras', ['service' => $service])
 
+            @endif
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="btn-primary flex-1 sm:flex-none">Save Changes</button>
+                <button type="submit" class="btn-primary flex-1 sm:flex-none" @if($assignedBusinessTypes->isEmpty()) disabled @endif>Save Changes</button>
                 <a href="{{ route('services.index') }}" class="btn-outline">Cancel</a>
             </div>
         </form>
@@ -87,6 +129,16 @@
                 <label class="form-label">Name <span class="text-red-500">*</span></label>
                 <input type="text" id="new-cat-name" class="form-input" placeholder="e.g. Hair, Nails, Skin">
             </div>
+            @php $modalDefaultBt = $service->category?->business_type_id ?? optional($assignedBusinessTypes->first())->id; @endphp
+            <div>
+                <label class="form-label">Business type <span class="text-red-500">*</span></label>
+                <select id="inline-cat-business-type" class="form-select">
+                    @foreach($assignedBusinessTypes as $bt)
+                        <option value="{{ $bt->id }}" {{ (string)($modalDefaultBt ?? '') === (string)$bt->id ? 'selected' : '' }}>{{ $bt->name }}</option>
+                    @endforeach
+                </select>
+                <p class="form-hint mt-1">Categories are scoped to a business type; services inherit it via the category.</p>
+            </div>
             <div>
                 <label class="form-label">Colour</label>
                 <input type="color" id="new-cat-color" value="#7c3aed"
@@ -102,29 +154,59 @@
 </div>
 
 <script>
+function rebuildCategorySelect(categories, selectedId) {
+    const select = document.getElementById('category-select');
+    if (!select) return;
+    select.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.disabled = true;
+    ph.textContent = 'Select a category';
+    if (!selectedId) ph.selected = true;
+    select.appendChild(ph);
+
+    let currentBt = null;
+    let og = null;
+    for (const c of categories) {
+        const bid = String(c.business_type_id);
+        if (bid !== currentBt) {
+            currentBt = bid;
+            og = document.createElement('optgroup');
+            og.label = c.business_type_name || ('Type ' + c.business_type_id);
+            select.appendChild(og);
+        }
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        if (String(selectedId) === String(c.id)) {
+            opt.selected = true;
+            ph.selected = false;
+        }
+        og.appendChild(opt);
+    }
+}
+
 async function saveCategory() {
     const name  = document.getElementById('new-cat-name').value.trim();
     const color = document.getElementById('new-cat-color').value;
     const err   = document.getElementById('cat-error');
+    const btEl  = document.getElementById('inline-cat-business-type');
+    const business_type_id = btEl && btEl.value ? parseInt(btEl.value, 10) : null;
     if (!name) { err.textContent = 'Name is required.'; err.classList.remove('hidden'); return; }
+    if (!business_type_id) { err.textContent = 'Select a business type for this category.'; err.classList.remove('hidden'); return; }
     err.classList.add('hidden');
 
     const res  = await fetch('{{ route('service-categories.store') }}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-        body: JSON.stringify({ name, color }),
+        body: JSON.stringify({ name, color, business_type_id }),
     });
     const data = await res.json();
     if (!res.ok) { err.textContent = data.message ?? 'Error saving category.'; err.classList.remove('hidden'); return; }
 
-    const select = document.getElementById('category-select');
-    select.innerHTML = '<option value="">No category</option>';
-    data.categories.forEach(cat => {
-        const opt = new Option(cat.name, cat.id);
-        select.add(opt);
-    });
-    const last = data.categories[data.categories.length - 1];
-    if (last) select.value = last.id;
+    const newCat = data.categories.find(c => c.name === name && parseInt(c.business_type_id, 10) === business_type_id);
+    const selectedId = newCat ? newCat.id : null;
+    rebuildCategorySelect(data.categories, selectedId);
 
     document.getElementById('inline-cat-modal').classList.add('hidden');
     document.getElementById('new-cat-name').value = '';

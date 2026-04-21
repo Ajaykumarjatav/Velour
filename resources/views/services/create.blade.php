@@ -6,23 +6,48 @@
 <div class="max-w-xl">
     <div class="card p-6">
         @php $action = isset($service) ? route('services.update', $service->id) : route('services.store'); @endphp
-        <form action="{{ $action }}" method="POST" class="space-y-5">
+        <form action="{{ $action }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             @csrf
             @if(isset($service)) @method('PUT') @endif
 
             <div>
                 <label class="form-label">Service name <span class="text-red-500">*</span></label>
-                <input type="text" name="name" value="{{ old('name', $service->name ?? '') }}" required
+                <input type="text" name="name" value="{{ old('name', $service?->name ?? '') }}" required
                        class="form-input @error('name') form-input-error @enderror">
                 @error('name')<p class="form-error">{{ $message }}</p>@enderror
             </div>
+            @if($assignedBusinessTypes->isEmpty())
+                <div class="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+                    Add at least one business type for this location under <a href="{{ route('settings.index') }}?tab=salon" class="font-medium underline">Settings → Salon</a> before you can add service categories and services.
+                </div>
+            @else
+            @if($categories->isEmpty())
+                <div class="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-900 dark:text-amber-100 mb-2">
+                    You need at least one service category. Use <span class="font-medium">+ New</span> below or <a href="{{ route('service-categories.index') }}" class="font-medium underline">Manage Categories</a>.
+                </div>
+            @endif
             <div>
-                <label class="form-label">Category</label>
+                <label class="form-label">Photo <span class="text-muted font-normal">(optional)</span></label>
+                <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
+                       class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
+                <p class="form-hint">JPG, PNG or WebP · max 2&nbsp;MB</p>
+                @error('image')<p class="form-error">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="form-label">Category <span class="text-red-500">*</span></label>
+                <p class="form-hint mb-2">Business type is set on the category — pick the category that matches this service.</p>
                 <div class="flex items-center gap-2">
-                    <select name="category_id" class="form-select @error('category_id') form-input-error @enderror flex-1" id="category-select">
-                        <option value="">No category</option>
-                        @foreach($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ old('category_id', $service->category_id ?? '') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    <select name="category_id" required class="form-select @error('category_id') form-input-error @enderror flex-1" id="category-select">
+                        <option value="" disabled {{ old('category_id') ? '' : 'selected' }}>Select a category</option>
+                        @foreach($assignedBusinessTypes as $bt)
+                            @php $catsForBt = $categories->where('business_type_id', $bt->id); @endphp
+                            @if($catsForBt->isNotEmpty())
+                            <optgroup label="{{ $bt->name }}">
+                                @foreach($catsForBt as $cat)
+                                <option value="{{ $cat->id }}" {{ (string) old('category_id', $service?->category_id ?? '') === (string) $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                                @endforeach
+                            </optgroup>
+                            @endif
                         @endforeach
                     </select>
                     <button type="button" onclick="document.getElementById('inline-cat-modal').classList.remove('hidden')"
@@ -34,43 +59,44 @@
                 <div>
                     <label class="form-label">Duration (min) <span class="text-red-500">*</span></label>
                     <input type="number" name="duration_minutes" min="5" max="480"
-                           value="{{ old('duration_minutes', $service->duration_minutes ?? 60) }}" required
+                           value="{{ old('duration_minutes', $service?->duration_minutes ?? 60) }}" required
                            class="form-input @error('duration_minutes') form-input-error @enderror">
                     @error('duration_minutes')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="form-label">Price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }}) <span class="text-red-500">*</span></label>
                     <input type="number" name="price" min="0" step="0.01"
-                           value="{{ old('price', $service->price ?? '') }}" required
+                           value="{{ old('price', $service?->price ?? '') }}" required
                            class="form-input @error('price') form-input-error @enderror">
                     @error('price')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
             </div>
             <div>
                 <label class="form-label">Description</label>
-                <textarea name="description" rows="3" class="form-textarea @error('description') form-input-error @enderror">{{ old('description', $service->description ?? '') }}</textarea>
+                <textarea name="description" rows="3" class="form-textarea @error('description') form-input-error @enderror">{{ old('description', $service?->description ?? '') }}</textarea>
                 @error('description')<p class="form-error">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="form-label">Calendar colour</label>
-                <input type="color" name="color" value="{{ old('color', $service->color ?? '#7C3AED') }}"
+                <input type="color" name="color" value="{{ old('color', $service?->color ?? '#7C3AED') }}"
                        class="h-10 w-20 px-2 py-1 rounded-xl border border-gray-300 dark:border-gray-700 cursor-pointer bg-white dark:bg-gray-800">
             </div>
             <div class="flex gap-4">
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="is_active" value="1" {{ old('is_active', $service->is_active ?? true) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                    <input type="checkbox" name="is_active" value="1" {{ old('is_active', $service?->is_active ?? true) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
                     <span class="text-sm text-body">Active</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="online_booking" value="1" {{ old('online_booking', $service->online_booking ?? true) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                    <input type="checkbox" name="online_booking" value="1" {{ old('online_booking', $service?->online_booking ?? true) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
                     <span class="text-sm text-body">Online booking</span>
                 </label>
             </div>
 
             @include('services.partials.form-extras', ['service' => null])
 
+            @endif
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="btn-primary flex-1 sm:flex-none">{{ isset($service) ? 'Save Changes' : 'Add Service' }}</button>
+                <button type="submit" class="btn-primary flex-1 sm:flex-none" @if($assignedBusinessTypes->isEmpty()) disabled @endif>{{ isset($service) ? 'Save Changes' : 'Add Service' }}</button>
                 <a href="{{ route('services.index') }}" class="btn-outline">Cancel</a>
             </div>
         </form>
@@ -89,6 +115,15 @@
                 <input type="text" id="new-cat-name" class="form-input" placeholder="e.g. Hair, Nails, Skin">
             </div>
             <div>
+                <label class="form-label">Business type <span class="text-red-500">*</span></label>
+                <select id="inline-cat-business-type" class="form-select">
+                    @foreach($assignedBusinessTypes as $bt)
+                        <option value="{{ $bt->id }}" {{ $loop->first ? 'selected' : '' }}>{{ $bt->name }}</option>
+                    @endforeach
+                </select>
+                <p class="form-hint mt-1">Categories are scoped to a business type; services inherit it via the category.</p>
+            </div>
+            <div>
                 <label class="form-label">Colour</label>
                 <input type="color" id="new-cat-color" value="#7c3aed"
                        class="h-10 w-20 px-2 py-1 rounded-xl border border-gray-300 dark:border-gray-700 cursor-pointer bg-white dark:bg-gray-800">
@@ -103,31 +138,59 @@
 </div>
 
 <script>
+function rebuildCategorySelect(categories, selectedId) {
+    const select = document.getElementById('category-select');
+    if (!select) return;
+    select.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.disabled = true;
+    ph.textContent = 'Select a category';
+    if (!selectedId) ph.selected = true;
+    select.appendChild(ph);
+
+    let currentBt = null;
+    let og = null;
+    for (const c of categories) {
+        const bid = String(c.business_type_id);
+        if (bid !== currentBt) {
+            currentBt = bid;
+            og = document.createElement('optgroup');
+            og.label = c.business_type_name || ('Type ' + c.business_type_id);
+            select.appendChild(og);
+        }
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        if (String(selectedId) === String(c.id)) {
+            opt.selected = true;
+            ph.selected = false;
+        }
+        og.appendChild(opt);
+    }
+}
+
 async function saveCategory() {
     const name  = document.getElementById('new-cat-name').value.trim();
     const color = document.getElementById('new-cat-color').value;
     const err   = document.getElementById('cat-error');
+    const btEl  = document.getElementById('inline-cat-business-type');
+    const business_type_id = btEl && btEl.value ? parseInt(btEl.value, 10) : null;
     if (!name) { err.textContent = 'Name is required.'; err.classList.remove('hidden'); return; }
+    if (!business_type_id) { err.textContent = 'Select a business type for this category.'; err.classList.remove('hidden'); return; }
     err.classList.add('hidden');
 
     const res  = await fetch('{{ route('service-categories.store') }}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-        body: JSON.stringify({ name, color }),
+        body: JSON.stringify({ name, color, business_type_id }),
     });
     const data = await res.json();
     if (!res.ok) { err.textContent = data.message ?? 'Error saving category.'; err.classList.remove('hidden'); return; }
 
-    // Populate the select with new options and select the new one
-    const select = document.getElementById('category-select');
-    select.innerHTML = '<option value="">No category</option>';
-    data.categories.forEach(cat => {
-        const opt = new Option(cat.name, cat.id);
-        select.add(opt);
-    });
-    // Select the last added (highest id)
-    const last = data.categories[data.categories.length - 1];
-    if (last) select.value = last.id;
+    const newCat = data.categories.find(c => c.name === name && parseInt(c.business_type_id, 10) === business_type_id);
+    const selectedId = newCat ? newCat.id : null;
+    rebuildCategorySelect(data.categories, selectedId);
 
     document.getElementById('inline-cat-modal').classList.add('hidden');
     document.getElementById('new-cat-name').value = '';

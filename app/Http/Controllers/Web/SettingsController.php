@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\BusinessType;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class SettingsController extends Controller
 {
@@ -31,6 +33,11 @@ class SettingsController extends Controller
 
         $bookingTimeDisplay = $salon->getSetting('booking_time_display', 'business');
         $localeOptions = \App\Support\DisplayFormatter::localeOptions();
+        $businessTypes = BusinessType::query()->orderBy('sort_order')->get();
+        $selectedBusinessTypeIds = $salon->businessTypes()->pluck('business_types.id')->map(fn ($id) => (int) $id)->all();
+        if ($selectedBusinessTypeIds === [] && $salon->business_type_id) {
+            $selectedBusinessTypeIds = [(int) $salon->business_type_id];
+        }
 
         return view('settings.index', compact(
             'salon',
@@ -39,7 +46,9 @@ class SettingsController extends Controller
             'notificationDefinitions',
             'notificationConfig',
             'bookingTimeDisplay',
-            'localeOptions'
+            'localeOptions',
+            'businessTypes',
+            'selectedBusinessTypeIds'
         ));
     }
 
@@ -48,21 +57,42 @@ class SettingsController extends Controller
         $salon = $this->salon();
 
         $data = $request->validate([
-            'name'          => ['required', 'string', 'max:150'],
-            'email'         => ['nullable', 'email', 'max:150'],
-            'phone'         => ['nullable', 'string', 'max:20'],
-            'website'       => ['nullable', 'url', 'max:200'],
-            'description'   => ['nullable', 'string', 'max:1000'],
-            'address_line1' => ['nullable', 'string', 'max:200'],
-            'address_line2' => ['nullable', 'string', 'max:200'],
-            'city'          => ['nullable', 'string', 'max:100'],
-            'county'        => ['nullable', 'string', 'max:100'],
-            'postcode'      => ['nullable', 'string', 'max:20'],
-            'country'       => ['nullable', 'string', 'max:2'],
-            'timezone'              => ['required', 'string', 'timezone'],
-            'currency'              => ['required', 'string', 'size:3', 'in:' . implode(',', array_keys(\App\Helpers\CurrencyHelper::all()))],
-            'booking_time_display'  => ['nullable', 'in:business,customer'],
+            'name'                 => ['required', 'string', 'max:150'],
+            'business_type_ids'    => ['required', 'array', 'min:1'],
+            'business_type_ids.*'  => ['integer', 'exists:business_types,id'],
+            'email'                => ['nullable', 'email', 'max:150'],
+            'phone'              => ['nullable', 'string', 'max:20'],
+            'website'            => ['nullable', 'url', 'max:200'],
+            'description'        => ['nullable', 'string', 'max:1000'],
+            'address_line1'      => ['nullable', 'string', 'max:200'],
+            'address_line2'      => ['nullable', 'string', 'max:200'],
+            'city'               => ['nullable', 'string', 'max:100'],
+            'county'             => ['nullable', 'string', 'max:100'],
+            'postcode'           => ['nullable', 'string', 'max:20'],
+            'country'            => ['nullable', 'string', 'max:2'],
+            'timezone'           => ['required', 'string', 'timezone'],
+            'currency'           => ['required', 'string', 'size:3', 'in:' . implode(',', array_keys(\App\Helpers\CurrencyHelper::all()))],
+            'booking_time_display' => ['nullable', 'in:business,customer'],
         ]);
+
+        $ids = array_values(array_unique(array_map('intval', $data['business_type_ids'])));
+        unset($data['business_type_ids']);
+
+        $currentPivotIds = $salon->businessTypes()->pluck('business_types.id')->map(fn ($id) => (int) $id)->all();
+        $removed = array_diff($currentPivotIds, $ids);
+        foreach ($removed as $rid) {
+            if ($salon->services()->where('business_type_id', $rid)->exists()) {
+                throw ValidationException::withMessages([
+                    'business_type_ids' => ['Remove or reassign services that use a business type before you can remove that type.'],
+                ]);
+            }
+        }
+
+        $salon->businessTypes()->sync($ids);
+
+        if (! in_array((int) $salon->business_type_id, $ids, true)) {
+            $data['business_type_id'] = $ids[0];
+        }
 
         $salon->update($data);
 

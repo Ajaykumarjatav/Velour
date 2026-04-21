@@ -26,6 +26,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Subscriptions & plan enforcement (master switch)
+    |--------------------------------------------------------------------------
+    |
+    | When false (default): subscription/billing UI is hidden, plan limits and
+    | subscription feature middleware do not apply. Set SUBSCRIPTIONS_ENABLED=true
+    | in .env to restore paid plans, limits, and /billing routes.
+    |
+    */
+
+    'subscriptions_enabled' => filter_var(env('SUBSCRIPTIONS_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+
+    /*
+    |--------------------------------------------------------------------------
     | Trial Period
     |--------------------------------------------------------------------------
     |

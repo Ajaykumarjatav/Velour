@@ -74,6 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // ── Billing & Subscriptions ────────────────────────────────────
             'subscription'    => \App\Http\Middleware\CheckSubscription::class,
             'plan.limit'      => \App\Http\Middleware\CheckPlanLimits::class,
+            'subscriptions.enabled' => \App\Http\Middleware\RedirectUnlessSubscriptionsEnabled::class,
             // ── Security & Audit ───────────────────────────────────────────
             'throttle.tenant'  => \App\Http\Middleware\TenantAwareThrottle::class,
             'audit.request'    => \App\Http\Middleware\AuditRequestMiddleware::class,

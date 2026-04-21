@@ -31,6 +31,10 @@ class CheckSubscription
 {
     public function handle(Request $request, Closure $next, string ...$guards): Response
     {
+        if (! config('billing.subscriptions_enabled')) {
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if (! $user) {

@@ -183,8 +183,11 @@ class RelationQuickCreateController extends Controller
 
         $sortOrder = (int) Service::where('salon_id', $salon->id)->max('sort_order');
 
+        $businessTypeId = (int) ($salon->businessTypes()->orderBy('business_types.sort_order')->value('business_types.id') ?? $salon->business_type_id);
+
         $service = Service::create([
             'salon_id' => $salon->id,
+            'business_type_id' => $businessTypeId,
             'category_id' => $categoryId,
             'name' => $data['name'],
             'slug' => $slug,
@@ -209,7 +212,12 @@ class RelationQuickCreateController extends Controller
 
     private function defaultServiceCategoryId(Salon $salon): int
     {
-        $existing = ServiceCategory::where('salon_id', $salon->id)->orderBy('sort_order')->first();
+        $businessTypeId = (int) ($salon->businessTypes()->orderBy('business_types.sort_order')->value('business_types.id') ?? $salon->business_type_id);
+
+        $existing = ServiceCategory::where('salon_id', $salon->id)
+            ->where('business_type_id', $businessTypeId)
+            ->orderBy('sort_order')
+            ->first();
         if ($existing) {
             return (int) $existing->id;
         }
@@ -217,18 +225,21 @@ class RelationQuickCreateController extends Controller
         $base = 'general';
         $slug = $base;
         $n = 0;
-        while (ServiceCategory::where('salon_id', $salon->id)->where('slug', $slug)->exists()) {
+        while (ServiceCategory::where('salon_id', $salon->id)->where('business_type_id', $businessTypeId)->where('slug', $slug)->exists()) {
             $n++;
             $slug = $base.'-'.$n;
         }
 
-        $sortOrder = (int) ServiceCategory::where('salon_id', $salon->id)->max('sort_order');
+        $sortOrder = (int) ServiceCategory::where('salon_id', $salon->id)
+            ->where('business_type_id', $businessTypeId)
+            ->max('sort_order');
         $category = ServiceCategory::create([
-            'salon_id' => $salon->id,
-            'name' => 'General',
-            'slug' => $slug,
-            'sort_order' => $sortOrder + 1,
-            'is_active' => true,
+            'salon_id'         => $salon->id,
+            'business_type_id' => $businessTypeId,
+            'name'             => 'General',
+            'slug'             => $slug,
+            'sort_order'       => $sortOrder + 1,
+            'is_active'        => true,
         ]);
 
         return (int) $category->id;

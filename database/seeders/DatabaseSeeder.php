@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class, // 0a. RBAC roles + permissions
             SuperAdminSeeder::class,          // 0b. Platform super-admin account
+            BusinessTypeSeeder::class,        // 0c. Business type lookup (salon verticals)
             SalonSeeder::class,              // 1. Salon + owner user + settings + notifications
             StaffSeeder::class,              // 2. 6 staff members with schedules & commission rates
             ServiceCategorySeeder::class,    // 3. 8 service categories

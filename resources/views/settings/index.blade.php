@@ -27,6 +27,20 @@
                         <label class="form-label">Salon name <span class="text-red-500">*</span></label>
                         <input type="text" name="name" value="{{ old('name', $salon->name) }}" required class="form-input">
                     </div>
+                    <div class="col-span-2">
+                        <label class="form-label">Business types <span class="text-red-500">*</span></label>
+                        <p class="form-hint mb-2">Services can only be tagged with types you enable here.</p>
+                        <div class="flex flex-wrap gap-x-4 gap-y-2">
+                            @foreach($businessTypes as $type)
+                                @php $checked = in_array((int) $type->id, array_map('intval', old('business_type_ids', $selectedBusinessTypeIds ?? [])), true); @endphp
+                                <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                    <input type="checkbox" name="business_type_ids[]" value="{{ $type->id }}" class="rounded border-gray-300 text-velour-600" {{ $checked ? 'checked' : '' }}>
+                                    {{ $type->name }}
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('business_type_ids')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
                     <div>
                         <label class="form-label">Email</label>
                         <input type="email" name="email" value="{{ old('email', $salon->email) }}" class="form-input">
@@ -462,6 +476,7 @@
             </div>
         </div>
 
+        @if(config('billing.subscriptions_enabled'))
         <div class="card border-red-200 dark:border-red-900/50 p-6">
             <h2 class="font-semibold text-heading mb-1">Danger Zone</h2>
             <p class="text-xs text-muted mb-4">Actions here are irreversible. Proceed with caution.</p>
@@ -470,6 +485,7 @@
                 Cancel subscription
             </a>
         </div>
+        @endif
     </div>
 
 </div>

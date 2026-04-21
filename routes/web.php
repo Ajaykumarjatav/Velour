@@ -266,7 +266,9 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
             Route::post('team/invite',                 [TenantAdminController::class, 'invite'])->name('team.invite');
             Route::patch('team/{user}/role',           [TenantAdminController::class, 'updateMemberRole'])->name('team.role');
             Route::delete('team/{user}',               [TenantAdminController::class, 'removeMember'])->name('team.remove');
-            Route::get('subscription',                 [TenantAdminController::class, 'subscription'])->name('subscription');
+            Route::get('subscription',                 [TenantAdminController::class, 'subscription'])
+                ->middleware('subscriptions.enabled')
+                ->name('subscription');
             Route::post('transfer-ownership',          [TenantAdminController::class, 'transferOwnership'])->name('transfer');
         });
 
@@ -286,7 +288,7 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
 //    ->middleware('subscription:pro')     → pro or enterprise only
 //    ->middleware('subscription:feature:marketing') → feature flag
 
-Route::middleware(['auth', 'verified', '2fa'])
+Route::middleware(['auth', 'verified', '2fa', 'subscriptions.enabled'])
     ->prefix('billing')
     ->name('billing.')
     ->group(function () {

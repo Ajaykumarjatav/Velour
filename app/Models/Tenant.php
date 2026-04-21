@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Spatie\Multitenancy\Models\Tenant as SpatieTenant;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Validation\ValidationException;
 
 /**
  * App\Models\Tenant
@@ -50,6 +52,7 @@ class Tenant extends SpatieTenant
 
     protected $fillable = [
         'owner_id',
+        'business_type_id',
         'name',
         'slug',
         'domain',       // Custom domain:   bookings.mysalon.com
@@ -136,6 +139,24 @@ class Tenant extends SpatieTenant
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function businessType(): BelongsTo
+    {
+        return $this->belongsTo(BusinessType::class, 'business_type_id');
+    }
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::saving(function (Tenant $tenant): void {
+            if ($tenant->business_type_id === null) {
+                throw ValidationException::withMessages([
+                    'business_type_id' => ['A business type is required for every location.'],
+                ]);
+            }
+        });
     }
 
     public function staff()

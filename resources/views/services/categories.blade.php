@@ -5,11 +5,21 @@
 
 <div class="flex justify-between items-center mb-6">
     <a href="{{ route('services.index') }}" class="text-sm text-muted hover:text-body">← Back to Services</a>
-    <button onclick="document.getElementById('add-cat-modal').classList.remove('hidden')" class="btn-primary">+ Add Category</button>
+    @if($assignedBusinessTypes->isNotEmpty())
+        <button onclick="document.getElementById('add-cat-modal').classList.remove('hidden')" class="btn-primary">+ Add Category</button>
+    @else
+        <a href="{{ route('settings.index') }}?tab=salon" class="btn-outline text-sm">Add a business type first</a>
+    @endif
 </div>
 
 @if(session('success'))
 <div class="mb-4 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm">{{ session('success') }}</div>
+@endif
+
+@if($assignedBusinessTypes->isEmpty())
+<div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+    Add at least one business type under <a href="{{ route('settings.index') }}?tab=salon" class="font-medium underline">Settings → Salon</a> before you can create service categories.
+</div>
 @endif
 
 <div class="card">
@@ -19,11 +29,11 @@
             <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:{{ $cat->color ?? '#7c3aed' }}"></div>
             <div>
                 <p class="font-medium text-heading">{{ $cat->name }}</p>
-                <p class="text-xs text-muted">{{ $cat->services_count }} {{ Str::plural('service', $cat->services_count) }}</p>
+                <p class="text-xs text-muted">{{ $cat->businessType?->name ?? '—' }} · {{ $cat->services_count }} {{ Str::plural('service', $cat->services_count) }}</p>
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <button onclick="openEdit({{ $cat->id }}, '{{ addslashes($cat->name) }}', '{{ $cat->color ?? '#7c3aed' }}')"
+            <button onclick="openEdit({{ $cat->id }}, '{{ addslashes($cat->name) }}', '{{ $cat->color ?? '#7c3aed' }}', '{{ $cat->business_type_id }}')"
                     class="text-xs text-link font-medium">Edit</button>
             <form action="{{ route('service-categories.destroy', $cat->id) }}" method="POST"
                   onsubmit="return confirm('Delete this category? Services will become uncategorised.')">
@@ -43,6 +53,14 @@
         <h3 class="font-semibold text-heading text-lg mb-4">Add Category</h3>
         <form action="{{ route('service-categories.store') }}" method="POST" class="space-y-4">
             @csrf
+            <div>
+                <label class="form-label">Business type <span class="text-red-500">*</span></label>
+                <select name="business_type_id" required class="form-select">
+                    @foreach($assignedBusinessTypes as $bt)
+                        <option value="{{ $bt->id }}" {{ (string) old('business_type_id', $assignedBusinessTypes->first()->id) === (string) $bt->id ? 'selected' : '' }}>{{ $bt->name }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div>
                 <label class="form-label">Name <span class="text-red-500">*</span></label>
                 <input type="text" name="name" required class="form-input" placeholder="e.g. Hair, Nails, Skin">
@@ -67,6 +85,14 @@
         <form id="edit-cat-form" method="POST" class="space-y-4">
             @csrf @method('PUT')
             <div>
+                <label class="form-label">Business type <span class="text-red-500">*</span></label>
+                <select id="edit-cat-business-type" name="business_type_id" required class="form-select">
+                    @foreach($assignedBusinessTypes as $bt)
+                        <option value="{{ $bt->id }}">{{ $bt->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
                 <label class="form-label">Name <span class="text-red-500">*</span></label>
                 <input type="text" id="edit-cat-name" name="name" required class="form-input">
             </div>
@@ -84,9 +110,10 @@
 </div>
 
 <script>
-function openEdit(id, name, color) {
+function openEdit(id, name, color, businessTypeId) {
     document.getElementById('edit-cat-name').value  = name;
     document.getElementById('edit-cat-color').value = color;
+    document.getElementById('edit-cat-business-type').value = String(businessTypeId);
     document.getElementById('edit-cat-form').action = '/service-categories/' + id;
     document.getElementById('edit-cat-modal').classList.remove('hidden');
 }

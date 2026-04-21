@@ -31,10 +31,12 @@
         class="bg-gray-900 text-white rounded-xl px-8 py-4 font-semibold hover:bg-gray-700 transition">
         Go to Dashboard
       </a>
+      @if(config('billing.subscriptions_enabled'))
       <a href="{{ route('billing.plans') }}"
         class="border border-amber-400 text-amber-700 rounded-xl px-8 py-4 font-semibold hover:bg-amber-50 transition">
         View Plans
       </a>
+      @endif
     </div>
   </div>
 </div>

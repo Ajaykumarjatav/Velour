@@ -1,5 +1,6 @@
 <?php
 namespace Database\Factories;
+use App\Models\BusinessType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -11,6 +12,18 @@ class SalonFactory extends Factory
         $name = $this->faker->company();
         return [
             'owner_id'               => User::factory(),
+            'business_type_id'       => static function () {
+                $existing = BusinessType::query()->where('slug', 'salon')->first();
+                if ($existing) {
+                    return $existing->id;
+                }
+
+                return BusinessType::query()->create([
+                    'name'       => 'Salon',
+                    'slug'       => 'salon',
+                    'sort_order' => 0,
+                ])->id;
+            },
             'name'                   => $name,
             'slug'                   => Str::slug($name) . '-' . $this->faker->unique()->numberBetween(1, 9999),
             'phone'                  => $this->faker->phoneNumber(),
