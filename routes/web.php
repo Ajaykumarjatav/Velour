@@ -247,6 +247,7 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         Route::put('settings/hours',         [SettingsController::class, 'updateHours'])->name('settings.hours');
         Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');
         Route::put('settings/profile',       [SettingsController::class, 'updateProfile'])->name('settings.profile');
+        Route::put('settings/team-members',  [SettingsController::class, 'updateTeamMembers'])->name('settings.team-members');
         Route::put('settings/password',      [SettingsController::class, 'updatePassword'])->name('settings.password');
         Route::put('settings/social-links',  [SettingsController::class, 'updateSocialLinks'])->name('settings.social-links');
 

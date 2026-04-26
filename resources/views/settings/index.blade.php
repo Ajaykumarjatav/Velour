@@ -7,7 +7,7 @@
 
     {{-- Tab bar --}}
     <div class="flex flex-wrap gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl w-fit">
-        @foreach(['salon' => 'Salon', 'hours' => 'Hours', 'social' => 'Social Links', 'notifications' => 'Notifications', 'profile' => 'My Profile', 'security' => 'Security'] as $key => $label)
+        @foreach(['salon' => 'Business', 'hours' => 'Hours', 'social' => 'Social Links', 'notifications' => 'Notifications', 'profile' => 'Profile', 'security' => 'Security'] as $key => $label)
         <button @click="tab='{{ $key }}'"
                 :class="tab==='{{ $key }}' ? 'bg-white dark:bg-gray-700 text-velour-700 dark:text-velour-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
                 class="px-4 py-2 text-sm font-medium rounded-xl transition-all">
@@ -98,99 +98,6 @@
                             @endforeach
                         </div>
                         @error('starter_services')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                    </div>
-                    @php
-                        $staffRows = old('staff_members');
-                        if (! is_array($staffRows)) {
-                            $staffRows = ($existingTeamMembers ?? collect())->map(function ($member) {
-                                return [
-                                    'id' => $member->id,
-                                    'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
-                                    'email' => $member->email,
-                                    'phone' => $member->phone,
-                                    'role' => $member->role,
-                                    'commission_rate' => $member->commission_rate,
-                                    'color' => $member->color ?: '#7C3AED',
-                                    'bio' => $member->bio,
-                                    'assign_services' => $member->services()->exists() ? '1' : '0',
-                                ];
-                            })->all();
-                        }
-                        if (count($staffRows) === 0) {
-                            $staffRows = [[]];
-                        }
-                        $staffRoles = ['stylist', 'therapist', 'manager', 'receptionist', 'junior', 'owner'];
-                    @endphp
-                    <div class="col-span-2">
-                        <label class="form-label mb-1">Team members <span class="text-gray-400 font-normal">(optional)</span></label>
-                        <p class="form-hint mb-3">Add or update team members from Settings.</p>
-                        <div id="settings-staff-rows" class="space-y-4">
-                            @foreach($staffRows as $idx => $st)
-                                @php $st = is_array($st) ? $st : []; @endphp
-                                <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-4 space-y-3">
-                                    <div class="flex justify-between items-center gap-2">
-                                        <span class="settings-staff-row-title text-sm font-medium text-body">Team member {{ $loop->iteration }}</span>
-                                        <button type="button" class="settings-staff-remove-btn text-xs font-medium text-red-600 hover:text-red-700 {{ count($staffRows) <= 1 ? 'hidden' : '' }}">Remove</button>
-                                    </div>
-                                    <input type="hidden" name="staff_members[{{ $idx }}][id]" value="{{ $st['id'] ?? '' }}">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                        <div class="md:col-span-2">
-                                            <label class="block text-xs font-medium text-body mb-1">Full name</label>
-                                            <input type="text" name="staff_members[{{ $idx }}][name]" value="{{ $st['name'] ?? '' }}"
-                                                   class="form-input"
-                                                   placeholder="e.g. Alex Smith">
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-body mb-1">Email</label>
-                                            <input type="email" name="staff_members[{{ $idx }}][email]" value="{{ $st['email'] ?? '' }}" autocomplete="off"
-                                                   class="form-input">
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-body mb-1">Phone</label>
-                                            <input type="tel" name="staff_members[{{ $idx }}][phone]" value="{{ $st['phone'] ?? '' }}"
-                                                   class="form-input">
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span> <span class="text-gray-400 font-normal">(if adding)</span></label>
-                                            <select name="staff_members[{{ $idx }}][role]" class="form-select">
-                                                <option value="">-</option>
-                                                @foreach($staffRoles as $r)
-                                                    <option value="{{ $r }}" {{ ($st['role'] ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-body mb-1">Commission %</label>
-                                            <input type="number" name="staff_members[{{ $idx }}][commission_rate]" min="0" max="100" step="0.1"
-                                                   value="{{ $st['commission_rate'] ?? '0' }}"
-                                                   class="form-input">
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-body mb-1">Calendar colour</label>
-                                            <input type="color" name="staff_members[{{ $idx }}][color]" value="{{ $st['color'] ?? '#7C3AED' }}"
-                                                   class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 cursor-pointer bg-white">
-                                        </div>
-                                        <div class="md:col-span-2">
-                                            <label class="block text-xs font-medium text-body mb-1">Bio</label>
-                                            <textarea name="staff_members[{{ $idx }}][bio]" rows="2" placeholder="Optional"
-                                                      class="form-textarea">{{ $st['bio'] ?? '' }}</textarea>
-                                        </div>
-                                    </div>
-                                    <input type="hidden" name="staff_members[{{ $idx }}][assign_services]" value="0">
-                                    @php
-                                        $as = $st['assign_services'] ?? null;
-                                        $assignChecked = (string) $as === '1' || $as === true || $as === 1;
-                                    @endphp
-                                    <label class="inline-flex items-start gap-2 text-sm text-body cursor-pointer">
-                                        <input type="checkbox" name="staff_members[{{ $idx }}][assign_services]" value="1" class="mt-0.5 rounded border-gray-300 text-velour-600"
-                                               {{ $assignChecked ? 'checked' : '' }}>
-                                        <span>Offer all services on this menu to this team member</span>
-                                    </label>
-                                </div>
-                            @endforeach
-                        </div>
-                        <button type="button" id="settings-add-staff-member" class="mt-2 text-sm font-medium text-velour-600 hover:text-velour-700">+ Add another team member</button>
-                        @error('staff_members')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="form-label">Email</label>
@@ -565,6 +472,103 @@
                     <p class="form-hint">Month and day names in dates follow this setting where supported.</p>
                 </div>
                 <button type="submit" class="btn-primary">Update Profile</button>
+            </form>
+        </div>
+        <div class="card p-6">
+            @php
+                $staffRows = old('staff_members');
+                if (! is_array($staffRows)) {
+                    $staffRows = ($existingTeamMembers ?? collect())->map(function ($member) {
+                        return [
+                            'id' => $member->id,
+                            'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                            'email' => $member->email,
+                            'phone' => $member->phone,
+                            'role' => $member->role,
+                            'commission_rate' => $member->commission_rate,
+                            'color' => $member->color ?: '#7C3AED',
+                            'bio' => $member->bio,
+                            'assign_services' => $member->services()->exists() ? '1' : '0',
+                        ];
+                    })->all();
+                }
+                if (count($staffRows) === 0) {
+                    $staffRows = [[]];
+                }
+                $staffRoles = ['stylist', 'therapist', 'manager', 'receptionist', 'junior', 'owner'];
+            @endphp
+            <h2 class="font-semibold text-heading mb-1">Team members <span class="text-gray-400 font-normal">(optional)</span></h2>
+            <p class="form-hint mb-4">Add or update team members from your profile settings.</p>
+            <form action="{{ route('settings.team-members') }}" method="POST" class="space-y-4">
+                @csrf @method('PUT')
+                <div id="settings-staff-rows" class="space-y-4">
+                    @foreach($staffRows as $idx => $st)
+                        @php $st = is_array($st) ? $st : []; @endphp
+                        <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-4 space-y-3">
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="settings-staff-row-title text-sm font-medium text-body">Team member {{ $loop->iteration }}</span>
+                                <button type="button" class="settings-staff-remove-btn text-xs font-medium text-red-600 hover:text-red-700 {{ count($staffRows) <= 1 ? 'hidden' : '' }}">Remove</button>
+                            </div>
+                            <input type="hidden" name="staff_members[{{ $idx }}][id]" value="{{ $st['id'] ?? '' }}">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-medium text-body mb-1">Full name</label>
+                                    <input type="text" name="staff_members[{{ $idx }}][name]" value="{{ $st['name'] ?? '' }}"
+                                           class="form-input"
+                                           placeholder="e.g. Alex Smith">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Email</label>
+                                    <input type="email" name="staff_members[{{ $idx }}][email]" value="{{ $st['email'] ?? '' }}" autocomplete="off"
+                                           class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Phone</label>
+                                    <input type="tel" name="staff_members[{{ $idx }}][phone]" value="{{ $st['phone'] ?? '' }}"
+                                           class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span> <span class="text-gray-400 font-normal">(if adding)</span></label>
+                                    <select name="staff_members[{{ $idx }}][role]" class="form-select">
+                                        <option value="">-</option>
+                                        @foreach($staffRoles as $r)
+                                            <option value="{{ $r }}" {{ ($st['role'] ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Commission %</label>
+                                    <input type="number" name="staff_members[{{ $idx }}][commission_rate]" min="0" max="100" step="0.1"
+                                           value="{{ $st['commission_rate'] ?? '0' }}"
+                                           class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Calendar colour</label>
+                                    <input type="color" name="staff_members[{{ $idx }}][color]" value="{{ $st['color'] ?? '#7C3AED' }}"
+                                           class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 cursor-pointer bg-white">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-medium text-body mb-1">Bio</label>
+                                    <textarea name="staff_members[{{ $idx }}][bio]" rows="2" placeholder="Optional"
+                                              class="form-textarea">{{ $st['bio'] ?? '' }}</textarea>
+                                </div>
+                            </div>
+                            <input type="hidden" name="staff_members[{{ $idx }}][assign_services]" value="0">
+                            @php
+                                $as = $st['assign_services'] ?? null;
+                                $assignChecked = (string) $as === '1' || $as === true || $as === 1;
+                            @endphp
+                            <label class="inline-flex items-start gap-2 text-sm text-body cursor-pointer">
+                                <input type="checkbox" name="staff_members[{{ $idx }}][assign_services]" value="1" class="mt-0.5 rounded border-gray-300 text-velour-600"
+                                       {{ $assignChecked ? 'checked' : '' }}>
+                                <span>Offer all services on this menu to this team member</span>
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                <button type="button" id="settings-add-staff-member" class="mt-2 text-sm font-medium text-velour-600 hover:text-velour-700">+ Add another team member</button>
+                @error('staff_members')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                <button type="submit" class="btn-primary">Save Team Members</button>
             </form>
         </div>
         <div class="card p-6">

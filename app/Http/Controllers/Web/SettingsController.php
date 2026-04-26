@@ -92,16 +92,6 @@ class SettingsController extends Controller
             'starter_categories.*' => ['string'],
             'starter_services'     => ['nullable', 'array'],
             'starter_services.*'   => ['string'],
-            'staff_members'          => ['nullable', 'array', 'max:10'],
-            'staff_members.*.id'     => ['nullable', 'integer'],
-            'staff_members.*.name'   => ['nullable', 'string', 'max:100'],
-            'staff_members.*.email'  => ['nullable', 'email', 'max:150'],
-            'staff_members.*.phone'  => ['nullable', 'string', 'max:20'],
-            'staff_members.*.role'   => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
-            'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
-            'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
-            'staff_members.*.assign_services' => ['nullable'],
         ]);
 
         $ids = array_values(array_unique(array_map('intval', $data['business_type_ids'])));
@@ -130,7 +120,6 @@ class SettingsController extends Controller
             array_values(array_unique(array_filter((array) ($request->input('starter_categories', [])), fn ($v) => is_string($v) && $v !== ''))),
             array_values(array_unique(array_filter((array) ($request->input('starter_services', [])), fn ($v) => is_string($v) && $v !== '')))
         );
-        $this->syncTeamMembers($salon, (array) $request->input('staff_members', []));
 
         SalonSetting::updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'booking_time_display'],
@@ -243,6 +232,28 @@ class SettingsController extends Controller
         $user->update($data);
 
         return back()->with('success', 'Profile updated.');
+    }
+
+    public function updateTeamMembers(Request $request)
+    {
+        $salon = $this->salon();
+
+        $data = $request->validate([
+            'staff_members'          => ['nullable', 'array', 'max:10'],
+            'staff_members.*.id'     => ['nullable', 'integer'],
+            'staff_members.*.name'   => ['nullable', 'string', 'max:100'],
+            'staff_members.*.email'  => ['nullable', 'email', 'max:150'],
+            'staff_members.*.phone'  => ['nullable', 'string', 'max:20'],
+            'staff_members.*.role'   => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
+            'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
+            'staff_members.*.assign_services' => ['nullable'],
+        ]);
+
+        $this->syncTeamMembers($salon, $data['staff_members'] ?? []);
+
+        return back()->with('success', 'Team members updated.')->with('tab', 'profile');
     }
 
     public function updatePassword(Request $request)

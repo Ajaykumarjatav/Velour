@@ -477,17 +477,47 @@
             </div>
         </header>
 
-        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && (($headerProfileCompletion['percentage'] ?? 100) < 100))
-        <div class="px-4 sm:px-6 py-2 border-b border-amber-200/70 dark:border-amber-800/40 bg-amber-50/80 dark:bg-amber-900/10">
+        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion))
+        @php
+            $profilePct = (int) ($headerProfileCompletion['percentage'] ?? 0);
+            $profilePct = max(0, min(100, $profilePct));
+            if ($profilePct >= 100) {
+                $profileToneWrap = 'border-green-200/70 dark:border-green-800/40 bg-green-50/80 dark:bg-green-900/10';
+                $profileToneText = 'text-green-800 dark:text-green-300';
+                $profileTrack = 'bg-green-100 dark:bg-green-900/30';
+                $profileFill = 'bg-green-500 dark:bg-green-400';
+            } elseif ($profilePct >= 75) {
+                $profileToneWrap = 'border-emerald-200/70 dark:border-emerald-800/40 bg-emerald-50/80 dark:bg-emerald-900/10';
+                $profileToneText = 'text-emerald-800 dark:text-emerald-300';
+                $profileTrack = 'bg-emerald-100 dark:bg-emerald-900/30';
+                $profileFill = 'bg-emerald-500 dark:bg-emerald-400';
+            } elseif ($profilePct >= 50) {
+                $profileToneWrap = 'border-amber-200/70 dark:border-amber-800/40 bg-amber-50/80 dark:bg-amber-900/10';
+                $profileToneText = 'text-amber-800 dark:text-amber-300';
+                $profileTrack = 'bg-amber-100 dark:bg-amber-900/30';
+                $profileFill = 'bg-amber-500 dark:bg-amber-400';
+            } elseif ($profilePct >= 25) {
+                $profileToneWrap = 'border-orange-200/70 dark:border-orange-800/40 bg-orange-50/80 dark:bg-orange-900/10';
+                $profileToneText = 'text-orange-800 dark:text-orange-300';
+                $profileTrack = 'bg-orange-100 dark:bg-orange-900/30';
+                $profileFill = 'bg-orange-500 dark:bg-orange-400';
+            } else {
+                $profileToneWrap = 'border-red-200/70 dark:border-red-800/40 bg-red-50/80 dark:bg-red-900/10';
+                $profileToneText = 'text-red-800 dark:text-red-300';
+                $profileTrack = 'bg-red-100 dark:bg-red-900/30';
+                $profileFill = 'bg-red-500 dark:bg-red-400';
+            }
+        @endphp
+        <div class="px-4 sm:px-6 py-2 border-b {{ $profileToneWrap }}">
             <div class="flex items-center gap-3">
-                <span class="text-xs font-semibold text-amber-800 dark:text-amber-300 whitespace-nowrap">
-                    Profile {{ (int) ($headerProfileCompletion['percentage'] ?? 0) }}%
+                <span class="text-xs font-semibold whitespace-nowrap {{ $profileToneText }}">
+                    Profile {{ $profilePct }}%
                 </span>
-                <div class="flex-1 h-2 rounded-full bg-amber-100 dark:bg-amber-900/30 overflow-hidden">
-                    <div class="h-2 rounded-full bg-amber-500 dark:bg-amber-400 transition-all"
-                         style="width: {{ max(0, min(100, (int) ($headerProfileCompletion['percentage'] ?? 0))) }}%"></div>
+                <div class="flex-1 h-2 rounded-full {{ $profileTrack }} overflow-hidden">
+                    <div class="h-2 rounded-full transition-all {{ $profileFill }}"
+                         style="width: {{ $profilePct }}%"></div>
                 </div>
-                <a href="{{ route('settings.index', ['tab' => 'salon']) }}" class="text-xs font-medium text-amber-800 dark:text-amber-300 hover:underline whitespace-nowrap">
+                <a href="{{ route('settings.index', ['tab' => 'salon']) }}" class="text-xs font-medium hover:underline whitespace-nowrap {{ $profileToneText }}">
                     Complete setup
                 </a>
             </div>
