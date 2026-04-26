@@ -3,7 +3,10 @@
 @section('page-title', 'Settings')
 @section('content')
 
-<div class="max-w-3xl" x-data="{ tab: '{{ session('tab', request()->get('tab', 'salon')) }}' }">
+<div class="max-w-3xl" x-data="{
+    tab: '{{ session('tab', request()->get('tab', 'salon')) }}',
+    showPasswordModal: {{ $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation') ? 'true' : 'false' }}
+}">
 
     {{-- Tab bar --}}
     <div class="flex flex-wrap gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl w-fit">
@@ -110,11 +113,6 @@
                 @csrf @method('PUT')
                 @php
                     $selectedTypeIds = array_map('intval', old('business_type_ids', $selectedBusinessTypeIds ?? []));
-                    $oldCustomTypes = old('custom_business_types', []);
-                    if (! is_array($oldCustomTypes)) {
-                        $oldCustomTypes = [];
-                    }
-                    $oldCustomTypes = array_values(array_filter(array_map(fn ($v) => trim((string) $v), $oldCustomTypes), fn ($v) => $v !== ''));
                     $starterCategoryOld = old('starter_categories', $selectedStarterCategories ?? []);
                     $starterServiceOld = old('starter_services', $selectedStarterServices ?? []);
                     $typeSlugById = collect($businessTypes)->merge($customBusinessTypes)->pluck('slug', 'id')->all();
@@ -146,26 +144,7 @@
                             </label>
                         @endforeach
                     </div>
-                    <div class="mt-2 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-3 space-y-2">
-                        <label class="block text-xs font-medium text-body">Add custom business type</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="settings-custom-business-type-input" class="form-input" placeholder="e.g. Bridal Studio">
-                            <button type="button" id="settings-add-custom-business-type-btn" class="btn-secondary whitespace-nowrap">Add</button>
-                        </div>
-                        <div id="settings-custom-business-type-list" class="flex flex-wrap gap-2">
-                            @foreach($oldCustomTypes as $customType)
-                                <span class="settings-custom-business-pill inline-flex items-center gap-2 rounded-full bg-velour-100/80 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 px-3 py-1 text-xs">
-                                    <span>{{ $customType }}</span>
-                                    <button type="button" class="settings-custom-business-remove leading-none">x</button>
-                                    <input type="hidden" name="custom_business_types[]" value="{{ $customType }}">
-                                </span>
-                            @endforeach
-                        </div>
-                        <p class="form-hint">Custom types are created and selected when you save.</p>
-                    </div>
                     @error('business_type_ids')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                    @error('custom_business_types')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                    @error('custom_business_types.*')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                     <label class="form-label mb-0">Service categories <span class="text-gray-400 font-normal">(optional)</span></label>
@@ -214,12 +193,13 @@
                                     $catId = $slug . ':' . $catSlug;
                                     $checked = in_array($val, $starterServiceOld, true);
                                     $isUnisex = $slug === 'unisex';
-                                    $oldDuration = old("starter_service_meta.$token.duration_minutes");
-                                    $oldPrice = old("starter_service_meta.$token.price");
-                                    $oldMenDuration = old("starter_service_meta.$token.men.duration_minutes");
-                                    $oldMenPrice = old("starter_service_meta.$token.men.price");
-                                    $oldWomenDuration = old("starter_service_meta.$token.women.duration_minutes");
-                                    $oldWomenPrice = old("starter_service_meta.$token.women.price");
+                                    $savedMeta = (array) (($selectedStarterServiceMeta[$val] ?? []));
+                                    $oldDuration = old("starter_service_meta.$token.duration_minutes", $savedMeta['duration_minutes'] ?? null);
+                                    $oldPrice = old("starter_service_meta.$token.price", $savedMeta['price'] ?? null);
+                                    $oldMenDuration = old("starter_service_meta.$token.men.duration_minutes", $savedMeta['men']['duration_minutes'] ?? null);
+                                    $oldMenPrice = old("starter_service_meta.$token.men.price", $savedMeta['men']['price'] ?? null);
+                                    $oldWomenDuration = old("starter_service_meta.$token.women.duration_minutes", $savedMeta['women']['duration_minutes'] ?? null);
+                                    $oldWomenPrice = old("starter_service_meta.$token.women.price", $savedMeta['women']['price'] ?? null);
                                 @endphp
                                 <label class="settings-service-offer-option flex items-center justify-between gap-3 text-sm text-body cursor-pointer hidden rounded-lg border border-transparent px-1 py-1" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}">
                                     <span class="flex items-start gap-2 min-w-[220px]">
@@ -554,10 +534,31 @@
     </div>
 
     {{-- ── My Profile ── --}}
-    <div x-show="tab==='profile'" x-cloak class="space-y-5">
+    <div x-show="tab==='profile'" x-cloak class="space-y-5" x-data="{ profileCardOpen: true, teamCardOpen: true }">
         <div class="card p-6">
-            <h2 class="font-semibold text-heading mb-5">My Profile</h2>
-            <form action="{{ route('settings.profile') }}" method="POST" class="space-y-4">
+            <div class="mb-5 flex items-center justify-between border-b border-gray-200/60 dark:border-gray-800 pb-3">
+                <h2 class="font-semibold text-heading">My Profile</h2>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            @click="showPasswordModal = true"
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
+                            title="Change password">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                    <button type="button"
+                            @click="profileCardOpen = !profileCardOpen"
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
+                            :title="profileCardOpen ? 'Minimize section' : 'Expand section'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform" :class="profileCardOpen ? '' : 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <form x-show="profileCardOpen" x-cloak action="{{ route('settings.profile') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
                 <div>
                     <label class="form-label">Full name</label>
@@ -572,6 +573,15 @@
                     <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" class="form-input" autocomplete="tel">
                 </div>
                 <div>
+                    <label class="form-label">Experience</label>
+                    <input type="text" name="experience" value="{{ old('experience', $user->experience) }}" class="form-input" placeholder="e.g. 5 years">
+                </div>
+                <div>
+                    <label class="form-label">Language proficiency</label>
+                    <input type="text" name="language_proficiency" value="{{ old('language_proficiency', $user->language_proficiency) }}" class="form-input" placeholder="e.g. English, Hindi">
+                </div>
+                {{--
+                <div>
                     <label class="form-label">Your timezone</label>
                     <select name="timezone" class="form-select">
                         <option value="">Same as salon / browser</option>
@@ -585,6 +595,7 @@
                     </select>
                     <p class="form-hint">Used for account activity and notifications. Salon schedule and calendar use the <a href="{{ route('settings.index') }}?tab=salon" class="text-link">business timezone</a>.</p>
                 </div>
+                --}}
                 <div>
                     <label class="form-label">Display language</label>
                     <select name="locale" class="form-select">
@@ -609,6 +620,8 @@
                             'email' => $member->email,
                             'phone' => $member->phone,
                             'role' => $member->role,
+                            'experience' => $member->experience,
+                            'language_proficiency' => $member->language_proficiency,
                             'commission_rate' => $member->commission_rate,
                             'color' => $member->color ?: '#7C3AED',
                             'bio' => $member->bio,
@@ -621,9 +634,26 @@
                 }
                 $staffRoles = ['stylist', 'therapist', 'manager', 'receptionist', 'junior', 'owner'];
             @endphp
-            <h2 class="font-semibold text-heading mb-1">Team members <span class="text-gray-400 font-normal">(optional)</span></h2>
-            <p class="form-hint mb-4">Add or update team members from your profile settings.</p>
-            <form action="{{ route('settings.team-members') }}" method="POST" class="space-y-4">
+            <div class="mb-4 flex items-start justify-between gap-3 border-b border-gray-200/60 dark:border-gray-800 pb-3">
+                <div>
+                    <h2 class="font-semibold text-heading mb-1">
+                        Team members <span class="text-gray-400 font-normal">(optional)</span>
+                        <span class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                            Total: {{ count($staffRows) }}
+                        </span>
+                    </h2>
+                    <p class="form-hint">Add or update team members from your profile settings.</p>
+                </div>
+                <button type="button"
+                        @click="teamCardOpen = !teamCardOpen"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
+                        :title="teamCardOpen ? 'Minimize section' : 'Expand section'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform" :class="teamCardOpen ? '' : 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+            <form x-show="teamCardOpen" x-cloak action="{{ route('settings.team-members') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
                 <div id="settings-staff-rows" class="space-y-4">
                     @foreach($staffRows as $idx => $st)
@@ -667,6 +697,16 @@
                                            class="form-input">
                                 </div>
                                 <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Experience</label>
+                                    <input type="text" name="staff_members[{{ $idx }}][experience]" value="{{ $st['experience'] ?? '' }}"
+                                           class="form-input" placeholder="e.g. 5 years">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Language proficiency</label>
+                                    <input type="text" name="staff_members[{{ $idx }}][language_proficiency]" value="{{ $st['language_proficiency'] ?? '' }}"
+                                           class="form-input" placeholder="e.g. English, Hindi">
+                                </div>
+                                <div>
                                     <label class="block text-xs font-medium text-body mb-1">Calendar colour</label>
                                     <input type="color" name="staff_members[{{ $idx }}][color]" value="{{ $st['color'] ?? '#7C3AED' }}"
                                            class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 cursor-pointer bg-white">
@@ -693,26 +733,6 @@
                 <button type="button" id="settings-add-staff-member" class="mt-2 text-sm font-medium text-velour-600 hover:text-velour-700">+ Add another team member</button>
                 @error('staff_members')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 <button type="submit" class="btn-primary">Save Team Members</button>
-            </form>
-        </div>
-        <div class="card p-6">
-            <h2 class="font-semibold text-heading mb-5">Change Password</h2>
-            <form action="{{ route('settings.password') }}" method="POST" class="space-y-4">
-                @csrf @method('PUT')
-                <div>
-                    <label class="form-label">Current password</label>
-                    <input type="password" name="current_password" required class="form-input">
-                    @error('current_password')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="form-label">New password</label>
-                    <input type="password" name="password" required autocomplete="new-password" class="form-input">
-                </div>
-                <div>
-                    <label class="form-label">Confirm new password</label>
-                    <input type="password" name="password_confirmation" required class="form-input">
-                </div>
-                <button type="submit" class="btn-primary">Change Password</button>
             </form>
         </div>
     </div>
@@ -766,6 +786,49 @@
         </div>
         @endif
     </div>
+
+{{-- Password Modal (opened from Profile gear icon) --}}
+<div x-show="showPasswordModal"
+     x-cloak
+     x-transition.opacity
+     @keydown.escape.window="showPasswordModal = false"
+     class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/60" @click="showPasswordModal = false"></div>
+    <div class="relative w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-2xl">
+        <div class="mb-5 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-heading">Change Password</h3>
+            <button type="button"
+                    @click="showPasswordModal = false"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-gray-100 dark:hover:bg-gray-800"
+                    aria-label="Close password modal">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <form action="{{ route('settings.password') }}" method="POST" class="space-y-4">
+            @csrf @method('PUT')
+            <div>
+                <label class="form-label">Current password</label>
+                <input type="password" name="current_password" required class="form-input">
+                @error('current_password')<p class="form-error">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="form-label">New password</label>
+                <input type="password" name="password" required autocomplete="new-password" class="form-input">
+                @error('password')<p class="form-error">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="form-label">Confirm new password</label>
+                <input type="password" name="password_confirmation" required class="form-input">
+            </div>
+            <div class="pt-1 flex items-center gap-2">
+                <button type="submit" class="btn-primary">Change Password</button>
+                <button type="button" @click="showPasswordModal = false" class="btn-outline">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 </div>
 

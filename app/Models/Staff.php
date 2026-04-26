@@ -20,7 +20,7 @@ class Staff extends Model
 
     protected $fillable = [
         'salon_id','user_id','first_name','last_name','email','phone',
-        'avatar','initials','color','role','bio','specialisms','commission_rate','base_salary',
+        'avatar','initials','color','role','bio','experience','language_proficiency','specialisms','commission_rate','base_salary',
         'access_level','start_time','end_time','working_days','hired_at',
         'is_active','bookable_online','sort_order',
     ];

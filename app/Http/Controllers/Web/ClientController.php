@@ -49,10 +49,41 @@ class ClientController extends Controller
         }
 
         $clients = $query->orderBy($sort, $dir)->paginate(25)->withQueryString();
+        $clientIds = $clients->getCollection()->pluck('id')->all();
+        $appointmentsByClient = collect();
+        if ($clientIds !== []) {
+            $appointmentsByClient = Appointment::query()
+                ->where('salon_id', $salon->id)
+                ->whereIn('client_id', $clientIds)
+                ->with([
+                    'staff:id,first_name,last_name',
+                    'services:id,appointment_id,service_id,service_name',
+                ])
+                ->orderByDesc('starts_at')
+                ->get(['id', 'client_id', 'starts_at', 'total_price', 'status', 'staff_id'])
+                ->groupBy('client_id')
+                ->map(fn ($rows) => $rows->take(5)->values());
+        }
 
         $clientTotal = Client::where('salon_id', $salon->id)->count();
+        $loyaltyTiers = LoyaltyTier::query()
+            ->where('salon_id', $salon->id)
+            ->orderByDesc('is_active')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'is_active']);
 
-        return view('clients.index', compact('salon', 'clients', 'search', 'sort', 'dir', 'clientTotal', 'loyaltyFilterTier'));
+        return view('clients.index', compact(
+            'salon',
+            'clients',
+            'search',
+            'sort',
+            'dir',
+            'clientTotal',
+            'loyaltyFilterTier',
+            'appointmentsByClient',
+            'loyaltyTiers'
+        ));
     }
 
     /**
@@ -327,6 +358,10 @@ class ClientController extends Controller
         }
 
         $client->update($data);
+
+        if ($request->boolean('inline_edit')) {
+            return redirect()->route('clients.index')->with('success', 'Client updated.');
+        }
 
         return redirect()->route('clients.show', $client)->with('success', 'Client updated.');
     }

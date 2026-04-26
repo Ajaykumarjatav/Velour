@@ -35,7 +35,7 @@ class User extends Authenticatable implements MustVerifyEmail
     use Billable, HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'name', 'email', 'password', 'avatar', 'phone', 'timezone', 'locale', 'plan',
+        'name', 'email', 'password', 'avatar', 'phone', 'experience', 'language_proficiency', 'timezone', 'locale', 'plan',
         'system_role', 'is_active', 'last_login_at',
         'two_factor_secret', 'two_factor_recovery_codes',
         'two_factor_confirmed_at', 'two_factor_method',

@@ -59,6 +59,7 @@ class SettingsController extends Controller
             ->all();
         $selectedStarterCategories = $this->selectedStarterCategoryKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $selectedStarterServices = $this->selectedStarterServiceKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
+        $selectedStarterServiceMeta = $this->selectedStarterServiceMetaForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $existingTeamMembers = $salon->staff()
             ->whereNull('user_id')
             ->orderBy('sort_order')
@@ -79,6 +80,7 @@ class SettingsController extends Controller
             'starterCatalog',
             'selectedStarterCategories',
             'selectedStarterServices',
+            'selectedStarterServiceMeta',
             'existingTeamMembers'
         ));
     }
@@ -336,6 +338,8 @@ class SettingsController extends Controller
             'name'      => ['required', 'string', 'max:100'],
             'email'     => ['required', 'email', 'unique:users,email,' . $user->id],
             'phone'     => ['nullable', 'string', 'max:20'],
+            'experience' => ['nullable', 'string', 'max:120'],
+            'language_proficiency' => ['nullable', 'string', 'max:120'],
             'timezone'  => ['nullable', 'string', 'timezone:all'],
             'locale'    => ['nullable', 'string', 'in:' . implode(',', array_keys(\App\Support\DisplayFormatter::localeOptions()))],
         ]);
@@ -358,6 +362,8 @@ class SettingsController extends Controller
             'staff_members.*.role'   => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
             'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
+            'staff_members.*.experience' => ['nullable', 'string', 'max:120'],
+            'staff_members.*.language_proficiency' => ['nullable', 'string', 'max:120'],
             'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
             'staff_members.*.assign_services' => ['nullable'],
         ]);
@@ -542,6 +548,8 @@ class SettingsController extends Controller
                     'phone' => $this->optionalString($row['phone'] ?? null),
                     'role' => $row['role'],
                     'bio' => $this->optionalString($row['bio'] ?? null),
+                    'experience' => $this->optionalString($row['experience'] ?? null),
+                    'language_proficiency' => $this->optionalString($row['language_proficiency'] ?? null),
                     'color' => $color,
                     'commission_rate' => $commission,
                     'initials' => $initials,
@@ -558,6 +566,8 @@ class SettingsController extends Controller
                     'phone' => $this->optionalString($row['phone'] ?? null),
                     'role' => $row['role'],
                     'bio' => $this->optionalString($row['bio'] ?? null),
+                    'experience' => $this->optionalString($row['experience'] ?? null),
+                    'language_proficiency' => $this->optionalString($row['language_proficiency'] ?? null),
                     'color' => $color,
                     'commission_rate' => $commission,
                     'initials' => $initials,
@@ -659,6 +669,84 @@ class SettingsController extends Controller
         }
 
         return array_values(array_unique($selected));
+    }
+
+    /**
+     * @param  array<string, mixed>  $catalog
+     * @param  list<int>  $typeIds
+     * @return array<string, mixed>
+     */
+    private function selectedStarterServiceMetaForSalon(\App\Models\Salon $salon, array $catalog, array $typeIds): array
+    {
+        if ($typeIds === []) {
+            return [];
+        }
+
+        $types = BusinessType::query()->whereIn('id', $typeIds)->get(['id', 'slug'])->keyBy('id');
+        $definitions = [];
+        foreach ($types as $type) {
+            foreach ((array) ($catalog[$type->slug] ?? []) as $row) {
+                $key = trim((string) ($row['key'] ?? ''));
+                $name = trim((string) ($row['name'] ?? ''));
+                if ($key === '' || $name === '') {
+                    continue;
+                }
+                $definitions[] = [
+                    'composite' => $type->slug . ':' . $key,
+                    'slug' => (string) $type->slug,
+                    'business_type_id' => (int) $type->id,
+                    'name' => $name,
+                ];
+            }
+        }
+
+        if ($definitions === []) {
+            return [];
+        }
+
+        $meta = [];
+        $services = $salon->services()
+            ->whereIn('business_type_id', $typeIds)
+            ->get(['business_type_id', 'name', 'duration_minutes', 'price']);
+
+        foreach ($services as $service) {
+            $serviceName = trim((string) $service->name);
+            foreach ($definitions as $def) {
+                if ((int) $def['business_type_id'] !== (int) $service->business_type_id) {
+                    continue;
+                }
+                $baseName = (string) $def['name'];
+                $composite = (string) $def['composite'];
+                $slug = (string) $def['slug'];
+                if ($slug === 'unisex') {
+                    if ($serviceName === $baseName . ' (Men)') {
+                        $meta[$composite]['men'] = [
+                            'duration_minutes' => (int) $service->duration_minutes,
+                            'price' => round((float) $service->price, 2),
+                        ];
+                        break;
+                    }
+                    if ($serviceName === $baseName . ' (Women)') {
+                        $meta[$composite]['women'] = [
+                            'duration_minutes' => (int) $service->duration_minutes,
+                            'price' => round((float) $service->price, 2),
+                        ];
+                        break;
+                    }
+                    continue;
+                }
+
+                if ($serviceName === $baseName) {
+                    $meta[$composite] = [
+                        'duration_minutes' => (int) $service->duration_minutes,
+                        'price' => round((float) $service->price, 2),
+                    ];
+                    break;
+                }
+            }
+        }
+
+        return $meta;
     }
 
     private function optionalString(mixed $value): ?string
