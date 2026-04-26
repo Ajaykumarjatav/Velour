@@ -57,7 +57,7 @@
   {{-- Team members list --}}
   <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
     <h2 class="px-6 py-4 font-semibold text-gray-900 border-b border-gray-100">
-      Team members ({{ $members->count() }})
+      Team members ({{ $members->count() + (($unlinkedStaff ?? collect())->count()) }})
     </h2>
     <div class="divide-y divide-gray-50">
       @foreach($members as $member)
@@ -106,6 +106,24 @@
           </form>
         </div>
         @endif
+      </div>
+      @endforeach
+
+      @foreach(($unlinkedStaff ?? collect()) as $staffMember)
+      <div class="px-6 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-velour-100 flex items-center justify-center text-velour-700 font-bold flex-shrink-0">
+          {{ strtoupper(substr($staffMember->name, 0, 1)) }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <p class="font-semibold text-gray-900">{{ $staffMember->name }}</p>
+            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-lg">Profile only</span>
+            @if($staffMember->role)
+            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-lg">{{ ucfirst(str_replace('_',' ', $staffMember->role)) }}</span>
+            @endif
+          </div>
+          <p class="text-sm text-gray-400">{{ $staffMember->email ?: 'No login account linked' }}</p>
+        </div>
       </div>
       @endforeach
     </div>

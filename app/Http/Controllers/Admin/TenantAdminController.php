@@ -41,9 +41,18 @@ class TenantAdminController extends Controller
           ->with(['staffProfile', 'roles'])
           ->get();
 
+        // Staff profiles created in Settings can exist without a linked user account.
+        // Include them so team counts/listing match Staff & HR.
+        $unlinkedStaff = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereNull('user_id')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+
         $availableRoles = Role::whereIn('name', ['tenant_admin','manager','stylist','receptionist'])->get();
 
-        return view('admin.tenant.team', compact('salon', 'members', 'availableRoles'));
+        return view('admin.tenant.team', compact('salon', 'members', 'unlinkedStaff', 'availableRoles'));
     }
 
     public function invite(Request $request)
