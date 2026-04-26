@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\PosTransaction;
 use App\Models\SalonNotification;
+use App\Support\ProfileCompletion;
 use App\Support\SalonTime;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -106,6 +107,7 @@ class DashboardController extends Controller
 
         $tzAbbr = SalonTime::abbrev($salon);
         $todayLabel = $now->format('d M Y');
+        $profileCompletion = ProfileCompletion::forSalon($salon);
 
         return view('dashboard.index', compact(
             'salon',
@@ -123,7 +125,8 @@ class DashboardController extends Controller
             'weeklyRevenue',
             'notifications',
             'tzAbbr',
-            'todayLabel'
+            'todayLabel',
+            'profileCompletion'
         ));
     }
 }

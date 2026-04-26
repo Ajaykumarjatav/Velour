@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\BusinessType;
+use App\Models\Service;
+use App\Models\Staff;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
+use App\Support\RegistrationStarterServices;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SettingsController extends Controller
@@ -38,6 +42,13 @@ class SettingsController extends Controller
         if ($selectedBusinessTypeIds === [] && $salon->business_type_id) {
             $selectedBusinessTypeIds = [(int) $salon->business_type_id];
         }
+        $starterCatalog = config('registration_starter_services');
+        $selectedStarterCategories = $this->selectedStarterCategoryKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
+        $selectedStarterServices = $this->selectedStarterServiceKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
+        $existingTeamMembers = $salon->staff()
+            ->whereNull('user_id')
+            ->orderBy('sort_order')
+            ->get();
 
         return view('settings.index', compact(
             'salon',
@@ -48,7 +59,11 @@ class SettingsController extends Controller
             'bookingTimeDisplay',
             'localeOptions',
             'businessTypes',
-            'selectedBusinessTypeIds'
+            'selectedBusinessTypeIds',
+            'starterCatalog',
+            'selectedStarterCategories',
+            'selectedStarterServices',
+            'existingTeamMembers'
         ));
     }
 
@@ -73,6 +88,20 @@ class SettingsController extends Controller
             'timezone'           => ['required', 'string', 'timezone'],
             'currency'           => ['required', 'string', 'size:3', 'in:' . implode(',', array_keys(\App\Helpers\CurrencyHelper::all()))],
             'booking_time_display' => ['nullable', 'in:business,customer'],
+            'starter_categories'   => ['nullable', 'array'],
+            'starter_categories.*' => ['string'],
+            'starter_services'     => ['nullable', 'array'],
+            'starter_services.*'   => ['string'],
+            'staff_members'          => ['nullable', 'array', 'max:10'],
+            'staff_members.*.id'     => ['nullable', 'integer'],
+            'staff_members.*.name'   => ['nullable', 'string', 'max:100'],
+            'staff_members.*.email'  => ['nullable', 'email', 'max:150'],
+            'staff_members.*.phone'  => ['nullable', 'string', 'max:20'],
+            'staff_members.*.role'   => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
+            'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
+            'staff_members.*.assign_services' => ['nullable'],
         ]);
 
         $ids = array_values(array_unique(array_map('intval', $data['business_type_ids'])));
@@ -95,6 +124,13 @@ class SettingsController extends Controller
         }
 
         $salon->update($data);
+        $this->syncStarterSelections(
+            $salon,
+            $ids,
+            array_values(array_unique(array_filter((array) ($request->input('starter_categories', [])), fn ($v) => is_string($v) && $v !== ''))),
+            array_values(array_unique(array_filter((array) ($request->input('starter_services', [])), fn ($v) => is_string($v) && $v !== '')))
+        );
+        $this->syncTeamMembers($salon, (array) $request->input('staff_members', []));
 
         SalonSetting::updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'booking_time_display'],
@@ -252,5 +288,273 @@ class SettingsController extends Controller
         $salon->update(['social_links' => $links]);
 
         return back()->with('success', 'Social links updated.')->with('tab', 'social');
+    }
+
+    /**
+     * @param  list<int>  $typeIds
+     * @param  list<string>  $selectedCategories
+     * @param  list<string>  $selectedServices
+     */
+    private function syncStarterSelections(\App\Models\Salon $salon, array $typeIds, array $selectedCategories, array $selectedServices): void
+    {
+        $allowedCategoryKeys = RegistrationStarterServices::allowedCategoryKeysForTypeIds($typeIds);
+        foreach ($selectedCategories as $key) {
+            if (! in_array($key, $allowedCategoryKeys, true)) {
+                throw ValidationException::withMessages([
+                    'starter_categories' => ['One or more selected categories are not valid for your business types.'],
+                ]);
+            }
+        }
+
+        $allowedServiceKeys = RegistrationStarterServices::allowedKeysForTypeIds($typeIds);
+        foreach ($selectedServices as $key) {
+            if (! in_array($key, $allowedServiceKeys, true)) {
+                throw ValidationException::withMessages([
+                    'starter_services' => ['One or more selected services are not valid for your business types.'],
+                ]);
+            }
+        }
+
+        RegistrationStarterServices::seedStarterCategories($salon, $selectedCategories);
+        RegistrationStarterServices::seedSalon($salon, $selectedServices);
+
+        $catalog = (array) config('registration_starter_services');
+        $types = BusinessType::query()->whereIn('id', $typeIds)->get(['id', 'slug'])->keyBy('slug');
+        $serviceDefinitions = [];
+        foreach ($catalog as $slug => $rows) {
+            $type = $types->get((string) $slug);
+            if (! $type) {
+                continue;
+            }
+            foreach ((array) $rows as $row) {
+                $key = (string) ($row['key'] ?? '');
+                if ($key === '') {
+                    continue;
+                }
+                $composite = $slug . ':' . $key;
+                $serviceDefinitions[$composite] = [
+                    'business_type_id' => (int) $type->id,
+                    'name' => trim((string) ($row['name'] ?? '')),
+                    'duration_minutes' => (int) ($row['duration_minutes'] ?? 0),
+                    'price' => round((float) ($row['price'] ?? 0), 2),
+                ];
+            }
+        }
+
+        if ($serviceDefinitions === []) {
+            return;
+        }
+
+        $selectedKeyMap = array_fill_keys($selectedServices, true);
+        $existingServices = $salon->services()
+            ->whereIn('business_type_id', $typeIds)
+            ->get(['id', 'business_type_id', 'name', 'duration_minutes', 'price']);
+
+        foreach ($existingServices as $service) {
+            $matchedKey = null;
+            foreach ($serviceDefinitions as $composite => $def) {
+                if ((int) $def['business_type_id'] !== (int) $service->business_type_id) {
+                    continue;
+                }
+                if (
+                    trim((string) $service->name) === $def['name']
+                    && (int) $service->duration_minutes === (int) $def['duration_minutes']
+                    && round((float) $service->price, 2) === $def['price']
+                ) {
+                    $matchedKey = $composite;
+                    break;
+                }
+            }
+
+            if ($matchedKey !== null && ! isset($selectedKeyMap[$matchedKey])) {
+                $service->delete();
+            }
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    private function syncTeamMembers(\App\Models\Salon $salon, array $rows): void
+    {
+        $rows = array_values(array_filter($rows, fn ($row) => is_array($row) && trim((string) ($row['name'] ?? '')) !== ''));
+
+        $serviceIds = Service::query()
+            ->where('salon_id', $salon->id)
+            ->orderBy('sort_order')
+            ->pluck('id')
+            ->all();
+
+        $defaultColors = ['#7C3AED', '#EC4899', '#0EA5E9', '#14B8A6', '#F59E0B', '#84CC16'];
+        $maxSort = (int) Staff::query()->where('salon_id', $salon->id)->max('sort_order');
+        $keptIds = [];
+
+        foreach ($rows as $i => $row) {
+            if (empty($row['role']) || ! is_string($row['role'])) {
+                throw ValidationException::withMessages([
+                    "staff_members.{$i}.role" => ['Choose a role for each team member you add.'],
+                ]);
+            }
+
+            $name = trim((string) $row['name']);
+            $parts = preg_split('/\s+/u', $name, 2, PREG_SPLIT_NO_EMPTY) ?: [];
+            $first = (string) ($parts[0] ?? '');
+            $last = (string) ($parts[1] ?? '');
+            $initials = mb_strtoupper(mb_substr($first, 0, 1) . mb_substr($last, 0, 1));
+            $initials = $initials !== '' ? mb_substr($initials, 0, 3) : '??';
+
+            $color = isset($row['color']) && is_string($row['color']) && preg_match('/^#[0-9A-Fa-f]{6}$/', $row['color'])
+                ? $row['color']
+                : $defaultColors[$i % count($defaultColors)];
+            $assign = ($row['assign_services'] ?? null) == '1' || ($row['assign_services'] ?? null) === 1 || ($row['assign_services'] ?? null) === true;
+            $commission = isset($row['commission_rate']) ? (float) $row['commission_rate'] : 0.0;
+            $commission = max(0.0, min(100.0, $commission));
+
+            $staff = null;
+            $id = isset($row['id']) ? (int) $row['id'] : 0;
+            if ($id > 0) {
+                $staff = $salon->staff()->whereNull('user_id')->where('id', $id)->first();
+            }
+
+            if ($staff) {
+                $staff->update([
+                    'first_name' => $first,
+                    'last_name' => $last,
+                    'email' => $this->optionalString($row['email'] ?? null),
+                    'phone' => $this->optionalString($row['phone'] ?? null),
+                    'role' => $row['role'],
+                    'bio' => $this->optionalString($row['bio'] ?? null),
+                    'color' => $color,
+                    'commission_rate' => $commission,
+                    'initials' => $initials,
+                    'is_active' => true,
+                    'bookable_online' => true,
+                ]);
+            } else {
+                $staff = Staff::create([
+                    'salon_id' => $salon->id,
+                    'user_id' => null,
+                    'first_name' => $first,
+                    'last_name' => $last,
+                    'email' => $this->optionalString($row['email'] ?? null),
+                    'phone' => $this->optionalString($row['phone'] ?? null),
+                    'role' => $row['role'],
+                    'bio' => $this->optionalString($row['bio'] ?? null),
+                    'color' => $color,
+                    'commission_rate' => $commission,
+                    'initials' => $initials,
+                    'sort_order' => ++$maxSort,
+                    'is_active' => true,
+                    'bookable_online' => true,
+                ]);
+            }
+
+            if ($assign && $serviceIds !== []) {
+                $staff->services()->sync($serviceIds);
+            } else {
+                $staff->services()->sync([]);
+            }
+            $keptIds[] = (int) $staff->id;
+        }
+
+        $salon->staff()
+            ->whereNull('user_id')
+            ->when($keptIds !== [], fn ($q) => $q->whereNotIn('id', $keptIds))
+            ->when($keptIds === [], fn ($q) => $q)
+            ->delete();
+    }
+
+    /**
+     * @param  array<string, mixed>  $catalog
+     * @param  list<int>  $typeIds
+     * @return list<string>
+     */
+    private function selectedStarterCategoryKeysForSalon(\App\Models\Salon $salon, array $catalog, array $typeIds): array
+    {
+        if ($typeIds === []) {
+            return [];
+        }
+
+        $typeById = BusinessType::query()->whereIn('id', $typeIds)->get(['id', 'slug'])->keyBy('id');
+        $selected = [];
+        $categories = $salon->serviceCategories()->whereIn('business_type_id', $typeIds)->get(['business_type_id', 'slug']);
+        foreach ($categories as $cat) {
+            $type = $typeById->get((int) $cat->business_type_id);
+            if (! $type) {
+                continue;
+            }
+            $rows = (array) ($catalog[$type->slug] ?? []);
+            $slugs = [];
+            foreach ($rows as $row) {
+                $catSlug = trim((string) ($row['category_slug'] ?? Str::slug((string) ($row['category'] ?? 'General'))));
+                $slugs[$catSlug !== '' ? $catSlug : 'general'] = true;
+            }
+            $slug = trim((string) $cat->slug);
+            if (isset($slugs[$slug])) {
+                $selected[] = $type->slug . ':' . $slug;
+            }
+        }
+
+        return array_values(array_unique($selected));
+    }
+
+    /**
+     * @param  array<string, mixed>  $catalog
+     * @param  list<int>  $typeIds
+     * @return list<string>
+     */
+    private function selectedStarterServiceKeysForSalon(\App\Models\Salon $salon, array $catalog, array $typeIds): array
+    {
+        if ($typeIds === []) {
+            return [];
+        }
+
+        $types = BusinessType::query()->whereIn('id', $typeIds)->get(['id', 'slug'])->keyBy('id');
+        $definitions = [];
+        foreach ($types as $type) {
+            foreach ((array) ($catalog[$type->slug] ?? []) as $row) {
+                $key = (string) ($row['key'] ?? '');
+                if ($key === '') {
+                    continue;
+                }
+                $definitions[] = [
+                    'composite' => $type->slug . ':' . $key,
+                    'business_type_id' => (int) $type->id,
+                    'name' => trim((string) ($row['name'] ?? '')),
+                    'duration_minutes' => (int) ($row['duration_minutes'] ?? 0),
+                    'price' => round((float) ($row['price'] ?? 0), 2),
+                ];
+            }
+        }
+
+        $selected = [];
+        $services = $salon->services()->whereIn('business_type_id', $typeIds)->get(['business_type_id', 'name', 'duration_minutes', 'price']);
+        foreach ($services as $service) {
+            foreach ($definitions as $def) {
+                if ((int) $def['business_type_id'] !== (int) $service->business_type_id) {
+                    continue;
+                }
+                if (
+                    trim((string) $service->name) === $def['name']
+                    && (int) $service->duration_minutes === (int) $def['duration_minutes']
+                    && round((float) $service->price, 2) === $def['price']
+                ) {
+                    $selected[] = $def['composite'];
+                    break;
+                }
+            }
+        }
+
+        return array_values(array_unique($selected));
+    }
+
+    private function optionalString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $out = trim((string) $value);
+
+        return $out === '' ? null : $out;
     }
 }

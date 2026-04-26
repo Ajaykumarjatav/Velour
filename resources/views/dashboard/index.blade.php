@@ -7,6 +7,7 @@
     $tzAbbr = $tzAbbr ?? '';
     $todayLabel = $todayLabel ?? today()->format('d M Y');
     $revenueChange = $revenueChange ?? null;
+    $profileCompletion = $profileCompletion ?? ['percentage' => 100];
 @endphp
 
 <div class="alert-info mb-6 text-sm flex flex-wrap items-start justify-between gap-3">

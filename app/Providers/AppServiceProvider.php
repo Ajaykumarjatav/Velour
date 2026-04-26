@@ -26,6 +26,7 @@ use App\Policies\ServicePolicy;
 use App\Policies\SettingsPolicy;
 use App\Policies\StaffPolicy;
 use App\Services\AuditLogService;
+use App\Support\ProfileCompletion;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -79,6 +80,7 @@ class AppServiceProvider extends ServiceProvider
                         : null;
                     $salon = $salon ?: $user->salons()->first();
                     $view->with('currentSalon', $salon);
+                    $view->with('headerProfileCompletion', $salon ? ProfileCompletion::forSalon($salon) : null);
                 } catch (\Throwable) {}
             }
         });

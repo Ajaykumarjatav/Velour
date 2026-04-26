@@ -34,12 +34,163 @@
                             @foreach($businessTypes as $type)
                                 @php $checked = in_array((int) $type->id, array_map('intval', old('business_type_ids', $selectedBusinessTypeIds ?? [])), true); @endphp
                                 <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
-                                    <input type="checkbox" name="business_type_ids[]" value="{{ $type->id }}" class="rounded border-gray-300 text-velour-600" {{ $checked ? 'checked' : '' }}>
+                                    <input type="checkbox" name="business_type_ids[]" value="{{ $type->id }}" data-bt-slug="{{ $type->slug }}" class="rounded border-gray-300 text-velour-600" {{ $checked ? 'checked' : '' }}>
                                     {{ $type->name }}
                                 </label>
                             @endforeach
                         </div>
                         @error('business_type_ids')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div id="settings-starter-categories-block" class="col-span-2 space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                        <label class="form-label mb-0">Predefined service categories <span class="text-gray-400 font-normal">(optional)</span></label>
+                        <p class="form-hint">Pick starter categories first to filter suggested services.</p>
+                        @php $starterCategoryOld = old('starter_categories', $selectedStarterCategories ?? []); @endphp
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                            @foreach($starterCatalog as $slug => $items)
+                                @php
+                                    $cats = [];
+                                    foreach ($items as $item) {
+                                        $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
+                                        if ($catSlug === '') {
+                                            $catSlug = 'general';
+                                        }
+                                        $catName = (string) ($item['category'] ?? 'General');
+                                        if (! isset($cats[$catSlug])) {
+                                            $cats[$catSlug] = $catName === '' ? 'General' : $catName;
+                                        }
+                                    }
+                                @endphp
+                                @foreach($cats as $catSlug => $catName)
+                                    @php $catVal = $slug . ':' . $catSlug; @endphp
+                                    <label class="settings-starter-category flex items-start gap-2 text-sm text-body cursor-pointer hidden" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catVal }}">
+                                        <input type="checkbox" name="starter_categories[]" value="{{ $catVal }}"
+                                               class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500"
+                                               {{ in_array($catVal, $starterCategoryOld, true) ? 'checked' : '' }}>
+                                        <span>{{ $catName }}</span>
+                                    </label>
+                                @endforeach
+                            @endforeach
+                        </div>
+                        @error('starter_categories')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div id="settings-starter-services-block" class="col-span-2 space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                        <label class="form-label mb-0">Predefined services <span class="text-gray-400 font-normal">(optional)</span></label>
+                        <p class="form-hint">Suggested services are filtered by selected business types and categories.</p>
+                        @php $starterServiceOld = old('starter_services', $selectedStarterServices ?? []); @endphp
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                            @foreach($starterCatalog as $slug => $items)
+                                @foreach($items as $item)
+                                    @php $val = $slug . ':' . $item['key']; @endphp
+                                    @php
+                                        $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
+                                        if ($catSlug === '') {
+                                            $catSlug = 'general';
+                                        }
+                                        $catId = $slug . ':' . $catSlug;
+                                    @endphp
+                                    <label class="settings-starter-service flex items-start gap-2 text-sm text-body cursor-pointer hidden" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}">
+                                        <input type="checkbox" name="starter_services[]" value="{{ $val }}"
+                                               class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500"
+                                               {{ in_array($val, $starterServiceOld, true) ? 'checked' : '' }}>
+                                        <span>{{ $item['name'] }} <span class="text-gray-400">({{ $item['duration_minutes'] }} min - {{ strtoupper($salon->currency ?? 'GBP') }} {{ number_format((float) $item['price'], 2) }})</span></span>
+                                    </label>
+                                @endforeach
+                            @endforeach
+                        </div>
+                        @error('starter_services')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    @php
+                        $staffRows = old('staff_members');
+                        if (! is_array($staffRows)) {
+                            $staffRows = ($existingTeamMembers ?? collect())->map(function ($member) {
+                                return [
+                                    'id' => $member->id,
+                                    'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                                    'email' => $member->email,
+                                    'phone' => $member->phone,
+                                    'role' => $member->role,
+                                    'commission_rate' => $member->commission_rate,
+                                    'color' => $member->color ?: '#7C3AED',
+                                    'bio' => $member->bio,
+                                    'assign_services' => $member->services()->exists() ? '1' : '0',
+                                ];
+                            })->all();
+                        }
+                        if (count($staffRows) === 0) {
+                            $staffRows = [[]];
+                        }
+                        $staffRoles = ['stylist', 'therapist', 'manager', 'receptionist', 'junior', 'owner'];
+                    @endphp
+                    <div class="col-span-2">
+                        <label class="form-label mb-1">Team members <span class="text-gray-400 font-normal">(optional)</span></label>
+                        <p class="form-hint mb-3">Add or update team members from Settings.</p>
+                        <div id="settings-staff-rows" class="space-y-4">
+                            @foreach($staffRows as $idx => $st)
+                                @php $st = is_array($st) ? $st : []; @endphp
+                                <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-4 space-y-3">
+                                    <div class="flex justify-between items-center gap-2">
+                                        <span class="settings-staff-row-title text-sm font-medium text-body">Team member {{ $loop->iteration }}</span>
+                                        <button type="button" class="settings-staff-remove-btn text-xs font-medium text-red-600 hover:text-red-700 {{ count($staffRows) <= 1 ? 'hidden' : '' }}">Remove</button>
+                                    </div>
+                                    <input type="hidden" name="staff_members[{{ $idx }}][id]" value="{{ $st['id'] ?? '' }}">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-medium text-body mb-1">Full name</label>
+                                            <input type="text" name="staff_members[{{ $idx }}][name]" value="{{ $st['name'] ?? '' }}"
+                                                   class="form-input"
+                                                   placeholder="e.g. Alex Smith">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-body mb-1">Email</label>
+                                            <input type="email" name="staff_members[{{ $idx }}][email]" value="{{ $st['email'] ?? '' }}" autocomplete="off"
+                                                   class="form-input">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-body mb-1">Phone</label>
+                                            <input type="tel" name="staff_members[{{ $idx }}][phone]" value="{{ $st['phone'] ?? '' }}"
+                                                   class="form-input">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span> <span class="text-gray-400 font-normal">(if adding)</span></label>
+                                            <select name="staff_members[{{ $idx }}][role]" class="form-select">
+                                                <option value="">-</option>
+                                                @foreach($staffRoles as $r)
+                                                    <option value="{{ $r }}" {{ ($st['role'] ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-body mb-1">Commission %</label>
+                                            <input type="number" name="staff_members[{{ $idx }}][commission_rate]" min="0" max="100" step="0.1"
+                                                   value="{{ $st['commission_rate'] ?? '0' }}"
+                                                   class="form-input">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-body mb-1">Calendar colour</label>
+                                            <input type="color" name="staff_members[{{ $idx }}][color]" value="{{ $st['color'] ?? '#7C3AED' }}"
+                                                   class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 cursor-pointer bg-white">
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-medium text-body mb-1">Bio</label>
+                                            <textarea name="staff_members[{{ $idx }}][bio]" rows="2" placeholder="Optional"
+                                                      class="form-textarea">{{ $st['bio'] ?? '' }}</textarea>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="staff_members[{{ $idx }}][assign_services]" value="0">
+                                    @php
+                                        $as = $st['assign_services'] ?? null;
+                                        $assignChecked = (string) $as === '1' || $as === true || $as === 1;
+                                    @endphp
+                                    <label class="inline-flex items-start gap-2 text-sm text-body cursor-pointer">
+                                        <input type="checkbox" name="staff_members[{{ $idx }}][assign_services]" value="1" class="mt-0.5 rounded border-gray-300 text-velour-600"
+                                               {{ $assignChecked ? 'checked' : '' }}>
+                                        <span>Offer all services on this menu to this team member</span>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <button type="button" id="settings-add-staff-member" class="mt-2 text-sm font-medium text-velour-600 hover:text-velour-700">+ Add another team member</button>
+                        @error('staff_members')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="form-label">Email</label>
@@ -489,5 +640,121 @@
     </div>
 
 </div>
+
+<script>
+(function () {
+    function syncSettingsStarterBlocks() {
+        var checked = Array.prototype.slice.call(document.querySelectorAll('input[name="business_type_ids[]"]:checked'));
+        var slugs = {};
+        checked.forEach(function (el) {
+            var slug = el.getAttribute('data-bt-slug');
+            if (slug) {
+                slugs[slug] = true;
+            }
+        });
+
+        var anyCategoryVisible = false;
+        var selectedCategoryIds = {};
+        var selectedBySlug = {};
+        document.querySelectorAll('.settings-starter-category').forEach(function (el) {
+            var slug = el.getAttribute('data-bt-slug');
+            var show = slug && slugs[slug];
+            el.classList.toggle('hidden', !show);
+            if (show) anyCategoryVisible = true;
+            var chk = el.querySelector('input[type="checkbox"]');
+            if (chk) {
+                if (!show) chk.checked = false;
+                if (show && chk.checked) {
+                    var catId = el.getAttribute('data-cat-id');
+                    selectedCategoryIds[catId] = true;
+                    selectedBySlug[slug] = (selectedBySlug[slug] || 0) + 1;
+                }
+            }
+        });
+
+        var categoriesBlock = document.getElementById('settings-starter-categories-block');
+        if (categoriesBlock) categoriesBlock.classList.toggle('hidden', !anyCategoryVisible);
+
+        var anyServiceVisible = false;
+        document.querySelectorAll('.settings-starter-service').forEach(function (el) {
+            var slug = el.getAttribute('data-bt-slug');
+            var catId = el.getAttribute('data-cat-id');
+            var show = !!(slug && slugs[slug]);
+            if (show) {
+                var filterByCat = (selectedBySlug[slug] || 0) > 0;
+                if (filterByCat) show = !!selectedCategoryIds[catId];
+            }
+            el.classList.toggle('hidden', !show);
+            if (show) anyServiceVisible = true;
+            var chk = el.querySelector('input[type="checkbox"]');
+            if (!show && chk) chk.checked = false;
+        });
+        var servicesBlock = document.getElementById('settings-starter-services-block');
+        if (servicesBlock) servicesBlock.classList.toggle('hidden', !anyServiceVisible);
+    }
+
+    document.addEventListener('change', function (e) {
+        if (e.target && (e.target.matches('input[name="business_type_ids[]"]') || e.target.closest('.settings-starter-category'))) {
+            syncSettingsStarterBlocks();
+        }
+    });
+    document.addEventListener('DOMContentLoaded', syncSettingsStarterBlocks);
+})();
+
+(function () {
+    var maxRows = 10;
+    var container = document.getElementById('settings-staff-rows');
+    var addBtn = document.getElementById('settings-add-staff-member');
+    if (!container || !addBtn) return;
+
+    function renumberStaffRows() {
+        var rows = container.querySelectorAll('.settings-staff-member-row');
+        rows.forEach(function (row, i) {
+            row.querySelectorAll('[name^="staff_members"]').forEach(function (el) {
+                el.name = el.name.replace(/staff_members\[\d+\]/, 'staff_members[' + i + ']');
+            });
+            var title = row.querySelector('.settings-staff-row-title');
+            if (title) title.textContent = 'Team member ' + (i + 1);
+            var rm = row.querySelector('.settings-staff-remove-btn');
+            if (rm) rm.classList.toggle('hidden', rows.length <= 1);
+        });
+    }
+
+    addBtn.addEventListener('click', function () {
+        var rows = container.querySelectorAll('.settings-staff-member-row');
+        if (rows.length >= maxRows) return;
+        var clone = rows[0].cloneNode(true);
+        clone.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], textarea').forEach(function (el) {
+            el.value = '';
+        });
+        clone.querySelectorAll('input[type="color"]').forEach(function (el) {
+            el.value = '#7C3AED';
+        });
+        clone.querySelectorAll('select').forEach(function (el) {
+            el.selectedIndex = 0;
+        });
+        clone.querySelectorAll('input[type="checkbox"]').forEach(function (el) {
+            el.checked = true;
+        });
+        clone.querySelectorAll('input[type="hidden"]').forEach(function (el) {
+            if (el.name && el.name.indexOf('[id]') !== -1) el.value = '';
+            if (el.name && el.name.indexOf('assign_services') !== -1) el.value = '0';
+        });
+        container.appendChild(clone);
+        renumberStaffRows();
+    });
+
+    container.addEventListener('click', function (e) {
+        var btn = e.target.closest('.settings-staff-remove-btn');
+        if (!btn) return;
+        var row = btn.closest('.settings-staff-member-row');
+        if (!row || container.querySelectorAll('.settings-staff-member-row').length <= 1) return;
+        row.remove();
+        renumberStaffRows();
+    });
+
+    renumberStaffRows();
+})();
+</script>
 
 @endsection

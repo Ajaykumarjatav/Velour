@@ -477,6 +477,23 @@
             </div>
         </header>
 
+        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && (($headerProfileCompletion['percentage'] ?? 100) < 100))
+        <div class="px-4 sm:px-6 py-2 border-b border-amber-200/70 dark:border-amber-800/40 bg-amber-50/80 dark:bg-amber-900/10">
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-semibold text-amber-800 dark:text-amber-300 whitespace-nowrap">
+                    Profile {{ (int) ($headerProfileCompletion['percentage'] ?? 0) }}%
+                </span>
+                <div class="flex-1 h-2 rounded-full bg-amber-100 dark:bg-amber-900/30 overflow-hidden">
+                    <div class="h-2 rounded-full bg-amber-500 dark:bg-amber-400 transition-all"
+                         style="width: {{ max(0, min(100, (int) ($headerProfileCompletion['percentage'] ?? 0))) }}%"></div>
+                </div>
+                <a href="{{ route('settings.index', ['tab' => 'salon']) }}" class="text-xs font-medium text-amber-800 dark:text-amber-300 hover:underline whitespace-nowrap">
+                    Complete setup
+                </a>
+            </div>
+        </div>
+        @endif
+
         {{-- Page content --}}
         <main class="flex-1 p-4 sm:p-6">
 
