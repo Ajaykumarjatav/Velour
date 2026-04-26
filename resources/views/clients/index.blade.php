@@ -91,6 +91,12 @@
         selectedClient() {
             return this.clients.find(c => c.id === this.selectedClientId) || this.clients[0] || null;
         },
+        selectClient(id) {
+            this.selectedClientId = id;
+            if (this.editMode) {
+                this.startEdit();
+            }
+        },
         startEdit() {
             const c = this.selectedClient();
             if (!c) return;
@@ -126,7 +132,7 @@
             </thead>
             <tbody>
             @forelse($clients as $client)
-            <tr @click="selectedClientId = {{ (int) $client->id }}"
+            <tr @click="selectClient({{ (int) $client->id }})"
                 :class="selectedClientId === {{ (int) $client->id }} ? 'bg-velour-50/50 dark:bg-velour-900/20' : ''"
                 class="cursor-pointer transition-colors">
                 <td>
