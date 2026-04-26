@@ -37,10 +37,6 @@ class BusinessType extends Model
     /** Default “Salon” type id for migrations/factories when a specific type is not chosen. */
     public static function defaultId(): int
     {
-        $id = (int) static::query()->where('slug', 'salon')->value('id');
-        if ($id > 0) {
-            return $id;
-        }
         $id = (int) static::query()->orderBy('sort_order')->value('id');
         if ($id > 0) {
             return $id;

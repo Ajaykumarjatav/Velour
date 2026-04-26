@@ -242,8 +242,9 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         Route::put('customization/options', [CustomizationController::class, 'updateOptions'])->name('customization.options.update');
 
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
-        Route::get('set_socket_blocking', fn () => redirect()->route('settings.index', ['tab' => 'salon']))->name('set_socket_blocking');
+        Route::get('set_socket_blocking', fn () => redirect()->route('settings.index', ['tab' => 'services']))->name('set_socket_blocking');
         Route::put('settings/salon',         [SettingsController::class, 'updateSalon'])->name('settings.salon');
+        Route::put('settings/services',      [SettingsController::class, 'updateServices'])->name('settings.services');
         Route::put('settings/hours',         [SettingsController::class, 'updateHours'])->name('settings.hours');
         Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');
         Route::put('settings/profile',       [SettingsController::class, 'updateProfile'])->name('settings.profile');

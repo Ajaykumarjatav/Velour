@@ -13,14 +13,14 @@ class SalonFactory extends Factory
         return [
             'owner_id'               => User::factory(),
             'business_type_id'       => static function () {
-                $existing = BusinessType::query()->where('slug', 'salon')->first();
+                $existing = BusinessType::query()->where('slug', 'unisex')->first();
                 if ($existing) {
                     return $existing->id;
                 }
 
                 return BusinessType::query()->create([
-                    'name'       => 'Salon',
-                    'slug'       => 'salon',
+                    'name'       => 'Unisex',
+                    'slug'       => 'unisex',
                     'sort_order' => 0,
                 ])->id;
             },

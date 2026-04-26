@@ -37,12 +37,26 @@ class SettingsController extends Controller
 
         $bookingTimeDisplay = $salon->getSetting('booking_time_display', 'business');
         $localeOptions = \App\Support\DisplayFormatter::localeOptions();
-        $businessTypes = BusinessType::query()->orderBy('sort_order')->get();
+        $starterCatalog = config('registration_starter_services');
+        $predefinedSlugs = array_keys((array) $starterCatalog);
+        $businessTypes = BusinessType::query()
+            ->whereIn('slug', $predefinedSlugs)
+            ->orderBy('sort_order')
+            ->get();
+        $customBusinessTypes = BusinessType::query()
+            ->whereNotIn('slug', $predefinedSlugs)
+            ->orderBy('name')
+            ->get();
         $selectedBusinessTypeIds = $salon->businessTypes()->pluck('business_types.id')->map(fn ($id) => (int) $id)->all();
         if ($selectedBusinessTypeIds === [] && $salon->business_type_id) {
             $selectedBusinessTypeIds = [(int) $salon->business_type_id];
         }
-        $starterCatalog = config('registration_starter_services');
+        $selectedBusinessTypeSlugs = BusinessType::query()
+            ->whereIn('id', $selectedBusinessTypeIds)
+            ->pluck('slug')
+            ->filter(fn ($slug) => is_string($slug) && $slug !== '')
+            ->values()
+            ->all();
         $selectedStarterCategories = $this->selectedStarterCategoryKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $selectedStarterServices = $this->selectedStarterServiceKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $existingTeamMembers = $salon->staff()
@@ -59,7 +73,9 @@ class SettingsController extends Controller
             'bookingTimeDisplay',
             'localeOptions',
             'businessTypes',
+            'customBusinessTypes',
             'selectedBusinessTypeIds',
+            'selectedBusinessTypeSlugs',
             'starterCatalog',
             'selectedStarterCategories',
             'selectedStarterServices',
@@ -73,8 +89,6 @@ class SettingsController extends Controller
 
         $data = $request->validate([
             'name'                 => ['required', 'string', 'max:150'],
-            'business_type_ids'    => ['required', 'array', 'min:1'],
-            'business_type_ids.*'  => ['integer', 'exists:business_types,id'],
             'email'                => ['nullable', 'email', 'max:150'],
             'phone'              => ['nullable', 'string', 'max:20'],
             'website'            => ['nullable', 'url', 'max:200'],
@@ -88,17 +102,48 @@ class SettingsController extends Controller
             'timezone'           => ['required', 'string', 'timezone'],
             'currency'           => ['required', 'string', 'size:3', 'in:' . implode(',', array_keys(\App\Helpers\CurrencyHelper::all()))],
             'booking_time_display' => ['nullable', 'in:business,customer'],
+        ]);
+
+        $salon->update($data);
+
+        SalonSetting::updateOrCreate(
+            ['salon_id' => $salon->id, 'key' => 'booking_time_display'],
+            ['value' => $request->input('booking_time_display', 'business'), 'type' => 'string']
+        );
+
+        return back()->with('success', 'Salon profile updated.');
+    }
+
+    public function updateServices(Request $request)
+    {
+        $salon = $this->salon();
+        $data = $request->validate([
+            'business_type_ids'    => ['nullable', 'array'],
+            'business_type_ids.*'  => ['integer', 'exists:business_types,id'],
+            'custom_business_types' => ['nullable', 'array', 'max:10'],
+            'custom_business_types.*' => ['nullable', 'string', 'max:80'],
             'starter_categories'   => ['nullable', 'array'],
             'starter_categories.*' => ['string'],
             'starter_services'     => ['nullable', 'array'],
             'starter_services.*'   => ['string'],
+            'starter_service_meta' => ['nullable', 'array'],
         ]);
 
-        $ids = array_values(array_unique(array_map('intval', $data['business_type_ids'])));
-        unset($data['business_type_ids']);
+        $typeIds = array_values(array_unique(array_map('intval', (array) ($data['business_type_ids'] ?? []))));
+        $customNames = array_values(array_unique(array_filter(array_map(
+            fn ($name) => trim((string) $name),
+            (array) ($data['custom_business_types'] ?? [])
+        ))));
+        $typeIds = array_values(array_unique(array_merge($typeIds, $this->ensureCustomBusinessTypes($customNames))));
+
+        if ($typeIds === []) {
+            throw ValidationException::withMessages([
+                'business_type_ids' => ['Select at least one business type or add a custom type.'],
+            ]);
+        }
 
         $currentPivotIds = $salon->businessTypes()->pluck('business_types.id')->map(fn ($id) => (int) $id)->all();
-        $removed = array_diff($currentPivotIds, $ids);
+        $removed = array_diff($currentPivotIds, $typeIds);
         foreach ($removed as $rid) {
             if ($salon->services()->where('business_type_id', $rid)->exists()) {
                 throw ValidationException::withMessages([
@@ -107,26 +152,92 @@ class SettingsController extends Controller
             }
         }
 
-        $salon->businessTypes()->sync($ids);
-
-        if (! in_array((int) $salon->business_type_id, $ids, true)) {
-            $data['business_type_id'] = $ids[0];
+        $salon->businessTypes()->sync($typeIds);
+        if (! in_array((int) $salon->business_type_id, $typeIds, true)) {
+            $salon->update(['business_type_id' => $typeIds[0]]);
         }
 
-        $salon->update($data);
+        $selectedServiceKeys = array_values(array_unique(array_filter(
+            (array) ($data['starter_services'] ?? []),
+            fn ($v) => is_string($v) && $v !== ''
+        )));
+
+        $serviceMetaInput = (array) $request->input('starter_service_meta', []);
+        $serviceOverrides = [];
+        foreach ($selectedServiceKeys as $serviceKey) {
+            [$serviceSlug] = explode(':', $serviceKey, 2);
+            $token = str_replace(':', '__', $serviceKey);
+            $meta = (array) ($serviceMetaInput[$token] ?? []);
+            if ($serviceSlug === 'unisex') {
+                $men = (array) ($meta['men'] ?? []);
+                $women = (array) ($meta['women'] ?? []);
+                $menDuration = isset($men['duration_minutes']) ? (int) $men['duration_minutes'] : 0;
+                $menPrice = isset($men['price']) ? (float) $men['price'] : 0;
+                $womenDuration = isset($women['duration_minutes']) ? (int) $women['duration_minutes'] : 0;
+                $womenPrice = isset($women['price']) ? (float) $women['price'] : 0;
+
+                if ($menDuration < 1) {
+                    throw ValidationException::withMessages([
+                        "starter_service_meta.$token.men.duration_minutes" => ['Enter men service time in minutes.'],
+                    ]);
+                }
+                if ($menPrice <= 0) {
+                    throw ValidationException::withMessages([
+                        "starter_service_meta.$token.men.price" => ['Enter a valid men service price.'],
+                    ]);
+                }
+                if ($womenDuration < 1) {
+                    throw ValidationException::withMessages([
+                        "starter_service_meta.$token.women.duration_minutes" => ['Enter women service time in minutes.'],
+                    ]);
+                }
+                if ($womenPrice <= 0) {
+                    throw ValidationException::withMessages([
+                        "starter_service_meta.$token.women.price" => ['Enter a valid women service price.'],
+                    ]);
+                }
+
+                $serviceOverrides[$serviceKey] = [
+                    'men' => [
+                        'duration_minutes' => $menDuration,
+                        'price' => round($menPrice, 2),
+                    ],
+                    'women' => [
+                        'duration_minutes' => $womenDuration,
+                        'price' => round($womenPrice, 2),
+                    ],
+                ];
+                continue;
+            }
+
+            $duration = isset($meta['duration_minutes']) ? (int) $meta['duration_minutes'] : 0;
+            $price = isset($meta['price']) ? (float) $meta['price'] : 0;
+            if ($duration < 1) {
+                throw ValidationException::withMessages([
+                    "starter_service_meta.$token.duration_minutes" => ['Enter service time in minutes for each selected service.'],
+                ]);
+            }
+            if ($price <= 0) {
+                throw ValidationException::withMessages([
+                    "starter_service_meta.$token.price" => ['Enter a valid service price for each selected service.'],
+                ]);
+            }
+
+            $serviceOverrides[$serviceKey] = [
+                'duration_minutes' => $duration,
+                'price' => round($price, 2),
+            ];
+        }
+
         $this->syncStarterSelections(
             $salon,
-            $ids,
-            array_values(array_unique(array_filter((array) ($request->input('starter_categories', [])), fn ($v) => is_string($v) && $v !== ''))),
-            array_values(array_unique(array_filter((array) ($request->input('starter_services', [])), fn ($v) => is_string($v) && $v !== '')))
+            $typeIds,
+            array_values(array_unique(array_filter((array) ($data['starter_categories'] ?? []), fn ($v) => is_string($v) && $v !== ''))),
+            $selectedServiceKeys,
+            $serviceOverrides
         );
 
-        SalonSetting::updateOrCreate(
-            ['salon_id' => $salon->id, 'key' => 'booking_time_display'],
-            ['value' => $request->input('booking_time_display', 'business'), 'type' => 'string']
-        );
-
-        return back()->with('success', 'Salon profile updated.');
+        return back()->with('success', 'Service setup updated.')->with('tab', 'services');
     }
 
     public function updateHours(Request $request)
@@ -305,8 +416,9 @@ class SettingsController extends Controller
      * @param  list<int>  $typeIds
      * @param  list<string>  $selectedCategories
      * @param  list<string>  $selectedServices
+     * @param  array<string, array<string, mixed>>  $serviceOverrides
      */
-    private function syncStarterSelections(\App\Models\Salon $salon, array $typeIds, array $selectedCategories, array $selectedServices): void
+    private function syncStarterSelections(\App\Models\Salon $salon, array $typeIds, array $selectedCategories, array $selectedServices, array $serviceOverrides = []): void
     {
         $allowedCategoryKeys = RegistrationStarterServices::allowedCategoryKeysForTypeIds($typeIds);
         foreach ($selectedCategories as $key) {
@@ -327,7 +439,7 @@ class SettingsController extends Controller
         }
 
         RegistrationStarterServices::seedStarterCategories($salon, $selectedCategories);
-        RegistrationStarterServices::seedSalon($salon, $selectedServices);
+        RegistrationStarterServices::seedSalon($salon, $selectedServices, $serviceOverrides);
 
         $catalog = (array) config('registration_starter_services');
         $types = BusinessType::query()->whereIn('id', $typeIds)->get(['id', 'slug'])->keyBy('slug');
@@ -344,10 +456,9 @@ class SettingsController extends Controller
                 }
                 $composite = $slug . ':' . $key;
                 $serviceDefinitions[$composite] = [
+                    'slug' => (string) $slug,
                     'business_type_id' => (int) $type->id,
                     'name' => trim((string) ($row['name'] ?? '')),
-                    'duration_minutes' => (int) ($row['duration_minutes'] ?? 0),
-                    'price' => round((float) ($row['price'] ?? 0), 2),
                 ];
             }
         }
@@ -367,11 +478,7 @@ class SettingsController extends Controller
                 if ((int) $def['business_type_id'] !== (int) $service->business_type_id) {
                     continue;
                 }
-                if (
-                    trim((string) $service->name) === $def['name']
-                    && (int) $service->duration_minutes === (int) $def['duration_minutes']
-                    && round((float) $service->price, 2) === $def['price']
-                ) {
+                if ($this->starterServiceNameMatches((string) $service->name, (string) $def['name'], (string) ($def['slug'] ?? ''))) {
                     $matchedKey = $composite;
                     break;
                 }
@@ -530,26 +637,21 @@ class SettingsController extends Controller
                 }
                 $definitions[] = [
                     'composite' => $type->slug . ':' . $key,
+                    'slug' => (string) $type->slug,
                     'business_type_id' => (int) $type->id,
                     'name' => trim((string) ($row['name'] ?? '')),
-                    'duration_minutes' => (int) ($row['duration_minutes'] ?? 0),
-                    'price' => round((float) ($row['price'] ?? 0), 2),
                 ];
             }
         }
 
         $selected = [];
-        $services = $salon->services()->whereIn('business_type_id', $typeIds)->get(['business_type_id', 'name', 'duration_minutes', 'price']);
+        $services = $salon->services()->whereIn('business_type_id', $typeIds)->get(['business_type_id', 'name']);
         foreach ($services as $service) {
             foreach ($definitions as $def) {
                 if ((int) $def['business_type_id'] !== (int) $service->business_type_id) {
                     continue;
                 }
-                if (
-                    trim((string) $service->name) === $def['name']
-                    && (int) $service->duration_minutes === (int) $def['duration_minutes']
-                    && round((float) $service->price, 2) === $def['price']
-                ) {
+                if ($this->starterServiceNameMatches((string) $service->name, (string) $def['name'], (string) ($def['slug'] ?? ''))) {
                     $selected[] = $def['composite'];
                     break;
                 }
@@ -567,5 +669,62 @@ class SettingsController extends Controller
         $out = trim((string) $value);
 
         return $out === '' ? null : $out;
+    }
+
+    private function starterServiceNameMatches(string $actualName, string $baseName, string $slug): bool
+    {
+        $actual = trim($actualName);
+        $base = trim($baseName);
+        if ($actual === '' || $base === '') {
+            return false;
+        }
+        if ($actual === $base) {
+            return true;
+        }
+        if ($slug !== 'unisex') {
+            return false;
+        }
+
+        return in_array($actual, [$base . ' (Men)', $base . ' (Women)'], true);
+    }
+
+    /**
+     * @param  list<string>  $names
+     * @return list<int>
+     */
+    private function ensureCustomBusinessTypes(array $names): array
+    {
+        if ($names === []) {
+            return [];
+        }
+
+        $ids = [];
+        $nextSort = (int) BusinessType::query()->max('sort_order');
+        foreach ($names as $name) {
+            $slugBase = Str::slug($name);
+            if ($slugBase === '') {
+                continue;
+            }
+            $slug = $slugBase;
+            $n = 1;
+            while (BusinessType::query()->where('slug', $slug)->exists()) {
+                $existing = BusinessType::query()->where('slug', $slug)->first();
+                if ($existing && strcasecmp((string) $existing->name, $name) === 0) {
+                    $ids[] = (int) $existing->id;
+                    continue 2;
+                }
+                $slug = $slugBase . '-' . $n;
+                $n++;
+            }
+
+            $type = BusinessType::query()->create([
+                'name' => $name,
+                'slug' => $slug,
+                'sort_order' => ++$nextSort,
+            ]);
+            $ids[] = (int) $type->id;
+        }
+
+        return array_values(array_unique($ids));
     }
 }

@@ -132,8 +132,9 @@ class RegistrationStarterServices
 
     /**
      * @param  list<string>  $compositeKeys  e.g. "salon:cut-blowdry"
+     * @param  array<string, array<string, mixed>>  $serviceOverrides
      */
-    public static function seedSalon(Salon $salon, array $compositeKeys): void
+    public static function seedSalon(Salon $salon, array $compositeKeys, array $serviceOverrides = []): void
     {
         if ($compositeKeys === []) {
             return;
@@ -188,30 +189,102 @@ class RegistrationStarterServices
                 ]
             );
 
-            $name = (string) $def['name'];
-            $base = Str::slug($name) ?: 'service';
-            $slugOut = $base;
-            $n = 0;
-            while (Service::withoutGlobalScopes()->where('salon_id', $salon->id)->where('slug', $slugOut)->exists()) {
-                $slugOut = $base . '-' . (++$n);
+            $override = (array) ($serviceOverrides[$composite] ?? []);
+            $baseName = trim((string) ($def['name'] ?? ''));
+            if ($baseName === '') {
+                continue;
             }
 
-            Service::create([
-                'salon_id'           => $salon->id,
-                'business_type_id'   => $typeId,
-                'category_id'        => $defaultCategory->id,
-                'name'               => $name,
-                'slug'               => $slugOut,
-                'duration_minutes'   => (int) $def['duration_minutes'],
-                'buffer_minutes'     => (int) ($def['buffer_minutes'] ?? 10),
-                'price'              => (float) $def['price'],
-                'deposit_type'       => 'none',
-                'deposit_value'      => 0,
-                'online_bookable'    => true,
-                'show_in_menu'       => true,
-                'status'             => 'active',
-                'sort_order'         => ++$sort,
-            ]);
+            if ($slug === 'unisex') {
+                $men = (array) ($override['men'] ?? []);
+                $women = (array) ($override['women'] ?? []);
+                self::upsertStarterService(
+                    $salon,
+                    $typeId,
+                    (int) $defaultCategory->id,
+                    $baseName . ' (Men)',
+                    isset($men['duration_minutes']) ? max(1, (int) $men['duration_minutes']) : (int) ($def['duration_minutes'] ?? 0),
+                    isset($men['price']) ? round((float) $men['price'], 2) : (float) ($def['price'] ?? 0),
+                    (int) ($def['buffer_minutes'] ?? 10),
+                    $sort
+                );
+                self::upsertStarterService(
+                    $salon,
+                    $typeId,
+                    (int) $defaultCategory->id,
+                    $baseName . ' (Women)',
+                    isset($women['duration_minutes']) ? max(1, (int) $women['duration_minutes']) : (int) ($def['duration_minutes'] ?? 0),
+                    isset($women['price']) ? round((float) $women['price'], 2) : (float) ($def['price'] ?? 0),
+                    (int) ($def['buffer_minutes'] ?? 10),
+                    $sort
+                );
+                continue;
+            }
+
+            self::upsertStarterService(
+                $salon,
+                $typeId,
+                (int) $defaultCategory->id,
+                $baseName,
+                isset($override['duration_minutes']) ? max(1, (int) $override['duration_minutes']) : (int) ($def['duration_minutes'] ?? 0),
+                isset($override['price']) ? round((float) $override['price'], 2) : (float) ($def['price'] ?? 0),
+                (int) ($def['buffer_minutes'] ?? 10),
+                $sort
+            );
         }
+    }
+
+    private static function upsertStarterService(
+        Salon $salon,
+        int $typeId,
+        int $categoryId,
+        string $name,
+        int $durationMinutes,
+        float $price,
+        int $bufferMinutes,
+        int &$sort
+    ): void {
+        $existing = Service::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('business_type_id', $typeId)
+            ->where('name', $name)
+            ->first();
+
+        if ($existing) {
+            $existing->update([
+                'category_id' => $categoryId,
+                'duration_minutes' => max(1, $durationMinutes),
+                'buffer_minutes' => $bufferMinutes,
+                'price' => $price,
+                'online_bookable' => true,
+                'show_in_menu' => true,
+                'status' => 'active',
+            ]);
+            return;
+        }
+
+        $base = Str::slug($name) ?: 'service';
+        $slugOut = $base;
+        $n = 0;
+        while (Service::withoutGlobalScopes()->where('salon_id', $salon->id)->where('slug', $slugOut)->exists()) {
+            $slugOut = $base . '-' . (++$n);
+        }
+
+        Service::create([
+            'salon_id'           => $salon->id,
+            'business_type_id'   => $typeId,
+            'category_id'        => $categoryId,
+            'name'               => $name,
+            'slug'               => $slugOut,
+            'duration_minutes'   => max(1, $durationMinutes),
+            'buffer_minutes'     => $bufferMinutes,
+            'price'              => $price,
+            'deposit_type'       => 'none',
+            'deposit_value'      => 0,
+            'online_bookable'    => true,
+            'show_in_menu'       => true,
+            'status'             => 'active',
+            'sort_order'         => ++$sort,
+        ]);
     }
 }

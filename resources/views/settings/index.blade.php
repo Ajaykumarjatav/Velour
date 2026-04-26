@@ -7,7 +7,7 @@
 
     {{-- Tab bar --}}
     <div class="flex flex-wrap gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl w-fit">
-        @foreach(['salon' => 'Business', 'hours' => 'Hours', 'social' => 'Social Links', 'notifications' => 'Notifications', 'profile' => 'Profile', 'security' => 'Security'] as $key => $label)
+        @foreach(['salon' => 'Business', 'services' => 'Service', 'hours' => 'Hours', 'social' => 'Social Links', 'notifications' => 'Notifications', 'profile' => 'Profile', 'security' => 'Security'] as $key => $label)
         <button @click="tab='{{ $key }}'"
                 :class="tab==='{{ $key }}' ? 'bg-white dark:bg-gray-700 text-velour-700 dark:text-velour-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
                 class="px-4 py-2 text-sm font-medium rounded-xl transition-all">
@@ -26,78 +26,6 @@
                     <div class="col-span-2">
                         <label class="form-label">Salon name <span class="text-red-500">*</span></label>
                         <input type="text" name="name" value="{{ old('name', $salon->name) }}" required class="form-input">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="form-label">Business types <span class="text-red-500">*</span></label>
-                        <p class="form-hint mb-2">Services can only be tagged with types you enable here.</p>
-                        <div class="flex flex-wrap gap-x-4 gap-y-2">
-                            @foreach($businessTypes as $type)
-                                @php $checked = in_array((int) $type->id, array_map('intval', old('business_type_ids', $selectedBusinessTypeIds ?? [])), true); @endphp
-                                <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
-                                    <input type="checkbox" name="business_type_ids[]" value="{{ $type->id }}" data-bt-slug="{{ $type->slug }}" class="rounded border-gray-300 text-velour-600" {{ $checked ? 'checked' : '' }}>
-                                    {{ $type->name }}
-                                </label>
-                            @endforeach
-                        </div>
-                        @error('business_type_ids')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                    </div>
-                    <div id="settings-starter-categories-block" class="col-span-2 space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
-                        <label class="form-label mb-0">Predefined service categories <span class="text-gray-400 font-normal">(optional)</span></label>
-                        <p class="form-hint">Pick starter categories first to filter suggested services.</p>
-                        @php $starterCategoryOld = old('starter_categories', $selectedStarterCategories ?? []); @endphp
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                            @foreach($starterCatalog as $slug => $items)
-                                @php
-                                    $cats = [];
-                                    foreach ($items as $item) {
-                                        $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
-                                        if ($catSlug === '') {
-                                            $catSlug = 'general';
-                                        }
-                                        $catName = (string) ($item['category'] ?? 'General');
-                                        if (! isset($cats[$catSlug])) {
-                                            $cats[$catSlug] = $catName === '' ? 'General' : $catName;
-                                        }
-                                    }
-                                @endphp
-                                @foreach($cats as $catSlug => $catName)
-                                    @php $catVal = $slug . ':' . $catSlug; @endphp
-                                    <label class="settings-starter-category flex items-start gap-2 text-sm text-body cursor-pointer hidden" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catVal }}">
-                                        <input type="checkbox" name="starter_categories[]" value="{{ $catVal }}"
-                                               class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500"
-                                               {{ in_array($catVal, $starterCategoryOld, true) ? 'checked' : '' }}>
-                                        <span>{{ $catName }}</span>
-                                    </label>
-                                @endforeach
-                            @endforeach
-                        </div>
-                        @error('starter_categories')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                    </div>
-                    <div id="settings-starter-services-block" class="col-span-2 space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
-                        <label class="form-label mb-0">Predefined services <span class="text-gray-400 font-normal">(optional)</span></label>
-                        <p class="form-hint">Suggested services are filtered by selected business types and categories.</p>
-                        @php $starterServiceOld = old('starter_services', $selectedStarterServices ?? []); @endphp
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                            @foreach($starterCatalog as $slug => $items)
-                                @foreach($items as $item)
-                                    @php $val = $slug . ':' . $item['key']; @endphp
-                                    @php
-                                        $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
-                                        if ($catSlug === '') {
-                                            $catSlug = 'general';
-                                        }
-                                        $catId = $slug . ':' . $catSlug;
-                                    @endphp
-                                    <label class="settings-starter-service flex items-start gap-2 text-sm text-body cursor-pointer hidden" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}">
-                                        <input type="checkbox" name="starter_services[]" value="{{ $val }}"
-                                               class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500"
-                                               {{ in_array($val, $starterServiceOld, true) ? 'checked' : '' }}>
-                                        <span>{{ $item['name'] }} <span class="text-gray-400">({{ $item['duration_minutes'] }} min - {{ strtoupper($salon->currency ?? 'GBP') }} {{ number_format((float) $item['price'], 2) }})</span></span>
-                                    </label>
-                                @endforeach
-                            @endforeach
-                        </div>
-                        @error('starter_services')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="form-label">Email</label>
@@ -170,6 +98,202 @@
                     </div>
                 </div>
                 <button type="submit" class="btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    {{-- ── Service Setup ── --}}
+    <div x-show="tab==='services'" x-cloak>
+        <div class="card p-6">
+            <h2 class="font-semibold text-heading mb-5">Service Setup</h2>
+            <form action="{{ route('settings.services') }}" method="POST" class="space-y-4">
+                @csrf @method('PUT')
+                @php
+                    $selectedTypeIds = array_map('intval', old('business_type_ids', $selectedBusinessTypeIds ?? []));
+                    $oldCustomTypes = old('custom_business_types', []);
+                    if (! is_array($oldCustomTypes)) {
+                        $oldCustomTypes = [];
+                    }
+                    $oldCustomTypes = array_values(array_filter(array_map(fn ($v) => trim((string) $v), $oldCustomTypes), fn ($v) => $v !== ''));
+                    $starterCategoryOld = old('starter_categories', $selectedStarterCategories ?? []);
+                    $starterServiceOld = old('starter_services', $selectedStarterServices ?? []);
+                    $typeSlugById = collect($businessTypes)->merge($customBusinessTypes)->pluck('slug', 'id')->all();
+                    $selectedSlugMap = [];
+                    foreach ($selectedTypeIds as $tid) {
+                        $slug = $typeSlugById[$tid] ?? null;
+                        if (is_string($slug) && $slug !== '') {
+                            $selectedSlugMap[$slug] = true;
+                        }
+                    }
+                @endphp
+                <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <label class="form-label mb-0">Business types <span class="text-red-500">*</span></label>
+                    <p class="form-hint mb-1">Services can only be tagged with types you enable here.</p>
+                    <div id="settings-business-types-list" class="flex flex-wrap gap-x-4 gap-y-2">
+                        @foreach($businessTypes as $type)
+                            @php $checked = in_array((int) $type->id, $selectedTypeIds, true); @endphp
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="checkbox" name="business_type_ids[]" value="{{ $type->id }}" data-bt-slug="{{ $type->slug }}" class="rounded border-gray-300 text-velour-600" {{ $checked ? 'checked' : '' }}>
+                                {{ $type->name }}
+                            </label>
+                        @endforeach
+                        @foreach($customBusinessTypes as $type)
+                            @php $checked = in_array((int) $type->id, $selectedTypeIds, true); @endphp
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer" data-custom-existing="1">
+                                <input type="checkbox" name="business_type_ids[]" value="{{ $type->id }}" data-bt-slug="{{ $type->slug }}" class="rounded border-gray-300 text-velour-600" {{ $checked ? 'checked' : '' }}>
+                                {{ $type->name }}
+                                <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500">custom</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <div class="mt-2 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-3 space-y-2">
+                        <label class="block text-xs font-medium text-body">Add custom business type</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="settings-custom-business-type-input" class="form-input" placeholder="e.g. Bridal Studio">
+                            <button type="button" id="settings-add-custom-business-type-btn" class="btn-secondary whitespace-nowrap">Add</button>
+                        </div>
+                        <div id="settings-custom-business-type-list" class="flex flex-wrap gap-2">
+                            @foreach($oldCustomTypes as $customType)
+                                <span class="settings-custom-business-pill inline-flex items-center gap-2 rounded-full bg-velour-100/80 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 px-3 py-1 text-xs">
+                                    <span>{{ $customType }}</span>
+                                    <button type="button" class="settings-custom-business-remove leading-none">x</button>
+                                    <input type="hidden" name="custom_business_types[]" value="{{ $customType }}">
+                                </span>
+                            @endforeach
+                        </div>
+                        <p class="form-hint">Custom types are created and selected when you save.</p>
+                    </div>
+                    @error('business_type_ids')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @error('custom_business_types')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @error('custom_business_types.*')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <label class="form-label mb-0">Service categories <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <p class="form-hint">Pick starter categories first to filter suggested services.</p>
+                    <div id="settings-service-categories-list" class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                        @foreach($starterCatalog as $slug => $items)
+                            @php
+                                $cats = [];
+                                foreach ($items as $item) {
+                                    $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
+                                    if ($catSlug === '') {
+                                        $catSlug = 'general';
+                                    }
+                                    $catName = (string) ($item['category'] ?? 'General');
+                                    if (! isset($cats[$catSlug])) {
+                                        $cats[$catSlug] = $catName === '' ? 'General' : $catName;
+                                    }
+                                }
+                            @endphp
+                            @foreach($cats as $catSlug => $catName)
+                                @php $catVal = $slug . ':' . $catSlug; @endphp
+                                <label class="settings-service-category-option flex items-start gap-2 text-sm text-body cursor-pointer hidden" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catVal }}">
+                                    <input type="checkbox" name="starter_categories[]" value="{{ $catVal }}"
+                                           class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500"
+                                           {{ in_array($catVal, $starterCategoryOld, true) ? 'checked' : '' }}>
+                                    <span>{{ $catName }}</span>
+                                </label>
+                            @endforeach
+                        @endforeach
+                    </div>
+                    @error('starter_categories')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <label class="form-label mb-0">Services <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <p class="form-hint">Select services, then enter time and price manually for each selected service.</p>
+                    <div id="settings-service-offers-list" class="flex flex-col gap-2">
+                        @foreach($starterCatalog as $slug => $items)
+                            @foreach($items as $item)
+                                @php
+                                    $val = $slug . ':' . $item['key'];
+                                    $token = str_replace(':', '__', $val);
+                                    $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
+                                    if ($catSlug === '') {
+                                        $catSlug = 'general';
+                                    }
+                                    $catId = $slug . ':' . $catSlug;
+                                    $checked = in_array($val, $starterServiceOld, true);
+                                    $isUnisex = $slug === 'unisex';
+                                    $oldDuration = old("starter_service_meta.$token.duration_minutes");
+                                    $oldPrice = old("starter_service_meta.$token.price");
+                                    $oldMenDuration = old("starter_service_meta.$token.men.duration_minutes");
+                                    $oldMenPrice = old("starter_service_meta.$token.men.price");
+                                    $oldWomenDuration = old("starter_service_meta.$token.women.duration_minutes");
+                                    $oldWomenPrice = old("starter_service_meta.$token.women.price");
+                                @endphp
+                                <label class="settings-service-offer-option flex items-center justify-between gap-3 text-sm text-body cursor-pointer hidden rounded-lg border border-transparent px-1 py-1" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}">
+                                    <span class="flex items-start gap-2 min-w-[220px]">
+                                        <input type="checkbox" name="starter_services[]" value="{{ $val }}"
+                                               class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500 settings-service-checkbox"
+                                               {{ $checked ? 'checked' : '' }}>
+                                        <span>{{ $item['name'] }}</span>
+                                    </span>
+                                    @if($isUnisex)
+                                        <span class="settings-service-meta-grid grid grid-cols-2 gap-2 w-full max-w-xl {{ $checked ? '' : 'hidden' }}">
+                                            <input type="number"
+                                                   min="1"
+                                                   step="1"
+                                                   name="starter_service_meta[{{ $token }}][men][duration_minutes]"
+                                                   value="{{ $oldMenDuration }}"
+                                                   placeholder="Men time (min)"
+                                                   class="form-input text-xs w-full settings-service-meta-input"
+                                                   {{ $checked ? 'required' : 'disabled' }}>
+                                            <input type="number"
+                                                   min="0.01"
+                                                   step="0.01"
+                                                   name="starter_service_meta[{{ $token }}][men][price]"
+                                                   value="{{ $oldMenPrice }}"
+                                                   placeholder="Men price"
+                                                   class="form-input text-xs w-full settings-service-meta-input"
+                                                   {{ $checked ? 'required' : 'disabled' }}>
+                                            <input type="number"
+                                                   min="1"
+                                                   step="1"
+                                                   name="starter_service_meta[{{ $token }}][women][duration_minutes]"
+                                                   value="{{ $oldWomenDuration }}"
+                                                   placeholder="Women time (min)"
+                                                   class="form-input text-xs w-full settings-service-meta-input"
+                                                   {{ $checked ? 'required' : 'disabled' }}>
+                                            <input type="number"
+                                                   min="0.01"
+                                                   step="0.01"
+                                                   name="starter_service_meta[{{ $token }}][women][price]"
+                                                   value="{{ $oldWomenPrice }}"
+                                                   placeholder="Women price"
+                                                   class="form-input text-xs w-full settings-service-meta-input"
+                                                   {{ $checked ? 'required' : 'disabled' }}>
+                                        </span>
+                                    @else
+                                        <span class="settings-service-meta-grid grid grid-cols-2 gap-2 w-full max-w-md {{ $checked ? '' : 'hidden' }}">
+                                            <input type="number"
+                                                   min="1"
+                                                   step="1"
+                                                   name="starter_service_meta[{{ $token }}][duration_minutes]"
+                                                   value="{{ $oldDuration }}"
+                                                   placeholder="Time (min)"
+                                                   class="form-input text-xs w-full settings-service-meta-input"
+                                                   {{ $checked ? 'required' : 'disabled' }}>
+                                            <input type="number"
+                                                   min="0.01"
+                                                   step="0.01"
+                                                   name="starter_service_meta[{{ $token }}][price]"
+                                                   value="{{ $oldPrice }}"
+                                                   placeholder="Price"
+                                                   class="form-input text-xs w-full settings-service-meta-input"
+                                                   {{ $checked ? 'required' : 'disabled' }}>
+                                        </span>
+                                    @endif
+                                </label>
+                            @endforeach
+                        @endforeach
+                    </div>
+                    @error('starter_services')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @error('starter_service_meta')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                @if(empty($selectedBusinessTypeSlugs))
+                    <p class="text-xs text-amber-600">Select at least one business type in the Business tab first.</p>
+                @endif
+                <button type="submit" class="btn-primary">Save Service Setup</button>
             </form>
         </div>
     </div>
@@ -647,62 +771,191 @@
 
 <script>
 (function () {
-    function syncSettingsStarterBlocks() {
-        var checked = Array.prototype.slice.call(document.querySelectorAll('input[name="business_type_ids[]"]:checked'));
-        var slugs = {};
-        checked.forEach(function (el) {
-            var slug = el.getAttribute('data-bt-slug');
-            if (slug) {
-                slugs[slug] = true;
+    var input = document.getElementById('settings-custom-business-type-input');
+    var addBtn = document.getElementById('settings-add-custom-business-type-btn');
+    var list = document.getElementById('settings-custom-business-type-list');
+    var typeList = document.getElementById('settings-business-types-list');
+    if (!input || !addBtn || !list || !typeList) return;
+
+    function hasValue(value) {
+        var wanted = value.trim().toLowerCase();
+        var exists = false;
+        list.querySelectorAll('input[name="custom_business_types[]"]').forEach(function (el) {
+            if (String(el.value || '').trim().toLowerCase() === wanted) {
+                exists = true;
             }
+        });
+        return exists;
+    }
+
+    function hasRenderedCustomCheckbox(value) {
+        var wanted = value.trim().toLowerCase();
+        var exists = false;
+        typeList.querySelectorAll('label[data-custom-draft="1"], label[data-custom-existing="1"]').forEach(function (label) {
+            var nameNode = label.querySelector('.settings-business-type-name');
+            var txt = nameNode ? nameNode.textContent : label.textContent;
+            if (String(txt || '').trim().toLowerCase() === wanted) {
+                exists = true;
+            }
+        });
+        return exists;
+    }
+
+    function slugify(value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/&/g, 'and')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+    }
+
+    function addImmediateCheckedCustomCheckbox(value) {
+        if (hasRenderedCustomCheckbox(value)) return;
+
+        var baseSlug = slugify(value) || 'custom-type';
+        var slug = baseSlug;
+        var n = 1;
+        while (typeList.querySelector('input[name="business_type_ids[]"][data-bt-slug="' + slug + '"]')) {
+            slug = baseSlug + '-' + n;
+            n++;
+        }
+
+        var label = document.createElement('label');
+        label.className = 'inline-flex items-center gap-2 text-sm text-body cursor-pointer';
+        label.setAttribute('data-custom-draft', '1');
+        label.innerHTML =
+            '<input type="checkbox" checked disabled class="rounded border-gray-300 text-velour-600 opacity-70 cursor-not-allowed">' +
+            '<span class="settings-business-type-name"></span>' +
+            '<span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-velour-100 dark:bg-velour-900/30 text-velour-600 dark:text-velour-300">new</span>';
+        label.querySelector('.settings-business-type-name').textContent = value;
+        typeList.appendChild(label);
+    }
+
+    function addCustomType(raw) {
+        var value = String(raw || '').trim();
+        if (!value || hasValue(value)) return;
+
+        var pill = document.createElement('span');
+        pill.className = 'settings-custom-business-pill inline-flex items-center gap-2 rounded-full bg-velour-100/80 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 px-3 py-1 text-xs';
+        pill.innerHTML = '<span></span><button type="button" class="settings-custom-business-remove leading-none">x</button><input type="hidden" name="custom_business_types[]" />';
+        pill.querySelector('span').textContent = value;
+        pill.querySelector('input[name="custom_business_types[]"]').value = value;
+        list.appendChild(pill);
+        addImmediateCheckedCustomCheckbox(value);
+    }
+
+    addBtn.addEventListener('click', function () {
+        addCustomType(input.value);
+        input.value = '';
+        input.focus();
+    });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addBtn.click();
+        }
+    });
+
+    list.addEventListener('click', function (e) {
+        var btn = e.target.closest('.settings-custom-business-remove');
+        if (!btn) return;
+        var pill = btn.closest('.settings-custom-business-pill');
+        if (!pill) return;
+        var hidden = pill.querySelector('input[name="custom_business_types[]"]');
+        var value = hidden ? String(hidden.value || '').trim().toLowerCase() : '';
+        pill.remove();
+
+        if (value) {
+            typeList.querySelectorAll('label[data-custom-draft="1"]').forEach(function (label) {
+                var nameNode = label.querySelector('.settings-business-type-name');
+                var txt = nameNode ? nameNode.textContent : '';
+                if (String(txt || '').trim().toLowerCase() === value) {
+                    label.remove();
+                }
+            });
+        }
+    });
+})();
+
+(function () {
+    function syncServiceSetupVisibility() {
+        var selectedSlugs = {};
+        var selectedCategoryIds = {};
+        var selectedCountBySlug = {};
+
+        document.querySelectorAll('#settings-business-types-list input[name="business_type_ids[]"]:checked').forEach(function (el) {
+            var slug = el.getAttribute('data-bt-slug');
+            if (slug) selectedSlugs[slug] = true;
         });
 
         var anyCategoryVisible = false;
-        var selectedCategoryIds = {};
-        var selectedBySlug = {};
-        document.querySelectorAll('.settings-starter-category').forEach(function (el) {
+        document.querySelectorAll('.settings-service-category-option').forEach(function (el) {
             var slug = el.getAttribute('data-bt-slug');
-            var show = slug && slugs[slug];
+            var show = !!(slug && selectedSlugs[slug]);
             el.classList.toggle('hidden', !show);
             if (show) anyCategoryVisible = true;
+
             var chk = el.querySelector('input[type="checkbox"]');
-            if (chk) {
-                if (!show) chk.checked = false;
-                if (show && chk.checked) {
-                    var catId = el.getAttribute('data-cat-id');
-                    selectedCategoryIds[catId] = true;
-                    selectedBySlug[slug] = (selectedBySlug[slug] || 0) + 1;
-                }
+            if (!chk) return;
+            if (!show) chk.checked = false;
+            if (show && chk.checked) {
+                var catId = el.getAttribute('data-cat-id');
+                selectedCategoryIds[catId] = true;
+                selectedCountBySlug[slug] = (selectedCountBySlug[slug] || 0) + 1;
             }
         });
-
-        var categoriesBlock = document.getElementById('settings-starter-categories-block');
-        if (categoriesBlock) categoriesBlock.classList.toggle('hidden', !anyCategoryVisible);
 
         var anyServiceVisible = false;
-        document.querySelectorAll('.settings-starter-service').forEach(function (el) {
+        document.querySelectorAll('.settings-service-offer-option').forEach(function (el) {
             var slug = el.getAttribute('data-bt-slug');
             var catId = el.getAttribute('data-cat-id');
-            var show = !!(slug && slugs[slug]);
+            var show = !!(slug && selectedSlugs[slug]);
+
+            // Show services only when at least one category is selected for that slug.
             if (show) {
-                var filterByCat = (selectedBySlug[slug] || 0) > 0;
-                if (filterByCat) show = !!selectedCategoryIds[catId];
+                if ((selectedCountBySlug[slug] || 0) > 0) {
+                    show = !!selectedCategoryIds[catId];
+                } else {
+                    show = false;
+                }
             }
+
             el.classList.toggle('hidden', !show);
             if (show) anyServiceVisible = true;
+
             var chk = el.querySelector('input[type="checkbox"]');
+            var meta = el.querySelector('.settings-service-meta-grid');
+            var metaInputs = el.querySelectorAll('.settings-service-meta-input');
             if (!show && chk) chk.checked = false;
+
+            var checkedAndVisible = !!(show && chk && chk.checked);
+            if (meta) meta.classList.toggle('hidden', !checkedAndVisible);
+            metaInputs.forEach(function (inp) {
+                inp.disabled = !checkedAndVisible;
+                inp.required = checkedAndVisible;
+            });
         });
-        var servicesBlock = document.getElementById('settings-starter-services-block');
-        if (servicesBlock) servicesBlock.classList.toggle('hidden', !anyServiceVisible);
+
+        var categoriesWrap = document.getElementById('settings-service-categories-list');
+        if (categoriesWrap) categoriesWrap.classList.toggle('opacity-50', !anyCategoryVisible);
+
+        var servicesWrap = document.getElementById('settings-service-offers-list');
+        if (servicesWrap) servicesWrap.classList.toggle('opacity-50', !anyServiceVisible);
     }
 
     document.addEventListener('change', function (e) {
-        if (e.target && (e.target.matches('input[name="business_type_ids[]"]') || e.target.closest('.settings-starter-category'))) {
-            syncSettingsStarterBlocks();
+        if (!e.target) return;
+        if (
+            e.target.matches('#settings-business-types-list input[name="business_type_ids[]"]') ||
+            e.target.closest('.settings-service-category-option') ||
+            e.target.classList.contains('settings-service-checkbox')
+        ) {
+            syncServiceSetupVisibility();
         }
     });
-    document.addEventListener('DOMContentLoaded', syncSettingsStarterBlocks);
+    document.addEventListener('DOMContentLoaded', syncServiceSetupVisibility);
 })();
 
 (function () {

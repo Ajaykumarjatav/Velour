@@ -65,7 +65,7 @@ class AuthController extends Controller
         if ($salon) {
             $completion = ProfileCompletion::forSalon($salon);
             if ($completion['percentage'] < 100) {
-                return redirect()->route('settings.index', ['tab' => 'salon']);
+                return redirect()->route('settings.index', ['tab' => 'services']);
             }
         }
 
