@@ -150,8 +150,14 @@
             Reviews
         </a>
 
+        @php
+            $isAnalyticsActive = request()->routeIs('reports.analytics');
+            $isReportsMenuActive = request()->routeIs('reports.index')
+                || request()->routeIs('reports.show')
+                || request()->routeIs('revenue.index');
+        @endphp
         <a href="{{ route('reports.analytics') }}"
-           class="sidebar-link {{ request()->routeIs('reports.analytics') ? 'active' : '' }}">
+           class="sidebar-link {{ $isAnalyticsActive ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12v7m7-12v12m7-9v9"/>
             </svg>
@@ -159,7 +165,7 @@
         </a>
 
         {{-- Reports sub-menu --}}
-        @php $reportsOpen = request()->routeIs('reports.*'); @endphp
+        @php $reportsOpen = $isReportsMenuActive; @endphp
         <div x-data="{ open: {{ $reportsOpen ? 'true' : 'false' }} }">
             <button @click="open = !open"
                     class="sidebar-link w-full {{ $reportsOpen ? 'active' : '' }}">

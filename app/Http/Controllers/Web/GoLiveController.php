@@ -131,6 +131,50 @@ class GoLiveController extends Controller
         ]);
     }
 
+    public function uploadLogo(Request $request)
+    {
+        $salon = $this->getSalon();
+
+        $request->validate([
+            'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
+        ]);
+
+        if ($salon->logo && str_starts_with($salon->logo, 'salons/')) {
+            Storage::disk('public')->delete($salon->logo);
+        }
+
+        $path = $request->file('logo')->store("salons/{$salon->id}/branding", 'public');
+        $salon->update(['logo' => $path]);
+
+        return back()->with('success', 'Logo uploaded successfully.');
+    }
+
+    public function updateSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $salon = $this->getSalon();
+
+        $data = $request->validate([
+            'online_booking_enabled'     => ['nullable', 'boolean'],
+            'new_client_booking_enabled' => ['nullable', 'boolean'],
+            'deposit_required'           => ['nullable', 'boolean'],
+            'deposit_percentage'         => ['nullable', 'numeric', 'min:1', 'max:100'],
+            'instant_confirmation'       => ['nullable', 'boolean'],
+            'booking_advance_days'       => ['nullable', 'integer', 'min:1', 'max:365'],
+            'cancellation_hours'         => ['nullable', 'integer', 'min:0', 'max:168'],
+        ]);
+
+        $changes = array_filter($data, fn ($value) => ! is_null($value));
+        if ($changes !== []) {
+            $salon->update($changes);
+            Cache::forget("share:checklist:{$salon->id}");
+        }
+
+        return response()->json([
+            'ok' => true,
+            'salon' => $salon->fresh(),
+        ]);
+    }
+
     public function deletePhoto(Request $request, int $photoId): \Illuminate\Http\JsonResponse
     {
         $salon = $this->getSalon();
@@ -159,7 +203,7 @@ class GoLiveController extends Controller
             ['key' => 'hours',    'label' => 'Opening hours set',       'done' => ! empty($salon->opening_hours), 'priority' => 'high', 'link' => route('settings.index'), 'tip' => 'Without hours, no booking slots appear.'],
             ['key' => 'services', 'label' => 'Bookable service added',  'done' => Service::where('salon_id', $salonId)->where('status', 'active')->where('online_bookable', true)->exists(), 'priority' => 'high', 'link' => route('services.index'), 'tip' => 'Enable online booking on at least one service.'],
             ['key' => 'staff',    'label' => 'Staff bookable online',   'done' => Staff::where('salon_id', $salonId)->where('is_active', true)->where('bookable_online', true)->exists(),    'priority' => 'high', 'link' => route('staff.index'),    'tip' => 'Toggle bookable online in each staff profile.'],
-            ['key' => 'logo',     'label' => 'Logo uploaded',           'done' => (bool) $salon->logo,          'priority' => 'medium', 'link' => route('settings.index'), 'tip' => 'Makes your booking page look professional.'],
+            ['key' => 'logo',     'label' => 'Logo uploaded',           'done' => (bool) $salon->logo,          'priority' => 'medium', 'link' => route('go-live') . '#logo-upload', 'tip' => 'Makes your booking page look professional.'],
             ['key' => 'desc',     'label' => 'Salon description added', 'done' => (bool) $salon->description,   'priority' => 'medium', 'link' => route('settings.index'), 'tip' => 'Helps new clients choose your salon.'],
             ['key' => 'stripe',   'label' => 'Stripe payments linked',  'done' => (bool) $salon->stripe_account_id, 'priority' => 'low', 'link' => route('settings.index'), 'tip' => 'Required to take deposits or online payments.'],
         ];

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BusinessType;
 use App\Models\Service;
 use App\Models\Staff;
+use App\Models\User;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
@@ -61,7 +62,10 @@ class SettingsController extends Controller
         $selectedStarterServices = $this->selectedStarterServiceKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $selectedStarterServiceMeta = $this->selectedStarterServiceMetaForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $existingTeamMembers = $salon->staff()
-            ->whereNull('user_id')
+            ->where(function ($q) use ($salon) {
+                $q->whereNull('user_id')
+                    ->orWhere('user_id', '!=', (int) $salon->owner_id);
+            })
             ->orderBy('sort_order')
             ->get();
 
@@ -537,8 +541,11 @@ class SettingsController extends Controller
             $staff = null;
             $id = isset($row['id']) ? (int) $row['id'] : 0;
             if ($id > 0) {
-                $staff = $salon->staff()->whereNull('user_id')->where('id', $id)->first();
+                $staff = $salon->staff()->where('id', $id)->first();
             }
+
+            $roleName = $this->mapStaffRoleToLoginRole((string) $row['role']);
+            $linkedUser = $this->resolveOrCreateStaffUser($salon->id, $first, $last, $row, $roleName);
 
             if ($staff) {
                 $staff->update([
@@ -550,6 +557,7 @@ class SettingsController extends Controller
                     'bio' => $this->optionalString($row['bio'] ?? null),
                     'experience' => $this->optionalString($row['experience'] ?? null),
                     'language_proficiency' => $this->optionalString($row['language_proficiency'] ?? null),
+                    'user_id' => $linkedUser?->id,
                     'color' => $color,
                     'commission_rate' => $commission,
                     'initials' => $initials,
@@ -559,7 +567,7 @@ class SettingsController extends Controller
             } else {
                 $staff = Staff::create([
                     'salon_id' => $salon->id,
-                    'user_id' => null,
+                    'user_id' => $linkedUser?->id,
                     'first_name' => $first,
                     'last_name' => $last,
                     'email' => $this->optionalString($row['email'] ?? null),
@@ -585,11 +593,20 @@ class SettingsController extends Controller
             $keptIds[] = (int) $staff->id;
         }
 
-        $salon->staff()
-            ->whereNull('user_id')
+        $toDelete = $salon->staff()
+            ->where(function ($q) use ($salon) {
+                $q->whereNull('user_id')
+                    ->orWhere('user_id', '!=', (int) $salon->owner_id);
+            })
             ->when($keptIds !== [], fn ($q) => $q->whereNotIn('id', $keptIds))
-            ->when($keptIds === [], fn ($q) => $q)
-            ->delete();
+            ->get();
+
+        foreach ($toDelete as $member) {
+            if ($member->user_id) {
+                User::query()->where('id', (int) $member->user_id)->update(['is_active' => false]);
+            }
+            $member->delete();
+        }
     }
 
     /**
@@ -747,6 +764,54 @@ class SettingsController extends Controller
         }
 
         return $meta;
+    }
+
+    private function mapStaffRoleToLoginRole(string $staffRole): string
+    {
+        return match (strtolower(trim($staffRole))) {
+            'owner' => 'tenant_admin',
+            'manager' => 'manager',
+            'receptionist' => 'receptionist',
+            default => 'stylist',
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveOrCreateStaffUser(int $salonId, string $firstName, string $lastName, array $row, string $roleName): ?User
+    {
+        $email = $this->optionalString($row['email'] ?? null);
+        if ($email === null) {
+            return null;
+        }
+
+        $user = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->first();
+        if (! $user) {
+            $displayName = trim($firstName . ' ' . $lastName);
+            if ($displayName === '') {
+                $displayName = $email;
+            }
+            $user = User::query()->create([
+                'name' => $displayName,
+                'email' => $email,
+                'password' => Hash::make(Str::random(24)),
+                'is_active' => true,
+                'timezone' => null,
+                'locale' => null,
+            ]);
+        }
+
+        $staffProfile = Staff::withoutGlobalScopes()->where('user_id', $user->id)->first();
+        if ($staffProfile && (int) $staffProfile->salon_id !== $salonId) {
+            throw ValidationException::withMessages([
+                'staff_members' => ['A team member email is already linked to another business. Use a different email.'],
+            ]);
+        }
+
+        $user->syncRoles([$roleName]);
+
+        return $user;
     }
 
     private function optionalString(mixed $value): ?string

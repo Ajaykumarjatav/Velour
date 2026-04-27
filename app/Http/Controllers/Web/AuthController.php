@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Jobs\OnboardNewTenant;
 use App\Models\Salon;
+use App\Models\Staff;
 use App\Models\User;
 use App\Support\ProfileCompletion;
 use Illuminate\Auth\Events\Registered;
@@ -56,9 +57,25 @@ class AuthController extends Controller
             return redirect()->route('two-factor.challenge');
         }
 
+        if ($user->force_password_change) {
+            return redirect()->route('password.force.show');
+        }
+
         // Super-admins don't operate within a tenant; send them to the admin area
         if ($user->system_role === 'super_admin') {
             return redirect()->intended(route('admin.dashboard'));
+        }
+
+        // Self-heal: invited staff can end up with a soft-deleted staff row.
+        if (! $user->salons()->exists() && ! $user->staffProfile()->exists()) {
+            $staff = Staff::withoutGlobalScopes()
+                ->where('user_id', $user->id)
+                ->orderByDesc('id')
+                ->first();
+            if ($staff && $staff->deleted_at !== null) {
+                $staff->restore();
+                $staff->update(['is_active' => true]);
+            }
         }
 
         $salon = $user->salons()->orderBy('id')->first();
@@ -70,6 +87,26 @@ class AuthController extends Controller
         }
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    public function showForcePassword()
+    {
+        return view('auth.force-password');
+    }
+
+    public function forcePasswordUpdate(Request $request)
+    {
+        $user = Auth::user();
+        $data = $request->validate([
+            'password' => ['required', 'min:8', 'confirmed'],
+        ]);
+
+        $user->update([
+            'password' => Hash::make($data['password']),
+            'force_password_change' => false,
+        ]);
+
+        return redirect()->intended(route('dashboard'))->with('success', 'Password changed successfully.');
     }
 
     // ── Register ──────────────────────────────────────────────────────────────

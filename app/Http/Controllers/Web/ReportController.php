@@ -485,25 +485,51 @@ class ReportController extends Controller
 
     private function clientsReport($salon, $from, $to): array
     {
+        $rangeStart = $from . ' 00:00:00';
+        $rangeEnd = $to . ' 23:59:59';
+
         $newClients = Client::where('salon_id', $salon->id)
-            ->whereBetween('created_at', [$from, $to . ' 23:59:59'])
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
             ->count();
 
         $returningClients = Client::where('salon_id', $salon->id)
             ->whereHas('appointments', fn($q) =>
-                $q->whereBetween('starts_at', [$from, $to . ' 23:59:59'])->where('status', 'completed')
+                $q->whereBetween('starts_at', [$rangeStart, $rangeEnd])->where('status', 'completed')
             )
             ->where('created_at', '<', $from)
             ->count();
 
         $topClients = Client::where('salon_id', $salon->id)
             ->withSum(['transactions as total_spent' => fn($q) =>
-                $q->where('status', 'completed')->whereBetween('created_at', [$from, $to . ' 23:59:59'])
+                $q->where('status', 'completed')->whereBetween('created_at', [$rangeStart, $rangeEnd])
             ], 'total')
-            ->having('total_spent', '>', 0)
+            ->withCount(['appointments as appointment_count' => fn($q) =>
+                $q->whereBetween('starts_at', [$rangeStart, $rangeEnd])
+                    ->where('status', 'completed')
+            ])
+            ->where(function ($q) use ($rangeStart, $rangeEnd) {
+                $q->whereBetween('created_at', [$rangeStart, $rangeEnd])
+                    ->orWhereHas('appointments', fn ($aq) =>
+                        $aq->whereBetween('starts_at', [$rangeStart, $rangeEnd])
+                            ->where('status', 'completed')
+                    );
+            })
             ->orderByDesc('total_spent')
+            ->orderByDesc('appointment_count')
+            ->orderBy('first_name')
             ->limit(10)
             ->get();
+
+        if ($topClients->isEmpty()) {
+            $topClients = Client::where('salon_id', $salon->id)
+                ->withSum(['transactions as total_spent' => fn($q) => $q->where('status', 'completed')], 'total')
+                ->withCount(['appointments as appointment_count' => fn($q) => $q->where('status', 'completed')])
+                ->orderByDesc('total_spent')
+                ->orderByDesc('appointment_count')
+                ->orderBy('first_name')
+                ->limit(10)
+                ->get();
+        }
 
         return compact('newClients', 'returningClients', 'topClients');
     }

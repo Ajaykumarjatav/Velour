@@ -2,7 +2,10 @@
 
 namespace App\Multitenancy\TenantFinder;
 
+use App\Models\Staff;
 use App\Models\Tenant;
+use App\Models\User;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Multitenancy\Contracts\IsTenant;
@@ -29,21 +32,42 @@ class DomainOrSubdomainTenantFinder extends TenantFinder
     {
         // Tenant is resolved from the logged-in user (owner or staff member).
         if (Auth::check()) {
-            $user = Auth::user();
+            return $this->resolveTenantForUser(Auth::user());
+        }
 
-            // If the user is a salon owner, use their first salon.
-            if ($user->salons()->exists()) {
-                $salon = $user->salons()->first();
-                return Tenant::query()->withoutGlobalScopes()->find($salon->id);
-            }
-
-            // If the user is a staff member, use their assigned salon.
-            if ($user->staffProfile?->salon_id) {
-                return Tenant::query()->withoutGlobalScopes()->find($user->staffProfile->salon_id);
+        // Fallback: during some requests this finder can run before Auth::check()
+        // is hydrated; read the session guard key directly.
+        if ($request->hasSession()) {
+            $guard = config('auth.defaults.guard', 'web');
+            $sessionUserKey = 'login_' . $guard . '_' . sha1(SessionGuard::class);
+            $userId = (int) ($request->session()->get($sessionUserKey) ?? 0);
+            if ($userId > 0) {
+                $user = User::query()->find($userId);
+                if ($user) {
+                    return $this->resolveTenantForUser($user);
+                }
             }
         }
 
         // No authenticated user or no associated tenant.
+        return null;
+    }
+
+    private function resolveTenantForUser(User $user): ?IsTenant
+    {
+        if ($user->salons()->exists()) {
+            $salon = $user->salons()->first();
+            return Tenant::query()->withoutGlobalScopes()->find($salon->id);
+        }
+
+        $staffSalonId = Staff::withoutGlobalScopes()
+            ->where('user_id', $user->id)
+            ->whereNull('deleted_at')
+            ->value('salon_id');
+        if ($staffSalonId) {
+            return Tenant::query()->withoutGlobalScopes()->find($staffSalonId);
+        }
+
         return null;
     }
 

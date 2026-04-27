@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Staff;
+use App\Notifications\StaffInviteCredentialsNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -65,32 +66,77 @@ class TenantAdminController extends Controller
 
         $salon = $this->currentSalon();
 
-        // Create the user account
-        $password = Str::random(12);
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($password),
-            'is_active'=> true,
-        ]);
+        $email = mb_strtolower(trim((string) $request->email));
+        $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+        $temporaryPassword = null;
+        $createdNow = false;
+
+        if (! $user) {
+            // New login: generate one-time password and force password change on first login.
+            $temporaryPassword = Str::password(12);
+            $user = User::create([
+                'name'                  => $request->name,
+                'email'                 => $email,
+                'password'              => Hash::make($temporaryPassword),
+                'is_active'             => true,
+                'email_verified_at'     => now(),
+                'force_password_change' => true,
+            ]);
+            $createdNow = true;
+        } else {
+            $user->update([
+                'name' => $request->name ?: $user->name,
+                'is_active' => true,
+            ]);
+        }
 
         // Assign Spatie role
         $user->assignRole($request->role);
 
-        // Create staff profile
-        Staff::withoutGlobalScopes()->create([
-            'salon_id'   => $salon->id,
-            'user_id'    => $user->id,
-            'first_name' => explode(' ', $request->name)[0],
-            'last_name'  => explode(' ', $request->name, 2)[1] ?? '',
-            'email'      => $request->email,
-            'is_active'  => true,
-        ]);
+        // Create or update staff profile linked to this login.
+        // Important: include soft-deleted rows and restore when re-inviting.
+        $staff = Staff::withoutGlobalScopes()
+            ->where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->first();
 
-        // Send invitation email
-        $user->sendEmailVerificationNotification();
+        if ($staff && (int) $staff->salon_id !== (int) $salon->id && $staff->deleted_at === null) {
+            return back()->withErrors(['email' => 'This email is already linked to staff in another business.']);
+        }
 
-        return back()->with('success', "Invitation sent to {$request->email}.");
+        $firstName = explode(' ', (string) $request->name)[0];
+        $lastName = explode(' ', (string) $request->name, 2)[1] ?? '';
+        if ($staff) {
+            $staff->update([
+                'salon_id' => $salon->id,
+                'user_id' => $user->id,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $email,
+                'is_active' => true,
+            ]);
+            if ($staff->deleted_at !== null) {
+                $staff->restore();
+            }
+        } else {
+            Staff::withoutGlobalScopes()->create([
+                'salon_id'   => $salon->id,
+                'user_id'    => $user->id,
+                'first_name' => $firstName,
+                'last_name'  => $lastName,
+                'email'      => $email,
+                'is_active'  => true,
+            ]);
+        }
+
+        // Send invite/login details email.
+        $user->notify(new StaffInviteCredentialsNotification($salon->name, $temporaryPassword));
+
+        if ($createdNow) {
+            return back()->with('success', "Invitation sent to {$email} with one-time login credentials.");
+        }
+
+        return back()->with('success', "Existing user {$email} was linked to staff and notified.");
     }
 
     public function updateMemberRole(Request $request, int $userId)
@@ -127,6 +173,9 @@ class TenantAdminController extends Controller
             ->where('salon_id', $salon->id)
             ->where('user_id', $userId)
             ->delete();
+
+        // Disable login for removed member to avoid orphaned access.
+        User::query()->where('id', $userId)->update(['is_active' => false]);
 
         return back()->with('success', 'Team member removed.');
     }

@@ -64,8 +64,8 @@
         @else
         <span class="text-xs text-muted">Read</span>
         @endif
-        @if($notification->action_url)
-        <a href="{{ $notification->action_url }}" class="btn-secondary btn-sm whitespace-nowrap">{{ data_get($notification->data, 'action_label', 'View') }}</a>
+        @if($notification->resolved_action_url)
+        <a href="{{ $notification->resolved_action_url }}" class="btn-secondary btn-sm whitespace-nowrap">{{ data_get($notification->data, 'action_label', 'View') }}</a>
         @endif
       </div>
     </div>

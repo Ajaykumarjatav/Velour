@@ -64,6 +64,11 @@ Route::post('logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
+Route::middleware('auth')->group(function () {
+    Route::get('force-password-change', [AuthController::class, 'showForcePassword'])->name('password.force.show');
+    Route::post('force-password-change', [AuthController::class, 'forcePasswordUpdate'])->name('password.force.update');
+});
+
 // ── Email Verification ────────────────────────────────────────────────────────
 
 Route::middleware('auth')->group(function () {
@@ -89,7 +94,7 @@ Route::middleware('auth')->prefix('two-factor')->name('two-factor.')->group(func
 
 // ── Authenticated + Verified + 2FA Passed ─────────────────────────────────────
 
-Route::middleware(['auth', 'verified', '2fa'])->group(function () {
+Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(function () {
 
     // ── 2FA Settings (within authenticated session) ─────────────────────────
     Route::prefix('settings/two-factor')->name('two-factor.')->group(function () {
@@ -231,6 +236,8 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
 
         // Go Live & Share
         Route::get('go-live', [\App\Http\Controllers\Web\GoLiveController::class, 'index'])->name('go-live');
+        Route::post('go-live/logo', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadLogo'])->name('go-live.logo.upload');
+        Route::post('go-live/settings', [\App\Http\Controllers\Web\GoLiveController::class, 'updateSettings'])->name('go-live.settings.update');
         Route::post('go-live/photos', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadPhoto'])->name('go-live.photos.upload');
         Route::delete('go-live/photos/{photo}', [\App\Http\Controllers\Web\GoLiveController::class, 'deletePhoto'])->name('go-live.photos.delete');
         Route::get('website-seo', [WebsiteSeoController::class, 'index'])->name('website-seo.index');
@@ -291,7 +298,7 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
 //    ->middleware('subscription:pro')     → pro or enterprise only
 //    ->middleware('subscription:feature:marketing') → feature flag
 
-Route::middleware(['auth', 'verified', '2fa', 'subscriptions.enabled'])
+Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'subscriptions.enabled'])
     ->prefix('billing')
     ->name('billing.')
     ->group(function () {
@@ -329,7 +336,7 @@ use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSupportController;
 use App\Http\Controllers\Admin\AdminAnalyticsController;
 
-Route::middleware(['auth', 'verified', '2fa', 'super_admin'])
+Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {

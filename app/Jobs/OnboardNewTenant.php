@@ -68,14 +68,14 @@ class OnboardNewTenant implements ShouldQueue, NotTenantAware
                 'type'       => 'onboarding',
                 'title'      => '👋 Welcome to Velour!',
                 'body'       => 'Your salon is set up and ready. Start by adding your services and staff.',
-                'action_url' => '/services',
+                'action_url' => '/settings?tab=services',
                 'data'       => ['action_label' => 'Add Services'],
             ],
             [
                 'type'       => 'onboarding',
                 'title'      => '📅 Set your opening hours',
                 'body'       => 'Update your salon hours so clients know when to book.',
-                'action_url' => '/settings/hours',
+                'action_url' => '/settings?tab=hours',
                 'data'       => ['action_label' => 'Set Hours'],
             ],
             [

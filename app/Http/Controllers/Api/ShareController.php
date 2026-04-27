@@ -276,7 +276,7 @@ class ShareController extends Controller
             ['key' => 'hours',     'label' => 'Opening hours configured',       'done' => $hasHours,    'link' => route('settings.index'), 'priority' => 'high'],
             ['key' => 'services',  'label' => 'At least one bookable service',  'done' => $hasServices, 'link' => route('services.index'), 'priority' => 'high'],
             ['key' => 'staff',     'label' => 'Staff member bookable online',   'done' => $hasStaff,    'link' => route('staff.index'),    'priority' => 'high'],
-            ['key' => 'logo',      'label' => 'Logo uploaded',                  'done' => $hasLogo,     'link' => route('settings.index'), 'priority' => 'medium'],
+            ['key' => 'logo',      'label' => 'Logo uploaded',                  'done' => $hasLogo,     'link' => route('go-live') . '#logo-upload', 'priority' => 'medium'],
             ['key' => 'desc',      'label' => 'Salon description written',      'done' => $hasDesc,     'link' => route('settings.index'), 'priority' => 'medium'],
             ['key' => 'stripe',    'label' => 'Stripe payments connected',      'done' => $hasStripe,   'link' => route('settings.index'), 'priority' => 'low'],
         ];
@@ -330,7 +330,7 @@ class ShareController extends Controller
     public function trackClick(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'platform' => 'required|string|max:40|in:whatsapp,instagram,facebook,google,tiktok,email,copy_link,qr_download,embed',
+            'platform' => 'required|string|max:40|in:whatsapp,instagram,facebook,google,tiktok,email,twitter,youtube,linkedin,pinterest,copy_link,qr_download,embed',
         ]);
 
         $salonId = (int) $request->attributes->get('salon_id');

@@ -133,6 +133,84 @@
     </ul>
   </div>
 
+  {{-- ── SALON LOGO ─────────────────────────────────────────────────────── --}}
+  <div id="logo-upload" x-data="logoUploader()" class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🏷️</span>
+        <div>
+          <h2 class="font-semibold text-gray-800 dark:text-white">Salon Logo</h2>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Upload a logo for your booking page and brand identity</p>
+        </div>
+      </div>
+      @if($salon->logo)
+      <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400">Uploaded</span>
+      @endif
+    </div>
+    <form action="{{ route('go-live.logo.upload') }}" method="POST" enctype="multipart/form-data" class="p-6 grid sm:grid-cols-[120px_1fr] gap-5 items-start">
+      @csrf
+      <div class="w-36">
+        <div class="w-36 h-36 rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 overflow-hidden relative">
+          <img
+            x-show="previewUrl"
+            :src="previewUrl"
+            alt="{{ $salon->name }} logo preview"
+            class="w-full h-full object-cover"
+            :style="frameStyle()"
+            x-cloak
+          >
+          <div x-show="previewUrl" x-cloak class="absolute inset-0 border-2 border-dashed border-white/70 pointer-events-none"></div>
+          <div x-show="!previewUrl" class="w-full h-full flex items-center justify-center">
+          @if($salon->logo)
+            <img src="{{ asset('storage/' . $salon->logo) }}" alt="{{ $salon->name }} logo" class="w-full h-full object-contain p-2">
+          @else
+            <span class="text-3xl">🖼️</span>
+          @endif
+          </div>
+        </div>
+        <div x-show="previewUrl" x-cloak class="mt-2 space-y-1.5">
+          <div>
+            <label class="text-[11px] text-gray-400 dark:text-gray-500">Zoom</label>
+            <input type="range" min="1" max="2.5" step="0.05" x-model.number="zoom" class="w-full">
+          </div>
+          <div>
+            <label class="text-[11px] text-gray-400 dark:text-gray-500">Left / Right</label>
+            <input type="range" min="-40" max="40" step="1" x-model.number="offsetX" class="w-full">
+          </div>
+          <div>
+            <label class="text-[11px] text-gray-400 dark:text-gray-500">Up / Down</label>
+            <input type="range" min="-40" max="40" step="1" x-model.number="offsetY" class="w-full">
+          </div>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <input
+          type="file"
+          name="logo"
+          accept="image/jpeg,image/png,image/webp,image/svg+xml"
+          class="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 cursor-pointer"
+          required
+          @change="onFileChange($event)"
+        >
+        <div class="text-xs text-gray-400 dark:text-gray-500 space-y-1">
+          <p>Recommended logo size: <span class="font-semibold text-gray-500 dark:text-gray-300">512 x 512 px</span> (minimum 256 x 256).</p>
+          <p>Allowed: JPG, PNG, WebP, SVG. Max size 4MB.</p>
+        </div>
+        <template x-if="selectedMeta">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-300">
+            Selected: <span x-text="selectedMeta.name"></span> —
+            <span x-text="selectedMeta.width + ' x ' + selectedMeta.height + ' px'"></span>
+          </p>
+        </template>
+        <p x-show="sizeHint" x-text="sizeHint" class="text-xs text-amber-600 dark:text-amber-400 font-medium" x-cloak></p>
+        @error('logo')
+          <p class="text-xs text-red-500 dark:text-red-400 font-medium">{{ $message }}</p>
+        @enderror
+        <button type="submit" class="btn-primary">Upload Logo</button>
+      </div>
+    </form>
+  </div>
+
   {{-- ── TOP KPI CARDS ───────────────────────────────────────────────────── --}}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
@@ -327,7 +405,7 @@
           <span class="text-xs text-gray-400 dark:text-gray-500">Click counts this month</span>
         </div>
         <div class="p-6">
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
 
             <template x-for="channel in shareChannels" :key="channel.id">
               <a
@@ -769,6 +847,54 @@ function goLivePage() {
           return `mailto:?subject=${sub}&body=${body}`;
         }
       },
+      {
+        id: 'youtube',
+        label: 'YouTube',
+        icon: '▶️',
+        bg: '#eff6ff',
+        border: '#bfdbfe',
+        color: '#1d4ed8',
+        get href() {
+          const profile = (_serverData.socialLinks || {}).youtube;
+          return profile || 'https://youtube.com/';
+        }
+      },
+      {
+        id: 'linkedin',
+        label: 'LinkedIn',
+        icon: '💼',
+        bg: '#f1f5f9',
+        border: '#cbd5e1',
+        color: '#0f172a',
+        get href() {
+          const profile = (_serverData.socialLinks || {}).linkedin;
+          return profile || 'https://linkedin.com/';
+        }
+      },
+      {
+        id: 'twitter',
+        label: 'X / Twitter',
+        icon: '🐦',
+        bg: '#f8fafc',
+        border: '#cbd5e1',
+        color: '#334155',
+        get href() {
+          const profile = (_serverData.socialLinks || {}).twitter;
+          return profile || 'https://x.com/';
+        }
+      },
+      {
+        id: 'pinterest',
+        label: 'Pinterest',
+        icon: '📌',
+        bg: '#fff1f2',
+        border: '#fecdd3',
+        color: '#be123c',
+        get href() {
+          const profile = (_serverData.socialLinks || {}).pinterest;
+          return profile || 'https://pinterest.com/';
+        }
+      },
     ],
 
     // Booking settings definition (drives the settings panel)
@@ -848,11 +974,12 @@ function goLivePage() {
     },
 
     async saveSetting(key, value) {
+      const previousValue = this.salon[key];
       this.saving = true;
       this.saveOk = false;
       this.salon[key] = value;          // optimistic update
       try {
-        await fetch('/api/v1/salon/share/customise', {
+        const res = await fetch('{{ route("go-live.settings.update") }}', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -862,10 +989,13 @@ function goLivePage() {
           credentials: 'same-origin',
           body: JSON.stringify({ [key]: value }),
         });
+        if (!res.ok) {
+          throw new Error(`Setting save failed (${res.status})`);
+        }
         this.saveOk = true;
         setTimeout(() => this.saveOk = false, 3000);
       } catch(e) {
-        this.salon[key] = !value;       // rollback
+        this.salon[key] = previousValue; // rollback
         console.error('save failed:', e);
       } finally {
         this.saving = false;
@@ -1006,6 +1136,58 @@ function salonPhotos() {
       } catch(e) {
         console.error('delete failed:', e);
       }
+    },
+  };
+}
+</script>
+
+<script>
+function logoUploader() {
+  return {
+    previewUrl: null,
+    selectedMeta: null,
+    sizeHint: '',
+    zoom: 1,
+    offsetX: 0,
+    offsetY: 0,
+    frameStyle() {
+      return `transform: scale(${this.zoom}) translate(${this.offsetX}px, ${this.offsetY}px); transform-origin: center center;`;
+    },
+    onFileChange(e) {
+      const file = e.target.files?.[0];
+      this.sizeHint = '';
+      this.selectedMeta = null;
+      this.zoom = 1;
+      this.offsetX = 0;
+      this.offsetY = 0;
+      if (!file) {
+        this.previewUrl = null;
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      this.previewUrl = objectUrl;
+
+      const img = new Image();
+      img.onload = () => {
+        this.selectedMeta = {
+          name: file.name,
+          width: img.width,
+          height: img.height,
+        };
+        if (img.width < 256 || img.height < 256) {
+          this.sizeHint = 'Image is smaller than recommended minimum 256 x 256 px.';
+        } else if (img.width !== img.height) {
+          this.sizeHint = 'For best fit, use a square logo (1:1 ratio), e.g. 512 x 512 px.';
+        } else {
+          this.sizeHint = 'Looks good for logo upload.';
+        }
+        URL.revokeObjectURL(objectUrl);
+      };
+      img.onerror = () => {
+        this.sizeHint = 'Could not read image dimensions. You can still upload.';
+      };
+      img.src = objectUrl;
     },
   };
 }

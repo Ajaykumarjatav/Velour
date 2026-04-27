@@ -69,6 +69,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // ── Authentication & Authorization ────────────────────────────
             'verified'        => \App\Http\Middleware\EnsureEmailIsVerified::class,
             '2fa'             => \App\Http\Middleware\RequireTwoFactor::class,
+            'password.changed'=> \App\Http\Middleware\EnsurePasswordChange::class,
             'super_admin'     => \App\Http\Middleware\SuperAdminMiddleware::class,
             'tenant_admin'    => \App\Http\Middleware\TenantAdminMiddleware::class,
             // ── Billing & Subscriptions ────────────────────────────────────
