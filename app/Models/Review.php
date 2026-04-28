@@ -16,6 +16,7 @@ class Review extends Model
     use BelongsToTenant;
     protected $fillable = [
         'salon_id', 'client_id', 'appointment_id', 'staff_id',
+        'service_id', 'review_link_id',
         'rating', 'comment', 'source', 'reviewer_name',
         'owner_reply', 'replied_at', 'is_public', 'is_verified',
     ];
@@ -31,6 +32,8 @@ class Review extends Model
     public function client(): BelongsTo      { return $this->belongsTo(Client::class); }
     public function appointment(): BelongsTo { return $this->belongsTo(Appointment::class); }
     public function staff(): BelongsTo       { return $this->belongsTo(Staff::class); }
+    public function service(): BelongsTo     { return $this->belongsTo(Service::class); }
+    public function reviewLink(): BelongsTo  { return $this->belongsTo(ReviewLink::class); }
 
     public function scopePublic($q)   { return $q->where('is_public', true); }
     public function scopeVerified($q) { return $q->where('is_verified', true); }

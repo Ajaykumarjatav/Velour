@@ -126,6 +126,108 @@
 
     <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-heading">Traffic Source / Medium</h2>
+            <span class="text-xs text-muted">Tracked in selected period</span>
+        </div>
+        @if(($trafficBreakdown ?? collect())->count() > 0)
+            <div class="space-y-3">
+                @foreach($trafficBreakdown as $row)
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-medium text-heading">{{ ucfirst($row['source']) }} / {{ ucfirst($row['medium']) }}</span>
+                            <span class="text-muted">{{ number_format($row['visits']) }} visits · {{ $row['share'] }}%</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                            <div class="h-2 rounded-full bg-amber-400" style="width: {{ max(3, (int) round($row['share'])) }}%"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <p class="text-xs text-muted mt-4">Total tracked visits: {{ number_format((int) ($trafficTotal ?? 0)) }}</p>
+        @else
+            <div class="text-sm text-muted py-8 text-center">No source/medium traffic data available for this period.</div>
+        @endif
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div class="card p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-heading">30-Day Trend</h2>
+                <span class="text-xs text-muted">Page visits vs online bookings</span>
+            </div>
+            @php
+                $trendRows = collect($visitTrendRows ?? []);
+                $maxTrend = max(1, (int) $trendRows->flatMap(fn($r) => [(int) $r['visits'], (int) $r['bookings']])->max());
+            @endphp
+            @if($trendRows->isNotEmpty() && $trendRows->sum('visits') > 0)
+                <div class="h-56 overflow-hidden">
+                    <svg class="w-full h-full" viewBox="0 0 800 180" preserveAspectRatio="none">
+                        <line x1="0" y1="45"  x2="800" y2="45"  stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"/>
+                        <line x1="0" y1="90"  x2="800" y2="90"  stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"/>
+                        <line x1="0" y1="135" x2="800" y2="135" stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"/>
+                        <line x1="0" y1="180" x2="800" y2="180" stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"/>
+                        @php
+                            $count = max(1, $trendRows->count() - 1);
+                            $pointsVisits = $trendRows->values()->map(function($d, $i) use ($maxTrend, $count) {
+                                $x = 10 + ($i * ((800 - 20) / $count));
+                                $y = 170 - (((int)$d['visits'] / $maxTrend) * 160);
+                                return round($x,2).','.round($y,2);
+                            })->implode(' ');
+                            $pointsBookings = $trendRows->values()->map(function($d, $i) use ($maxTrend, $count) {
+                                $x = 10 + ($i * ((800 - 20) / $count));
+                                $y = 170 - (((int)$d['bookings'] / $maxTrend) * 160);
+                                return round($x,2).','.round($y,2);
+                            })->implode(' ');
+                        @endphp
+                        <polyline points="{{ $pointsVisits }}" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+                        <polyline points="{{ $pointsBookings }}" fill="none" stroke="#8b5cf6" stroke-width="2.5"/>
+                    </svg>
+                </div>
+            @else
+                <div class="text-sm text-muted py-8 text-center">No visit trend data yet.</div>
+            @endif
+        </div>
+
+        <div class="card p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-heading">Visitors by Device</h2>
+                <span class="text-xs text-muted">Last 30 days</span>
+            </div>
+            @if(collect($deviceBreakdown ?? [])->isNotEmpty())
+                <div class="space-y-3">
+                    @foreach($deviceBreakdown as $dev)
+                        <div class="flex items-center gap-3">
+                            <span class="w-20 text-xs font-medium text-heading capitalize">{{ $dev['device'] }}</span>
+                            <div class="flex-1">
+                                <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                                    <div class="h-2 rounded-full bg-violet-500" style="width: {{ max(3, (int) round($dev['percentage'])) }}%"></div>
+                                </div>
+                            </div>
+                            <span class="text-xs text-muted">{{ $dev['count'] }} ({{ $dev['percentage'] }}%)</span>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-sm text-muted py-8 text-center">No device data yet.</div>
+            @endif
+        </div>
+    </div>
+
+    <div id="growth-tips" class="card p-5 border-amber-200/70 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-heading">Growth Tips</h2>
+            <span class="text-xs text-amber-700 dark:text-amber-300">Actionable ideas</span>
+        </div>
+        <ul class="space-y-2 text-sm text-body">
+            <li><strong>Instagram bio link</strong> — add your booking URL to Instagram bio.</li>
+            <li><strong>WhatsApp auto-reply</strong> — send booking link automatically in replies.</li>
+            <li><strong>Window QR sticker</strong> — convert walk-ins by scanning the booking QR.</li>
+            <li><strong>Google Business profile</strong> — add booking URL to improve direct booking from search.</li>
+        </ul>
+    </div>
+
+    <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold text-heading">Staff Performance</h2>
             <button type="button" class="btn-outline btn-sm">Full Report</button>
         </div>

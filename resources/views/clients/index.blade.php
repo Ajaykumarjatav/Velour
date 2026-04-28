@@ -5,6 +5,63 @@
 
 <p class="text-sm text-muted mb-4">{{ number_format($clientTotal) }} total clients</p>
 
+<div class="card p-4 mb-5" x-data="{ openReviewRequest: false }">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <p class="font-semibold text-heading">Get more reviews from your valuable clients</p>
+            <p class="text-xs text-muted">Send email-only review requests to clients who have not submitted a review yet.</p>
+        </div>
+        <button type="button" class="btn-primary" @click="openReviewRequest = true">Request Reviews</button>
+    </div>
+
+    <div x-show="openReviewRequest" x-cloak class="fixed inset-0 z-50">
+        <div class="absolute inset-0 bg-black/40" @click="openReviewRequest = false"></div>
+        <div class="absolute inset-x-0 top-10 mx-auto max-w-3xl px-4">
+            <div class="card p-5 max-h-[80vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-heading">Select clients for review request</h3>
+                    <button type="button" class="btn-outline btn-sm" @click="openReviewRequest = false">Close</button>
+                </div>
+                <p class="text-xs text-muted mb-3">Clients who already reviewed are visible but locked (view-only). Channel: Email only.</p>
+
+                <form action="{{ route('clients.review-requests.send') }}" method="POST">
+                    @csrf
+                    <div class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                        @forelse(($reviewRequestClients ?? collect()) as $row)
+                            @php
+                                $statusLabel = $row['already_reviewed'] ? 'Already reviewed' : ($row['has_email'] ? 'Eligible' : 'No email');
+                                $statusClass = $row['already_reviewed']
+                                    ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                                    : ($row['has_email']
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300');
+                            @endphp
+                            <label class="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 {{ $row['can_request'] ? 'cursor-pointer' : 'opacity-75 cursor-not-allowed' }}">
+                                <input type="checkbox"
+                                       name="client_ids[]"
+                                       value="{{ (int) $row['id'] }}"
+                                       class="rounded border-gray-300 text-velour-600"
+                                       {{ $row['can_request'] ? '' : 'disabled' }}>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm text-body truncate">{{ $row['name'] }}</p>
+                                    <p class="text-xs text-muted truncate">{{ $row['email'] ?: 'No email address' }}</p>
+                                </div>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full {{ $statusClass }}">{{ $statusLabel }}</span>
+                            </label>
+                        @empty
+                            <p class="text-sm text-muted">No clients found.</p>
+                        @endforelse
+                    </div>
+                    <div class="mt-4 flex items-center gap-2">
+                        <button type="submit" class="btn-primary">Send Review Request (Email)</button>
+                        <button type="button" class="btn-outline" @click="openReviewRequest = false">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @if(!empty($loyaltyFilterTier))
     <div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-velour-200 dark:border-velour-800 bg-velour-50 dark:bg-velour-900/20 px-4 py-3 text-sm">
         <span class="text-body">Showing <strong class="text-heading">{{ $loyaltyFilterTier->name }}</strong> members</span>

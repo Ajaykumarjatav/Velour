@@ -517,7 +517,7 @@
                     <div class="h-2 rounded-full transition-all {{ $profileFill }}"
                          style="width: {{ $profilePct }}%"></div>
                 </div>
-                <a href="{{ route('settings.index', ['tab' => 'salon']) }}" class="text-xs font-medium hover:underline whitespace-nowrap {{ $profileToneText }}">
+                <a href="{{ route('setup-progress') }}" class="text-xs font-medium hover:underline whitespace-nowrap {{ $profileToneText }}">
                     Complete setup
                 </a>
             </div>

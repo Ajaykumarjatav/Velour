@@ -5,7 +5,16 @@
 
 <div class="max-w-2xl">
     <div class="card p-6">
-        <form action="{{ route('marketing.store') }}" method="POST" class="space-y-5">
+        <form action="{{ route('marketing.store') }}" method="POST" class="space-y-5"
+              x-data="{
+                scheduledAt: @js(old('scheduled_at', '')),
+                formattedSchedule() {
+                    if (!this.scheduledAt) return '';
+                    const d = new Date(this.scheduledAt);
+                    if (Number.isNaN(d.getTime())) return '';
+                    return d.toLocaleString();
+                }
+              }">
             @csrf
             <div>
                 <label class="form-label">Campaign name <span class="text-red-500">*</span></label>
@@ -46,7 +55,10 @@
             </div>
             <div>
                 <label class="form-label">Schedule send <span class="text-muted">(leave blank to save as draft)</span></label>
-                <input type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at') }}" class="form-input w-auto">
+                <input type="datetime-local" name="scheduled_at" x-model="scheduledAt" value="{{ old('scheduled_at') }}" class="form-input w-auto">
+                <p class="form-hint mt-1" x-show="scheduledAt">
+                    Your post will be sent on: <span class="font-medium text-heading" x-text="formattedSchedule()"></span>
+                </p>
             </div>
             <div class="bg-velour-50 dark:bg-velour-900/20 border border-velour-100 dark:border-velour-800 rounded-xl p-4">
                 <p class="text-sm text-velour-700 dark:text-velour-300">

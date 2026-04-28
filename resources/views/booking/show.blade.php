@@ -201,6 +201,15 @@
         </div>
     </header>
 
+    <div style="max-width:700px;margin:12px auto 0;padding:0 16px;">
+        <div style="background:rgba(255,255,255,0.12);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);border-radius:14px;padding:10px 14px;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;">
+            <div style="font-size:12px;color:rgba(255,255,255,0.9);"><strong>{{ $publicServiceCount ?? 0 }}</strong> services</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.9);"><strong>{{ $bookableStaffCount ?? 0 }}</strong> team members</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.9);"><strong>{{ number_format((float) ($avgRating ?? 0), 1) }}</strong> rating</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.9);"><strong>{{ (int) ($reviewCount ?? 0) }}</strong> reviews</div>
+        </div>
+    </div>
+
     {{-- ══ MAIN CONTENT ══ --}}
     <main style="max-width:700px;margin:0 auto;padding:28px 16px 80px;">
 

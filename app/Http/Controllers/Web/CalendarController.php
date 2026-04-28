@@ -62,6 +62,13 @@ class CalendarController extends Controller
             ->withName()
             ->get();
 
+        $selectedStaff = $filterStaffId
+            ? Staff::where('salon_id', $salon->id)->whereKey($filterStaffId)->first()
+            : null;
+
+        [$hourStart, $hourEnd] = $this->resolveHourBounds($salon, $selectedStaff);
+        $availabilityByDate = $this->buildAvailabilityByDate($start, $end, $salon, $selectedStaff, $tz);
+
         $calendarData = json_encode($appointments);
         $staffData    = json_encode($staff);
 
@@ -71,8 +78,9 @@ class CalendarController extends Controller
 
         return view('calendar.index', compact(
             'salon', 'view', 'date', 'calendarData', 'staffData',
-            'appointments', 'start', 'end', 'filterStaffId',
-            'salonTz', 'salonTodayYmd', 'tzAbbrev'
+            'appointments', 'start', 'end', 'filterStaffId', 'staff',
+            'salonTz', 'salonTodayYmd', 'tzAbbrev', 'hourStart', 'hourEnd',
+            'availabilityByDate', 'selectedStaff'
         ));
     }
 
@@ -85,5 +93,77 @@ class CalendarController extends Controller
             'no_show'    => '#D97706',
             default      => '#6B7280',
         };
+    }
+
+    private function resolveHourBounds($salon, ?Staff $staff): array
+    {
+        $openHours = [];
+        $closeHours = [];
+        $hours = is_array($salon->opening_hours) ? $salon->opening_hours : [];
+        foreach ($hours as $day => $cfg) {
+            if (! is_array($cfg) || empty($cfg['open'])) continue;
+            $from = substr((string) ($cfg['from'] ?? $cfg['start'] ?? '09:00'), 0, 2);
+            $to = substr((string) ($cfg['to'] ?? $cfg['end'] ?? '18:00'), 0, 2);
+            if (is_numeric($from) && is_numeric($to)) {
+                $openHours[] = (int) $from;
+                $closeHours[] = (int) $to;
+            }
+        }
+
+        if ($staff) {
+            $sFrom = substr((string) ($staff->start_time ?? '09:00'), 0, 2);
+            $sTo = substr((string) ($staff->end_time ?? '18:00'), 0, 2);
+            if (is_numeric($sFrom) && is_numeric($sTo)) {
+                $openHours[] = (int) $sFrom;
+                $closeHours[] = (int) $sTo;
+            }
+        }
+
+        $min = $openHours !== [] ? min($openHours) : 8;
+        $max = $closeHours !== [] ? max($closeHours) : 20;
+
+        $min = max(0, min(22, $min));
+        $max = max($min + 1, min(23, $max));
+
+        return [$min, $max];
+    }
+
+    private function buildAvailabilityByDate(Carbon $start, Carbon $end, $salon, ?Staff $staff, string $tz): array
+    {
+        $map = [];
+        $d = $start->copy();
+        while ($d->lte($end)) {
+            $dateKey = $d->toDateString();
+            $weekdayKey = strtolower($d->format('l'));
+            $dayCfg = $salon->openingHoursForWeekdayKey($weekdayKey);
+            $salonOpen = is_array($dayCfg) && ! empty($dayCfg['open']);
+
+            $shopStart = (int) substr((string) ($dayCfg['from'] ?? $dayCfg['start'] ?? '09:00'), 0, 2);
+            $shopEnd = (int) substr((string) ($dayCfg['to'] ?? $dayCfg['end'] ?? '18:00'), 0, 2);
+
+            $staffWorks = true;
+            $staffStart = 0;
+            $staffEnd = 23;
+            if ($staff) {
+                $workingDays = is_array($staff->working_days) ? $staff->working_days : [];
+                $dow = $d->format('D');
+                if ($workingDays !== [] && ! in_array($dow, $workingDays, true)) {
+                    $staffWorks = false;
+                }
+                $staffStart = (int) substr((string) ($staff->start_time ?? '09:00'), 0, 2);
+                $staffEnd = (int) substr((string) ($staff->end_time ?? '18:00'), 0, 2);
+            }
+
+            $map[$dateKey] = [
+                'salon_open' => $salonOpen,
+                'shop_start' => $shopStart,
+                'shop_end' => $shopEnd,
+                'staff_works' => $staffWorks,
+                'staff_start' => $staffStart,
+                'staff_end' => $staffEnd,
+            ];
+            $d->addDay();
+        }
+        return $map;
     }
 }

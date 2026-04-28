@@ -18,6 +18,12 @@
     </div>
 </div>
 
+@if(!empty($selectedStaff))
+    <div class="mb-4 px-4 py-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 text-sm text-body">
+        Calendar availability is currently constrained by <strong>{{ $selectedStaff->name }}</strong>'s working days and shift hours.
+    </div>
+@endif
+
 @if($filterStaffId)
     @php $filterStaffMember = \App\Models\Staff::where('salon_id', $salon->id)->whereKey($filterStaffId)->first(); @endphp
     <div class="mb-4 px-4 py-3 rounded-xl bg-velour-50 dark:bg-velour-900/20 border border-velour-100 dark:border-velour-800 text-sm text-body flex flex-wrap items-center justify-between gap-2">
@@ -37,7 +43,17 @@
         @endforeach
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 flex-wrap">
+        <form method="GET" action="{{ route('calendar') }}" class="flex items-center gap-2">
+            <input type="hidden" name="view" value="{{ $view }}">
+            <input type="hidden" name="date" value="{{ $date->toDateString() }}">
+            <select name="staff_id" onchange="this.form.submit()" class="form-select text-sm min-w-[180px]">
+                <option value="">All staff availability</option>
+                @foreach($staff as $st)
+                    <option value="{{ $st->id }}" {{ (string) $filterStaffId === (string) $st->id ? 'selected' : '' }}>{{ $st->name }}</option>
+                @endforeach
+            </select>
+        </form>
         @php
             $prevDate = $view === 'day' ? $date->copy()->subDay() : ($view === 'month' ? $date->copy()->subMonth() : $date->copy()->subWeek());
             $nextDate = $view === 'day' ? $date->copy()->addDay() : ($view === 'month' ? $date->copy()->addMonth() : $date->copy()->addWeek());
@@ -96,7 +112,7 @@
 
     @elseif($view === 'week')
         @php
-            $hours = range(8, 20);
+            $hours = range($hourStart ?? 8, $hourEnd ?? 20);
             $days  = collect();
             $d     = $start->copy();
             while ($d->lte($end)) { $days->push($d->copy()); $d->addDay(); }
@@ -116,7 +132,17 @@
                 <div class="grid border-b border-gray-50 dark:border-gray-800/50 min-h-[56px]" style="grid-template-columns: 60px repeat({{ $days->count() }}, 1fr)">
                     <div class="py-2 pr-3 text-right text-xs text-muted">{{ sprintf('%02d:00', $hour) }}</div>
                     @foreach($days as $day)
-                    <div class="border-l border-gray-50 dark:border-gray-800/50 relative p-0.5">
+                    @php
+                        $dayMeta = $availabilityByDate[$day->toDateString()] ?? null;
+                        $blockedBySalon = !($dayMeta['salon_open'] ?? false) || $hour < (int) ($dayMeta['shop_start'] ?? 0) || $hour >= (int) ($dayMeta['shop_end'] ?? 24);
+                        $blockedByStaff = !empty($selectedStaff) && (
+                            !($dayMeta['staff_works'] ?? true)
+                            || $hour < (int) ($dayMeta['staff_start'] ?? 0)
+                            || $hour >= (int) ($dayMeta['staff_end'] ?? 24)
+                        );
+                        $blocked = $blockedBySalon || $blockedByStaff;
+                    @endphp
+                    <div class="border-l border-gray-50 dark:border-gray-800/50 relative p-0.5 {{ $blocked ? 'bg-gray-100/70 dark:bg-gray-800/40' : '' }}">
                         @foreach($appointments as $apt)
                         @php $aptStart = \Carbon\Carbon::parse($apt['start'])->timezone($salonTz); @endphp
                         @if($aptStart->toDateString() === $day->toDateString() && (int) $aptStart->format('G') === $hour)
@@ -127,6 +153,11 @@
                         </a>
                         @endif
                         @endforeach
+                        @if($blocked)
+                            <div class="absolute inset-0 pointer-events-none opacity-40">
+                                <div class="h-full w-full border border-dashed border-gray-300 dark:border-gray-700"></div>
+                            </div>
+                        @endif
                     </div>
                     @endforeach
                 </div>
@@ -136,14 +167,24 @@
 
     @else
         @php
-            $hours = range(8, 20);
+            $hours = range($hourStart ?? 8, $hourEnd ?? 20);
             $dayAppointments = $appointments->filter(fn ($a) => \Carbon\Carbon::parse($a['start'])->timezone($salonTz)->toDateString() === $date->toDateString());
+            $dayMeta = $availabilityByDate[$date->toDateString()] ?? null;
         @endphp
         <div class="divide-y divide-gray-50 dark:divide-gray-800">
             @foreach($hours as $hour)
             <div class="flex min-h-[64px]">
                 <div class="w-16 py-3 pr-4 text-right text-xs text-muted flex-shrink-0">{{ sprintf('%02d:00', $hour) }}</div>
-                <div class="flex-1 border-l border-gray-100 dark:border-gray-800 p-1.5">
+                @php
+                    $blockedBySalon = !($dayMeta['salon_open'] ?? false) || $hour < (int) ($dayMeta['shop_start'] ?? 0) || $hour >= (int) ($dayMeta['shop_end'] ?? 24);
+                    $blockedByStaff = !empty($selectedStaff) && (
+                        !($dayMeta['staff_works'] ?? true)
+                        || $hour < (int) ($dayMeta['staff_start'] ?? 0)
+                        || $hour >= (int) ($dayMeta['staff_end'] ?? 24)
+                    );
+                    $blocked = $blockedBySalon || $blockedByStaff;
+                @endphp
+                <div class="flex-1 border-l border-gray-100 dark:border-gray-800 p-1.5 {{ $blocked ? 'bg-gray-100/70 dark:bg-gray-800/40' : '' }}">
                     @foreach($dayAppointments as $apt)
                     @if((int) \Carbon\Carbon::parse($apt['start'])->timezone($salonTz)->format('G') === $hour)
                     <a href="{{ $apt['url'] }}"
@@ -154,6 +195,9 @@
                     </a>
                     @endif
                     @endforeach
+                    @if($blocked)
+                        <div class="text-[10px] text-muted">Unavailable</div>
+                    @endif
                 </div>
             </div>
             @endforeach

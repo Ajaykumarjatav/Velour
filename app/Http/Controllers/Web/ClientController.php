@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\LoyaltyTier;
+use App\Models\Review;
+use App\Models\ReviewLink;
+use App\Mail\ClientReviewRequestMail;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -73,6 +77,33 @@ class ClientController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'is_active']);
 
+        $reviewedClientIds = Review::query()
+            ->where('salon_id', $salon->id)
+            ->whereNotNull('client_id')
+            ->pluck('client_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->flip();
+
+        $reviewRequestClients = Client::query()
+            ->where('salon_id', $salon->id)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name', 'email'])
+            ->map(function (Client $client) use ($reviewedClientIds) {
+                $alreadyReviewed = $reviewedClientIds->has((int) $client->id);
+                $hasEmail = filled($client->email);
+                return [
+                    'id' => (int) $client->id,
+                    'name' => trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? '')),
+                    'email' => (string) ($client->email ?? ''),
+                    'already_reviewed' => $alreadyReviewed,
+                    'has_email' => $hasEmail,
+                    'can_request' => $hasEmail && ! $alreadyReviewed,
+                ];
+            })
+            ->values();
+
         return view('clients.index', compact(
             'salon',
             'clients',
@@ -82,8 +113,60 @@ class ClientController extends Controller
             'clientTotal',
             'loyaltyFilterTier',
             'appointmentsByClient',
-            'loyaltyTiers'
+            'loyaltyTiers',
+            'reviewRequestClients'
         ));
+    }
+
+    public function sendReviewRequests(Request $request)
+    {
+        $salon = $this->salon();
+        $data = $request->validate([
+            'client_ids' => ['required', 'array', 'min:1'],
+            'client_ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $candidateIds = collect($data['client_ids'])->map(fn ($id) => (int) $id)->unique()->values();
+        $clients = Client::query()
+            ->where('salon_id', $salon->id)
+            ->whereIn('id', $candidateIds)
+            ->get(['id', 'first_name', 'last_name', 'email']);
+
+        $reviewedClientIds = Review::query()
+            ->where('salon_id', $salon->id)
+            ->whereNotNull('client_id')
+            ->whereIn('client_id', $clients->pluck('id'))
+            ->pluck('client_id')
+            ->map(fn ($id) => (int) $id)
+            ->flip();
+
+        $tenantReviewLink = ReviewLink::query()->firstOrCreate([
+            'salon_id' => $salon->id,
+            'staff_id' => null,
+        ]);
+        $reviewUrl = route('reviews.public', $tenantReviewLink->token);
+
+        $sent = 0;
+        $skipped = 0;
+        foreach ($clients as $client) {
+            if (! filled($client->email) || $reviewedClientIds->has((int) $client->id)) {
+                $skipped++;
+                continue;
+            }
+            Mail::to($client->email)->queue(new ClientReviewRequestMail(
+                salonName: (string) $salon->name,
+                clientName: trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? '')),
+                reviewUrl: $reviewUrl
+            ));
+            $sent++;
+        }
+
+        return redirect()->route('clients.index')->with(
+            $sent > 0 ? 'success' : 'error',
+            $sent > 0
+                ? "Review request email sent to {$sent} client(s)." . ($skipped > 0 ? " {$skipped} skipped (already reviewed or missing email)." : '')
+                : 'No review requests sent. Selected clients were already reviewed or missing email.'
+        );
     }
 
     /**

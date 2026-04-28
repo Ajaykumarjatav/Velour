@@ -279,6 +279,14 @@
             @endif
         </a>
 
+        <a href="{{ route('reports.analytics') }}#growth-tips"
+           class="sidebar-link {{ request()->routeIs('reports.analytics') && request()->get('focus') === 'growth' ? 'active' : '' }}">
+            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Growth Tips
+        </a>
+
         @if(auth()->user()->hasRole('tenant_admin') || auth()->user()->isSuperAdmin())
         <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Admin</p>
         <a href="{{ route('salon-admin.team') }}"

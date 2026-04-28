@@ -140,6 +140,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
             ->middleware('plan.limit:services')
             ->name('quick-create.service');
         Route::resource('clients', ClientController::class);
+        Route::post('clients/review-requests', [ClientController::class, 'sendReviewRequests'])->name('clients.review-requests.send');
         Route::get('staff/payroll/export', [StaffController::class, 'exportPayroll'])->name('staff.payroll.export');
         Route::put('staff/{staff}/weekly-schedule', [StaffController::class, 'updateWeeklySchedule'])->name('staff.weekly-schedule');
         Route::patch('staff/{staff}/base-salary', [StaffController::class, 'updateBaseSalary'])->name('staff.base-salary');
@@ -236,6 +237,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
         // Go Live & Share
         Route::get('go-live', [\App\Http\Controllers\Web\GoLiveController::class, 'index'])->name('go-live');
+        Route::get('setup-progress', [\App\Http\Controllers\Web\SetupProgressController::class, 'index'])->name('setup-progress');
         Route::post('go-live/logo', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadLogo'])->name('go-live.logo.upload');
         Route::post('go-live/settings', [\App\Http\Controllers\Web\GoLiveController::class, 'updateSettings'])->name('go-live.settings.update');
         Route::post('go-live/photos', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadPhoto'])->name('go-live.photos.upload');
@@ -247,6 +249,8 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::get('customization', [CustomizationController::class, 'index'])->name('customization.index');
         Route::post('customization/brand', [CustomizationController::class, 'updateBrand'])->name('customization.brand.update');
         Route::put('customization/options', [CustomizationController::class, 'updateOptions'])->name('customization.options.update');
+        Route::put('customization/forms', [CustomizationController::class, 'updateForms'])->name('customization.forms.update');
+        Route::post('customization/features/request', [CustomizationController::class, 'requestFeature'])->name('customization.features.request');
 
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::get('set_socket_blocking', fn () => redirect()->route('settings.index', ['tab' => 'services']))->name('set_socket_blocking');
@@ -414,6 +418,12 @@ Route::middleware(['auth', 'verified'])->prefix('onboarding')->name('onboarding.
 
 // ── Public Booking Page ───────────────────────────────────────────────────────
 Route::get('book/{slug}', [\App\Http\Controllers\Web\BookingController::class, 'show'])->name('booking.show');
+Route::get('reviews/share/{token}', [\App\Http\Controllers\Web\ReviewController::class, 'publicForm'])
+    ->middleware('throttle:60,1')
+    ->name('reviews.public');
+Route::post('reviews/share/{token}', [\App\Http\Controllers\Web\ReviewController::class, 'submitPublicForm'])
+    ->middleware('throttle:20,1')
+    ->name('reviews.public.submit');
 
 // ── Legal & Compliance Pages ──────────────────────────────────────────────────
 Route::prefix('legal')->name('legal.')->group(function () {

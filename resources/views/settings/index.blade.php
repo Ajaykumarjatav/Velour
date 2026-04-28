@@ -3,6 +3,7 @@
 @section('page-title', 'Settings')
 @section('content')
 
+@php $returnTo = old('return_to', request()->query('return_to')); @endphp
 <div class="max-w-3xl" x-data="{
     tab: '{{ session('tab', request()->get('tab', 'salon')) }}',
     showPasswordModal: {{ $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation') ? 'true' : 'false' }}
@@ -23,8 +24,9 @@
     <div x-show="tab==='salon'" x-cloak>
         <div class="card p-6">
             <h2 class="font-semibold text-heading mb-5">Salon Profile</h2>
-            <form action="{{ route('settings.salon') }}" method="POST" class="space-y-4">
+            <form id="settings-salon-form" action="{{ route('settings.salon') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
                         <label class="form-label">Salon name <span class="text-red-500">*</span></label>
@@ -44,7 +46,7 @@
                     </div>
                     <div>
                         <label class="form-label">Currency</label>
-                        <select name="currency" class="form-select">
+                        <select id="settings-salon-currency" name="currency" class="form-select">
                             @foreach(\App\Helpers\CurrencyHelper::selectList() as $code => $lbl)
                             <option value="{{ $code }}" {{ old('currency', $salon->currency ?? 'GBP') === $code ? 'selected' : '' }}>{{ $lbl }}</option>
                             @endforeach
@@ -52,7 +54,7 @@
                     </div>
                     <div>
                         <label class="form-label">Timezone</label>
-                        <select name="timezone" class="form-select">
+                        <select id="settings-salon-timezone" name="timezone" class="form-select">
                             @foreach(\App\Helpers\TimezoneHelper::grouped() as $region => $zones)
                             <optgroup label="{{ $region }}">
                                 @foreach($zones as $tz => $label)
@@ -62,6 +64,13 @@
                             @endforeach
                         </select>
                         <p class="form-hint">Dashboard, revenue, and calendar “days” follow this clock.</p>
+                        <p id="settings-location-autosave-hint" class="form-hint hidden"></p>
+                    </div>
+                    <div class="col-span-2">
+                        <button type="button" id="settings-detect-location-btn" class="btn-outline">
+                            Auto detect from current location
+                        </button>
+                        <p class="form-hint">Click to detect and fill Currency and Timezone from your current location.</p>
                     </div>
                     <div class="col-span-2">
                         <label class="form-label">Booking confirmations show times in</label>
@@ -111,6 +120,7 @@
             <h2 class="font-semibold text-heading mb-5">Service Setup</h2>
             <form action="{{ route('settings.services') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 @php
                     $selectedTypeIds = array_map('intval', old('business_type_ids', $selectedBusinessTypeIds ?? []));
                     $starterCategoryOld = old('starter_categories', $selectedStarterCategories ?? []);
@@ -284,6 +294,7 @@
             <h2 class="font-semibold text-heading mb-5">Opening Hours</h2>
             <form action="{{ route('settings.hours') }}" method="POST" class="space-y-3">
                 @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 @php
                     $days    = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
                     $current = $salon->opening_hours ?? [];
@@ -319,6 +330,7 @@
 
             <form action="{{ route('settings.social-links') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
 
                 @php
                 $platforms = [
@@ -409,6 +421,7 @@
 
             <form action="{{ route('settings.notifications') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
 
                 @foreach($notificationDefinitions as $id => $def)
                     @php
@@ -560,6 +573,7 @@
             </div>
             <form x-show="profileCardOpen" x-cloak action="{{ route('settings.profile') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <div>
                     <label class="form-label">Full name</label>
                     <input type="text" name="name" value="{{ old('name', $user->name) }}" required class="form-input">
@@ -655,6 +669,7 @@
             </div>
             <form x-show="teamCardOpen" x-cloak action="{{ route('settings.team-members') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <div id="settings-staff-rows" class="space-y-4">
                     @foreach($staffRows as $idx => $st)
                         @php $st = is_array($st) ? $st : []; @endphp
@@ -808,6 +823,7 @@
         </div>
         <form action="{{ route('settings.password') }}" method="POST" class="space-y-4">
             @csrf @method('PUT')
+            <input type="hidden" name="return_to" value="{{ $returnTo }}">
             <div>
                 <label class="form-label">Current password</label>
                 <input type="password" name="current_password" required class="form-input">
@@ -833,6 +849,130 @@
 </div>
 
 <script>
+(function () {
+    function detectRegionCode() {
+        try {
+            if (typeof Intl !== 'undefined' && typeof Intl.Locale === 'function' && navigator.language) {
+                var locale = new Intl.Locale(navigator.language);
+                if (locale && locale.region) return String(locale.region).toUpperCase();
+            }
+        } catch (e) {}
+
+        var lang = String(navigator.language || '').toUpperCase();
+        var parts = lang.split(/[-_]/);
+        return parts.length > 1 ? parts[1] : '';
+    }
+
+    function detectCurrencyByRegion(region) {
+        var map = {
+            IN: 'INR', US: 'USD', GB: 'GBP', EU: 'EUR', DE: 'EUR', FR: 'EUR', ES: 'EUR', IT: 'EUR', NL: 'EUR', PT: 'EUR',
+            IE: 'EUR', BE: 'EUR', AT: 'EUR', FI: 'EUR', GR: 'EUR', LU: 'EUR', SI: 'EUR', SK: 'EUR', LV: 'EUR', LT: 'EUR',
+            EE: 'EUR', CY: 'EUR', MT: 'EUR', CA: 'CAD', AU: 'AUD', NZ: 'NZD', SG: 'SGD', AE: 'AED', SA: 'SAR', QA: 'QAR',
+            KW: 'KWD', BH: 'BHD', OM: 'OMR', JP: 'JPY', KR: 'KRW', CN: 'CNY', HK: 'HKD', TW: 'TWD', TH: 'THB', MY: 'MYR',
+            ID: 'IDR', PH: 'PHP', VN: 'VND', PK: 'PKR', BD: 'BDT', NP: 'NPR', LK: 'LKR', ZA: 'ZAR', NG: 'NGN', KE: 'KES',
+            GH: 'GHS', CH: 'CHF', SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN', CZ: 'CZK', HU: 'HUF', RO: 'RON', TR: 'TRY',
+            BR: 'BRL', MX: 'MXN', AR: 'ARS', CL: 'CLP', CO: 'COP', PE: 'PEN', UY: 'UYU'
+        };
+        return map[region] || '';
+    }
+
+    function detectCurrencyByTimezone(timezone) {
+        var tz = String(timezone || '');
+        if (tz.indexOf('Asia/Kolkata') === 0) return 'INR';
+        if (tz.indexOf('Europe/London') === 0) return 'GBP';
+        if (tz.indexOf('Europe/') === 0) return 'EUR';
+        if (tz.indexOf('America/') === 0) return 'USD';
+        if (tz.indexOf('Asia/Dubai') === 0) return 'AED';
+        return '';
+    }
+
+    function setAutosaveHint(message, tone) {
+        var hint = document.getElementById('settings-location-autosave-hint');
+        if (!hint) return;
+        hint.classList.remove('hidden', 'text-green-600', 'text-red-500', 'text-gray-500');
+        hint.classList.add(tone === 'error' ? 'text-red-500' : (tone === 'success' ? 'text-green-600' : 'text-gray-500'));
+        hint.textContent = message;
+    }
+
+    function detectTimezoneByRegion(region) {
+        var map = {
+            IN: 'Asia/Kolkata',
+            GB: 'Europe/London',
+            US: 'America/New_York',
+            AE: 'Asia/Dubai',
+            SG: 'Asia/Singapore',
+            AU: 'Australia/Sydney',
+            CA: 'America/Toronto',
+            NZ: 'Pacific/Auckland'
+        };
+        return map[region] || '';
+    }
+
+    function pickTimezoneOption(timezoneSelect, region, detectedTimezone) {
+        var candidates = [];
+        if (detectedTimezone) candidates.push(detectedTimezone);
+        if (region === 'IN') {
+            // Ensure India always resolves to IST if available.
+            candidates.unshift('Asia/Kolkata', 'Asia/Calcutta');
+        } else {
+            var byRegion = detectTimezoneByRegion(region);
+            if (byRegion) candidates.push(byRegion);
+        }
+
+        for (var i = 0; i < candidates.length; i++) {
+            var tz = candidates[i];
+            if (!tz) continue;
+            var option = timezoneSelect.querySelector('option[value="' + tz + '"]');
+            if (option) return tz;
+        }
+        return '';
+    }
+
+    function autoFillSalonLocationSettings() {
+        var form = document.getElementById('settings-salon-form');
+        var detectBtn = document.getElementById('settings-detect-location-btn');
+        var timezoneSelect = document.getElementById('settings-salon-timezone');
+        var currencySelect = document.getElementById('settings-salon-currency');
+        if (!form || !detectBtn || !timezoneSelect || !currencySelect) return;
+
+        function applyDetectedLocation() {
+            setAutosaveHint('Detecting current location...', 'neutral');
+
+            var timezone = '';
+            try {
+                timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            } catch (e) {}
+
+            var region = detectRegionCode();
+            var pickedTimezone = pickTimezoneOption(timezoneSelect, region, timezone);
+            if (pickedTimezone) {
+                timezoneSelect.value = pickedTimezone;
+                timezone = pickedTimezone;
+            }
+
+            var currency = detectCurrencyByTimezone(timezone) || detectCurrencyByRegion(region);
+            if (currency) {
+                var currencyOption = currencySelect.querySelector('option[value="' + currency + '"]');
+                if (currencyOption) {
+                    currencySelect.value = currency;
+                }
+            }
+
+            if (timezone && currency) {
+                setAutosaveHint('Detected and selected. Click Save Changes to apply.', 'success');
+            } else if (timezone || currency) {
+                setAutosaveHint('Partially detected. Please review and click Save Changes.', 'neutral');
+            } else {
+                setAutosaveHint('Could not detect location automatically. Please select manually.', 'error');
+            }
+        }
+
+        detectBtn.addEventListener('click', applyDetectedLocation);
+    }
+
+    document.addEventListener('DOMContentLoaded', autoFillSalonLocationSettings);
+})();
+
 (function () {
     var input = document.getElementById('settings-custom-business-type-input');
     var addBtn = document.getElementById('settings-add-custom-business-type-btn');

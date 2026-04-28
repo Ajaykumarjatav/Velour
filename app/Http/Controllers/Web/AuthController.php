@@ -82,7 +82,7 @@ class AuthController extends Controller
         if ($salon) {
             $completion = ProfileCompletion::forSalon($salon);
             if ($completion['percentage'] < 100) {
-                return redirect()->route('settings.index', ['tab' => 'services']);
+                return redirect()->route('setup-progress');
             }
         }
 
@@ -220,6 +220,15 @@ class AuthController extends Controller
     public function verifyEmail(EmailVerificationRequest $request)
     {
         $request->fulfill(); // marks verified + fires Verified event
+        $user = $request->user();
+        $salon = $user->salons()->orderBy('id')->first();
+        if ($salon) {
+            $completion = ProfileCompletion::forSalon($salon);
+            if ($completion['percentage'] < 100) {
+                return redirect()->route('onboarding.index')->with('success', 'Email verified. Continue your setup to go live.');
+            }
+        }
+
         return redirect()->route('dashboard')->with('success', 'Email verified. Welcome to Velour!');
     }
 

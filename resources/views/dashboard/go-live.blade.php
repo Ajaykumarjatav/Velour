@@ -542,175 +542,7 @@
         </div>
       </div>
 
-      {{-- ── TRAFFIC SOURCES (top 5) ───────────────────────────────────── --}}
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">📊</span>
-            <h2 class="font-semibold text-gray-800 dark:text-white">Traffic Sources</h2>
-          </div>
-          <span class="text-xs text-gray-400 dark:text-gray-500">Last 30 days</span>
-        </div>
-        <div class="p-5 space-y-3" x-show="sources.length > 0">
-          <template x-for="src in sources.slice(0,5)" :key="src.source">
-            <div class="space-y-1">
-              <div class="flex items-center justify-between text-xs">
-                <span class="flex items-center gap-1.5 font-medium text-gray-700 dark:text-gray-300">
-                  <span x-text="src.icon"></span>
-                  <span x-text="src.label"></span>
-                </span>
-                <div class="flex items-center gap-2">
-                  <span class="text-gray-400 dark:text-gray-500" x-text="src.visits + ' visits'"></span>
-                  <span class="font-semibold text-amber-600" x-text="src.conversion_rate + '% conv.'"></span>
-                </div>
-              </div>
-              <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
-                <div class="bar-fill bg-amber-400 h-1.5 rounded-full"
-                     :style="`width: ${src.percentage}%`"></div>
-              </div>
-            </div>
-          </template>
-        </div>
-        <div class="px-5 py-8 text-center text-gray-300 dark:text-gray-600" x-show="sources.length === 0 && !loading">
-          <p class="text-3xl mb-2">📭</p>
-          <p class="text-sm">No traffic yet — start sharing your link!</p>
-        </div>
-        <div class="px-5 py-6 text-center" x-show="loading">
-          <div class="inline-flex items-center gap-2 text-xs text-gray-400">
-            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-            </svg>
-            Loading…
-          </div>
-        </div>
-      </div>
-
     </div>
-  </div>
-
-  {{-- ── 30-DAY TREND CHART ──────────────────────────────────────────────── --}}
-  <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <span class="text-lg">📈</span>
-        <h2 class="font-semibold text-gray-800 dark:text-white">30-Day Trend</h2>
-      </div>
-      <div class="flex gap-3 text-xs text-gray-600 dark:text-gray-400">
-        <span class="flex items-center gap-1.5"><span class="w-3 h-1.5 bg-amber-400 rounded-full inline-block"></span>Page Visits</span>
-        <span class="flex items-center gap-1.5"><span class="w-3 h-1.5 bg-violet-500 rounded-full inline-block"></span>Online Bookings</span>
-      </div>
-    </div>
-    <div class="p-6">
-
-      {{-- SVG line chart --}}
-      <div class="relative h-48 w-full" x-show="trend.length > 0">
-        <svg class="w-full h-full" viewBox="0 0 800 180" preserveAspectRatio="none">
-          <line x1="0" y1="45"  x2="800" y2="45"  stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"/>
-          <line x1="0" y1="90"  x2="800" y2="90"  stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"/>
-          <line x1="0" y1="135" x2="800" y2="135" stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"/>
-          <line x1="0" y1="180" x2="800" y2="180" stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"/>
-          <polyline :points="buildPolyline(trend, 'visits', 800, 180)" class="sparkline" stroke="#f59e0b" stroke-width="2.5" fill="none"/>
-          <polyline :points="buildPolyline(trend, 'bookings', 800, 180)" class="sparkline" stroke="#8b5cf6" stroke-width="2.5" fill="none"/>
-        </svg>
-        <div class="flex justify-between mt-1 px-1">
-          <template x-for="(day, i) in trend" :key="i">
-            <span x-show="i % 5 === 0 || i === trend.length - 1"
-                  class="text-[10px] text-gray-300 dark:text-gray-600" x-text="day.label"></span>
-          </template>
-        </div>
-      </div>
-
-      {{-- Empty state --}}
-      <div class="h-48 flex items-center justify-center text-gray-300 dark:text-gray-600" x-show="trend.length === 0 && !loading">
-        <div class="text-center">
-          <p class="text-4xl mb-2">📉</p>
-          <p class="text-sm">No visit data yet</p>
-        </div>
-      </div>
-
-      {{-- Summary row --}}
-      <div class="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-gray-50 dark:border-gray-700" x-show="trend.length > 0">
-        <div class="text-center">
-          <p class="text-lg font-bold text-gray-900 dark:text-white" x-text="trend.reduce((a,d) => a + d.visits, 0)"></p>
-          <p class="text-xs text-gray-400 dark:text-gray-500">Total visits (30d)</p>
-        </div>
-        <div class="text-center">
-          <p class="text-lg font-bold text-gray-900 dark:text-white" x-text="trend.reduce((a,d) => a + d.bookings, 0)"></p>
-          <p class="text-xs text-gray-400 dark:text-gray-500">Online bookings</p>
-        </div>
-        <div class="text-center">
-          <p class="text-lg font-bold text-gray-900 dark:text-white" x-text="
-            (() => {
-              const v = trend.reduce((a,d) => a + d.visits, 0);
-              const b = trend.reduce((a,d) => a + d.bookings, 0);
-              return v > 0 ? (b/v*100).toFixed(1) + '%' : '0%';
-            })()
-          "></p>
-          <p class="text-xs text-gray-400 dark:text-gray-500">Avg conversion</p>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  {{-- ── DEVICE SPLIT ────────────────────────────────────────────────────── --}}
-  <div class="grid sm:grid-cols-2 gap-6">
-
-    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center gap-2">
-        <span class="text-lg">📱</span>
-        <h2 class="font-semibold text-gray-800 dark:text-white">Visitors by Device</h2>
-      </div>
-      <div class="p-6 space-y-3" x-show="devices.length > 0">
-        <template x-for="dev in devices" :key="dev.device">
-          <div class="flex items-center gap-3">
-            <span class="text-lg w-7 text-center" x-text="dev.device === 'mobile' ? '📱' : dev.device === 'desktop' ? '💻' : '❓'"></span>
-            <div class="flex-1">
-              <div class="flex justify-between text-xs mb-1">
-                <span class="font-medium text-gray-700 dark:text-gray-300 capitalize" x-text="dev.device"></span>
-                <span class="text-gray-500 dark:text-gray-400" x-text="dev.count + ' (' + dev.percentage + '%)'"></span>
-              </div>
-              <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                <div class="bar-fill h-2 rounded-full"
-                     :class="dev.device === 'mobile' ? 'bg-violet-400' : 'bg-amber-400'"
-                     :style="`width:${dev.percentage}%`"></div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </div>
-      <div class="px-6 py-8 text-center text-gray-300 dark:text-gray-600" x-show="devices.length === 0 && !loading">
-        <p class="text-sm">No device data yet</p>
-      </div>
-    </div>
-
-    {{-- ── PRO TIPS ──────────────────────────────────────────────────────── --}}
-    <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border border-amber-100 dark:border-amber-800/50 shadow-sm overflow-hidden">
-      <div class="px-6 py-4 border-b border-amber-100 dark:border-amber-800/50 flex items-center gap-2">
-        <span class="text-lg">💡</span>
-        <h2 class="font-semibold text-amber-800 dark:text-amber-300">Growth Tips</h2>
-      </div>
-      <ul class="p-6 space-y-3">
-        <li class="flex items-start gap-3 text-sm text-amber-900 dark:text-amber-200">
-          <span class="flex-shrink-0 w-5 h-5 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">1</span>
-          <span><strong>Instagram bio link</strong> — Add your booking URL to your Instagram bio. It's the #1 driver of online bookings for salons.</span>
-        </li>
-        <li class="flex items-start gap-3 text-sm text-amber-900 dark:text-amber-200">
-          <span class="flex-shrink-0 w-5 h-5 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">2</span>
-          <span><strong>WhatsApp auto-reply</strong> — Set your booking link as an auto-reply so clients can book without waiting for a response.</span>
-        </li>
-        <li class="flex items-start gap-3 text-sm text-amber-900 dark:text-amber-200">
-          <span class="flex-shrink-0 w-5 h-5 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">3</span>
-          <span><strong>Window QR sticker</strong> — Print your QR code and put it in your window. Walk-bys become bookings.</span>
-        </li>
-        <li class="flex items-start gap-3 text-sm text-amber-900 dark:text-amber-200">
-          <span class="flex-shrink-0 w-5 h-5 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">4</span>
-          <span><strong>Google Business Profile</strong> — Add your booking URL to your Google profile so clients can book directly from search results.</span>
-        </li>
-      </ul>
-    </div>
-
   </div>
 
 </div>
@@ -758,9 +590,6 @@ function goLivePage() {
     salon:       { ..._serverData.salon },
     stats:       { ..._serverData.stats },
     checklist:   { ..._serverData.checklist },
-    sources:     [],
-    trend:       [],
-    devices:     [],
     shareClicks: { ..._serverData.shareClicks },
     embedCodes:  { ..._serverData.embedCodes },
     bookingUrl:  _serverData.bookingUrl,
@@ -912,9 +741,6 @@ function goLivePage() {
     async init() {
       await Promise.allSettled([
         this.loadStats(),
-        this.loadSources(),
-        this.loadTrend(),
-        this.loadDevices(),
         this.loadChecklist(),
       ]);
       this.loading = false;
@@ -938,27 +764,6 @@ function goLivePage() {
         const d = await this.api('share/stats');
         if (d.data) Object.assign(this.stats, d.data);
       } catch(e) { console.warn('stats:', e); }
-    },
-
-    async loadSources() {
-      try {
-        const d = await this.api('share/sources');
-        this.sources = d.data?.sources ?? [];
-      } catch(e) { console.warn('sources:', e); }
-    },
-
-    async loadTrend() {
-      try {
-        const d = await this.api('share/trend');
-        this.trend = d.data?.trend ?? [];
-      } catch(e) { console.warn('trend:', e); }
-    },
-
-    async loadDevices() {
-      try {
-        const d = await this.api('share/devices');
-        this.devices = d.data?.devices ?? [];
-      } catch(e) { console.warn('devices:', e); }
     },
 
     async loadChecklist() {
@@ -1038,19 +843,6 @@ function goLivePage() {
       }
     },
 
-    // ── Chart helpers ────────────────────────────────────────────────────
-    buildPolyline(data, field, width, height) {
-      if (!data || data.length === 0) return '';
-      const vals  = data.map(d => d[field]);
-      const max   = Math.max(...vals, 1);
-      const pad   = 10;
-      const step  = (width - pad * 2) / (data.length - 1);
-      return vals.map((v, i) => {
-        const x = pad + i * step;
-        const y = height - pad - ((v / max) * (height - pad * 2));
-        return `${x},${y}`;
-      }).join(' ');
-    },
   };
 }
 </script>

@@ -31,6 +31,14 @@
         class="bg-gray-900 text-white rounded-xl px-8 py-4 font-semibold hover:bg-gray-700 transition">
         Go to Dashboard
       </a>
+      <a href="{{ route('setup-progress') }}"
+        class="border border-gray-300 text-gray-700 rounded-xl px-8 py-4 font-semibold hover:bg-gray-50 transition">
+        View Setup Progress
+      </a>
+      <a href="{{ route('go-live') }}"
+        class="border border-amber-300 text-amber-700 rounded-xl px-8 py-4 font-semibold hover:bg-amber-50 transition">
+        Open Go Live
+      </a>
       @if(config('billing.subscriptions_enabled'))
       <a href="{{ route('billing.plans') }}"
         class="border border-amber-400 text-amber-700 rounded-xl px-8 py-4 font-semibold hover:bg-amber-50 transition">

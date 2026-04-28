@@ -204,7 +204,7 @@ class StaffController extends Controller
             'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
             'services'          => ['nullable', 'array'],
             'services.*'        => ['exists:services,id'],
-            'avatar'            => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
         $nameParts = explode(' ', trim($data['name']), 2);

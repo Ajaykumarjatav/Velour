@@ -110,14 +110,17 @@ class SettingsController extends Controller
             'booking_time_display' => ['nullable', 'in:business,customer'],
         ]);
 
+        $bookingTimeDisplay = $data['booking_time_display'] ?? 'business';
+        unset($data['booking_time_display']);
+
         $salon->update($data);
 
         SalonSetting::updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'booking_time_display'],
-            ['value' => $request->input('booking_time_display', 'business'), 'type' => 'string']
+            ['value' => $bookingTimeDisplay, 'type' => 'string']
         );
 
-        return back()->with('success', 'Salon profile updated.');
+        return $this->redirectAfterSettingsSave($request, 'Salon profile updated.', 'salon');
     }
 
     public function updateServices(Request $request)
@@ -243,7 +246,7 @@ class SettingsController extends Controller
             $serviceOverrides
         );
 
-        return back()->with('success', 'Service setup updated.')->with('tab', 'services');
+        return $this->redirectAfterSettingsSave($request, 'Service setup updated.', 'services');
     }
 
     public function updateHours(Request $request)
@@ -256,7 +259,7 @@ class SettingsController extends Controller
 
         $salon->update(['opening_hours' => $data['hours']]);
 
-        return back()->with('success', 'Opening hours updated.');
+        return $this->redirectAfterSettingsSave($request, 'Opening hours updated.', 'hours');
     }
 
     public function updateNotifications(Request $request)
@@ -326,7 +329,7 @@ class SettingsController extends Controller
 
         app(NotificationConfigService::class)->persist($salon, $payload);
 
-        return back()->with('success', 'Notification settings updated.')->with('tab', 'notifications');
+        return $this->redirectAfterSettingsSave($request, 'Notification settings updated.', 'notifications');
     }
 
     public function updateProfile(Request $request)
@@ -350,7 +353,7 @@ class SettingsController extends Controller
 
         $user->update($data);
 
-        return back()->with('success', 'Profile updated.');
+        return $this->redirectAfterSettingsSave($request, 'Profile updated.', 'profile');
     }
 
     public function updateTeamMembers(Request $request)
@@ -374,7 +377,7 @@ class SettingsController extends Controller
 
         $this->syncTeamMembers($salon, $data['staff_members'] ?? []);
 
-        return back()->with('success', 'Team members updated.')->with('tab', 'profile');
+        return $this->redirectAfterSettingsSave($request, 'Team members updated.', 'profile');
     }
 
     public function updatePassword(Request $request)
@@ -392,7 +395,7 @@ class SettingsController extends Controller
 
         $user->update(['password' => Hash::make($data['password'])]);
 
-        return back()->with('success', 'Password changed successfully.');
+        return $this->redirectAfterSettingsSave($request, 'Password changed successfully.', 'profile');
     }
 
     public function updateSocialLinks(Request $request)
@@ -419,7 +422,7 @@ class SettingsController extends Controller
 
         $salon->update(['social_links' => $links]);
 
-        return back()->with('success', 'Social links updated.')->with('tab', 'social');
+        return $this->redirectAfterSettingsSave($request, 'Social links updated.', 'social');
     }
 
     /**
@@ -839,6 +842,21 @@ class SettingsController extends Controller
         }
 
         return in_array($actual, [$base . ' (Men)', $base . ' (Women)'], true);
+    }
+
+    private function redirectAfterSettingsSave(Request $request, string $message, string $tab)
+    {
+        $returnTo = trim((string) $request->input('return_to', ''));
+        if ($returnTo !== '') {
+            $path = (string) parse_url($returnTo, PHP_URL_PATH);
+            $query = (string) parse_url($returnTo, PHP_URL_QUERY);
+            if ($path !== '' && str_starts_with($path, '/')) {
+                $target = $path . ($query !== '' ? ('?' . $query) : '');
+                return redirect($target)->with('success', $message);
+            }
+        }
+
+        return back()->with('success', $message)->with('tab', $tab);
     }
 
     /**

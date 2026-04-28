@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Salon;
+use App\Models\Service;
+use App\Models\Staff;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +32,11 @@ class OnboardingController extends Controller
     {
         $user    = Auth::user();
         $salon   = Salon::where('owner_id', $user->id)->first();
-        $progress = $this->getProgress($user->id, $salon?->id);
+        if (! $salon) {
+            return redirect()->route('dashboard');
+        }
+        $this->syncProgressFromData($user->id, $salon);
+        $progress = $this->getProgress($user->id, $salon->id);
 
         // If onboarding complete, redirect to dashboard
         if ($progress && $progress->completed) {
@@ -44,22 +50,32 @@ class OnboardingController extends Controller
     {
         $user  = Auth::user();
         $salon = Salon::where('owner_id', $user->id)->firstOrFail();
+        $allowed = ['salon-profile', 'opening-hours', 'first-service', 'invite-staff'];
+        abort_unless(in_array($step, $allowed, true), 404);
 
-        return view("onboarding.steps.{$step}", compact('user', 'salon'));
+        $this->syncProgressFromData($user->id, $salon);
+        $progress = $this->getProgress($user->id, $salon->id);
+
+        $meta = $this->stepMeta($step, $salon, $progress);
+
+        return view("onboarding.steps.{$step}", compact('user', 'salon', 'meta', 'progress'));
     }
 
     public function completeStep(Request $request, string $step)
     {
         $user  = Auth::user();
         $salon = Salon::where('owner_id', $user->id)->firstOrFail();
+        $allowed = ['salon-profile', 'opening-hours', 'first-service', 'invite-staff'];
+        abort_unless(in_array($step, $allowed, true), 404);
 
+        $this->syncProgressFromData($user->id, $salon);
+        $progress = $this->getProgress($user->id, $salon->id);
         $column = $this->stepColumn($step);
-        if ($column) {
-            DB::table('onboarding_progress')
-                ->updateOrInsert(
-                    ['user_id' => $user->id, 'salon_id' => $salon->id],
-                    [$column => true, 'updated_at' => now()]
-                );
+
+        if (! $column || ! $progress?->{$column}) {
+            $meta = $this->stepMeta($step, $salon, $progress);
+            return redirect($meta['action_url'])
+                ->with('warning', 'Complete this setup step first, then continue onboarding.');
         }
 
         // Check if all steps complete
@@ -129,5 +145,76 @@ class OnboardingController extends Controller
         $steps = ['salon-profile', 'opening-hours', 'first-service', 'invite-staff'];
         $idx   = array_search($current, $steps);
         return $steps[$idx + 1] ?? 'complete';
+    }
+
+    private function syncProgressFromData(int $userId, Salon $salon): void
+    {
+        $hasSalonProfile = ! empty($salon->name) && (! empty($salon->phone) || ! empty($salon->address_line1));
+        $hasOpeningHours = ! empty($salon->opening_hours);
+        $hasFirstService = Service::query()
+            ->where('salon_id', $salon->id)
+            ->where('status', 'active')
+            ->exists();
+        $hasFirstStaff = Staff::query()
+            ->where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->exists();
+
+        $allDone = $hasSalonProfile && $hasOpeningHours && $hasFirstService && $hasFirstStaff;
+
+        DB::table('onboarding_progress')->updateOrInsert(
+            ['user_id' => $userId, 'salon_id' => $salon->id],
+            [
+                'step_salon_profile' => $hasSalonProfile,
+                'step_opening_hours' => $hasOpeningHours,
+                'step_first_service' => $hasFirstService,
+                'step_first_staff' => $hasFirstStaff,
+                'completed' => $allDone,
+                'completed_at' => $allDone ? now() : null,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+    }
+
+    private function stepMeta(string $step, Salon $salon, ?object $progress): array
+    {
+        return match ($step) {
+            'salon-profile' => [
+                'title' => 'Salon profile',
+                'description' => 'Add core business details so customers can identify and contact your salon.',
+                'done' => (bool) ($progress?->step_salon_profile ?? false),
+                'action_url' => route('settings.index', ['tab' => 'salon', 'return_to' => route('onboarding.step', ['step' => 'salon-profile'])]),
+                'action_label' => 'Open Business Settings',
+            ],
+            'opening-hours' => [
+                'title' => 'Opening hours',
+                'description' => 'Set opening hours so the booking URL can generate valid slots.',
+                'done' => (bool) ($progress?->step_opening_hours ?? false),
+                'action_url' => route('settings.index', ['tab' => 'hours', 'return_to' => route('onboarding.step', ['step' => 'opening-hours'])]),
+                'action_label' => 'Set Opening Hours',
+            ],
+            'first-service' => [
+                'title' => 'Service selection',
+                'description' => 'Select business type, categories, and configure at least one active service.',
+                'done' => (bool) ($progress?->step_first_service ?? false),
+                'action_url' => route('settings.index', ['tab' => 'services', 'return_to' => route('onboarding.step', ['step' => 'first-service'])]),
+                'action_label' => 'Configure Services',
+            ],
+            'invite-staff' => [
+                'title' => 'Team setup',
+                'description' => 'Add at least one active team member so clients can be assigned correctly.',
+                'done' => (bool) ($progress?->step_first_staff ?? false),
+                'action_url' => route('settings.index', ['tab' => 'profile', 'return_to' => route('onboarding.step', ['step' => 'invite-staff'])]),
+                'action_label' => 'Add Team Member',
+            ],
+            default => [
+                'title' => 'Setup',
+                'description' => 'Complete your setup steps.',
+                'done' => false,
+                'action_url' => route('settings.index'),
+                'action_label' => 'Open Settings',
+            ],
+        };
     }
 }

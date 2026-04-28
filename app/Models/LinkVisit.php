@@ -17,7 +17,8 @@ class LinkVisit extends Model
 
     protected $fillable = [
         'salon_id', 'source', 'page', 'ip_address',
-        'country', 'device', 'converted',
+        'country', 'device', 'converted', 'utm_source',
+        'utm_medium', 'utm_campaign', 'referrer',
     ];
 
     protected $casts = ['converted' => 'boolean'];

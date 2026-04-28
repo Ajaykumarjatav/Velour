@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\PosTransaction;
 use App\Models\Client;
+use App\Models\LinkVisit;
 use App\Models\Staff;
 use App\Models\Service;
 use App\Helpers\CurrencyHelper;
@@ -205,6 +206,66 @@ class ReportController extends Controller
                 ];
             });
 
+        $trafficRows = LinkVisit::query()
+            ->where('salon_id', $salon->id)
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw("COALESCE(NULLIF(source,''), 'direct') as source_label")
+            ->selectRaw("COALESCE(NULLIF(utm_medium,''), 'unknown') as medium_label")
+            ->selectRaw('COUNT(*) as visits')
+            ->groupBy('source_label', 'medium_label')
+            ->orderByDesc('visits')
+            ->limit(12)
+            ->get();
+        $trafficTotal = (int) $trafficRows->sum('visits');
+        $trafficBreakdown = $trafficRows->map(function ($row) use ($trafficTotal) {
+            $source = (string) $row->source_label;
+            $medium = (string) $row->medium_label;
+            return [
+                'source' => $source,
+                'medium' => $medium,
+                'label' => ucfirst($source) . ' / ' . ucfirst($medium),
+                'visits' => (int) $row->visits,
+                'share' => $trafficTotal > 0 ? round(((int) $row->visits / $trafficTotal) * 100, 1) : 0.0,
+            ];
+        })->values();
+
+        $visitTrendRows = collect(range(29, 0))->map(function (int $daysAgo) use ($salon) {
+            $date = now()->subDays($daysAgo)->toDateString();
+            $visits = (int) LinkVisit::query()
+                ->where('salon_id', $salon->id)
+                ->whereDate('created_at', $date)
+                ->count();
+            $bookings = (int) Appointment::query()
+                ->where('salon_id', $salon->id)
+                ->whereIn('source', ['online', 'widget', 'qr', 'whatsapp', 'instagram', 'facebook', 'google'])
+                ->whereDate('starts_at', $date)
+                ->count();
+            return [
+                'date' => $date,
+                'label' => now()->subDays($daysAgo)->format('j M'),
+                'visits' => $visits,
+                'bookings' => $bookings,
+            ];
+        })->values();
+
+        $deviceRows = LinkVisit::query()
+            ->where('salon_id', $salon->id)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->selectRaw("COALESCE(NULLIF(device,''), 'unknown') as device_label")
+            ->selectRaw('COUNT(*) as device_count')
+            ->groupBy('device_label')
+            ->orderByDesc('device_count')
+            ->get();
+        $deviceTotal = (int) $deviceRows->sum('device_count');
+        $deviceBreakdown = $deviceRows->map(function ($row) use ($deviceTotal) {
+            $count = (int) $row->device_count;
+            return [
+                'device' => (string) $row->device_label,
+                'count' => $count,
+                'percentage' => $deviceTotal > 0 ? round(($count / $deviceTotal) * 100, 1) : 0.0,
+            ];
+        })->values();
+
         $change = function (float|int $current, float|int $previous): ?float {
             if ((float) $previous <= 0.0) {
                 return null;
@@ -226,7 +287,11 @@ class ReportController extends Controller
             'kpis',
             'monthlyBars',
             'weeklyPoints',
-            'staffRows'
+            'staffRows',
+            'trafficBreakdown',
+            'trafficTotal',
+            'visitTrendRows',
+            'deviceBreakdown'
         ));
     }
 
