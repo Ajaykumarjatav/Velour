@@ -38,12 +38,17 @@ class BookingController extends Controller
         }
 
         return response()->json([
-            'salon' => $salon->only([
-                'id', 'name', 'description', 'phone', 'email', 'address_line1',
-                'city', 'postcode', 'logo', 'cover_image', 'currency',
-                'deposit_required', 'deposit_percentage', 'instant_confirmation',
-                'cancellation_hours', 'booking_advance_days', 'opening_hours',
-            ]),
+            'salon' => array_merge(
+                $salon->only([
+                    'id', 'name', 'description', 'phone', 'email', 'address_line1',
+                    'city', 'postcode', 'logo', 'cover_image', 'currency',
+                    'deposit_required', 'deposit_percentage', 'instant_confirmation',
+                    'cancellation_hours', 'booking_advance_days', 'opening_hours',
+                ]),
+                [
+                    'home_services_enabled' => (bool) $salon->home_services_enabled,
+                ]
+            ),
         ]);
     }
 
@@ -57,6 +62,7 @@ class BookingController extends Controller
             ->where('status', 'active')
             ->where('online_bookable', true)
             ->where('show_in_menu', true)
+            ->eligibleForPublicBooking($salon)
             ->orderBy('sort_order')
             ->get()
             ->groupBy('category_id');
@@ -364,6 +370,7 @@ class BookingController extends Controller
             ->where('salon_id', $salon->id)
             ->where('status', 'active')
             ->where('online_bookable', true)
+            ->eligibleForPublicBooking($salon)
             ->whereIn('id', $ordered)
             ->get()
             ->keyBy('id');

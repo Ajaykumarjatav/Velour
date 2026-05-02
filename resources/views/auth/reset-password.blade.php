@@ -1,46 +1,47 @@
 @extends('layouts.auth')
 @section('title', 'Reset Password')
 @section('content')
-
-<div class="max-w-sm w-full mx-auto">
-  <div class="text-center mb-8">
-    <a href="{{ route('login') }}" class="inline-block text-2xl font-black text-velour-700 tracking-tight mb-6">velour.</a>
-    <h1 class="text-2xl font-bold text-gray-900">Set a new password</h1>
-    <p class="text-gray-500 mt-1 text-sm">Must be at least 8 characters with uppercase and numbers.</p>
-  </div>
-
-  <div class="bg-white rounded-2xl border border-gray-200 p-6">
-    <form method="POST" action="{{ route('password.update') }}" class="space-y-4">
-      @csrf
-      <input type="hidden" name="token" value="{{ $token }}">
-      <input type="hidden" name="email" value="{{ $email }}">
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5" for="reset-password-new">New password</label>
-        <div class="relative">
-          <input id="reset-password-new" type="password" name="password" required autocomplete="new-password"
-                 class="w-full pl-4 pr-11 py-2.5 rounded-xl border @error('password') border-red-400 @else border-gray-200 @enderror
-                        text-sm focus:outline-none focus:ring-2 focus:ring-velour-500">
-          @include('auth._password-visibility-toggle', ['targetId' => 'reset-password-new'])
-        </div>
-        @error('password')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5" for="reset-password-confirmation">Confirm new password</label>
-        <div class="relative">
-          <input id="reset-password-confirmation" type="password" name="password_confirmation" required autocomplete="new-password"
-                 class="w-full pl-4 pr-11 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-velour-500">
-          @include('auth._password-visibility-toggle', ['targetId' => 'reset-password-confirmation'])
-        </div>
-      </div>
-
-      <button type="submit"
-              class="w-full px-5 py-2.5 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors mt-2">
-        Reset password
-      </button>
-    </form>
-  </div>
+<div class="mb-8 space-y-3">
+    <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-velour-600/90">New credentials</p>
+    <div class="space-y-1.5">
+        <h2 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">Choose a new password</h2>
+        <p class="text-sm leading-relaxed text-slate-500">Use at least 8 characters. Mix letters, numbers, and symbols.</p>
+    </div>
 </div>
 
+<form method="POST" action="{{ route('password.update') }}" class="space-y-5">
+    @csrf
+    <input type="hidden" name="token" value="{{ $token }}">
+    <input type="hidden" name="email" value="{{ $email }}">
+
+    <div class="space-y-2">
+        <label for="reset-password-new" class="text-xs font-bold uppercase tracking-wide text-slate-600">New password</label>
+        <div class="relative">
+            <input id="reset-password-new" type="password" name="password" required autocomplete="new-password" placeholder="••••••••"
+                   class="w-full rounded-2xl border border-slate-200/90 bg-white/80 py-3.5 pl-4 pr-12 text-sm text-slate-900 shadow-auth-input placeholder:text-slate-400 transition-all duration-300 focus:border-velour-400 focus:bg-white focus:shadow-auth-input-focus focus:outline-none focus:ring-0 @error('password') border-red-400 @enderror">
+            @include('auth._password-visibility-toggle', ['targetId' => 'reset-password-new'])
+        </div>
+        @error('password')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+    </div>
+
+    <div class="space-y-2">
+        <label for="reset-password-confirmation" class="text-xs font-bold uppercase tracking-wide text-slate-600">Confirm</label>
+        <div class="relative">
+            <input id="reset-password-confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="••••••••"
+                   class="w-full rounded-2xl border border-slate-200/90 bg-white/80 py-3.5 pl-4 pr-12 text-sm text-slate-900 shadow-auth-input placeholder:text-slate-400 transition-all duration-300 focus:border-velour-400 focus:bg-white focus:shadow-auth-input-focus focus:outline-none focus:ring-0">
+            @include('auth._password-visibility-toggle', ['targetId' => 'reset-password-confirmation'])
+        </div>
+    </div>
+
+    <button type="submit"
+            class="auth-btn-primary group relative w-full overflow-hidden rounded-2xl py-4 text-sm font-bold text-white shadow-lg shadow-velour-600/30 transition-all duration-300 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-velour-500 focus-visible:ring-offset-2 active:scale-[0.985]">
+        <span class="absolute inset-0 bg-gradient-to-r from-velour-600 via-violet-600 to-purple-600 transition-opacity duration-300 group-hover:opacity-[0.92]" aria-hidden="true"></span>
+        <span class="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[100%]" aria-hidden="true"></span>
+        <span class="relative z-10 tracking-wide">Update password</span>
+    </button>
+</form>
+
+<p class="mt-9 border-t border-slate-200/60 pt-8 text-center text-sm text-slate-500">
+    <a href="{{ route('login') }}" class="auth-link-line font-semibold text-velour-700 hover:text-velour-900">← Back to sign in</a>
+</p>
 @endsection

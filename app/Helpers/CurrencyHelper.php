@@ -203,11 +203,17 @@ class CurrencyHelper
      */
     public static function format(float $amount, string $code, ?int $decimals = null): string
     {
-        $decimals ??= static::decimalPlaces($code);
+        $maxDecimals = $decimals ?? static::decimalPlaces($code);
+        // Clean UI: whole amounts omit “.00” (e.g. ₹250 not ₹250.00); keep decimals when needed.
+        $rounded = round($amount, $maxDecimals);
+        $useDecimals = $maxDecimals;
+        if ($maxDecimals > 0 && abs($rounded - round($rounded)) < 0.0000001) {
+            $useDecimals = 0;
+        }
         $currencies = static::all();
         $symbol   = $currencies[$code]['symbol']   ?? $code;
         $position = $currencies[$code]['position'] ?? 'before';
-        $formatted = number_format($amount, $decimals);
+        $formatted = number_format($amount, $useDecimals);
 
         return $position === 'after'
             ? $formatted . $symbol
@@ -217,7 +223,7 @@ class CurrencyHelper
     /** Symbol + numeric + code when the symbol alone is ambiguous (e.g. $). */
     public static function formatWithCode(float $amount, string $code, ?int $decimals = null): string
     {
-        $decimals ??= static::decimalPlaces($code);
+        $maxDecimals = $decimals ?? static::decimalPlaces($code);
         $sym = static::symbol($code);
         $ambiguous = in_array($sym, ['$', '£', 'Fr', 'kr', 'Rs'], true);
 

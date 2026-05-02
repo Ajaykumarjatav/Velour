@@ -11,6 +11,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffController extends Controller
@@ -185,7 +187,8 @@ class StaffController extends Controller
     public function create()
     {
         $salon    = $this->salon();
-        $services = Service::where('salon_id', $salon->id)->active()->get(['id','name']);
+        $role = old('role', 'therapist');
+        $services = $this->eligibleServicesForRole($salon->id, $role);
 
         return view('staff.create', compact('salon', 'services'));
     }
@@ -203,9 +206,11 @@ class StaffController extends Controller
             'color'             => ['nullable', 'string', 'max:7'],
             'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
             'services'          => ['nullable', 'array'],
-            'services.*'        => ['exists:services,id'],
+            'services.*'        => [Rule::exists('services', 'id')->where('salon_id', $salon->id)],
             'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
+
+        $this->assertServicesEligibleForRole($salon->id, (string) $data['role'], $data['services'] ?? []);
 
         $nameParts = explode(' ', trim($data['name']), 2);
         $avatarFile = $request->file('avatar');
@@ -263,7 +268,8 @@ class StaffController extends Controller
     {
         $this->authorise($staff);
         $salon    = $this->salon();
-        $services = Service::where('salon_id', $salon->id)->active()->get(['id','name']);
+        $role = old('role', (string) $staff->role);
+        $services = $this->eligibleServicesForRole($salon->id, $role);
         $assigned = $staff->services()->pluck('services.id')->toArray();
 
         return view('staff.edit', compact('staff', 'services', 'assigned'));
@@ -283,9 +289,11 @@ class StaffController extends Controller
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'is_active'       => ['boolean'],
             'services'        => ['nullable', 'array'],
-            'services.*'      => ['exists:services,id'],
+            'services.*'      => [Rule::exists('services', 'id')->where('salon_id', $staff->salon_id)],
             'avatar'          => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
+
+        $this->assertServicesEligibleForRole($staff->salon_id, (string) $data['role'], $data['services'] ?? []);
 
         // Split 'name' into first_name / last_name for the Staff model
         if (isset($data['name'])) {
@@ -344,5 +352,34 @@ class StaffController extends Controller
             }
             $staff->update(['avatar' => null]);
         }
+    }
+
+    private function eligibleServicesForRole(int $salonId, string $role)
+    {
+        return Service::where('salon_id', $salonId)
+            ->active()
+            ->orderBy('sort_order')
+            ->get(['id', 'name', 'allowed_roles'])
+            ->filter(fn (Service $service) => $service->allowsStaffRole($role))
+            ->values();
+    }
+
+    /** @param  array<int, mixed>  $serviceIds */
+    private function assertServicesEligibleForRole(int $salonId, string $role, array $serviceIds): void
+    {
+        $ids = array_values(array_unique(array_map('intval', $serviceIds)));
+        if ($ids === []) {
+            return;
+        }
+
+        $services = Service::where('salon_id', $salonId)->whereIn('id', $ids)->get(['id', 'name', 'allowed_roles']);
+        $blocked = $services->filter(fn (Service $service) => ! $service->allowsStaffRole($role))->pluck('name')->values();
+        if ($blocked->isEmpty()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'services' => ['Selected role cannot be assigned these services: '.$blocked->implode(', ').'.'],
+        ]);
     }
 }

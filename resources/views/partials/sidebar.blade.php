@@ -2,18 +2,22 @@
 
     {{-- Logo --}}
     <div class="px-5 py-5 border-b border-gray-100 dark:border-gray-800">
-        <p class="text-lg font-black text-gray-900 dark:text-white tracking-tight">
-            velour<span class="text-velour-500">.</span>
+        <p class="text-base font-semibold text-gray-900 dark:text-white tracking-tight font-sans">
+            velour<span class="text-velour-500 font-semibold">.</span>
         </p>
-        @if(Auth::check() && Auth::user()->salons()->exists())
-        @php $sidebarSalonName = $currentSalon->name ?? Auth::user()->salons()->first()->name; @endphp
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{{ $sidebarSalonName }}</p>
+        @if(Auth::check() && ($currentSalon ?? null))
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{{ $currentSalon->name }}</p>
         @endif
     </div>
 
-    {{-- Nav --}}
-    <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-4 space-y-0.5">
+    @php
+        $navShow = fn (string $key): bool => \App\Support\SidebarNav::show(auth()->user(), $key);
+    @endphp
 
+    {{-- Nav --}}
+    <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2.5 py-3 space-y-0.5">
+
+        @if($navShow('dashboard'))
         <a href="{{ route('dashboard') }}"
            class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -21,7 +25,9 @@
             </svg>
             Dashboard
         </a>
+        @endif
 
+        @if($navShow('calendar'))
         <a href="{{ route('calendar') }}"
            class="sidebar-link {{ request()->routeIs('calendar') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -29,7 +35,9 @@
             </svg>
             Calendar
         </a>
+        @endif
 
+        @if($navShow('appointments'))
         <a href="{{ route('appointments.index') }}"
            class="sidebar-link {{ request()->routeIs('appointments.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,7 +45,9 @@
             </svg>
             Appointments
         </a>
+        @endif
 
+        @if($navShow('clients'))
         <a href="{{ route('clients.index') }}"
            class="sidebar-link {{ request()->routeIs('clients.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -45,10 +55,14 @@
             </svg>
             Clients
         </a>
+        @endif
 
         {{-- MANAGE --}}
-        <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Manage</p>
+        @if(\App\Support\SidebarNav::showManageHeading(auth()->user()))
+        <p class="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Manage</p>
+        @endif
 
+        @if($navShow('staff'))
         <a href="{{ route('staff.index') }}"
            class="sidebar-link {{ request()->routeIs('staff.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -56,7 +70,9 @@
             </svg>
             Staff &amp; HR
         </a>
+        @endif
 
+        @if($navShow('services'))
         <a href="{{ route('services.index') }}"
            class="sidebar-link {{ request()->routeIs('services.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -64,7 +80,19 @@
             </svg>
             Services
         </a>
+        @endif
 
+        @if($navShow('service_packages'))
+        <a href="{{ route('service-packages.index') }}"
+           class="sidebar-link {{ request()->routeIs('service-packages.*') ? 'active' : '' }}">
+            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            Service packages
+        </a>
+        @endif
+
+        @if($navShow('multi_location'))
         <a href="{{ route('multi-location.index') }}"
            class="sidebar-link {{ request()->routeIs('multi-location.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -72,7 +100,9 @@
             </svg>
             Multi-Location
         </a>
+        @endif
 
+        @if($navShow('availability'))
         <a href="{{ route('availability.index') }}"
            class="sidebar-link {{ request()->routeIs('availability.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -80,7 +110,9 @@
             </svg>
             Availability &amp; Resources
         </a>
+        @endif
 
+        @if($navShow('inventory'))
         <a href="{{ route('inventory.index') }}"
            class="sidebar-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,7 +120,9 @@
             </svg>
             Inventory &amp; Retail
         </a>
+        @endif
 
+        @if($navShow('pos'))
         <a href="{{ route('pos.index') }}"
            class="sidebar-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -96,8 +130,9 @@
             </svg>
             Point of Sale
         </a>
+        @endif
 
-        @if(Route::has('revenue.index'))
+        @if(Route::has('revenue.index') && $navShow('revenue'))
         <a href="{{ route('revenue.index') }}"
            class="sidebar-link {{ request()->routeIs('revenue.index') || (request()->routeIs('reports.show') && request()->route('type') === 'revenue') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -108,8 +143,11 @@
         @endif
 
         {{-- GROW --}}
-        <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Grow</p>
+        @if(\App\Support\SidebarNav::showGrowHeading(auth()->user()))
+        <p class="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Grow</p>
+        @endif
 
+        @if($navShow('go_live'))
         <a href="{{ route('go-live') }}"
            class="sidebar-link {{ request()->routeIs('go-live') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,7 +155,9 @@
             </svg>
             Go Live &amp; Share
         </a>
+        @endif
 
+        @if($navShow('website_seo'))
         <a href="{{ route('website-seo.index') }}"
            class="sidebar-link {{ request()->routeIs('website-seo.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -125,7 +165,9 @@
             </svg>
             Website &amp; SEO
         </a>
+        @endif
 
+        @if($navShow('customization'))
         <a href="{{ route('customization.index') }}"
            class="sidebar-link {{ request()->routeIs('customization.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -133,7 +175,9 @@
             </svg>
             Customization
         </a>
+        @endif
 
+        @if($navShow('marketing'))
         <a href="{{ route('marketing.growth') }}"
            class="sidebar-link {{ request()->routeIs('marketing.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -141,7 +185,9 @@
             </svg>
             Marketing
         </a>
+        @endif
 
+        @if($navShow('reviews'))
         <a href="{{ route('reviews.index') }}"
            class="sidebar-link {{ request()->routeIs('reviews.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,6 +195,7 @@
             </svg>
             Reviews
         </a>
+        @endif
 
         @php
             $isAnalyticsActive = request()->routeIs('reports.analytics');
@@ -156,6 +203,7 @@
                 || request()->routeIs('reports.show')
                 || request()->routeIs('revenue.index');
         @endphp
+        @if($navShow('analytics'))
         <a href="{{ route('reports.analytics') }}"
            class="sidebar-link {{ $isAnalyticsActive ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,8 +211,10 @@
             </svg>
             Analytics
         </a>
+        @endif
 
         {{-- Reports sub-menu --}}
+        @if($navShow('reports_menu'))
         @php $reportsOpen = $isReportsMenuActive; @endphp
         <div x-data="{ open: {{ $reportsOpen ? 'true' : 'false' }} }">
             <button @click="open = !open"
@@ -196,11 +246,14 @@
                 @endforeach
             </div>
         </div>
+        @endif
 
         {{-- ACCOUNT --}}
-        <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Account</p>
+        @if($navShow('billing') || $navShow('settings') || $navShow('security_support') || $navShow('notifications') || $navShow('growth_tips'))
+        <p class="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Account</p>
+        @endif
 
-        @if(config('billing.subscriptions_enabled'))
+        @if(config('billing.subscriptions_enabled') && $navShow('billing'))
         <a href="{{ route('billing.dashboard') }}"
            class="sidebar-link {{ request()->routeIs('billing.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -238,6 +291,7 @@
         @endif
         @endif
 
+        @if($navShow('settings'))
         <a href="{{ route('settings.index') }}"
            class="sidebar-link {{ request()->routeIs('settings.*') && !request()->routeIs('two-factor.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -246,7 +300,9 @@
             </svg>
             Settings
         </a>
+        @endif
 
+        @if($navShow('security_support'))
         <a href="{{ route('security-support.index') }}"
            class="sidebar-link {{ request()->routeIs('security-support.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -257,7 +313,9 @@
             <span class="ml-auto w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></span>
             @endif
         </a>
+        @endif
 
+        @if($navShow('notifications'))
         <a href="{{ route('notifications.index') }}"
            class="sidebar-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -266,7 +324,7 @@
             <span class="flex-1">Notifications</span>
             @php
                 try {
-                    $sidebarSalon  = auth()->user()->salons()->first();
+                    $sidebarSalon  = $currentSalon ?? auth()->user()->salons()->first();
                     $sidebarUnread = $sidebarSalon
                         ? \App\Models\SalonNotification::where('salon_id', $sidebarSalon->id)->where('is_read', false)->count()
                         : 0;
@@ -278,7 +336,9 @@
             </span>
             @endif
         </a>
+        @endif
 
+        @if($navShow('growth_tips'))
         <a href="{{ route('reports.analytics') }}#growth-tips"
            class="sidebar-link {{ request()->routeIs('reports.analytics') && request()->get('focus') === 'growth' ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -286,9 +346,10 @@
             </svg>
             Growth Tips
         </a>
+        @endif
 
         @if(auth()->user()->hasRole('tenant_admin') || auth()->user()->isSuperAdmin())
-        <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Admin</p>
+        <p class="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Admin</p>
         <a href="{{ route('salon-admin.team') }}"
            class="sidebar-link {{ request()->routeIs('salon-admin.team*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">

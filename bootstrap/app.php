@@ -48,12 +48,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 Request::HEADER_X_FORWARDED_PROTO
         );
 
-        // Global web middleware stack — tenancy initialisation runs on every web request
-        // We resolve the tenant based on the logged-in user (not the domain), so
-        // this middleware must run after the session/auth middleware.
-        $middleware->web(append: [
-            \App\Http\Middleware\InitializeTenancyFromDomain::class,
-        ]);
+        // Tenancy is initialised on routes that require it, *after* `auth` (see web.php /
+        // api.php). Running it globally before `auth` leaves `Auth::check()` false and
+        // breaks staff dashboard (TenantMiddleware → 404).
 
         // Named middleware aliases
         $middleware->alias([
@@ -82,6 +79,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'cross.tenant'     => \App\Http\Middleware\PreventCrossTenantAccess::class,
             'idempotency'      => \App\Http\Middleware\IdempotencyKey::class,
             'account.lockout'  => \App\Http\Middleware\AccountLockout::class,
+            'profile.complete' => \App\Http\Middleware\EnsureSalonProfileComplete::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

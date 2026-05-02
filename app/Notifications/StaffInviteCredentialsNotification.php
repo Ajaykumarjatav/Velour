@@ -27,16 +27,15 @@ class StaffInviteCredentialsNotification extends Notification implements ShouldQ
         $mail = (new MailMessage)
             ->subject('You are invited to ' . $this->salonName)
             ->greeting('Hello ' . ($notifiable->name ?: 'there') . ',')
-            ->line('You have been added as a staff member in ' . $this->salonName . '.')
-            ->line('Login URL: ' . route('login'))
-            ->line('User ID: ' . $notifiable->email);
+            ->line('You have been invited to join ' . $this->salonName . ' on Velour. Open the sign-in page, then log in with your email and the temporary password below.')
+            ->line('Email (login): ' . $notifiable->email);
 
         if ($this->temporaryPassword !== null) {
-            $mail->line('One-time password: ' . $this->temporaryPassword);
+            $mail->line('Temporary password: ' . $this->temporaryPassword);
         }
 
         return $mail
-            ->line('For security, you must change your password immediately after login.')
-            ->action('Sign in', route('login'));
+            ->line('After you sign in, you will be asked to choose a new password before using the app. Your dashboard and menus follow the role assigned by your salon.')
+            ->action('Open sign-in', route('login'));
     }
 }

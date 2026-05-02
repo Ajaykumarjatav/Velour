@@ -3,16 +3,36 @@
 @section('page-title', 'Settings')
 @section('content')
 
-@php $returnTo = old('return_to', request()->query('return_to')); @endphp
-<div class="max-w-3xl" x-data="{
-    tab: '{{ session('tab', request()->get('tab', 'salon')) }}',
-    showPasswordModal: {{ $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation') ? 'true' : 'false' }}
-}">
+@php
+    $returnTo = old('return_to', request()->query('return_to'));
+    $settingsPersonalOnly = $settingsPersonalOnly ?? false;
+    $settingsTabLabels = $settingsTabLabels ?? [
+        'salon' => 'Business', 'services' => 'Service', 'hours' => 'Hours', 'social' => 'Social Links',
+        'notifications' => 'Notifications', 'profile' => 'Profile', 'security' => 'Security',
+    ];
+    $settingsInitialTab = $settingsInitialTab ?? session('tab', request()->get('tab', $settingsPersonalOnly ? 'profile' : 'salon'));
+    // One JSON object for Alpine: must use single-quoted HTML attribute (see x-data below) — double-quoted x-data breaks when @json emits "quotes".
+    $settingsAlpineData = [
+        'tab' => (string) $settingsInitialTab,
+        'showPasswordModal' => $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation'),
+        'open' => [],
+        'profileCardOpen' => true,
+        'teamCardOpen' => true,
+    ];
+@endphp
+<div class="max-w-3xl" x-data='@json($settingsAlpineData)'>
+
+    @if($settingsPersonalOnly)
+    <div class="mb-6 rounded-xl border border-velour-200 dark:border-velour-800 bg-velour-50 dark:bg-velour-950/40 px-4 py-3 text-sm text-velour-900 dark:text-velour-100">
+        <p class="font-medium">Your account settings</p>
+        <p class="mt-1 text-velour-800/90 dark:text-velour-200/90">You can update your profile and security. Salon business, services, and team setup are managed by your admin.</p>
+    </div>
+    @endif
 
     {{-- Tab bar --}}
     <div class="flex flex-wrap gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl w-fit">
-        @foreach(['salon' => 'Business', 'services' => 'Service', 'hours' => 'Hours', 'social' => 'Social Links', 'notifications' => 'Notifications', 'profile' => 'Profile', 'security' => 'Security'] as $key => $label)
-        <button @click="tab='{{ $key }}'"
+        @foreach($settingsTabLabels as $key => $label)
+        <button type="button" @click="tab='{{ $key }}'"
                 :class="tab==='{{ $key }}' ? 'bg-white dark:bg-gray-700 text-velour-700 dark:text-velour-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
                 class="px-4 py-2 text-sm font-medium rounded-xl transition-all">
             {{ $label }}
@@ -87,6 +107,17 @@
                             </label>
                         </div>
                         <p class="form-hint">Used for emails and online booking messages. Internal calendar always uses business time.</p>
+                    </div>
+                    <div class="col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-4 space-y-3">
+                        <p class="text-sm font-semibold text-heading">Service delivery</p>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="home_services_enabled" value="1" class="mt-1 rounded border-gray-300 text-velour-600"
+                                   {{ old('home_services_enabled', $salon->home_services_enabled ?? false) ? 'checked' : '' }}>
+                            <span class="text-sm text-body leading-relaxed">
+                                <span class="font-medium text-heading">Enable home visits (client location)</span>
+                                — when on, services you mark as <strong>home visit</strong> appear on your public booking page and API. When off (default), you can still create and manage home services in your catalog; they stay hidden from online booking until you enable this.
+                            </span>
+                        </label>
                     </div>
                     <div class="col-span-2">
                         <label class="form-label">Description</label>
@@ -414,7 +445,7 @@
     </div>
 
     {{-- ── Notifications (rules, timing, templates, quiet hours) ── --}}
-    <div x-show="tab==='notifications'" x-cloak x-data="{ open: {} }">
+    <div x-show="tab==='notifications'" x-cloak>
         <div class="card p-6">
             <h2 class="font-semibold text-heading mb-1">Notification settings</h2>
             <p class="text-sm text-muted mb-6">Turn channels on or off, set when scheduled reminders go out, and customise message text. Use placeholders in curly braces in your templates.</p>
@@ -547,7 +578,7 @@
     </div>
 
     {{-- ── My Profile ── --}}
-    <div x-show="tab==='profile'" x-cloak class="space-y-5" x-data="{ profileCardOpen: true, teamCardOpen: true }">
+    <div x-show="tab==='profile'" x-cloak class="space-y-5">
         <div class="card p-6">
             <div class="mb-5 flex items-center justify-between border-b border-gray-200/60 dark:border-gray-800 pb-3">
                 <h2 class="font-semibold text-heading">My Profile</h2>
@@ -590,10 +621,16 @@
                     <label class="form-label">Experience</label>
                     <input type="text" name="experience" value="{{ old('experience', $user->experience) }}" class="form-input" placeholder="e.g. 5 years">
                 </div>
-                <div>
-                    <label class="form-label">Language proficiency</label>
-                    <input type="text" name="language_proficiency" value="{{ old('language_proficiency', $user->language_proficiency) }}" class="form-input" placeholder="e.g. English, Hindi">
-                </div>
+                @php
+                    $profileLangSelected = old('language_proficiency');
+                    if (! is_array($profileLangSelected)) {
+                        $profileLangSelected = \App\Support\LanguageProficiency::codesFromStored($user->language_proficiency);
+                    }
+                @endphp
+                @include('settings.partials.language-proficiency-field', [
+                    'name' => 'language_proficiency[]',
+                    'selected' => $profileLangSelected,
+                ])
                 {{--
                 <div>
                     <label class="form-label">Your timezone</label>
@@ -623,6 +660,7 @@
                 <button type="submit" class="btn-primary">Update Profile</button>
             </form>
         </div>
+        @unless($settingsPersonalOnly)
         <div class="card p-6">
             @php
                 $staffRows = old('staff_members');
@@ -656,7 +694,7 @@
                             Total: {{ count($staffRows) }}
                         </span>
                     </h2>
-                    <p class="form-hint">Add or update team members from your profile settings.</p>
+                    <p class="form-hint">Add or update team members from your profile settings. The level of service dependency is determined based on the roles and responsibilities of each person; when you offer all services, each member receives only those their role is allowed to perform (configured per service under Services).</p>
                 </div>
                 <button type="button"
                         @click="teamCardOpen = !teamCardOpen"
@@ -716,10 +754,19 @@
                                     <input type="text" name="staff_members[{{ $idx }}][experience]" value="{{ $st['experience'] ?? '' }}"
                                            class="form-input" placeholder="e.g. 5 years">
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-body mb-1">Language proficiency</label>
-                                    <input type="text" name="staff_members[{{ $idx }}][language_proficiency]" value="{{ $st['language_proficiency'] ?? '' }}"
-                                           class="form-input" placeholder="e.g. English, Hindi">
+                                <div class="md:col-span-2">
+                                    @php
+                                        $staffLangKey = 'staff_members.'.$idx.'.language_proficiency';
+                                        $staffLangSelected = old($staffLangKey);
+                                        if (! is_array($staffLangSelected)) {
+                                            $staffLangSelected = \App\Support\LanguageProficiency::codesFromStored($st['language_proficiency'] ?? '');
+                                        }
+                                    @endphp
+                                    @include('settings.partials.language-proficiency-field', [
+                                        'name' => 'staff_members['.$idx.'][language_proficiency][]',
+                                        'selected' => $staffLangSelected,
+                                        'hint' => 'Languages this team member uses with clients (standard codes).',
+                                    ])
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Calendar colour</label>
@@ -740,8 +787,9 @@
                             <label class="inline-flex items-start gap-2 text-sm text-body cursor-pointer">
                                 <input type="checkbox" name="staff_members[{{ $idx }}][assign_services]" value="1" class="mt-0.5 rounded border-gray-300 text-velour-600"
                                        {{ $assignChecked ? 'checked' : '' }}>
-                                <span>Offer all services on this menu to this team member</span>
+                                <span>Offer all services on this menu to this team member <span class="text-muted font-normal">(filtered by this member’s role)</span></span>
                             </label>
+                            <p class="text-xs text-muted pl-7 -mt-1">Service dependency is defined according to each staff member’s role; “all services” means every service that role may perform.</p>
                         </div>
                     @endforeach
                 </div>
@@ -750,6 +798,7 @@
                 <button type="submit" class="btn-primary">Save Team Members</button>
             </form>
         </div>
+        @endunless
     </div>
 
     {{-- ── Security / 2FA ── --}}
@@ -1194,7 +1243,7 @@
             el.selectedIndex = 0;
         });
         clone.querySelectorAll('input[type="checkbox"]').forEach(function (el) {
-            el.checked = true;
+            el.checked = false;
         });
         clone.querySelectorAll('input[type="hidden"]').forEach(function (el) {
             if (el.name && el.name.indexOf('[id]') !== -1) el.value = '';

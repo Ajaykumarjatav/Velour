@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\LoyaltyTier;
@@ -19,19 +20,23 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientController extends Controller
 {
-    private function salon()
-    {
-        return Auth::user()->salons()->firstOrFail();
-    }
+    use ResolvesActiveSalon;
 
     public function index(Request $request)
     {
-        $salon  = $this->salon();
+        $salon  = $this->activeSalon();
         $search = $request->get('search');
         $sort   = $request->get('sort', 'created_at');
         $dir    = $request->get('dir', 'desc');
 
         $query = Client::where('salon_id', $salon->id);
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        if ($scopedStaffId !== null) {
+            $query->whereHas(
+                'appointments',
+                fn ($q) => $q->where('staff_id', $scopedStaffId)
+            );
+        }
 
         $loyaltyFilterTier = null;
         if ($request->filled('loyalty_tier_id')) {
@@ -56,9 +61,13 @@ class ClientController extends Controller
         $clientIds = $clients->getCollection()->pluck('id')->all();
         $appointmentsByClient = collect();
         if ($clientIds !== []) {
-            $appointmentsByClient = Appointment::query()
+            $aptMini = Appointment::query()
                 ->where('salon_id', $salon->id)
-                ->whereIn('client_id', $clientIds)
+                ->whereIn('client_id', $clientIds);
+            if ($scopedStaffId !== null) {
+                $aptMini->where('staff_id', $scopedStaffId);
+            }
+            $appointmentsByClient = $aptMini
                 ->with([
                     'staff:id,first_name,last_name',
                     'services:id,appointment_id,service_id,service_name',
@@ -69,7 +78,15 @@ class ClientController extends Controller
                 ->map(fn ($rows) => $rows->take(5)->values());
         }
 
-        $clientTotal = Client::where('salon_id', $salon->id)->count();
+
+        $clientTotalQuery = Client::where('salon_id', $salon->id);
+        if ($scopedStaffId !== null) {
+            $clientTotalQuery->whereHas(
+                'appointments',
+                fn ($q) => $q->where('staff_id', $scopedStaffId)
+            );
+        }
+        $clientTotal = $clientTotalQuery->count();
         $loyaltyTiers = LoyaltyTier::query()
             ->where('salon_id', $salon->id)
             ->orderByDesc('is_active')
@@ -85,8 +102,15 @@ class ClientController extends Controller
             ->unique()
             ->flip();
 
-        $reviewRequestClients = Client::query()
-            ->where('salon_id', $salon->id)
+        $reviewClientsQ = Client::query()
+            ->where('salon_id', $salon->id);
+        if ($scopedStaffId !== null) {
+            $reviewClientsQ->whereHas(
+                'appointments',
+                fn ($q) => $q->where('staff_id', $scopedStaffId)
+            );
+        }
+        $reviewRequestClients = $reviewClientsQ
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get(['id', 'first_name', 'last_name', 'email'])
@@ -120,7 +144,7 @@ class ClientController extends Controller
 
     public function sendReviewRequests(Request $request)
     {
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
         $data = $request->validate([
             'client_ids' => ['required', 'array', 'min:1'],
             'client_ids.*' => ['integer', 'distinct'],
@@ -176,7 +200,7 @@ class ClientController extends Controller
     {
         Gate::authorize('export', Client::class);
 
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
         $slug   = $salon->slug ?: 'salon';
         $name   = 'clients-' . preg_replace('/[^a-z0-9_-]+/i', '-', $slug) . '-' . now()->format('Y-m-d') . '.csv';
 
@@ -221,7 +245,7 @@ class ClientController extends Controller
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:10240'],
         ]);
 
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
         $path  = $request->file('file')->getRealPath();
         if ($path === false || ! is_readable($path)) {
             return redirect()->route('clients.index')->with('error', 'Could not read the uploaded file.');
@@ -350,7 +374,7 @@ class ClientController extends Controller
 
     public function create()
     {
-        $salon         = $this->salon();
+        $salon         = $this->activeSalon();
         $loyaltyTiers  = LoyaltyTier::where('salon_id', $salon->id)->where('is_active', true)->orderBy('sort_order')->get();
 
         return view('clients.create', compact('salon', 'loyaltyTiers'));
@@ -358,7 +382,7 @@ class ClientController extends Controller
 
     public function store(Request $request)
     {
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
 
         $data = $request->validate([
             'first_name'   => ['required', 'string', 'max:100'],
@@ -407,7 +431,7 @@ class ClientController extends Controller
     public function edit(Client $client)
     {
         $this->authorise($client);
-        $loyaltyTiers = LoyaltyTier::where('salon_id', $this->salon()->id)->where('is_active', true)->orderBy('sort_order')->get();
+        $loyaltyTiers = LoyaltyTier::where('salon_id', $this->activeSalon()->id)->where('is_active', true)->orderBy('sort_order')->get();
 
         return view('clients.edit', compact('client', 'loyaltyTiers'));
     }
@@ -433,7 +457,7 @@ class ClientController extends Controller
             $tid = $request->input('loyalty_tier_id');
             if ($tid) {
                 abort_unless(
-                    LoyaltyTier::where('id', $tid)->where('salon_id', $this->salon()->id)->exists(),
+                    LoyaltyTier::where('id', $tid)->where('salon_id', $this->activeSalon()->id)->exists(),
                     422
                 );
             }
@@ -459,6 +483,6 @@ class ClientController extends Controller
 
     private function authorise(Client $client): void
     {
-        abort_unless($client->salon_id === $this->salon()->id, 403);
+        abort_unless($client->salon_id === $this->activeSalon()->id, 403);
     }
 }

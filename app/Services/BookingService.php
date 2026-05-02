@@ -106,16 +106,17 @@ class BookingService
 
         if ($staffId) {
             $staffQuery->where('id', $staffId);
-        } else {
-            foreach ($collection as $svc) {
-                $staffQuery->whereHas('services', fn ($q) => $q->where('services.id', $svc->id));
-            }
+        }
+
+        foreach ($collection as $svc) {
+            $staffQuery->whereHas('services', fn ($q) => $q->where('services.id', $svc->id));
         }
 
         $staffList = $staffQuery
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
+        $staffList = $staffList->filter(fn (Staff $staff) => $this->staffCanHandleServices($staff, $collection))->values();
 
         if ($staffList->isEmpty()) {
             Log::debug('No staff available', ['service_ids' => $collection->pluck('id')->all(), 'date' => $ymd]);
@@ -234,6 +235,7 @@ class BookingService
             }
 
             $candidates = $staffQuery->orderBy('sort_order')->orderBy('id')->get();
+            $candidates = $candidates->filter(fn (Staff $staff) => $this->staffCanHandleServices($staff, $byId->values()))->values();
             $assigned   = null;
             foreach ($candidates as $s) {
                 if ($apptSvc->isAvailable($salonId, (int) $s->id, $startsAt, $endsAt, null, true)) {
@@ -299,6 +301,10 @@ class BookingService
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
+            $services = Service::where('salon_id', $salon->id)
+                ->whereIn('id', array_map('intval', $hold['service_ids']))
+                ->get(['id', 'allowed_roles']);
+            $staff = $staff->filter(fn (Staff $member) => $this->staffCanHandleServices($member, $services))->values();
 
             foreach ($staff as $s) {
                 $apptSvc = app(AppointmentService::class);
@@ -391,5 +397,19 @@ class BookingService
     private function holdKeyPattern(int $salonId, string $date): string
     {
         return "hold:{$salonId}:*";
+    }
+
+    private function staffCanHandleServices(Staff $staff, Collection $services): bool
+    {
+        foreach ($services as $service) {
+            if (! $service instanceof Service) {
+                continue;
+            }
+            if (! $service->allowsStaffRole((string) $staff->role)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

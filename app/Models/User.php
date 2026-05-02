@@ -257,6 +257,30 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->currentPlan()->limit($resource);
     }
 
+    /**
+     * Staff profile id used to scope salon dashboard metrics to one team member.
+     * Non-null for users who only have the stylist role (not admin, manager, or receptionist).
+     */
+    public function dashboardScopedStaffId(): ?int
+    {
+        if ($this->isSuperAdmin()) {
+            return null;
+        }
+        if ($this->hasAnyRole(['tenant_admin', 'manager', 'receptionist'])) {
+            return null;
+        }
+        if (! $this->hasRole('stylist')) {
+            return null;
+        }
+
+        $id = Staff::withoutGlobalScopes()
+            ->where('user_id', $this->id)
+            ->whereNull('deleted_at')
+            ->value('id');
+
+        return $id ? (int) $id : null;
+    }
+
     // ── Relations ─────────────────────────────────────────────────────────────
 
     public function salons()

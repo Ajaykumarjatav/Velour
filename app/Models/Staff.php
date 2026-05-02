@@ -61,6 +61,20 @@ class Staff extends Model
 
     public function getFullNameAttribute(): string { return $this->name; }
 
+    /**
+     * Map a staff job role (Staff & HR) to the Spatie app role used for invitations / permissions.
+     */
+    public static function defaultSpatieRoleForStaffJob(?string $jobRole): string
+    {
+        return match ((string) $jobRole) {
+            'owner' => 'tenant_admin',
+            'manager' => 'manager',
+            'receptionist' => 'receptionist',
+            'stylist', 'therapist', 'junior' => 'stylist',
+            default => 'stylist',
+        };
+    }
+
     /** Public URL for uploaded profile photo (stored path is relative to the public disk). */
     public function getAvatarUrlAttribute(): ?string
     {

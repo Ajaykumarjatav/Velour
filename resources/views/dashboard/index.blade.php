@@ -10,6 +10,13 @@
     $profileCompletion = $profileCompletion ?? ['percentage' => 100];
 @endphp
 
+@if(!empty($stylistDashboardScoped))
+<div class="mb-4 rounded-xl border border-velour-200 dark:border-velour-800 bg-velour-50 dark:bg-velour-950/40 px-4 py-3 text-sm text-velour-900 dark:text-velour-100">
+    <p class="font-medium">Your personal dashboard</p>
+    <p class="mt-1 text-velour-800/90 dark:text-velour-200/90">Numbers and lists here include only <strong>your</strong> appointments, POS sales credited to you, and clients you have booked.</p>
+</div>
+@endif
+
 <div class="alert-info mb-6 text-sm flex flex-wrap items-start justify-between gap-3">
     <p>Figures use your salon timezone (<abbr title="{{ $salon->timezone ?? 'UTC' }}">{{ $tzAbbr }}</abbr>). Revenue is counted when a POS sale is completed (see <a href="{{ route('reports.show', ['type' => 'revenue', 'from' => \App\Support\SalonTime::monthStartDateString($salon), 'to' => \App\Support\SalonTime::todayDateString($salon)]) }}" class="underline font-semibold">Revenue report</a>).</p>
 </div>

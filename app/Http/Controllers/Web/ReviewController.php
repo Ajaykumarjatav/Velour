@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Review;
 use App\Models\ReviewLink;
 use App\Models\Service;
@@ -12,14 +13,11 @@ use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
-    private function salon()
-    {
-        return Auth::user()->salons()->firstOrFail();
-    }
+    use ResolvesActiveSalon;
 
     public function index(Request $request)
     {
-        $salon  = $this->salon();
+        $salon  = $this->activeSalon();
         $rating = $request->get('rating');
         $replied = $request->get('replied');
 
@@ -80,7 +78,7 @@ class ReviewController extends Controller
 
     public function reply(Request $request, Review $review)
     {
-        abort_unless($review->salon_id === $this->salon()->id, 403);
+        abort_unless($review->salon_id === $this->activeSalon()->id, 403);
 
         $data = $request->validate([
             'reply' => ['required', 'string', 'max:1000'],

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Team\InviteTeamMemberRequest;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Staff;
@@ -51,92 +52,72 @@ class TenantAdminController extends Controller
             ->orderBy('last_name')
             ->get();
 
+        $invitableStaff = $unlinkedStaff->filter(fn (Staff $s) => filled($s->email))->values();
+
         $availableRoles = Role::whereIn('name', ['tenant_admin','manager','stylist','receptionist'])->get();
 
-        return view('admin.tenant.team', compact('salon', 'members', 'unlinkedStaff', 'availableRoles'));
+        return view('admin.tenant.team', compact('salon', 'members', 'unlinkedStaff', 'invitableStaff', 'availableRoles'));
     }
 
-    public function invite(Request $request)
+    public function invite(InviteTeamMemberRequest $request)
     {
-        $request->validate([
-            'name'  => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email',
-            'role'  => 'required|in:tenant_admin,manager,stylist,receptionist',
-        ]);
-
         $salon = $this->currentSalon();
+        $data  = $request->validated();
 
-        $email = mb_strtolower(trim((string) $request->email));
-        $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
-        $temporaryPassword = null;
-        $createdNow = false;
+        $staff = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereKey((int) $data['staff_id'])
+            ->whereNull('user_id')
+            ->firstOrFail();
 
-        if (! $user) {
-            // New login: generate one-time password and force password change on first login.
-            $temporaryPassword = Str::password(12);
+        $email = mb_strtolower(trim((string) $staff->email));
+
+        $temporaryPassword = Str::password(12);
+        $existingUser      = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+
+        if ($existingUser !== null) {
+            // Orphan user rows (e.g. after team remove + new profile with same email): clear stale staff pointers.
+            Staff::withoutGlobalScopes()
+                ->where('user_id', $existingUser->id)
+                ->where('id', '!=', $staff->id)
+                ->update(['user_id' => null]);
+
+            $existingUser->update([
+                'name'                  => $staff->name,
+                'password'              => Hash::make($temporaryPassword),
+                'is_active'             => true,
+                'email_verified_at'     => $existingUser->email_verified_at ?? now(),
+                'force_password_change' => true,
+            ]);
+            $user = $existingUser->fresh();
+        } else {
             $user = User::create([
-                'name'                  => $request->name,
+                'name'                  => $staff->name,
                 'email'                 => $email,
                 'password'              => Hash::make($temporaryPassword),
                 'is_active'             => true,
                 'email_verified_at'     => now(),
                 'force_password_change' => true,
             ]);
-            $createdNow = true;
-        } else {
-            $user->update([
-                'name' => $request->name ?: $user->name,
-                'is_active' => true,
-            ]);
         }
 
-        // Assign Spatie role
-        $user->assignRole($request->role);
+        $user->syncRoles([$data['role']]);
 
-        // Create or update staff profile linked to this login.
-        // Important: include soft-deleted rows and restore when re-inviting.
-        $staff = Staff::withoutGlobalScopes()
-            ->where('user_id', $user->id)
-            ->orderByDesc('id')
-            ->first();
-
-        if ($staff && (int) $staff->salon_id !== (int) $salon->id && $staff->deleted_at === null) {
-            return back()->withErrors(['email' => 'This email is already linked to staff in another business.']);
+        $staff->update([
+            'user_id'   => $user->id,
+            'is_active' => true,
+        ]);
+        if ($staff->deleted_at !== null) {
+            $staff->restore();
         }
 
-        $firstName = explode(' ', (string) $request->name)[0];
-        $lastName = explode(' ', (string) $request->name, 2)[1] ?? '';
-        if ($staff) {
-            $staff->update([
-                'salon_id' => $salon->id,
-                'user_id' => $user->id,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => $email,
-                'is_active' => true,
-            ]);
-            if ($staff->deleted_at !== null) {
-                $staff->restore();
-            }
-        } else {
-            Staff::withoutGlobalScopes()->create([
-                'salon_id'   => $salon->id,
-                'user_id'    => $user->id,
-                'first_name' => $firstName,
-                'last_name'  => $lastName,
-                'email'      => $email,
-                'is_active'  => true,
-            ]);
-        }
-
-        // Send invite/login details email.
         $user->notify(new StaffInviteCredentialsNotification($salon->name, $temporaryPassword));
 
-        if ($createdNow) {
-            return back()->with('success', "Invitation sent to {$email} with one-time login credentials.");
-        }
+        $message = $existingUser !== null
+            ? "A new temporary password was sent to {$email}. They must change it after signing in."
+            : "Invitation sent to {$email} with a temporary password. They must change it after first login.";
 
-        return back()->with('success', "Existing user {$email} was linked to staff and notified.");
+        return back()->with('success', $message);
     }
 
     public function updateMemberRole(Request $request, int $userId)

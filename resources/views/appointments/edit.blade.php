@@ -3,7 +3,10 @@
 @section('page-title', 'Edit Appointment')
 @section('content')
 
-@php $occupiedSlotsUrl = route('appointments.occupied-slots'); @endphp
+@php
+    $occupiedSlotsUrl = route('appointments.occupied-slots');
+    $editOccupiedServiceIds = $appointment->services->pluck('service_id')->map(fn ($id) => (int) $id)->values()->all();
+@endphp
 
 <div class="max-w-2xl">
     <div class="card p-6">
@@ -22,7 +25,7 @@
                 @endforeach
             </x-relation-field-with-create>
 
-            <div x-data="timeslotPickerEdit(@js($occupiedSlotsUrl), {{ $appointment->id }})" x-init="init()">
+            <div x-data="timeslotPickerEdit(@js($occupiedSlotsUrl), {{ $appointment->id }}, @js($editOccupiedServiceIds))" x-init="init()">
                 <div class="flex items-end gap-2">
                     <div class="flex-1 min-w-0">
                         <label class="form-label" for="appt-edit-staff">Staff member</label>
@@ -50,12 +53,26 @@
                         <label class="form-label uppercase tracking-wide text-xs font-bold text-velour-600 dark:text-velour-400 mb-0">Time slot <span class="text-red-500">*</span></label>
                         <span x-show="loadingSlots" class="text-xs text-muted">Checking availability…</span>
                     </div>
-                    <p class="text-xs text-muted mb-2">Unavailable times are booked or the staff member is off; this appointment is excluded from conflicts.</p>
+                    <p class="text-xs text-muted mb-2">
+                        Same rules as new bookings: slot must fit
+                        <a href="{{ route('settings.index') }}?tab=hours" class="text-link">opening hours</a>,
+                        the staff shift, and working days (see
+                        <a href="{{ route('availability.index') }}" class="text-link">Availability</a>).
+                        This appointment is ignored when checking overlaps. Unavailable times may still be blocked for other reasons (e.g. outside shift).
+                    </p>
+                    <ul x-show="!loadingSlots && blockedReasonMessages.length"
+                        class="text-xs text-amber-700 dark:text-amber-400 mb-2 list-disc pl-4 space-y-0.5"
+                        role="status">
+                        <template x-for="msg in blockedReasonMessages" :key="msg">
+                            <li x-text="msg"></li>
+                        </template>
+                    </ul>
                     <div class="grid grid-cols-4 gap-2">
                         <template x-for="slot in timeSlots" :key="slot">
                             <button type="button"
                                     @click="pickSlot(slot)"
                                     :disabled="isBlocked(slot) || loadingSlots"
+                                    :title="slotBlockTitle(slot)"
                                     :class="isBlocked(slot)
                                         ? 'bg-gray-100 dark:bg-gray-800/80 text-muted border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60 line-through'
                                         : (selectedTime === slot
@@ -92,7 +109,7 @@
 
 @push('scripts')
 <script>
-function timeslotPickerEdit(occupiedUrl, excludeAppointmentId) {
+function timeslotPickerEdit(occupiedUrl, excludeAppointmentId, serviceIds) {
     const oldStarts = @json(old('starts_at'));
     let dateInit = '{{ $appointment->starts_at->format('Y-m-d') }}';
     let timeInit = '{{ $appointment->starts_at->format('H:i') }}';
@@ -103,11 +120,14 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId) {
     return {
         occupiedUrl,
         excludeAppointmentId,
+        serviceIds: Array.isArray(serviceIds) ? serviceIds : [],
         today: new Date().toISOString().split('T')[0],
         staffId: '{{ old('staff_id', $appointment->staff_id) }}',
         selectedDate: dateInit,
         selectedTime: timeInit,
         blocked: [],
+        blockedDetails: {},
+        blockedReasonMessages: [],
         loadingSlots: false,
         timeSlots: [
             '09:00','09:30','10:00','10:30',
@@ -133,6 +153,24 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId) {
         isBlocked(slot) {
             return this.blocked.includes(slot);
         },
+        slotBlockTitle(slot) {
+            if (!this.isBlocked(slot) || this.loadingSlots) {
+                return '';
+            }
+            return this.blockedDetails[slot] || 'Unavailable';
+        },
+        collectBlockedReasonMessages() {
+            const seen = new Set();
+            const out = [];
+            for (const t of this.blocked) {
+                const m = this.blockedDetails[t];
+                if (m && !seen.has(m)) {
+                    seen.add(m);
+                    out.push(m);
+                }
+            }
+            return out;
+        },
         pickSlot(slot) {
             if (this.isBlocked(slot) || this.loadingSlots) return;
             this.selectedTime = slot;
@@ -140,6 +178,8 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId) {
         async fetchBlocked() {
             if (!this.staffId || !this.selectedDate) {
                 this.blocked = [];
+                this.blockedDetails = {};
+                this.blockedReasonMessages = [];
                 return;
             }
             this.loadingSlots = true;
@@ -148,6 +188,7 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId) {
                 u.searchParams.set('date', this.selectedDate);
                 u.searchParams.set('staff_id', String(this.staffId));
                 u.searchParams.set('exclude_appointment_id', String(this.excludeAppointmentId));
+                this.serviceIds.forEach((id) => u.searchParams.append('service_ids[]', String(id)));
                 const r = await fetch(u.toString(), {
                     headers: {
                         'Accept': 'application/json',
@@ -158,9 +199,13 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId) {
                 if (!r.ok) throw new Error('slots');
                 const data = await r.json();
                 this.blocked = data.blocked || [];
+                this.blockedDetails = data.blocked_details || {};
+                this.blockedReasonMessages = this.collectBlockedReasonMessages();
                 if (this.isBlocked(this.selectedTime)) this.selectedTime = '';
             } catch (e) {
                 this.blocked = [];
+                this.blockedDetails = {};
+                this.blockedReasonMessages = [];
             } finally {
                 this.loadingSlots = false;
             }

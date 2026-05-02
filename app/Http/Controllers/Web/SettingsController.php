@@ -10,11 +10,13 @@ use App\Models\User;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
+use App\Support\LanguageProficiency;
 use App\Support\RegistrationStarterServices;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class SettingsController extends Controller
@@ -26,11 +28,48 @@ class SettingsController extends Controller
         return $this->activeSalon();
     }
 
+    /**
+     * Invited stylists may only change their own profile & security, not salon-wide settings.
+     */
+    private function abortUnlessCanEditSalonWideSettings(): void
+    {
+        if (Auth::user()->dashboardScopedStaffId() !== null) {
+            abort(403, 'You can only update your profile and security here. Contact a salon admin to change business or service settings.');
+        }
+    }
+
     public function index()
     {
         $salon    = $this->salon();
         $settings = $salon->settings()->pluck('value', 'key');
         $user     = Auth::user();
+
+        $settingsPersonalOnly = $user->dashboardScopedStaffId() !== null;
+        $tabLabelsOrder       = [
+            'salon' => 'Business',
+            'services' => 'Service',
+            'hours' => 'Hours',
+            'social' => 'Social Links',
+            'notifications' => 'Notifications',
+            'profile' => 'Profile',
+            'security' => 'Security',
+        ];
+        $allowedTabKeys = $settingsPersonalOnly
+            ? ['profile', 'security']
+            : array_keys($tabLabelsOrder);
+        $settingsTabLabels = [];
+        foreach ($tabLabelsOrder as $key => $label) {
+            if (in_array($key, $allowedTabKeys, true)) {
+                $settingsTabLabels[$key] = $label;
+            }
+        }
+        $defaultTab = $settingsPersonalOnly ? 'profile' : 'salon';
+        $requestedTab = trim((string) session('tab', request()->get('tab', $defaultTab)));
+        if (! in_array($requestedTab, $allowedTabKeys, true)) {
+            $requestedTab = $defaultTab;
+        }
+        $settingsInitialTab = $requestedTab;
+        $hideSalonProfileBar = $settingsPersonalOnly;
 
         $notificationDefinitions = NotificationConfigService::definitions();
         $settingsArr = $salon->settings()->pluck('value', 'key')->all();
@@ -85,12 +124,17 @@ class SettingsController extends Controller
             'selectedStarterCategories',
             'selectedStarterServices',
             'selectedStarterServiceMeta',
-            'existingTeamMembers'
+            'existingTeamMembers',
+            'settingsTabLabels',
+            'settingsPersonalOnly',
+            'settingsInitialTab',
+            'hideSalonProfileBar'
         ));
     }
 
     public function updateSalon(Request $request)
     {
+        $this->abortUnlessCanEditSalonWideSettings();
         $salon = $this->salon();
 
         $data = $request->validate([
@@ -108,10 +152,13 @@ class SettingsController extends Controller
             'timezone'           => ['required', 'string', 'timezone'],
             'currency'           => ['required', 'string', 'size:3', 'in:' . implode(',', array_keys(\App\Helpers\CurrencyHelper::all()))],
             'booking_time_display' => ['nullable', 'in:business,customer'],
+            'home_services_enabled' => ['sometimes', 'boolean'],
         ]);
 
         $bookingTimeDisplay = $data['booking_time_display'] ?? 'business';
         unset($data['booking_time_display']);
+
+        $data['home_services_enabled'] = $request->boolean('home_services_enabled');
 
         $salon->update($data);
 
@@ -125,6 +172,7 @@ class SettingsController extends Controller
 
     public function updateServices(Request $request)
     {
+        $this->abortUnlessCanEditSalonWideSettings();
         $salon = $this->salon();
         $data = $request->validate([
             'business_type_ids'    => ['nullable', 'array'],
@@ -251,6 +299,7 @@ class SettingsController extends Controller
 
     public function updateHours(Request $request)
     {
+        $this->abortUnlessCanEditSalonWideSettings();
         $salon = $this->salon();
 
         $data = $request->validate([
@@ -264,6 +313,7 @@ class SettingsController extends Controller
 
     public function updateNotifications(Request $request)
     {
+        $this->abortUnlessCanEditSalonWideSettings();
         $salon = $this->salon();
         $definitions = NotificationConfigService::definitions();
 
@@ -341,15 +391,20 @@ class SettingsController extends Controller
             'timezone' => $request->filled('timezone') ? $request->input('timezone') : null,
         ]);
 
+        $langCodes = LanguageProficiency::allowedCodes();
+
         $data = $request->validate([
             'name'      => ['required', 'string', 'max:100'],
             'email'     => ['required', 'email', 'unique:users,email,' . $user->id],
             'phone'     => ['nullable', 'string', 'max:20'],
             'experience' => ['nullable', 'string', 'max:120'],
-            'language_proficiency' => ['nullable', 'string', 'max:120'],
+            'language_proficiency'   => ['nullable', 'array', 'max:30'],
+            'language_proficiency.*' => ['string', Rule::in($langCodes)],
             'timezone'  => ['nullable', 'string', 'timezone:all'],
             'locale'    => ['nullable', 'string', 'in:' . implode(',', array_keys(\App\Support\DisplayFormatter::localeOptions()))],
         ]);
+
+        $data['language_proficiency'] = LanguageProficiency::encode($data['language_proficiency'] ?? []);
 
         $user->update($data);
 
@@ -358,7 +413,10 @@ class SettingsController extends Controller
 
     public function updateTeamMembers(Request $request)
     {
+        $this->abortUnlessCanEditSalonWideSettings();
         $salon = $this->salon();
+
+        $langCodes = LanguageProficiency::allowedCodes();
 
         $data = $request->validate([
             'staff_members'          => ['nullable', 'array', 'max:10'],
@@ -370,12 +428,21 @@ class SettingsController extends Controller
             'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
             'staff_members.*.experience' => ['nullable', 'string', 'max:120'],
-            'staff_members.*.language_proficiency' => ['nullable', 'string', 'max:120'],
+            'staff_members.*.language_proficiency'   => ['nullable', 'array', 'max:30'],
+            'staff_members.*.language_proficiency.*' => ['string', Rule::in($langCodes)],
             'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
             'staff_members.*.assign_services' => ['nullable'],
         ]);
 
-        $this->syncTeamMembers($salon, $data['staff_members'] ?? []);
+        $rows = $data['staff_members'] ?? [];
+        foreach ($rows as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $rows[$i]['language_proficiency'] = LanguageProficiency::encode($row['language_proficiency'] ?? []);
+        }
+
+        $this->syncTeamMembers($salon, $rows);
 
         return $this->redirectAfterSettingsSave($request, 'Team members updated.', 'profile');
     }
@@ -395,11 +462,12 @@ class SettingsController extends Controller
 
         $user->update(['password' => Hash::make($data['password'])]);
 
-        return $this->redirectAfterSettingsSave($request, 'Password changed successfully.', 'profile');
+        return $this->redirectAfterSettingsSave($request, 'Password changed successfully.', 'security');
     }
 
     public function updateSocialLinks(Request $request)
     {
+        $this->abortUnlessCanEditSalonWideSettings();
         $salon = $this->salon();
 
         $platforms = ['instagram', 'facebook', 'tiktok', 'whatsapp', 'google', 'twitter', 'youtube', 'linkedin', 'pinterest'];
@@ -510,11 +578,10 @@ class SettingsController extends Controller
     {
         $rows = array_values(array_filter($rows, fn ($row) => is_array($row) && trim((string) ($row['name'] ?? '')) !== ''));
 
-        $serviceIds = Service::query()
+        $services = Service::query()
             ->where('salon_id', $salon->id)
             ->orderBy('sort_order')
-            ->pluck('id')
-            ->all();
+            ->get(['id', 'allowed_roles']);
 
         $defaultColors = ['#7C3AED', '#EC4899', '#0EA5E9', '#14B8A6', '#F59E0B', '#84CC16'];
         $maxSort = (int) Staff::query()->where('salon_id', $salon->id)->max('sort_order');
@@ -540,6 +607,12 @@ class SettingsController extends Controller
             $assign = ($row['assign_services'] ?? null) == '1' || ($row['assign_services'] ?? null) === 1 || ($row['assign_services'] ?? null) === true;
             $commission = isset($row['commission_rate']) ? (float) $row['commission_rate'] : 0.0;
             $commission = max(0.0, min(100.0, $commission));
+            $role = (string) $row['role'];
+            $serviceIds = $services
+                ->filter(fn (Service $service) => $service->allowsStaffRole($role))
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
 
             $staff = null;
             $id = isset($row['id']) ? (int) $row['id'] : 0;
@@ -556,10 +629,10 @@ class SettingsController extends Controller
                     'last_name' => $last,
                     'email' => $this->optionalString($row['email'] ?? null),
                     'phone' => $this->optionalString($row['phone'] ?? null),
-                    'role' => $row['role'],
+                    'role' => $role,
                     'bio' => $this->optionalString($row['bio'] ?? null),
                     'experience' => $this->optionalString($row['experience'] ?? null),
-                    'language_proficiency' => $this->optionalString($row['language_proficiency'] ?? null),
+                    'language_proficiency' => $this->optionalString(is_string($row['language_proficiency'] ?? null) ? $row['language_proficiency'] : null),
                     'user_id' => $linkedUser?->id,
                     'color' => $color,
                     'commission_rate' => $commission,
@@ -575,10 +648,10 @@ class SettingsController extends Controller
                     'last_name' => $last,
                     'email' => $this->optionalString($row['email'] ?? null),
                     'phone' => $this->optionalString($row['phone'] ?? null),
-                    'role' => $row['role'],
+                    'role' => $role,
                     'bio' => $this->optionalString($row['bio'] ?? null),
                     'experience' => $this->optionalString($row['experience'] ?? null),
-                    'language_proficiency' => $this->optionalString($row['language_proficiency'] ?? null),
+                    'language_proficiency' => $this->optionalString(is_string($row['language_proficiency'] ?? null) ? $row['language_proficiency'] : null),
                     'color' => $color,
                     'commission_rate' => $commission,
                     'initials' => $initials,

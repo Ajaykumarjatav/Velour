@@ -9,6 +9,7 @@ use App\Models\Staff;
 use App\Support\SalonTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CalendarController extends Controller
 {
@@ -39,6 +40,11 @@ class CalendarController extends Controller
             $filterStaffId = null;
         }
 
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        if ($scopedStaffId !== null) {
+            $filterStaffId = $scopedStaffId;
+        }
+
         $appointments = Appointment::where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$startUtc, $endUtc])
             ->when($filterStaffId, fn ($q) => $q->where('staff_id', $filterStaffId))
@@ -57,10 +63,12 @@ class CalendarController extends Controller
                 'color'     => $this->statusColor($a->status),
             ]);
 
-        $staff = Staff::where('salon_id', $salon->id)
-            ->where('is_active', true)
-            ->withName()
-            ->get();
+        $staffQuery = Staff::where('salon_id', $salon->id)
+            ->where('is_active', true);
+        if ($scopedStaffId !== null) {
+            $staffQuery->whereKey($scopedStaffId);
+        }
+        $staff = $staffQuery->withName()->get();
 
         $selectedStaff = $filterStaffId
             ? Staff::where('salon_id', $salon->id)->whereKey($filterStaffId)->first()

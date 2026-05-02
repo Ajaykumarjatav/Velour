@@ -97,7 +97,7 @@ window.appendApptServiceRow = function (detail, listId) {
         return d.innerHTML;
     };
     const wrap = document.createElement('div');
-    wrap.className = 'rounded-lg border border-gray-100 dark:border-gray-800 p-2';
+    wrap.className = 'appt-service-quick-row rounded-lg border border-gray-100 dark:border-gray-800 p-2';
     wrap.innerHTML =
         '<label class="flex items-center gap-3 p-1 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20 cursor-pointer">' +
         '<input type="checkbox" name="services[]" value="' + String(detail.id) + '" checked class="rounded border-gray-300 dark:border-gray-600 text-velour-600">' +
@@ -109,6 +109,9 @@ window.appendApptServiceRow = function (detail, listId) {
     const cb = wrap.querySelector('input[name="services[]"]');
     if (cb) {
         cb.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (typeof window.syncApptQuickCreateServiceRows === 'function') {
+        window.syncApptQuickCreateServiceRows();
     }
 };
 </script>

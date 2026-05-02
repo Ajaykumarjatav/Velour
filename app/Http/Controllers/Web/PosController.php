@@ -3,25 +3,22 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\PosTransaction;
 use App\Models\Client;
 use App\Models\Service;
 use App\Models\InventoryItem;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PosController extends Controller
 {
-    private function salon()
-    {
-        return Auth::user()->salons()->firstOrFail();
-    }
+    use ResolvesActiveSalon;
 
     public function index(Request $request)
     {
-        $salon  = $this->salon();
+        $salon  = $this->activeSalon();
         $search = $request->get('search');
         $from   = $request->get('from');
         $to     = $request->get('to');
@@ -56,7 +53,7 @@ class PosController extends Controller
 
     public function create()
     {
-        $salon    = $this->salon();
+        $salon    = $this->activeSalon();
         $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
         $services = Service::where('salon_id', $salon->id)
             ->active()
@@ -85,7 +82,7 @@ class PosController extends Controller
 
     public function store(Request $request)
     {
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
 
         $data = $request->validate([
             'client_id'       => ['nullable', 'exists:clients,id'],
@@ -138,7 +135,7 @@ class PosController extends Controller
 
     public function show(PosTransaction $transaction)
     {
-        abort_unless($transaction->salon_id === $this->salon()->id, 403);
+        abort_unless($transaction->salon_id === $this->activeSalon()->id, 403);
         $transaction->load(['client', 'items']);
 
         return view('pos.show', compact('transaction'));

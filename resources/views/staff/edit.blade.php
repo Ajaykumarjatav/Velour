@@ -84,6 +84,7 @@
             @if($services->count())
             <div>
                 <label class="form-label">Services offered</label>
+                <p class="form-hint mb-2">The extent of service reliance will vary depending on the staff member’s role. Only services permitted for the role you selected above are shown here.</p>
                 <div class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
                     @foreach($services as $svc)
                     <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">

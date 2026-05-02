@@ -30,6 +30,9 @@
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
                     colors: {
                         velour: {
                             50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',
@@ -42,9 +45,21 @@
         }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style type="text/tailwindcss">
-        body { font-family: 'Inter', sans-serif; }
+        /* App-wide: Inter at 400 / 500 / 600 only — map heavier utility classes to 600 */
+        html, body {
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            font-weight: 400;
+            font-feature-settings: 'kern' 1, 'liga' 1, 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .font-thin, .font-extralight, .font-light, .font-normal { font-weight: 400; }
+        .font-medium { font-weight: 500; }
+        .font-semibold, .font-bold, .font-extrabold, .font-black { font-weight: 600; }
+        strong, b { font-weight: 600; }
 
         /* ── Scrollbars (match dark UI; avoids bright default thumb) ── */
         * {
@@ -81,14 +96,17 @@
 
         /* ── Sidebar links ── */
         .sidebar-link {
-            @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
-                   text-gray-500 hover:bg-gray-100 hover:text-gray-900
-                   dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white;
+            @apply flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                   border-l-2 border-transparent
+                   text-gray-600 hover:bg-gray-100 hover:text-gray-900
+                   dark:text-gray-400 dark:hover:bg-gray-800/80 dark:hover:text-gray-100;
         }
         .sidebar-link.active {
-            @apply bg-velour-600 text-white hover:bg-velour-700 dark:bg-velour-600 dark:text-white dark:hover:bg-velour-700;
+            @apply border-velour-600 bg-velour-50 text-velour-700
+                   hover:bg-velour-100/80 dark:bg-velour-950/40 dark:text-velour-300 dark:border-velour-500
+                   dark:hover:bg-velour-950/60;
         }
-        .nav-icon { @apply w-5 h-5 flex-shrink-0; }
+        .nav-icon { @apply w-4 h-4 flex-shrink-0 opacity-90; }
         [x-cloak] { display: none !important; }
 
         /* ══════════════════════════════════════════════════════════════════
@@ -113,7 +131,7 @@
         }
 
         /* ── Page headings ── */
-        .page-title   { @apply text-xl font-bold text-gray-900 dark:text-white; }
+        .page-title   { @apply text-lg sm:text-xl font-semibold tracking-tight text-gray-900 dark:text-white; }
         .page-subtitle{ @apply text-sm text-gray-500 dark:text-gray-300; }
         .section-title{ @apply text-base font-semibold text-gray-800 dark:text-gray-100; }
 
@@ -355,22 +373,28 @@
     <div class="flex-1 flex flex-col min-h-screen lg:pl-56">
 
         {{-- Top bar --}}
-        <header class="sticky top-0 z-20 h-14 px-4 sm:px-6 flex items-center justify-between
+        <header class="sticky top-0 z-20 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
                        bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800
-                       transition-colors duration-200">
-            <div class="flex items-center gap-3">
+                       transition-colors duration-200 py-2 sm:py-0">
+            <div class="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
                 <button @click="sidebarOpen=true"
-                        class="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                        class="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </button>
-                <h1 class="text-base font-semibold text-gray-900 dark:text-white">
+                <h1 class="text-[15px] sm:text-base font-semibold tracking-tight text-gray-900 dark:text-white truncate">
                     @yield('page-title', 'Dashboard')
                 </h1>
             </div>
 
-            <div class="flex items-center gap-1 sm:gap-2">
+            @hasSection('header-actions')
+            <div class="flex items-center justify-end shrink-0">
+                @yield('header-actions')
+            </div>
+            @endif
+
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
                 {{-- Theme toggle --}}
                 <button @click="$store.theme.toggle()"
                         class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -477,7 +501,7 @@
             </div>
         </header>
 
-        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion))
+        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar))
         @php
             $profilePct = (int) ($headerProfileCompletion['percentage'] ?? 0);
             $profilePct = max(0, min(100, $profilePct));

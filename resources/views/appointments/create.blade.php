@@ -3,7 +3,10 @@
 @section('page-title', 'New Appointment')
 @section('content')
 
-@php $occupiedSlotsUrl = route('appointments.occupied-slots'); @endphp
+@php
+    $occupiedSlotsUrl = route('appointments.occupied-slots');
+    $staffServiceIdsByStaffId = $staffServiceIdsByStaffId ?? [];
+@endphp
 
 <div class="max-w-2xl">
     <div class="card p-6">
@@ -26,7 +29,7 @@
                 @endforeach
             </x-relation-field-with-create>
 
-            <div x-data="timeslotPicker(@js($occupiedSlotsUrl))" x-init="init()">
+            <div x-data="timeslotPicker(@js($occupiedSlotsUrl), @js($staffServiceIdsByStaffId))" x-init="init()">
                 <div class="flex items-end gap-2">
                     <div class="flex-1 min-w-0">
                         <label class="form-label" for="appt-create-staff">Staff member <span class="text-red-500">*</span></label>
@@ -60,13 +63,27 @@
                         <label class="form-label uppercase tracking-wide text-xs font-bold text-velour-600 dark:text-velour-400 mb-0">Time slot <span class="text-red-500">*</span></label>
                         <span x-show="loadingSlots" class="text-xs text-muted">Checking availability…</span>
                     </div>
-                    <p class="text-xs text-muted mb-2">Unavailable times are booked, or the staff member is off (approved leave / day off).</p>
+                    <p class="text-xs text-muted mb-2">
+                        Slots respect
+                        <a href="{{ route('settings.index') }}?tab=hours" class="text-link">salon hours</a>,
+                        the staff member's shift and
+                        <a href="{{ route('availability.index') }}" class="text-link">working days</a>,
+                        leave, and existing bookings. The messages below explain any blocked times.
+                    </p>
+                    <ul x-show="!loadingSlots && blockedReasonMessages.length"
+                        class="text-xs text-amber-700 dark:text-amber-400 mb-2 list-disc pl-4 space-y-0.5"
+                        role="status">
+                        <template x-for="msg in blockedReasonMessages" :key="msg">
+                            <li x-text="msg"></li>
+                        </template>
+                    </ul>
                     <div class="grid grid-cols-4 gap-2">
                         <template x-for="slot in timeSlots" :key="slot">
                             <button type="button"
                                     @click="pickSlot(slot)"
                                     :disabled="isBlocked(slot) || loadingSlots"
                                     :aria-disabled="isBlocked(slot) || loadingSlots"
+                                    :title="slotBlockTitle(slot)"
                                     :class="isBlocked(slot)
                                         ? 'bg-gray-100 dark:bg-gray-800/80 text-muted border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60 line-through'
                                         : (selectedTime === slot
@@ -80,22 +97,27 @@
                     <p x-show="!selectedTime && selectedDate && staffId && !loadingSlots" class="text-xs text-amber-600 dark:text-amber-400 mt-2">Please select an available time slot.</p>
                 </div>
 
-                <input type="hidden" name="starts_at" :value="selectedDate && selectedTime ? selectedDate + ' ' + selectedTime + ':00' : ''">
-                @error('starts_at')<p class="form-error mt-1">{{ $message }}</p>@enderror
-            </div>
-
-            <div>
-                <div class="flex items-end gap-2">
-                    <label class="form-label flex-1 min-w-0">Services <span class="text-red-500">*</span></label>
-                    <x-service-quick-create-trigger list-id="appt-services-list" />
-                </div>
-                <div id="appt-services-list" class="space-y-3 max-h-[28rem] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 @error('services') border-red-400 dark:border-red-500 @enderror">
+                <div class="mt-5">
+                    <div class="flex items-end gap-2">
+                        <div class="flex-1 min-w-0">
+                            <label class="form-label">Services <span class="text-red-500">*</span></label>
+                            <p class="text-xs text-muted mt-0.5 mb-1">Only services linked to the selected staff member are shown (under Staff or each Service).</p>
+                        </div>
+                        <x-service-quick-create-trigger list-id="appt-services-list" />
+                    </div>
+                    <div id="appt-services-list" class="space-y-3 max-h-[28rem] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 @error('services') border-red-400 dark:border-red-500 @enderror">
+                        <p x-show="!staffId" class="text-sm text-muted py-3 px-2 rounded-lg border border-dashed border-gray-200 dark:border-gray-600 text-center">
+                            Select a staff member to see which services they can perform.
+                        </p>
+                        <p x-show="staffId && !serviceAllowedAny()" x-cloak class="text-sm text-amber-700 dark:text-amber-400 py-3 px-2 rounded-lg border border-dashed border-amber-200 dark:border-amber-900/50 text-center">
+                            No services are linked to this staff member yet. Assign services in <a href="{{ route('staff.index') }}" class="text-link font-medium">Staff</a> or on each service.
+                        </p>
                     @foreach($services as $svc)
                         @php
                             $vOpts = $svc->normalizedVariants();
                             $aOpts = $svc->normalizedAddons();
                         @endphp
-                        <div class="rounded-lg border border-gray-100 dark:border-gray-800 p-2">
+                        <div class="rounded-lg border border-gray-100 dark:border-gray-800 p-2" x-show="serviceAllowed({{ (int) $svc->id }})" x-cloak>
                             <label class="flex items-center gap-3 p-1 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20 cursor-pointer">
                                 <input type="checkbox" name="services[]" value="{{ $svc->id }}"
                                        {{ in_array($svc->id, old('services', [])) ? 'checked' : '' }}
@@ -138,9 +160,14 @@
                             @endif
                         </div>
                     @endforeach
+                    </div>
+                    @error('services')<p class="form-error mt-2">{{ $message }}</p>@enderror
                 </div>
-                @error('services')<p class="form-error">{{ $message }}</p>@enderror
+
+                <input type="hidden" name="starts_at" :value="selectedDate && selectedTime ? selectedDate + ' ' + selectedTime + ':00' : ''">
+                @error('starts_at')<p class="form-error mt-1">{{ $message }}</p>@enderror
             </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">Client notes</label>
@@ -166,14 +193,31 @@
 
 @push('scripts')
 <script>
-function timeslotPicker(occupiedUrl) {
+window.__apptStaffServiceMap = @json($staffServiceIdsByStaffId);
+window.syncApptQuickCreateServiceRows = function () {
+    const map = window.__apptStaffServiceMap || {};
+    const sel = document.getElementById('appt-create-staff');
+    const staffId = sel && sel.value ? String(sel.value) : '';
+    document.querySelectorAll('#appt-services-list .appt-service-quick-row').forEach((wrap) => {
+        const cb = wrap.querySelector('input[name="services[]"]');
+        if (!cb) return;
+        const sid = parseInt(cb.value, 10);
+        const allowed = Array.isArray(map[staffId]) && map[staffId].includes(sid);
+        wrap.style.display = allowed ? '' : 'none';
+        if (!allowed) cb.checked = false;
+    });
+};
+function timeslotPicker(occupiedUrl, serviceStaffMap) {
     return {
         occupiedUrl,
+        serviceStaffMap: serviceStaffMap || {},
         today: new Date().toISOString().split('T')[0],
         staffId: '{{ old('staff_id', '') }}',
         selectedDate: '{{ old('starts_at') ? substr(old('starts_at'), 0, 10) : '' }}',
         selectedTime: '{{ old('starts_at') ? substr(old('starts_at'), 11, 5) : '' }}',
         blocked: [],
+        blockedDetails: {},
+        blockedReasonMessages: [],
         loadingSlots: false,
         timeSlots: [
             '09:00','09:30','10:00','10:30',
@@ -182,9 +226,31 @@ function timeslotPicker(occupiedUrl) {
             '15:30','16:00','16:30','17:00',
             '17:30','18:00','18:30','19:00',
         ],
+        serviceAllowed(sid) {
+            const id = this.staffId ? String(this.staffId) : '';
+            if (!id) return false;
+            const list = this.serviceStaffMap[id];
+            if (!list || !list.length) return false;
+            return list.includes(Number(sid));
+        },
+        serviceAllowedAny() {
+            if (!this.staffId) return false;
+            const list = this.serviceStaffMap[String(this.staffId)] || [];
+            return list.length > 0;
+        },
+        uncheckDisallowedServices() {
+            document.querySelectorAll('#appt-services-list input[name="services[]"]').forEach((el) => {
+                const sid = parseInt(el.value, 10);
+                if (!this.serviceAllowed(sid)) el.checked = false;
+            });
+        },
         init() {
             this.$watch('staffId', () => {
                 this.selectedTime = '';
+                this.uncheckDisallowedServices();
+                if (typeof window.syncApptQuickCreateServiceRows === 'function') {
+                    window.syncApptQuickCreateServiceRows();
+                }
                 this.fetchBlocked();
             });
             this.$watch('selectedDate', () => {
@@ -205,6 +271,11 @@ function timeslotPicker(occupiedUrl) {
                 this.fetchBlocked();
             });
             if (this.staffId && this.selectedDate) this.fetchBlocked();
+            this.$nextTick(() => {
+                if (typeof window.syncApptQuickCreateServiceRows === 'function') {
+                    window.syncApptQuickCreateServiceRows();
+                }
+            });
         },
         onDateChange() {
             this.selectedTime = '';
@@ -213,6 +284,24 @@ function timeslotPicker(occupiedUrl) {
         isBlocked(slot) {
             return this.blocked.includes(slot);
         },
+        slotBlockTitle(slot) {
+            if (!this.isBlocked(slot) || this.loadingSlots) {
+                return '';
+            }
+            return this.blockedDetails[slot] || 'Unavailable';
+        },
+        collectBlockedReasonMessages() {
+            const seen = new Set();
+            const out = [];
+            for (const t of this.blocked) {
+                const m = this.blockedDetails[t];
+                if (m && !seen.has(m)) {
+                    seen.add(m);
+                    out.push(m);
+                }
+            }
+            return out;
+        },
         pickSlot(slot) {
             if (this.isBlocked(slot) || this.loadingSlots) return;
             this.selectedTime = slot;
@@ -220,6 +309,8 @@ function timeslotPicker(occupiedUrl) {
         async fetchBlocked() {
             if (!this.staffId || !this.selectedDate) {
                 this.blocked = [];
+                this.blockedDetails = {};
+                this.blockedReasonMessages = [];
                 return;
             }
             this.loadingSlots = true;
@@ -240,9 +331,13 @@ function timeslotPicker(occupiedUrl) {
                 if (!r.ok) throw new Error('slots');
                 const data = await r.json();
                 this.blocked = data.blocked || [];
+                this.blockedDetails = data.blocked_details || {};
+                this.blockedReasonMessages = this.collectBlockedReasonMessages();
                 if (this.isBlocked(this.selectedTime)) this.selectedTime = '';
             } catch (e) {
                 this.blocked = [];
+                this.blockedDetails = {};
+                this.blockedReasonMessages = [];
             } finally {
                 this.loadingSlots = false;
             }

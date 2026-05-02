@@ -18,10 +18,10 @@ use Symfony\Component\HttpFoundation\Response;
  *   • Bulk operations (contains /bulk in path)
  *   • Data export endpoints (contains /export or /download)
  *   • GDPR requests
- *   • Admin-panel routes (/admin/*)
+ *   • Admin-panel routes (URI prefix admin)
  *   • Role / permission changes
  *   • Billing operations
- *   • Settings changes (PUT/PATCH /*/settings)
+ *   • Settings changes (PUT or PATCH requests to settings endpoints)
  *
  * What is NOT logged to avoid noise:
  *   • GET requests (read-only, except exports)

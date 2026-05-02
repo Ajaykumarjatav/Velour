@@ -19,14 +19,28 @@ class ClientPolicy
 
     public function view(User $user, Client $client): bool
     {
-        return $client->salon_id === $this->salonId($user);
+        if ($client->salon_id !== $this->salonId($user)) {
+            return false;
+        }
+
+        $scope = $user->dashboardScopedStaffId();
+
+        return $scope === null
+            || $client->appointments()->where('staff_id', $scope)->exists();
     }
 
     public function create(User $user): bool { return true; }
 
     public function update(User $user, Client $client): bool
     {
-        return $client->salon_id === $this->salonId($user);
+        if ($client->salon_id !== $this->salonId($user)) {
+            return false;
+        }
+
+        $scope = $user->dashboardScopedStaffId();
+
+        return $scope === null
+            || $client->appointments()->where('staff_id', $scope)->exists();
     }
 
     public function delete(User $user, Client $client): bool

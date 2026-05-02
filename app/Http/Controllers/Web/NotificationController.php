@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,17 +11,14 @@ use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
-    private function salon()
-    {
-        return Auth::user()->salons()->firstOrFail();
-    }
+    use ResolvesActiveSalon;
 
     /**
      * Full notifications page — paginated list of all salon notifications.
      */
     public function index(Request $request)
     {
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
 
         $filter = $request->get('filter'); // 'unread' | '' (all)
 
@@ -46,7 +44,7 @@ class NotificationController extends Controller
      */
     public function markRead(Request $request, SalonNotification $notification)
     {
-        abort_unless($notification->salon_id === $this->salon()->id, 403);
+        abort_unless($notification->salon_id === $this->activeSalon()->id, 403);
 
         $notification->markRead();
 
@@ -68,7 +66,7 @@ class NotificationController extends Controller
      */
     public function markAllRead()
     {
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
 
         SalonNotification::where('salon_id', $salon->id)
             ->where('is_read', false)
@@ -82,7 +80,7 @@ class NotificationController extends Controller
      */
     public function dropdown()
     {
-        $salon = $this->salon();
+        $salon = $this->activeSalon();
 
         $items = SalonNotification::where('salon_id', $salon->id)
             ->latest()

@@ -35,11 +35,14 @@ class AppointmentService
     public function create(int $salonId, array $data): Appointment
     {
         return DB::transaction(function () use ($salonId, $data) {
+            $this->acquireStaffBookingLocks($salonId, [(int) $data['staff_id']]);
+
             $snapshot = Service::summarizeForAppointment(
                 $salonId,
                 $data['service_ids'],
                 $data['service_options'] ?? []
             );
+            $this->assertStaffCanPerformServices($salonId, (int) $data['staff_id'], $data['service_ids']);
 
             $salon    = Salon::findOrFail($salonId);
             $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
@@ -84,6 +87,9 @@ class AppointmentService
     public function update(Appointment $appointment, array $data): Appointment
     {
         return DB::transaction(function () use ($appointment, $data) {
+            $nextStaffId = (int) ($data['staff_id'] ?? $appointment->staff_id);
+            $this->acquireStaffBookingLocks($appointment->salon_id, [(int) $appointment->staff_id, $nextStaffId]);
+
             if (isset($data['service_ids'])) {
                 $snapshot = Service::summarizeForAppointment(
                     $appointment->salon_id,
@@ -98,6 +104,7 @@ class AppointmentService
                 $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
 
                 $staffId = $data['staff_id'] ?? $appointment->staff_id;
+                $this->assertStaffCanPerformServices($appointment->salon_id, (int) $staffId, $data['service_ids']);
                 $this->assertWindowAllowed($appointment->salon_id, (int) $staffId, $startsAt, $endsAt, $appointment->id, false);
 
                 $appointment->services()->delete();
@@ -117,6 +124,21 @@ class AppointmentService
                 $data['ends_at']          = $endsAt->copy()->utc();
                 $data['total_price']      = $snapshot['total_price'];
                 $data['starts_at']        = $startsAt->copy()->utc();
+            } elseif (isset($data['starts_at']) || isset($data['staff_id'])) {
+                $salonForParse = Salon::findOrFail($appointment->salon_id);
+                $staffId       = (int) ($data['staff_id'] ?? $appointment->staff_id);
+
+                $startsAt = isset($data['starts_at'])
+                    ? SalonTime::parseAppointmentStartsAt($salonForParse, $data['starts_at'])
+                    : Carbon::parse($appointment->starts_at);
+                $endsAt = $startsAt->copy()->addMinutes((int) $appointment->duration_minutes);
+
+                $this->assertWindowAllowed($appointment->salon_id, $staffId, $startsAt, $endsAt, $appointment->id, false);
+
+                if (isset($data['starts_at'])) {
+                    $data['starts_at'] = $startsAt->copy()->utc();
+                    $data['ends_at']   = $endsAt->copy()->utc();
+                }
             }
 
             $appointment->update($data);
@@ -132,24 +154,27 @@ class AppointmentService
      */
     public function reschedule(Appointment $appointment, array $data): Appointment
     {
-        $salon    = Salon::findOrFail($appointment->salon_id);
-        $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
-        $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
-        $staffId  = (int) ($data['staff_id'] ?? $appointment->staff_id);
+        return DB::transaction(function () use ($appointment, $data) {
+            $salon    = Salon::findOrFail($appointment->salon_id);
+            $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
+            $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
+            $staffId  = (int) ($data['staff_id'] ?? $appointment->staff_id);
 
-        $this->assertWindowAllowed($appointment->salon_id, $staffId, $startsAt, $endsAt, $appointment->id, false);
+            $this->acquireStaffBookingLocks($appointment->salon_id, [(int) $appointment->staff_id, $staffId]);
+            $this->assertWindowAllowed($appointment->salon_id, $staffId, $startsAt, $endsAt, $appointment->id, false);
 
-        $appointment->update([
-            'staff_id'               => $staffId,
-            'starts_at'              => $startsAt->copy()->utc(),
-            'ends_at'                => $endsAt->copy()->utc(),
-            'status'                 => 'confirmed',
-            'reminder_sent'          => false,
-            'reminder_sent_at'       => null,
-            'reminder_dispatch_keys' => null,
-        ]);
+            $appointment->update([
+                'staff_id'               => $staffId,
+                'starts_at'              => $startsAt->copy()->utc(),
+                'ends_at'                => $endsAt->copy()->utc(),
+                'status'                 => 'confirmed',
+                'reminder_sent'          => false,
+                'reminder_sent_at'       => null,
+                'reminder_dispatch_keys' => null,
+            ]);
 
-        return $appointment->fresh();
+            return $appointment->fresh();
+        });
     }
 
     /**
@@ -159,24 +184,27 @@ class AppointmentService
      */
     public function rescheduleForOnlineBooking(Appointment $appointment, array $data): Appointment
     {
-        $salon    = Salon::findOrFail($appointment->salon_id);
-        $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
-        $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
-        $staffId  = (int) ($data['staff_id'] ?? $appointment->staff_id);
+        return DB::transaction(function () use ($appointment, $data) {
+            $salon    = Salon::findOrFail($appointment->salon_id);
+            $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
+            $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
+            $staffId  = (int) ($data['staff_id'] ?? $appointment->staff_id);
 
-        $this->assertWindowAllowed($appointment->salon_id, $staffId, $startsAt, $endsAt, $appointment->id, true);
+            $this->acquireStaffBookingLocks($appointment->salon_id, [(int) $appointment->staff_id, $staffId]);
+            $this->assertWindowAllowed($appointment->salon_id, $staffId, $startsAt, $endsAt, $appointment->id, true);
 
-        $appointment->update([
-            'staff_id'               => $staffId,
-            'starts_at'              => $startsAt->copy()->utc(),
-            'ends_at'                => $endsAt->copy()->utc(),
-            'status'                   => 'confirmed',
-            'reminder_sent'            => false,
-            'reminder_sent_at'         => null,
-            'reminder_dispatch_keys'   => null,
-        ]);
+            $appointment->update([
+                'staff_id'               => $staffId,
+                'starts_at'              => $startsAt->copy()->utc(),
+                'ends_at'                => $endsAt->copy()->utc(),
+                'status'                   => 'confirmed',
+                'reminder_sent'            => false,
+                'reminder_sent_at'         => null,
+                'reminder_dispatch_keys'   => null,
+            ]);
 
-        return $appointment->fresh();
+            return $appointment->fresh();
+        });
     }
 
     /**
@@ -222,6 +250,22 @@ class AppointmentService
         }
     }
 
+    /**
+     * Prevents concurrent requests from double-booking the same staff: lock their row(s) for the
+     * duration of the transaction so overlap checks and insert/update are serialized per staff.
+     *
+     * @param  list<int>  $staffIds
+     */
+    public function acquireStaffBookingLocks(int $salonId, array $staffIds): void
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $staffIds), fn (int $id) => $id > 0)));
+        sort($ids, SORT_NUMERIC);
+
+        foreach ($ids as $id) {
+            Staff::where('salon_id', $salonId)->whereKey($id)->lockForUpdate()->firstOrFail();
+        }
+    }
+
     private function assertWindowAllowed(
         int $salonId,
         int $staffId,
@@ -244,6 +288,29 @@ class AppointmentService
 
         if (! $result->ok) {
             throw new AvailabilityRejectedException($result);
+        }
+    }
+
+    /** @param  array<int, mixed>  $serviceIds */
+    private function assertStaffCanPerformServices(int $salonId, int $staffId, array $serviceIds): void
+    {
+        $ids = array_values(array_unique(array_map('intval', $serviceIds)));
+        if ($ids === []) {
+            return;
+        }
+
+        $staff = Staff::where('salon_id', $salonId)->findOrFail($staffId);
+        $linkedCount = $staff->services()->whereIn('services.id', $ids)->count();
+        if ($linkedCount !== count($ids)) {
+            throw new \InvalidArgumentException('Selected staff does not offer all selected services.');
+        }
+
+        $blockedByRole = Service::where('salon_id', $salonId)
+            ->whereIn('id', $ids)
+            ->get(['id', 'allowed_roles'])
+            ->contains(fn (Service $service) => ! $service->allowsStaffRole((string) $staff->role));
+        if ($blockedByRole) {
+            throw new \InvalidArgumentException('Selected staff role is not permitted for one or more selected services.');
         }
     }
 }

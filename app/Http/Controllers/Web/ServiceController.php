@@ -26,42 +26,62 @@ class ServiceController extends Controller
 
         $filterCategoryId = $request->get('category_id');
         $search           = $request->get('search');
+        $statusFilter     = $request->get('status', '');
+        $priceMin         = $request->filled('price_min') ? (float) $request->get('price_min') : null;
+        $priceMax         = $request->filled('price_max') ? (float) $request->get('price_max') : null;
+        $durationMin      = $request->filled('duration_min') ? (int) $request->get('duration_min') : null;
+        $durationMax      = $request->filled('duration_max') ? (int) $request->get('duration_max') : null;
 
-        $categoriesQuery = ServiceCategory::where('service_categories.salon_id', $salon->id)
+        $applyServiceConstraints = function ($q) use ($search, $statusFilter, $priceMin, $priceMax, $durationMin, $durationMax) {
+            $q->orderBy('sort_order');
+            if ($search) {
+                $s = trim($search);
+                $q->where(function ($sq) use ($s) {
+                    $sq->where('name', 'like', "%{$s}%")
+                        ->orWhere('description', 'like', "%{$s}%");
+                });
+            }
+            if ($statusFilter === 'active') {
+                $q->where('status', 'active');
+            } elseif ($statusFilter === 'inactive') {
+                $q->where('status', 'inactive');
+            }
+            if ($priceMin !== null) {
+                $q->where('price', '>=', $priceMin);
+            }
+            if ($priceMax !== null) {
+                $q->where('price', '<=', $priceMax);
+            }
+            if ($durationMin !== null) {
+                $q->where('duration_minutes', '>=', $durationMin);
+            }
+            if ($durationMax !== null) {
+                $q->where('duration_minutes', '<=', $durationMax);
+            }
+        };
+
+        $categories = ServiceCategory::where('service_categories.salon_id', $salon->id)
             ->when($filterCategoryId, fn ($q) => $q->where('service_categories.id', $filterCategoryId))
-            ->with(['services' => function ($q) use ($search) {
-                $q->orderBy('sort_order');
-                if ($search) {
-                    $s = trim($search);
-                    $q->where(function ($sq) use ($s) {
-                        $sq->where('name', 'like', "%{$s}%")
-                            ->orWhere('description', 'like', "%{$s}%");
-                    });
-                }
-            }, 'businessType'])
+            ->with(['services' => $applyServiceConstraints, 'businessType'])
             ->join('business_types', 'business_types.id', '=', 'service_categories.business_type_id')
             ->orderBy('business_types.sort_order')
             ->orderBy('service_categories.sort_order')
-            ->select('service_categories.*');
-
-        $categories = $categoriesQuery->get();
-        if ($search) {
-            $categories = $categories->filter(fn ($c) => $c->services->isNotEmpty())->values();
-        }
+            ->select('service_categories.*')
+            ->get()
+            ->filter(fn ($c) => $c->services->isNotEmpty())
+            ->values();
 
         $uncategorisedQuery = Service::where('salon_id', $salon->id)
-            ->whereNull('category_id')
-            ->active();
-        if ($search) {
-            $s = trim($search);
-            $uncategorisedQuery->where(function ($sq) use ($s) {
-                $sq->where('name', 'like', "%{$s}%")
-                    ->orWhere('description', 'like', "%{$s}%");
-            });
-        }
+            ->whereNull('category_id');
+        $applyServiceConstraints($uncategorisedQuery);
         $uncategorised = $uncategorisedQuery->orderBy('sort_order')->get();
 
         $totalServices = Service::where('salon_id', $salon->id)->count();
+
+        $accordionOpen = [];
+        foreach ($categories as $i => $cat) {
+            $accordionOpen[$cat->id] = $i === 0;
+        }
 
         $categoryChips = ServiceCategory::where('salon_id', $salon->id)
             ->with('businessType')
@@ -81,7 +101,9 @@ class ServiceController extends Controller
             'categoryChips',
             'filterCategoryId',
             'search',
-            'pricingRules'
+            'pricingRules',
+            'statusFilter',
+            'accordionOpen'
         ));
     }
 
@@ -124,6 +146,9 @@ class ServiceController extends Controller
             'addons_text'              => ['nullable', 'string', 'max:2000'],
             'dynamic_pricing_enabled'  => ['sometimes', 'boolean'],
             'staff_level'              => ['nullable', 'in:any,standard,senior,apprentice'],
+            'allowed_roles'            => ['nullable', 'array'],
+            'allowed_roles.*'          => ['string', Rule::in(Service::supportedStaffRoles())],
+            'service_location'         => ['required', 'in:onsite,home'],
             'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
@@ -139,6 +164,7 @@ class ServiceController extends Controller
             Service::normalizePriceRows($data['addons'] ?? null),
             $data['addons_text'] ?? null
         );
+        $data['allowed_roles']           = $this->normalizeAllowedRoles($data['allowed_roles'] ?? null);
         unset($data['is_active'], $data['online_booking'], $data['addons_text']);
 
         $data['slug'] = $this->uniqueServiceSlug($salon->id, $data['name']);
@@ -196,6 +222,9 @@ class ServiceController extends Controller
             'addons_text'              => ['nullable', 'string', 'max:2000'],
             'dynamic_pricing_enabled'  => ['sometimes', 'boolean'],
             'staff_level'              => ['nullable', 'in:any,standard,senior,apprentice'],
+            'allowed_roles'            => ['nullable', 'array'],
+            'allowed_roles.*'          => ['string', Rule::in(Service::supportedStaffRoles())],
+            'service_location'         => ['required', 'in:onsite,home'],
             'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
@@ -215,6 +244,7 @@ class ServiceController extends Controller
             Service::normalizePriceRows($data['addons'] ?? null),
             $data['addons_text'] ?? null
         );
+        $data['allowed_roles']           = $this->normalizeAllowedRoles($data['allowed_roles'] ?? null);
         unset($data['addons_text'], $data['image']);
 
         if (trim((string) $data['name']) !== trim((string) $service->name)) {
@@ -341,5 +371,26 @@ class ServiceController extends Controller
             }
             $service->update(['image' => null]);
         }
+    }
+
+    /** @param  array<int, mixed>|null  $roles */
+    private function normalizeAllowedRoles(?array $roles): ?array
+    {
+        if ($roles === null || $roles === []) {
+            return null;
+        }
+
+        $valid = array_flip(Service::supportedStaffRoles());
+        $out = [];
+        foreach ($roles as $role) {
+            $key = strtolower(trim((string) $role));
+            if ($key !== '' && isset($valid[$key])) {
+                $out[$key] = true;
+            }
+        }
+
+        $normalized = array_keys($out);
+
+        return $normalized === [] ? null : $normalized;
     }
 }

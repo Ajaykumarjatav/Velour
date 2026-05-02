@@ -19,6 +19,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
@@ -38,6 +40,10 @@ class AppointmentController extends Controller
         $status  = $request->get('status');
         $date    = $request->get('date');
         $staffId = $request->get('staff_id');
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        if ($scopedStaffId !== null) {
+            $staffId = $scopedStaffId;
+        }
 
         $query = Appointment::where('salon_id', $salon->id)
             ->with(['client', 'staff', 'services.service'])
@@ -67,10 +73,11 @@ class AppointmentController extends Controller
         }
 
         $appointments = $query->paginate(20)->withQueryString();
-        $staff        = Staff::where('salon_id', $salon->id)
-            ->where('is_active', true)
-            ->withName()
-            ->get();
+        $staffQuery   = Staff::where('salon_id', $salon->id)->where('is_active', true);
+        if ($scopedStaffId !== null) {
+            $staffQuery->whereKey($scopedStaffId);
+        }
+        $staff = $staffQuery->withName()->get();
 
         return view('appointments.index', compact('salon', 'appointments', 'staff', 'search', 'status', 'date', 'staffId'));
     }
@@ -79,14 +86,19 @@ class AppointmentController extends Controller
     {
         $salon    = $this->salon();
         $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
-        $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
+        $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()
+            ->with(['services' => fn ($q) => $q->where('services.salon_id', $salon->id)])
+            ->get();
+        $staffServiceIdsByStaffId = $staff->mapWithKeys(fn (Staff $s) => [
+            $s->id => $s->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+        ])->all();
         $services = Service::where('salon_id', $salon->id)
             ->active()
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        return view('appointments.create', compact('salon', 'clients', 'staff', 'services'));
+        return view('appointments.create', compact('salon', 'clients', 'staff', 'services', 'staffServiceIdsByStaffId'));
     }
 
     /**
@@ -178,6 +190,9 @@ class AppointmentController extends Controller
                 ->max();
 
             $maxMinutes = max(30, (int) $maxMinutes);
+            // Without a service selection, the catalog "longest" offering (e.g. day packages) must
+            // not drive the grid: it makes probes cross midnight and breaks salon-hours checks.
+            $maxMinutes = min($maxMinutes, 180);
         }
 
         $slotTimes = [
@@ -213,7 +228,10 @@ class AppointmentController extends Controller
             $start = Carbon::createFromFormat('Y-m-d H:i', $dateStr . ' ' . $time, $tz);
             $end   = $start->copy()->addMinutes($maxMinutes);
 
-            $result = $availability->validateProposedWindow($salon, $staffMember, $start, $end, $excludeId, false);
+            // Do not enforce "end before next midnight" here: assumed duration can be the salon's
+            // longest service while no services are checked, which pushes the probe past midnight
+            // for late slots. Real bookings still use full enforcement on store/update.
+            $result = $availability->validateProposedWindow($salon, $staffMember, $start, $end, $excludeId, false, false);
             if (! $result->ok) {
                 $blocked[] = $time;
                 $blockedDetails[$time] = $result->firstMessage();
@@ -312,24 +330,45 @@ class AppointmentController extends Controller
             'client_notes'   => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $salon    = $this->salon();
-        $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
-        $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
-        $staffId  = (int) $data['staff_id'];
-        $staff  = Staff::where('salon_id', $salon->id)->findOrFail($staffId);
-        $result = app(AvailabilityService::class)->validateProposedWindow($salon, $staff, $startsAt, $endsAt, $appointment->id, false);
-        if (! $result->ok) {
-            return back()->withErrors(['starts_at' => $result->firstMessage()])->withInput();
-        }
+        $salon   = $this->salon();
+        $staffId = (int) $data['staff_id'];
 
-        $appointment->update([
-            'client_id'      => $data['client_id'],
-            'staff_id'       => $staffId,
-            'starts_at'      => $startsAt->copy()->utc(),
-            'ends_at'        => $endsAt->copy()->utc(),
-            'internal_notes' => $data['internal_notes'] ?? null,
-            'client_notes'   => $data['client_notes'] ?? null,
-        ]);
+        try {
+            DB::transaction(function () use ($salon, $appointment, $data, $staffId) {
+                app(AppointmentBookingService::class)->acquireStaffBookingLocks($salon->id, [
+                    (int) $appointment->staff_id,
+                    $staffId,
+                ]);
+
+                $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
+                $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
+                $staff    = Staff::where('salon_id', $salon->id)->findOrFail($staffId);
+
+                $result = app(AvailabilityService::class)->validateProposedWindow(
+                    $salon,
+                    $staff,
+                    $startsAt,
+                    $endsAt,
+                    $appointment->id,
+                    false,
+                );
+
+                if (! $result->ok) {
+                    throw ValidationException::withMessages(['starts_at' => $result->firstMessage()]);
+                }
+
+                $appointment->update([
+                    'client_id'      => $data['client_id'],
+                    'staff_id'       => $staffId,
+                    'starts_at'      => $startsAt->copy()->utc(),
+                    'ends_at'        => $endsAt->copy()->utc(),
+                    'internal_notes' => $data['internal_notes'] ?? null,
+                    'client_notes'   => $data['client_notes'] ?? null,
+                ]);
+            });
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        }
 
         return redirect()->route('appointments.show', $appointment)->with('success', 'Appointment updated.');
     }

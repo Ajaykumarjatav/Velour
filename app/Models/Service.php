@@ -15,12 +15,13 @@ class Service extends Model
         'salon_id','business_type_id','category_id','name','slug','description','image','duration_minutes',
         'buffer_minutes','price','price_from','price_on_consultation','deposit_type',
         'deposit_value','online_bookable','online_booking','show_in_menu','status','sort_order','color',
-        'variants','addons','dynamic_pricing_enabled','staff_level',
+        'variants','addons','dynamic_pricing_enabled','staff_level','allowed_roles','service_location',
     ];
     protected $casts = [
         'price'=>'decimal:2','price_from'=>'decimal:2','deposit_value'=>'decimal:2',
         'online_bookable'=>'boolean','show_in_menu'=>'boolean','price_on_consultation'=>'boolean',
         'variants'=>'array','addons'=>'array','dynamic_pricing_enabled'=>'boolean',
+        'allowed_roles' => 'array',
     ];
     public function salon()    { return $this->belongsTo(Salon::class); }
 
@@ -31,11 +32,40 @@ class Service extends Model
 
     public function category() { return $this->belongsTo(ServiceCategory::class,'category_id'); }
     public function staff()    { return $this->belongsToMany(Staff::class,'service_staff')->withPivot('price_override')->withTimestamps(); }
+
+    public function packages()
+    {
+        return $this->belongsToMany(ServicePackage::class, 'service_package_service')
+            ->withPivot('sort_order')
+            ->withTimestamps();
+    }
     public function appointmentServices() { return $this->hasMany(AppointmentService::class); }
     protected $appends = ['is_active'];
 
     public function scopeActive($q) { return $q->where('status','active'); }
     public function scopeOnline($q) { return $q->where('online_bookable',true); }
+
+    /** On-site only, or home visits too when the salon has enabled them for public booking. */
+    public function scopeEligibleForPublicBooking($q, Salon $salon)
+    {
+        return $q->where(function ($q2) use ($salon): void {
+            $q2->where('service_location', 'onsite');
+            if ($salon->home_services_enabled) {
+                $q2->orWhere('service_location', 'home');
+            }
+        });
+    }
+
+    public function isHomeService(): bool
+    {
+        return ($this->service_location ?? 'onsite') === 'home';
+    }
+
+    /** @return list<string> */
+    public static function serviceLocationOptions(): array
+    {
+        return ['onsite', 'home'];
+    }
 
     protected static function booted(): void
     {
@@ -327,6 +357,41 @@ class Service extends Model
     public function getIsActiveAttribute(): bool
     {
         return $this->status === 'active';
+    }
+
+    /** @return list<string> */
+    public static function supportedStaffRoles(): array
+    {
+        return ['owner', 'manager', 'stylist', 'therapist', 'receptionist', 'junior'];
+    }
+
+    /** @return list<string> */
+    public function normalizedAllowedRoles(): array
+    {
+        $rows = is_array($this->allowed_roles) ? $this->allowed_roles : [];
+        $valid = array_flip(static::supportedStaffRoles());
+        $out = [];
+
+        foreach ($rows as $row) {
+            $role = strtolower(trim((string) $row));
+            if ($role !== '' && isset($valid[$role])) {
+                $out[$role] = true;
+            }
+        }
+
+        return array_keys($out);
+    }
+
+    public function allowsStaffRole(?string $role): bool
+    {
+        $allowed = $this->normalizedAllowedRoles();
+        if ($allowed === []) {
+            return true;
+        }
+
+        $role = strtolower(trim((string) $role));
+
+        return $role !== '' && in_array($role, $allowed, true);
     }
 
     public function setIsActiveAttribute($value): void

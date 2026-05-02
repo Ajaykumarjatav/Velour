@@ -18,6 +18,7 @@ class BookingController extends Controller
             ->where('salon_id', $salon->id)
             ->where('status', 'active')
             ->where('online_bookable', true)
+            ->eligibleForPublicBooking($salon)
             ->exists();
         $hasHours = ! empty($salon->opening_hours);
 
@@ -36,6 +37,7 @@ class BookingController extends Controller
         $publicServiceCount = Service::query()
             ->where('salon_id', $salon->id)
             ->where('status', 'active')
+            ->eligibleForPublicBooking($salon)
             ->count();
         $bookableStaffCount = Staff::query()
             ->where('salon_id', $salon->id)

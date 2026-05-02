@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\AppointmentController;
 use App\Http\Controllers\Web\ClientController;
 use App\Http\Controllers\Web\StaffController;
 use App\Http\Controllers\Web\ServiceController;
+use App\Http\Controllers\Web\ServicePackageController;
 use App\Http\Controllers\Web\AvailabilityResourcesController;
 use App\Http\Controllers\Web\ServiceCategoryController;
 use App\Http\Controllers\Billing\BillingController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Web\RelationQuickCreateController;
 use App\Http\Controllers\Web\SettingsController;
 use App\Http\Controllers\Admin\SuperAdminController;
 use App\Http\Controllers\Admin\TenantAdminController;
+use App\Http\Middleware\InitializeTenancyFromDomain;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,7 +36,7 @@ use Illuminate\Support\Facades\Route;
 |──────────────────────────────────────────────────────────────────────────────
 |
 |  Middleware layers (applied in order):
-|    tenant.init  → resolve tenant from domain/subdomain
+|    (InitializeTenancyFromDomain runs inside the tenant route group, after auth.)
 |    auth         → require login
 |    verified     → require email verified
 |    2fa          → require 2FA challenge completed
@@ -109,7 +111,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
     // ── Tenant-scoped App Routes ─────────────────────────────────────────────
 
-    Route::middleware('tenant')->group(function () {
+    Route::middleware([InitializeTenancyFromDomain::class, 'tenant', 'profile.complete'])->group(function () {
 
         Route::get('/', fn() => redirect()->route('dashboard'));
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -148,6 +150,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::put('services/pricing-rules', [ServiceController::class, 'updatePricingRules'])->name('services.pricing-rules');
         Route::put('services/{service}/variants', [ServiceController::class, 'updateVariants'])->name('services.variants');
         Route::resource('services', ServiceController::class)->middleware('plan.limit:services');
+        Route::resource('service-packages', ServicePackageController::class)->except(['show']);
         Route::middleware('subscription:feature:multi_location')->group(function () {
             Route::get('multi-location', [MultiLocationController::class, 'index'])->name('multi-location.index');
             Route::post('multi-location', [MultiLocationController::class, 'store'])->name('multi-location.store');

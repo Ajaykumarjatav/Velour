@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\InitializeTenancyFromDomain;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SalonController;
 use App\Http\Controllers\Api\StaffController;
@@ -31,7 +32,7 @@ use App\Http\Controllers\Api\HealthController;
 |──────────────────────────────────────────────────────────────────────────────
 */
 
-Route::prefix('v1')->middleware(['sanitize', 'tenant.init'])->group(function () {
+Route::prefix('v1')->middleware(['sanitize'])->group(function () {
 
     /* ════════════════════════════════════════════════════════════════════════
      *  PUBLIC — NO AUTH
@@ -89,7 +90,7 @@ Route::prefix('v1')->middleware(['sanitize', 'tenant.init'])->group(function () 
         });
 
         /* ── All below require resolved salon context ────────────────────── */
-        Route::middleware(['salon.access', 'cross.tenant', 'audit.request'])->prefix('salon')->middleware('tenant')->group(function () {
+        Route::middleware(['salon.access', 'cross.tenant', 'audit.request', InitializeTenancyFromDomain::class, 'tenant'])->prefix('salon')->group(function () {
 
             /* ── Salon profile & settings ───────────────────────────────── */
             Route::get('/',        [SalonController::class, 'show']);

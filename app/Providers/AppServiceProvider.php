@@ -10,7 +10,9 @@ use App\Models\PosTransaction;
 use App\Models\Review;
 use App\Models\Salon;
 use App\Models\Service;
+use App\Models\ServicePackage;
 use App\Models\Staff;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Policies\AppointmentPolicy;
 use App\Policies\ClientPolicy;
@@ -22,6 +24,7 @@ use App\Support\DisplayFormatter;
 use App\Policies\ReportPolicy;
 use App\Policies\ReviewPolicy;
 use App\Policies\SalonPolicy;
+use App\Policies\ServicePackagePolicy;
 use App\Policies\ServicePolicy;
 use App\Policies\SettingsPolicy;
 use App\Policies\StaffPolicy;
@@ -75,10 +78,23 @@ class AppServiceProvider extends ServiceProvider
                     $user = auth()->user();
                     DisplayFormatter::applyUserLocale($user);
                     $activeSalonId = (int) session('active_salon_id', 0);
-                    $salon = $activeSalonId > 0
-                        ? $user->salons()->where('id', $activeSalonId)->first()
-                        : null;
-                    $salon = $salon ?: $user->salons()->first();
+                    $salon = null;
+                    if ($user->salons()->exists()) {
+                        $salon = $activeSalonId > 0
+                            ? $user->salons()->where('id', $activeSalonId)->first()
+                            : null;
+                        $salon = $salon ?: $user->salons()->first();
+                    } elseif (Tenant::checkCurrent()) {
+                        $salon = Salon::query()->withoutGlobalScopes()->find(Tenant::current()->getKey());
+                    } else {
+                        $staffSalonId = Staff::withoutGlobalScopes()
+                            ->where('user_id', $user->id)
+                            ->whereNull('deleted_at')
+                            ->value('salon_id');
+                        if ($staffSalonId) {
+                            $salon = Salon::query()->withoutGlobalScopes()->find($staffSalonId);
+                        }
+                    }
                     $view->with('currentSalon', $salon);
                     $view->with('headerProfileCompletion', $salon ? ProfileCompletion::forSalon($salon) : null);
                 } catch (\Throwable) {}
@@ -151,6 +167,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Client::class,           ClientPolicy::class);
         Gate::policy(Staff::class,            StaffPolicy::class);
         Gate::policy(Service::class,          ServicePolicy::class);
+        Gate::policy(ServicePackage::class,   ServicePackagePolicy::class);
         Gate::policy(InventoryItem::class,    InventoryPolicy::class);
         Gate::policy(MarketingCampaign::class,MarketingCampaignPolicy::class);
         Gate::policy(PosTransaction::class,   PosTransactionPolicy::class);

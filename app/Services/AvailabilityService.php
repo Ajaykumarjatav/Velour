@@ -18,7 +18,10 @@ use Illuminate\Support\Facades\Log;
 class AvailabilityService
 {
     /**
-     * @param  bool  $requireBookableOnline  When true, staff must be bookable online (public booking).
+     * @param  bool  $requireBookableOnline            When true, staff must be bookable online (public booking).
+     * @param  bool  $enforceEndsWithinLocalCalendarDay When false (slot-grid probe only), skip the "must end by next local midnight"
+     *                                                 check so long *assumed* windows do not grey out the whole grid; salon hours,
+     *                                                 staff shift, and overlap still apply.
      */
     public function validateProposedWindow(
         Salon $salon,
@@ -27,6 +30,7 @@ class AvailabilityService
         Carbon $endsAt,
         ?int $excludeAppointmentId = null,
         bool $requireBookableOnline = false,
+        bool $enforceEndsWithinLocalCalendarDay = true,
     ): ScheduleValidationResult {
         $reasons = [];
 
@@ -50,13 +54,18 @@ class AvailabilityService
         $localStart = $startsAt->copy()->timezone($tz);
         $localEnd   = $endsAt->copy()->timezone($tz);
 
-        if (! $localStart->isSameDay($localEnd)) {
-            $reasons[] = [
-                'code' => 'spans_multiple_calendar_days',
-                'message' => 'This booking would cross midnight in the business timezone. Split services or pick a shorter window.',
-            ];
+        if ($enforceEndsWithinLocalCalendarDay) {
+            // Allow an end time exactly at the next local midnight (e.g. 09:00 + 15h). Reject
+            // only if the window extends strictly past the start of the next calendar day.
+            $exclusiveEndOfLocalStartDay = $localStart->copy()->startOfDay()->addDay();
+            if ($localEnd->gt($exclusiveEndOfLocalStartDay)) {
+                $reasons[] = [
+                    'code' => 'spans_multiple_calendar_days',
+                    'message' => 'This booking would cross midnight in the business timezone. Split services or pick a shorter window.',
+                ];
 
-            return ScheduleValidationResult::failure($reasons);
+                return ScheduleValidationResult::failure($reasons);
+            }
         }
 
         $this->pushLeaveReasons($salon->id, $staff->id, $startsAt, $endsAt, $reasons);
@@ -148,7 +157,27 @@ class AvailabilityService
             return;
         }
 
-        if ($localStart->lt($open) || $localEnd->gt($close)) {
+        if ($localStart->lt($open) || $localStart->gt($close)) {
+            $reasons[] = [
+                'code' => 'outside_salon_hours',
+                'message' => 'That time is outside salon opening hours (' . $open->format('H:i') . '–' . $close->format('H:i') . ').',
+            ];
+
+            return;
+        }
+
+        // If the window crosses local midnight, $localEnd is on the next calendar day while $close
+        // is still "today" — comparing them with > wrongly marks every slot as outside hours.
+        if (! $localStart->isSameDay($localEnd)) {
+            $reasons[] = [
+                'code' => 'outside_salon_hours',
+                'message' => 'That booking would run past closing time or into the next day. Choose an earlier slot or shorter services.',
+            ];
+
+            return;
+        }
+
+        if ($localEnd->gt($close)) {
             $reasons[] = [
                 'code' => 'outside_salon_hours',
                 'message' => 'That time is outside salon opening hours (' . $open->format('H:i') . '–' . $close->format('H:i') . ').',
@@ -187,7 +216,25 @@ class AvailabilityService
             return;
         }
 
-        if ($localStart->lt($s) || $localEnd->gt($e)) {
+        if ($localStart->lt($s) || $localStart->gt($e)) {
+            $reasons[] = [
+                'code' => 'outside_staff_shift',
+                'message' => 'That time is outside this staff member\'s shift (' . $s->format('H:i') . '–' . $e->format('H:i') . ').',
+            ];
+
+            return;
+        }
+
+        if (! $localStart->isSameDay($localEnd)) {
+            $reasons[] = [
+                'code' => 'outside_staff_shift',
+                'message' => 'That booking would extend past this staff member\'s shift or into the next day. Pick an earlier slot or shorter services.',
+            ];
+
+            return;
+        }
+
+        if ($localEnd->gt($e)) {
             $reasons[] = [
                 'code' => 'outside_staff_shift',
                 'message' => 'That time is outside this staff member\'s shift (' . $s->format('H:i') . '–' . $e->format('H:i') . ').',
@@ -206,11 +253,16 @@ class AvailabilityService
         ?int $excludeAppointmentId,
         array &$reasons,
     ): void {
+        // Compare using UTC instants — matches how appointments are persisted and avoids
+        // timezone / session mismatches that can miss overlaps.
+        $startUtc = $startsAt->copy()->utc();
+        $endUtc   = $endsAt->copy()->utc();
+
         $query = Appointment::where('salon_id', $salonId)
             ->where('staff_id', $staffId)
             ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->where('starts_at', '<', $endsAt)
-            ->where('ends_at', '>', $startsAt);
+            ->where('starts_at', '<', $endUtc)
+            ->where('ends_at', '>', $startUtc);
 
         if ($excludeAppointmentId) {
             $query->where('id', '!=', $excludeAppointmentId);
