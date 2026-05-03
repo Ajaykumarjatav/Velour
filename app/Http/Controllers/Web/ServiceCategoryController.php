@@ -3,25 +3,31 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
+use App\Models\Service;
 use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ServiceCategoryController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index()
     {
         $salon      = $this->salon();
-        $categories = ServiceCategory::where('salon_id', $salon->id)
+        $categories = ServiceCategory::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->with(['businessType'])
-            ->withCount('services')
+            ->withCount([
+                'services' => fn ($q) => $q->withoutGlobalScopes()->where('services.salon_id', $salon->id),
+            ])
             ->get()
             ->sortBy(fn ($c) => [(int) ($c->businessType?->sort_order ?? 0), (int) $c->sort_order])
             ->values();
@@ -47,14 +53,16 @@ class ServiceCategoryController extends Controller
 
         $data['salon_id'] = $salon->id;
         $data['slug']     = Str::slug($data['name']) . '-' . Str::random(4);
-        $data['sort_order'] = (int) ServiceCategory::where('salon_id', $salon->id)
+        $data['sort_order'] = (int) ServiceCategory::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->where('business_type_id', $data['business_type_id'])
             ->max('sort_order') + 1;
 
         ServiceCategory::create($data);
 
         if ($request->expectsJson()) {
-            $categories = ServiceCategory::where('salon_id', $salon->id)
+            $categories = ServiceCategory::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
                 ->with('businessType')
                 ->orderBy('business_type_id')
                 ->orderBy('sort_order')
@@ -89,7 +97,8 @@ class ServiceCategoryController extends Controller
         ]);
 
         if ((int) $serviceCategory->business_type_id !== (int) $data['business_type_id']) {
-            $data['sort_order'] = (int) ServiceCategory::where('salon_id', $salon->id)
+            $data['sort_order'] = (int) ServiceCategory::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
                 ->where('business_type_id', $data['business_type_id'])
                 ->max('sort_order') + 1;
         }
@@ -103,8 +112,11 @@ class ServiceCategoryController extends Controller
     {
         abort_unless($serviceCategory->salon_id === $this->salon()->id, 403);
 
-        // Unlink services from this category
-        $serviceCategory->services()->update(['category_id' => null]);
+        // Unlink services from this category (tenant scope can hide branch rows)
+        Service::withoutGlobalScopes()
+            ->where('salon_id', (int) $serviceCategory->salon_id)
+            ->where('category_id', (int) $serviceCategory->id)
+            ->update(['category_id' => null]);
         $serviceCategory->delete();
 
         return back()->with('success', 'Category deleted.');

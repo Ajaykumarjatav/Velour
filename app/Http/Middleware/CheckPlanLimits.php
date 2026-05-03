@@ -3,14 +3,15 @@
 namespace App\Http\Middleware;
 
 use App\Billing\Plan;
-use App\Models\Staff;
-use App\Models\Service;
 use App\Models\Client;
+use App\Models\Salon;
+use App\Models\Service;
+use App\Models\Staff;
+use App\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Spatie\Multitenancy\Models\Tenant;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -58,7 +59,7 @@ class CheckPlanLimits
             return $next($request);
         }
 
-        $salonId = Tenant::current()?->id ?? $user->salons()->value('id');
+        $salonId = $this->resolveSalonIdForPlanLimits($user);
         if (! $salonId) {
             return $next($request);
         }
@@ -98,5 +99,40 @@ class CheckPlanLimits
                 default    => 0,
             };
         });
+    }
+
+    /**
+     * Match ResolvesActiveSalon: multi-location uses session active_salon_id, not only domain tenant.
+     */
+    private function resolveSalonIdForPlanLimits(?\Illuminate\Contracts\Auth\Authenticatable $user): ?int
+    {
+        if (! $user instanceof \App\Models\User) {
+            return null;
+        }
+
+        if ($user->salons()->exists()) {
+            $activeSalonId = (int) session('active_salon_id', 0);
+            $salon = $activeSalonId > 0
+                ? $user->salons()->where('id', $activeSalonId)->first()
+                : null;
+            $salon = $salon ?: $user->salons()->first();
+
+            return $salon ? (int) $salon->id : null;
+        }
+
+        if (Tenant::checkCurrent()) {
+            return (int) Tenant::current()->getKey();
+        }
+
+        $staffSalonId = Staff::withoutGlobalScopes()
+            ->where('user_id', $user->id)
+            ->whereNull('deleted_at')
+            ->value('salon_id');
+
+        if (! $staffSalonId) {
+            return null;
+        }
+
+        return (int) Salon::query()->withoutGlobalScopes()->whereKey($staffSalonId)->value('id');
     }
 }

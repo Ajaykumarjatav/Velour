@@ -17,12 +17,12 @@
 </div>
 @endif
 
-<div class="alert-info mb-6 text-sm flex flex-wrap items-start justify-between gap-3">
+<div class="alert-info mb-7 text-sm flex flex-wrap items-start justify-between gap-3">
     <p>Figures use your salon timezone (<abbr title="{{ $salon->timezone ?? 'UTC' }}">{{ $tzAbbr }}</abbr>). Revenue is counted when a POS sale is completed (see <a href="{{ route('reports.show', ['type' => 'revenue', 'from' => \App\Support\SalonTime::monthStartDateString($salon), 'to' => \App\Support\SalonTime::todayDateString($salon)]) }}" class="underline font-semibold">Revenue report</a>).</p>
 </div>
 
 {{-- KPI cards --}}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-7">
     <div class="stat-card">
         <p class="stat-label">Today's Revenue</p>
         <p class="stat-value">@money($todayRevenue)</p>
@@ -57,7 +57,7 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-7">
 
     {{-- Upcoming appointments --}}
     <div class="lg:col-span-2 card">
@@ -70,7 +70,7 @@
         </div>
         <div class="divide-y divide-gray-100 dark:divide-gray-800">
             @forelse($upcomingAppointments as $apt)
-            <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+            <div class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                      style="background-color: {{ $apt->staff?->color ?? '#7C3AED' }}">
                     {{ strtoupper(substr($apt->client?->first_name ?? 'U', 0, 1)) }}
@@ -111,8 +111,8 @@
     <div class="space-y-6">
 
         {{-- Weekly revenue chart --}}
-        <div class="card p-5">
-            <div class="flex items-center justify-between gap-2 mb-4">
+        <div class="card p-6">
+            <div class="flex items-center justify-between gap-2 mb-5">
                 <h2 class="section-title">Revenue (7 days)</h2>
                 <a href="{{ route('revenue.index') }}" class="text-link text-xs font-medium">Details</a>
             </div>
@@ -137,7 +137,7 @@
             </div>
             <div class="divide-y divide-gray-100 dark:divide-gray-800">
                 @forelse($recentSales as $sale)
-                <div class="flex items-center justify-between px-5 py-3">
+                <div class="flex items-center justify-between px-6 py-3.5">
                     <div>
                         <p class="text-sm font-medium text-body">
                             {{ $sale->client?->first_name ?? 'Walk-in' }} {{ $sale->client?->last_name }}
@@ -147,7 +147,7 @@
                     <span class="text-sm font-bold text-heading">@money($sale->total)</span>
                 </div>
                 @empty
-                <div class="px-5 py-6 text-center">
+                <div class="px-6 py-8 text-center">
                     <p class="text-sm text-muted">No completed POS sales yet today.</p>
                     <p class="text-xs text-muted mt-2">Record a sale in <a href="{{ route('pos.index') }}" class="text-link font-medium">Point of Sale</a> — revenue appears after checkout completes.</p>
                 </div>

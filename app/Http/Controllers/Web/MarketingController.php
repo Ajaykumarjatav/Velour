@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Client;
 use App\Models\LoyaltyTier;
 use App\Models\MarketingAutomationTemplate;
@@ -10,6 +11,7 @@ use App\Models\MarketingCampaign;
 use App\Models\MarketingSmsMessage;
 use App\Models\MarketingSmsThread;
 use App\Models\SalonReferralSetting;
+use App\Models\Staff;
 use App\Services\MarketingGrowthDefaults;
 use App\Services\MarketingService;
 use Illuminate\Http\Request;
@@ -18,9 +20,11 @@ use Illuminate\Support\Str;
 
 class MarketingController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index(Request $request)
@@ -28,7 +32,7 @@ class MarketingController extends Controller
         $salon  = $this->salon();
         $status = $request->get('status');
 
-        $query = MarketingCampaign::where('salon_id', $salon->id)->latest();
+        $query = $this->salonScoped(MarketingCampaign::class)->latest();
 
         if ($status) {
             $query->where('status', $status);
@@ -37,10 +41,10 @@ class MarketingController extends Controller
         $campaigns = $query->paginate(20)->withQueryString();
 
         $stats = [
-            'total'     => MarketingCampaign::where('salon_id', $salon->id)->count(),
-            'sent'      => MarketingCampaign::where('salon_id', $salon->id)->where('status', 'sent')->count(),
-            'scheduled' => MarketingCampaign::where('salon_id', $salon->id)->where('status', 'scheduled')->count(),
-            'draft'     => MarketingCampaign::where('salon_id', $salon->id)->where('status', 'draft')->count(),
+            'total'     => $this->salonScoped(MarketingCampaign::class)->count(),
+            'sent'      => $this->salonScoped(MarketingCampaign::class)->where('status', 'sent')->count(),
+            'scheduled' => $this->salonScoped(MarketingCampaign::class)->where('status', 'scheduled')->count(),
+            'draft'     => $this->salonScoped(MarketingCampaign::class)->where('status', 'draft')->count(),
         ];
 
         return view('marketing.index', compact('salon', 'campaigns', 'status', 'stats'));
@@ -57,13 +61,13 @@ class MarketingController extends Controller
         }
 
         $status = $request->get('status');
-        $q      = MarketingCampaign::where('salon_id', $salon->id)->latest();
+        $q      = $this->salonScoped(MarketingCampaign::class)->latest();
         if ($status) {
             $q->where('status', $status);
         }
         $hubCampaigns = $q->limit(50)->get();
 
-        $sentRows = MarketingCampaign::where('salon_id', $salon->id)
+        $sentRows = $this->salonScoped(MarketingCampaign::class)
             ->whereIn('status', ['sent', 'sending'])
             ->get(['sent_count', 'opened_count', 'booking_count', 'revenue_generated']);
         $totalSent     = (int) $sentRows->sum('sent_count');
@@ -74,12 +78,12 @@ class MarketingController extends Controller
 
         $loyaltyTiers = LoyaltyTier::where('salon_id', $salon->id)->orderBy('sort_order')->get();
         foreach ($loyaltyTiers as $tier) {
-            $tier->member_count = Client::where('salon_id', $salon->id)->where('loyalty_tier_id', $tier->id)->count();
+            $tier->member_count = $this->salonScoped(Client::class)->where('loyalty_tier_id', $tier->id)->count();
         }
 
         $referralSettings = SalonReferralSetting::where('salon_id', $salon->id)->first();
-        $totalReferrals   = Client::where('salon_id', $salon->id)->whereNotNull('referred_by_client_id')->count();
-        $referredWhoVisited = Client::where('salon_id', $salon->id)
+        $totalReferrals   = $this->salonScoped(Client::class)->whereNotNull('referred_by_client_id')->count();
+        $referredWhoVisited = $this->salonScoped(Client::class)
             ->whereNotNull('referred_by_client_id')
             ->where('visit_count', '>', 0)
             ->count();
@@ -98,7 +102,7 @@ class MarketingController extends Controller
             ->get();
         $unreadSms = (int) MarketingSmsThread::where('salon_id', $salon->id)->sum('unread_inbound');
 
-        $clientCount = Client::where('salon_id', $salon->id)->where('marketing_consent', true)->count();
+        $clientCount = $this->salonScoped(Client::class)->where('marketing_consent', true)->count();
 
         $activeSmsThread = null;
         if ($smsThreads->isNotEmpty()) {
@@ -132,7 +136,7 @@ class MarketingController extends Controller
     public function create()
     {
         $salon       = $this->salon();
-        $clientCount = Client::where('salon_id', $salon->id)->where('marketing_consent', true)->count();
+        $clientCount = $this->salonScoped(Client::class)->where('marketing_consent', true)->count();
 
         return view('marketing.create', compact('salon', 'clientCount'));
     }
@@ -152,7 +156,7 @@ class MarketingController extends Controller
 
         $data['salon_id']   = $salon->id;
         $data['status']     = $data['scheduled_at'] ? 'scheduled' : 'draft';
-        $data['created_by'] = \App\Models\Staff::where('salon_id', $salon->id)
+        $data['created_by'] = $this->salonScoped(Staff::class)
             ->where('email', Auth::user()->email)
             ->value('id');
 
@@ -174,7 +178,7 @@ class MarketingController extends Controller
         abort_unless(in_array($marketing->status, ['draft', 'scheduled'], true), 422);
 
         $salon       = $this->salon();
-        $clientCount = Client::where('salon_id', $salon->id)->where('marketing_consent', true)->count();
+        $clientCount = $this->salonScoped(Client::class)->where('marketing_consent', true)->count();
 
         return view('marketing.edit', [
             'campaign'    => $marketing,
@@ -245,7 +249,7 @@ class MarketingController extends Controller
         $copy->clicked_count = 0;
         $copy->booking_count = 0;
         $copy->revenue_generated = 0;
-        $copy->created_by   = \App\Models\Staff::where('salon_id', $this->salon()->id)
+        $copy->created_by   = $this->salonScoped(Staff::class)
             ->where('email', Auth::user()->email)
             ->value('id');
         $copy->save();
@@ -304,7 +308,7 @@ class MarketingController extends Controller
     {
         $this->authoriseTier($loyaltyTier);
         $salon   = $this->salon();
-        $clients = Client::where('salon_id', $salon->id)
+        $clients = $this->salonScoped(Client::class)
             ->where('loyalty_tier_id', $loyaltyTier->id)
             ->orderBy('first_name')
             ->paginate(30);

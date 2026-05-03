@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Salon;
 use App\Models\SalonSetting;
 use Illuminate\Http\RedirectResponse;
@@ -14,19 +15,18 @@ use Illuminate\View\View;
 
 class CustomizationController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon(): Salon
     {
-        $user = Auth::user();
-        $activeSalonId = (int) session('active_salon_id', 0);
-        $salon = $activeSalonId > 0 ? $user->salons()->where('id', $activeSalonId)->first() : null;
-        return $salon ?: $user->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index(): View
     {
         $salon = $this->salon();
         $user = Auth::user();
-        $settings = SalonSetting::where('salon_id', $salon->id)->pluck('value', 'key');
+        $settings = SalonSetting::withoutGlobalScopes()->where('salon_id', $salon->id)->pluck('value', 'key');
         $plan = $user->currentPlan();
         $savedForms = $this->decodeJsonList((string) ($settings['custom_forms_json'] ?? ''));
         $savedFeatureRequests = $this->decodeJsonList((string) ($settings['custom_feature_requests_json'] ?? ''));
@@ -97,7 +97,7 @@ class CustomizationController extends Controller
             'custom_accent_color' => $validated['accent_color'] ?? '#BD9850',
         ];
         foreach ($toSave as $key => $value) {
-            SalonSetting::updateOrCreate(
+            SalonSetting::withoutGlobalScopes()->updateOrCreate(
                 ['salon_id' => $salon->id, 'key' => $key],
                 ['value' => (string) $value, 'type' => 'string']
             );
@@ -137,14 +137,14 @@ class CustomizationController extends Controller
             if ($key === 'wl_remove_branding' && ! $user->planAllows('remove_branding')) {
                 continue;
             }
-            SalonSetting::updateOrCreate(
+            SalonSetting::withoutGlobalScopes()->updateOrCreate(
                 ['salon_id' => $salon->id, 'key' => $key],
                 ['value' => $request->boolean($key) ? '1' : '0', 'type' => 'boolean']
             );
         }
 
         $langs = $validated['languages'] ?? [];
-        SalonSetting::updateOrCreate(
+        SalonSetting::withoutGlobalScopes()->updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'custom_languages'],
             ['value' => implode(',', $langs), 'type' => 'string']
         );
@@ -166,11 +166,11 @@ class CustomizationController extends Controller
             ->values()
             ->all();
 
-        SalonSetting::updateOrCreate(
+        SalonSetting::withoutGlobalScopes()->updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'custom_forms_json'],
             ['value' => json_encode($forms), 'type' => 'json']
         );
-        SalonSetting::updateOrCreate(
+        SalonSetting::withoutGlobalScopes()->updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'custom_forms_count'],
             ['value' => (string) count($forms), 'type' => 'integer']
         );
@@ -186,7 +186,7 @@ class CustomizationController extends Controller
             'feature_description' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $settings = SalonSetting::where('salon_id', $salon->id)->pluck('value', 'key');
+        $settings = SalonSetting::withoutGlobalScopes()->where('salon_id', $salon->id)->pluck('value', 'key');
         $requests = $this->decodeJsonList((string) ($settings['custom_feature_requests_json'] ?? ''));
         $requests[] = [
             'id' => (string) Str::uuid(),
@@ -196,7 +196,7 @@ class CustomizationController extends Controller
             'requested_at' => now()->toIso8601String(),
         ];
 
-        SalonSetting::updateOrCreate(
+        SalonSetting::withoutGlobalScopes()->updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'custom_feature_requests_json'],
             ['value' => json_encode(array_values($requests)), 'type' => 'json']
         );

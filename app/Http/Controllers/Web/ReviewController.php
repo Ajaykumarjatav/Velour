@@ -21,7 +21,7 @@ class ReviewController extends Controller
         $rating = $request->get('rating');
         $replied = $request->get('replied');
 
-        $query = Review::where('salon_id', $salon->id)
+        $query = Review::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->with(['client', 'appointment', 'service'])
             ->latest();
 
@@ -37,17 +37,17 @@ class ReviewController extends Controller
 
         $reviews = $query->paginate(20)->withQueryString();
 
-        $averageRating = Review::where('salon_id', $salon->id)->avg('rating');
-        $ratingCounts  = Review::where('salon_id', $salon->id)
+        $averageRating = Review::withoutGlobalScopes()->where('salon_id', $salon->id)->avg('rating');
+        $ratingCounts  = Review::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->select('rating', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
             ->groupBy('rating')
             ->pluck('count', 'rating');
 
-        $tenantReviewLink = ReviewLink::query()->firstOrCreate(
+        $tenantReviewLink = ReviewLink::withoutGlobalScopes()->firstOrCreate(
             ['salon_id' => $salon->id, 'staff_id' => null]
         );
 
-        $staffMembers = Staff::query()
+        $staffMembers = Staff::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->where('is_active', true)
             ->orderBy('first_name')
@@ -55,7 +55,7 @@ class ReviewController extends Controller
 
         $staffReviewLinks = collect();
         foreach ($staffMembers as $staff) {
-            $link = ReviewLink::query()->firstOrCreate(
+            $link = ReviewLink::withoutGlobalScopes()->firstOrCreate(
                 ['salon_id' => $salon->id, 'staff_id' => $staff->id]
             );
             $staffReviewLinks->push([
@@ -101,7 +101,7 @@ class ReviewController extends Controller
             ->firstOrFail();
 
         $salon = $reviewLink->salon;
-        $services = Service::query()
+        $services = Service::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->where('status', 'active')
             ->orderBy('name');
@@ -136,7 +136,7 @@ class ReviewController extends Controller
 
         $serviceId = $data['service_id'] ?? null;
         if ($serviceId) {
-            $serviceQuery = Service::query()
+            $serviceQuery = Service::withoutGlobalScopes()
                 ->where('id', $serviceId)
                 ->where('salon_id', $reviewLink->salon_id)
                 ->where('status', 'active');
@@ -147,7 +147,7 @@ class ReviewController extends Controller
             abort_unless($serviceQuery->exists(), 422);
         }
 
-        Review::query()->create([
+        Review::withoutGlobalScopes()->create([
             'salon_id' => $reviewLink->salon_id,
             'staff_id' => $reviewLink->staff_id,
             'service_id' => $serviceId,

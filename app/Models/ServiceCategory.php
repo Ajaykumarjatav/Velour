@@ -54,4 +54,32 @@ class ServiceCategory extends Model
     {
         return $this->hasMany(Service::class, 'category_id')->orderBy('sort_order');
     }
+
+    /**
+     * Resolve category without tenant scope when the active branch differs from Tenant::current().
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field = $field ?: $this->getRouteKeyName();
+
+        $category = static::withoutGlobalScopes()->where($field, $value)->firstOrFail();
+
+        $user = auth()->user();
+        abort_unless($user, 404);
+
+        if ($user->salons()->whereKey($category->salon_id)->exists()) {
+            return $category;
+        }
+
+        $viewerSalonId = Staff::withoutGlobalScopes()
+            ->where('user_id', $user->id)
+            ->whereNull('deleted_at')
+            ->value('salon_id');
+
+        if ($viewerSalonId && (int) $viewerSalonId === (int) $category->salon_id) {
+            return $category;
+        }
+
+        abort(404);
+    }
 }

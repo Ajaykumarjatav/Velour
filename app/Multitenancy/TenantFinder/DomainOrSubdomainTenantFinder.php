@@ -32,7 +32,7 @@ class DomainOrSubdomainTenantFinder extends TenantFinder
     {
         // Tenant is resolved from the logged-in user (owner or staff member).
         if (Auth::check()) {
-            return $this->resolveTenantForUser(Auth::user());
+            return $this->resolveTenantForUser(Auth::user(), $request);
         }
 
         // Fallback: during some requests this finder can run before Auth::check()
@@ -44,7 +44,7 @@ class DomainOrSubdomainTenantFinder extends TenantFinder
             if ($userId > 0) {
                 $user = User::query()->find($userId);
                 if ($user) {
-                    return $this->resolveTenantForUser($user);
+                    return $this->resolveTenantForUser($user, $request);
                 }
             }
         }
@@ -53,11 +53,23 @@ class DomainOrSubdomainTenantFinder extends TenantFinder
         return null;
     }
 
-    private function resolveTenantForUser(User $user): ?IsTenant
+    private function resolveTenantForUser(User $user, Request $request): ?IsTenant
     {
         if ($user->salons()->exists()) {
-            $salon = $user->salons()->first();
-            return Tenant::query()->withoutGlobalScopes()->find($salon->id);
+            // Multi-location: match Spatie tenant to the branch selected in the session
+            // so BelongsToTenant scopes align with ResolvesActiveSalon / active_salon_id.
+            $activeSalonId = $request->hasSession()
+                ? (int) $request->session()->get('active_salon_id', 0)
+                : 0;
+
+            $salon = $activeSalonId > 0
+                ? $user->salons()->whereKey($activeSalonId)->first()
+                : null;
+            $salon ??= $user->salons()->orderBy('id')->first();
+
+            return $salon
+                ? Tenant::query()->withoutGlobalScopes()->find($salon->id)
+                : null;
         }
 
         $staffSalonId = Staff::withoutGlobalScopes()

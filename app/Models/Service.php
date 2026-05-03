@@ -71,9 +71,10 @@ class Service extends Model
     {
         static::saving(function (Service $service): void {
             if ($service->category_id) {
-                $cat = $service->relationLoaded('category')
-                    ? $service->category
-                    : ServiceCategory::query()->find($service->category_id);
+                // Always resolve by id without tenant scope: multi-location uses session
+                // active_salon while Tenant::current() may still be the domain salon, so a
+                // scoped find() can return null even for valid categories on the selected location.
+                $cat = ServiceCategory::withoutGlobalScopes()->find($service->category_id);
 
                 if ($cat === null || (int) $cat->salon_id !== (int) $service->salon_id) {
                     throw ValidationException::withMessages([
@@ -226,7 +227,11 @@ class Service extends Model
         }
 
         $unique = array_values(array_unique($orderedServiceIds));
-        $map    = static::where('salon_id', $salonId)->whereIn('id', $unique)->get()->keyBy('id');
+        $map    = static::withoutTenantScope()
+            ->where('salon_id', $salonId)
+            ->whereIn('id', $unique)
+            ->get()
+            ->keyBy('id');
 
         if ($map->count() !== count($unique)) {
             throw new InvalidArgumentException('One or more services not found.');

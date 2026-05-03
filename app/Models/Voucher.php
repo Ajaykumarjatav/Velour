@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Voucher extends Model
 {
     use BelongsToTenant;
-{
+
     protected $fillable = [
         'salon_id', 'client_id', 'code', 'type', 'value',
         'remaining_balance', 'min_spend', 'usage_limit',

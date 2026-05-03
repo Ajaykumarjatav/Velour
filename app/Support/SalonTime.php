@@ -32,6 +32,28 @@ final class SalonTime
         return self::now($salon)->copy()->startOfMonth()->toDateString();
     }
 
+    public static function monthEndDateString(Salon $salon): string
+    {
+        return self::now($salon)->copy()->endOfMonth()->toDateString();
+    }
+
+    /**
+     * Inclusive salon-local calendar range as UTC instants for querying stored UTC timestamps.
+     *
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
+     */
+    public static function ymdRangeUtcInclusive(Salon $salon, string $fromYmd, string $toYmd): array
+    {
+        $tz = self::timezone($salon);
+        if ($fromYmd > $toYmd) {
+            [$fromYmd, $toYmd] = [$toYmd, $fromYmd];
+        }
+        $start = Carbon::createFromFormat('Y-m-d', $fromYmd, $tz)->startOfDay();
+        $end = Carbon::createFromFormat('Y-m-d', $toYmd, $tz)->endOfDay();
+
+        return [$start->utc(), $end->utc()];
+    }
+
     /**
      * @return array{0: Carbon, 1: Carbon} UTC instants for [start, end] inclusive of that local calendar day.
      */

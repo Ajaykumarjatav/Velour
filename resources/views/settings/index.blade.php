@@ -17,7 +17,6 @@
         'showPasswordModal' => $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation'),
         'open' => [],
         'profileCardOpen' => true,
-        'teamCardOpen' => true,
     ];
 @endphp
 <div class="max-w-3xl" x-data='@json($settingsAlpineData)'>
@@ -189,7 +188,7 @@
                 </div>
                 <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                     <label class="form-label mb-0">Service categories <span class="text-gray-400 font-normal">(optional)</span></label>
-                    <p class="form-hint">Pick starter categories first to filter suggested services.</p>
+                    <p class="form-hint">Optional: tick categories to narrow the list below. Leave them unchecked to show every starter service for your selected business types.</p>
                     <div id="settings-service-categories-list" class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         @foreach($starterCatalog as $slug => $items)
                             @php
@@ -220,92 +219,129 @@
                 </div>
                 <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                     <label class="form-label mb-0">Services <span class="text-gray-400 font-normal">(optional)</span></label>
-                    <p class="form-hint">Select services, then enter time and price manually for each selected service.</p>
-                    <div id="settings-service-offers-list" class="flex flex-col gap-2">
+                    <p class="form-hint">Select services, then enter time and price manually for each. With no category filter, the list is grouped by business type and category.</p>
+                    <div id="settings-service-offers-list" class="flex flex-col gap-6">
                         @foreach($starterCatalog as $slug => $items)
-                            @foreach($items as $item)
-                                @php
-                                    $val = $slug . ':' . $item['key'];
-                                    $token = str_replace(':', '__', $val);
+                            @php
+                                $typeLabel = collect($businessTypes ?? [])->merge(collect($customBusinessTypes ?? []))->firstWhere('slug', $slug)?->name;
+                                if (! $typeLabel) {
+                                    $typeLabel = \Illuminate\Support\Str::title(str_replace(['-', '_'], ' ', (string) $slug));
+                                }
+                                $groupIndex = [];
+                                $grouped = [];
+                                foreach ($items as $item) {
                                     $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
                                     if ($catSlug === '') {
                                         $catSlug = 'general';
                                     }
-                                    $catId = $slug . ':' . $catSlug;
-                                    $checked = in_array($val, $starterServiceOld, true);
-                                    $isUnisex = $slug === 'unisex';
-                                    $savedMeta = (array) (($selectedStarterServiceMeta[$val] ?? []));
-                                    $oldDuration = old("starter_service_meta.$token.duration_minutes", $savedMeta['duration_minutes'] ?? null);
-                                    $oldPrice = old("starter_service_meta.$token.price", $savedMeta['price'] ?? null);
-                                    $oldMenDuration = old("starter_service_meta.$token.men.duration_minutes", $savedMeta['men']['duration_minutes'] ?? null);
-                                    $oldMenPrice = old("starter_service_meta.$token.men.price", $savedMeta['men']['price'] ?? null);
-                                    $oldWomenDuration = old("starter_service_meta.$token.women.duration_minutes", $savedMeta['women']['duration_minutes'] ?? null);
-                                    $oldWomenPrice = old("starter_service_meta.$token.women.price", $savedMeta['women']['price'] ?? null);
-                                @endphp
-                                <label class="settings-service-offer-option flex items-center justify-between gap-3 text-sm text-body cursor-pointer hidden rounded-lg border border-transparent px-1 py-1" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}">
-                                    <span class="flex items-start gap-2 min-w-[220px]">
-                                        <input type="checkbox" name="starter_services[]" value="{{ $val }}"
-                                               class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500 settings-service-checkbox"
-                                               {{ $checked ? 'checked' : '' }}>
-                                        <span>{{ $item['name'] }}</span>
-                                    </span>
-                                    @if($isUnisex)
-                                        <span class="settings-service-meta-grid grid grid-cols-2 gap-2 w-full max-w-xl {{ $checked ? '' : 'hidden' }}">
-                                            <input type="number"
-                                                   min="1"
-                                                   step="1"
-                                                   name="starter_service_meta[{{ $token }}][men][duration_minutes]"
-                                                   value="{{ $oldMenDuration }}"
-                                                   placeholder="Men time (min)"
-                                                   class="form-input text-xs w-full settings-service-meta-input"
-                                                   {{ $checked ? 'required' : 'disabled' }}>
-                                            <input type="number"
-                                                   min="0.01"
-                                                   step="0.01"
-                                                   name="starter_service_meta[{{ $token }}][men][price]"
-                                                   value="{{ $oldMenPrice }}"
-                                                   placeholder="Men price"
-                                                   class="form-input text-xs w-full settings-service-meta-input"
-                                                   {{ $checked ? 'required' : 'disabled' }}>
-                                            <input type="number"
-                                                   min="1"
-                                                   step="1"
-                                                   name="starter_service_meta[{{ $token }}][women][duration_minutes]"
-                                                   value="{{ $oldWomenDuration }}"
-                                                   placeholder="Women time (min)"
-                                                   class="form-input text-xs w-full settings-service-meta-input"
-                                                   {{ $checked ? 'required' : 'disabled' }}>
-                                            <input type="number"
-                                                   min="0.01"
-                                                   step="0.01"
-                                                   name="starter_service_meta[{{ $token }}][women][price]"
-                                                   value="{{ $oldWomenPrice }}"
-                                                   placeholder="Women price"
-                                                   class="form-input text-xs w-full settings-service-meta-input"
-                                                   {{ $checked ? 'required' : 'disabled' }}>
-                                        </span>
-                                    @else
-                                        <span class="settings-service-meta-grid grid grid-cols-2 gap-2 w-full max-w-md {{ $checked ? '' : 'hidden' }}">
-                                            <input type="number"
-                                                   min="1"
-                                                   step="1"
-                                                   name="starter_service_meta[{{ $token }}][duration_minutes]"
-                                                   value="{{ $oldDuration }}"
-                                                   placeholder="Time (min)"
-                                                   class="form-input text-xs w-full settings-service-meta-input"
-                                                   {{ $checked ? 'required' : 'disabled' }}>
-                                            <input type="number"
-                                                   min="0.01"
-                                                   step="0.01"
-                                                   name="starter_service_meta[{{ $token }}][price]"
-                                                   value="{{ $oldPrice }}"
-                                                   placeholder="Price"
-                                                   class="form-input text-xs w-full settings-service-meta-input"
-                                                   {{ $checked ? 'required' : 'disabled' }}>
-                                        </span>
-                                    @endif
-                                </label>
-                            @endforeach
+                                    $catName = trim((string) ($item['category'] ?? 'General'));
+                                    if ($catName === '') {
+                                        $catName = 'General';
+                                    }
+                                    if (! isset($groupIndex[$catSlug])) {
+                                        $groupIndex[$catSlug] = count($grouped);
+                                        $grouped[] = ['catSlug' => $catSlug, 'catName' => $catName, 'rows' => []];
+                                    }
+                                    $grouped[$groupIndex[$catSlug]]['rows'][] = $item;
+                                }
+                            @endphp
+                            <div class="settings-service-offers-type-bundle hidden space-y-3" data-bt-slug="{{ $slug }}">
+                                <div class="pb-2 border-b border-gray-200 dark:border-gray-700">
+                                    <p class="text-sm font-semibold text-heading">{{ $typeLabel }}</p>
+                                </div>
+                                <div class="space-y-3">
+                                    @foreach($grouped as $grp)
+                                        <div class="settings-service-offers-cat-bundle rounded-xl border border-gray-200/90 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 space-y-2">
+                                            <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ $grp['catName'] }}</p>
+                                            <div class="space-y-2">
+                                                @foreach($grp['rows'] as $item)
+                                                    @php
+                                                        $val = $slug . ':' . $item['key'];
+                                                        $token = str_replace(':', '__', $val);
+                                                        $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
+                                                        if ($catSlug === '') {
+                                                            $catSlug = 'general';
+                                                        }
+                                                        $catId = $slug . ':' . $catSlug;
+                                                        $checked = in_array($val, $starterServiceOld, true);
+                                                        $isUnisex = $slug === 'unisex';
+                                                        $savedMeta = (array) (($selectedStarterServiceMeta[$val] ?? []));
+                                                        $oldDuration = old("starter_service_meta.$token.duration_minutes", $savedMeta['duration_minutes'] ?? null);
+                                                        $oldPrice = old("starter_service_meta.$token.price", $savedMeta['price'] ?? null);
+                                                        $oldMenDuration = old("starter_service_meta.$token.men.duration_minutes", $savedMeta['men']['duration_minutes'] ?? null);
+                                                        $oldMenPrice = old("starter_service_meta.$token.men.price", $savedMeta['men']['price'] ?? null);
+                                                        $oldWomenDuration = old("starter_service_meta.$token.women.duration_minutes", $savedMeta['women']['duration_minutes'] ?? null);
+                                                        $oldWomenPrice = old("starter_service_meta.$token.women.price", $savedMeta['women']['price'] ?? null);
+                                                    @endphp
+                                                    <label class="settings-service-offer-option flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 text-sm text-body cursor-pointer hidden rounded-lg border border-transparent px-1 py-1" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}">
+                                                        <span class="flex items-start gap-2 min-w-0 sm:min-w-[200px]">
+                                                            <input type="checkbox" name="starter_services[]" value="{{ $val }}"
+                                                                   class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500 settings-service-checkbox shrink-0"
+                                                                   {{ $checked ? 'checked' : '' }}>
+                                                            <span class="leading-snug">{{ $item['name'] }}</span>
+                                                        </span>
+                                                        @if($isUnisex)
+                                                            <span class="settings-service-meta-grid grid grid-cols-2 gap-2 w-full sm:max-w-xl {{ $checked ? '' : 'hidden' }}">
+                                                                <input type="number"
+                                                                       min="1"
+                                                                       step="1"
+                                                                       name="starter_service_meta[{{ $token }}][men][duration_minutes]"
+                                                                       value="{{ $oldMenDuration }}"
+                                                                       placeholder="Men time (min)"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                <input type="number"
+                                                                       min="0.01"
+                                                                       step="0.01"
+                                                                       name="starter_service_meta[{{ $token }}][men][price]"
+                                                                       value="{{ $oldMenPrice }}"
+                                                                       placeholder="Men price"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                <input type="number"
+                                                                       min="1"
+                                                                       step="1"
+                                                                       name="starter_service_meta[{{ $token }}][women][duration_minutes]"
+                                                                       value="{{ $oldWomenDuration }}"
+                                                                       placeholder="Women time (min)"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                <input type="number"
+                                                                       min="0.01"
+                                                                       step="0.01"
+                                                                       name="starter_service_meta[{{ $token }}][women][price]"
+                                                                       value="{{ $oldWomenPrice }}"
+                                                                       placeholder="Women price"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                            </span>
+                                                        @else
+                                                            <span class="settings-service-meta-grid grid grid-cols-2 gap-2 w-full sm:max-w-md {{ $checked ? '' : 'hidden' }}">
+                                                                <input type="number"
+                                                                       min="1"
+                                                                       step="1"
+                                                                       name="starter_service_meta[{{ $token }}][duration_minutes]"
+                                                                       value="{{ $oldDuration }}"
+                                                                       placeholder="Time (min)"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                <input type="number"
+                                                                       min="0.01"
+                                                                       step="0.01"
+                                                                       name="starter_service_meta[{{ $token }}][price]"
+                                                                       value="{{ $oldPrice }}"
+                                                                       placeholder="Price"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                            </span>
+                                                        @endif
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                         @endforeach
                     </div>
                     @error('starter_services')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
@@ -663,80 +699,98 @@
         @unless($settingsPersonalOnly)
         <div class="card p-6">
             @php
+                $mapMemberToRow = function ($member) {
+                    $hasServices = \Illuminate\Support\Facades\DB::table('service_staff')
+                        ->where('staff_id', $member->id)
+                        ->exists();
+
+                    return [
+                        'id' => $member->id,
+                        'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                        'email' => $member->email,
+                        'phone' => $member->phone,
+                        'role' => $member->role,
+                        'experience' => $member->experience,
+                        'language_proficiency' => $member->language_proficiency,
+                        'commission_rate' => $member->commission_rate,
+                        'color' => $member->color ?: '#7C3AED',
+                        'bio' => $member->bio,
+                        'assign_services' => $hasServices ? '1' : '0',
+                    ];
+                };
                 $staffRows = old('staff_members');
                 if (! is_array($staffRows)) {
-                    $staffRows = ($existingTeamMembers ?? collect())->map(function ($member) {
-                        return [
-                            'id' => $member->id,
-                            'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
-                            'email' => $member->email,
-                            'phone' => $member->phone,
-                            'role' => $member->role,
-                            'experience' => $member->experience,
-                            'language_proficiency' => $member->language_proficiency,
-                            'commission_rate' => $member->commission_rate,
-                            'color' => $member->color ?: '#7C3AED',
-                            'bio' => $member->bio,
-                            'assign_services' => $member->services()->exists() ? '1' : '0',
-                        ];
-                    })->all();
+                    $staffRows = ($existingTeamMembers ?? collect())->map($mapMemberToRow)->all();
+                } elseif (old('save_single_team_member') && count($staffRows) === 1) {
+                    $fromDb = ($existingTeamMembers ?? collect())->map($mapMemberToRow)->all();
+                    $incoming = $staffRows[0];
+                    $incId = (int) ($incoming['id'] ?? 0);
+                    if ($incId > 0) {
+                        $staffRows = array_map(function ($r) use ($incoming, $incId) {
+                            return ((int) ($r['id'] ?? 0) === $incId) ? array_merge($r, $incoming) : $r;
+                        }, $fromDb);
+                    } else {
+                        $staffRows = array_merge($fromDb, [$incoming]);
+                    }
                 }
                 if (count($staffRows) === 0) {
                     $staffRows = [[]];
                 }
                 $staffRoles = ['stylist', 'therapist', 'manager', 'receptionist', 'junior', 'owner'];
             @endphp
-            <div class="mb-4 flex items-start justify-between gap-3 border-b border-gray-200/60 dark:border-gray-800 pb-3">
-                <div>
-                    <h2 class="font-semibold text-heading mb-1">
-                        Team members <span class="text-gray-400 font-normal">(optional)</span>
-                        <span class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                            Total: {{ count($staffRows) }}
-                        </span>
-                    </h2>
-                    <p class="form-hint">Add or update team members from your profile settings. The level of service dependency is determined based on the roles and responsibilities of each person; when you offer all services, each member receives only those their role is allowed to perform (configured per service under Services).</p>
-                </div>
-                <button type="button"
-                        @click="teamCardOpen = !teamCardOpen"
-                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
-                        :title="teamCardOpen ? 'Minimize section' : 'Expand section'">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform" :class="teamCardOpen ? '' : 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
-                    </svg>
-                </button>
+            <div class="mb-4 border-b border-gray-200/60 dark:border-gray-800 pb-3">
+                <h2 class="font-semibold text-heading mb-1">
+                    Team members <span class="text-gray-400 font-normal">(optional)</span>
+                    <span class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        Total: {{ count($staffRows) }}
+                    </span>
+                </h2>
+                <p class="form-hint">Add or update team members from your profile settings. The level of service dependency is determined based on the roles and responsibilities of each person; when you offer all services, each member receives only those their role is allowed to perform (configured per service under Services). Each row has its own arrow to show or hide that person’s fields, and its own Save this team member button so you only submit one person at a time.</p>
             </div>
-            <form x-show="teamCardOpen" x-cloak action="{{ route('settings.team-members') }}" method="POST" class="space-y-4">
-                @csrf @method('PUT')
-                <input type="hidden" name="return_to" value="{{ $returnTo }}">
-                <div id="settings-staff-rows" class="space-y-4">
-                    @foreach($staffRows as $idx => $st)
-                        @php $st = is_array($st) ? $st : []; @endphp
-                        <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-4 space-y-3">
-                            <div class="flex justify-between items-center gap-2">
-                                <span class="settings-staff-row-title text-sm font-medium text-body">Team member {{ $loop->iteration }}</span>
+            <div id="settings-staff-rows" class="space-y-4">
+                @foreach($staffRows as $idx => $st)
+                    @php $st = is_array($st) ? $st : []; @endphp
+                    <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-4">
+                        <div class="flex justify-between items-center gap-2 mb-3">
+                            <span class="settings-staff-row-title text-sm font-medium text-body">Team member {{ $loop->iteration }}</span>
+                            <div class="flex items-center gap-1">
+                                <button type="button"
+                                        class="settings-staff-row-toggle inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
+                                        aria-expanded="true"
+                                        title="Show or hide this team member’s form">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="settings-staff-row-chevron h-5 w-5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                                    </svg>
+                                </button>
                                 <button type="button" class="settings-staff-remove-btn text-xs font-medium text-red-600 hover:text-red-700 {{ count($staffRows) <= 1 ? 'hidden' : '' }}">Remove</button>
                             </div>
-                            <input type="hidden" name="staff_members[{{ $idx }}][id]" value="{{ $st['id'] ?? '' }}">
+                        </div>
+                        <div class="settings-staff-row-body">
+                        <form action="{{ route('settings.team-members') }}" method="POST" class="space-y-3">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                            <input type="hidden" name="save_single_team_member" value="1">
+                            <input type="hidden" name="staff_members[0][id]" value="{{ $st['id'] ?? '' }}">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-medium text-body mb-1">Full name</label>
-                                    <input type="text" name="staff_members[{{ $idx }}][name]" value="{{ $st['name'] ?? '' }}"
+                                    <input type="text" name="staff_members[0][name]" value="{{ $st['name'] ?? '' }}"
                                            class="form-input"
                                            placeholder="e.g. Alex Smith">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Email</label>
-                                    <input type="email" name="staff_members[{{ $idx }}][email]" value="{{ $st['email'] ?? '' }}" autocomplete="off"
+                                    <input type="email" name="staff_members[0][email]" value="{{ $st['email'] ?? '' }}" autocomplete="off"
                                            class="form-input">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Phone</label>
-                                    <input type="tel" name="staff_members[{{ $idx }}][phone]" value="{{ $st['phone'] ?? '' }}"
+                                    <input type="tel" name="staff_members[0][phone]" value="{{ $st['phone'] ?? '' }}"
                                            class="form-input">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span> <span class="text-gray-400 font-normal">(if adding)</span></label>
-                                    <select name="staff_members[{{ $idx }}][role]" class="form-select">
+                                    <select name="staff_members[0][role]" class="form-select">
                                         <option value="">-</option>
                                         @foreach($staffRoles as $r)
                                             <option value="{{ $r }}" {{ ($st['role'] ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
@@ -745,58 +799,63 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Commission %</label>
-                                    <input type="number" name="staff_members[{{ $idx }}][commission_rate]" min="0" max="100" step="0.1"
+                                    <input type="number" name="staff_members[0][commission_rate]" min="0" max="100" step="0.1"
                                            value="{{ $st['commission_rate'] ?? '0' }}"
                                            class="form-input">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Experience</label>
-                                    <input type="text" name="staff_members[{{ $idx }}][experience]" value="{{ $st['experience'] ?? '' }}"
+                                    <input type="text" name="staff_members[0][experience]" value="{{ $st['experience'] ?? '' }}"
                                            class="form-input" placeholder="e.g. 5 years">
                                 </div>
                                 <div class="md:col-span-2">
                                     @php
-                                        $staffLangKey = 'staff_members.'.$idx.'.language_proficiency';
-                                        $staffLangSelected = old($staffLangKey);
+                                        $staffLangSelected = old('staff_members.0.language_proficiency');
                                         if (! is_array($staffLangSelected)) {
                                             $staffLangSelected = \App\Support\LanguageProficiency::codesFromStored($st['language_proficiency'] ?? '');
                                         }
                                     @endphp
                                     @include('settings.partials.language-proficiency-field', [
-                                        'name' => 'staff_members['.$idx.'][language_proficiency][]',
+                                        'name' => 'staff_members[0][language_proficiency][]',
                                         'selected' => $staffLangSelected,
                                         'hint' => 'Languages this team member uses with clients (standard codes).',
                                     ])
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Calendar colour</label>
-                                    <input type="color" name="staff_members[{{ $idx }}][color]" value="{{ $st['color'] ?? '#7C3AED' }}"
+                                    <input type="color" name="staff_members[0][color]" value="{{ $st['color'] ?? '#7C3AED' }}"
                                            class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 cursor-pointer bg-white">
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-medium text-body mb-1">Bio</label>
-                                    <textarea name="staff_members[{{ $idx }}][bio]" rows="2" placeholder="Optional"
+                                    <textarea name="staff_members[0][bio]" rows="2" placeholder="Optional"
                                               class="form-textarea">{{ $st['bio'] ?? '' }}</textarea>
                                 </div>
                             </div>
-                            <input type="hidden" name="staff_members[{{ $idx }}][assign_services]" value="0">
+                            <input type="hidden" name="staff_members[0][assign_services]" value="0">
                             @php
                                 $as = $st['assign_services'] ?? null;
                                 $assignChecked = (string) $as === '1' || $as === true || $as === 1;
                             @endphp
                             <label class="inline-flex items-start gap-2 text-sm text-body cursor-pointer">
-                                <input type="checkbox" name="staff_members[{{ $idx }}][assign_services]" value="1" class="mt-0.5 rounded border-gray-300 text-velour-600"
+                                <input type="checkbox" name="staff_members[0][assign_services]" value="1" class="mt-0.5 rounded border-gray-300 text-velour-600"
                                        {{ $assignChecked ? 'checked' : '' }}>
                                 <span>Offer all services on this menu to this team member <span class="text-muted font-normal">(filtered by this member’s role)</span></span>
                             </label>
                             <p class="text-xs text-muted pl-7 -mt-1">Service dependency is defined according to each staff member’s role; “all services” means every service that role may perform.</p>
+                            @error('staff_members.0.name')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.role')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.id')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.language_proficiency')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            <button type="submit" class="btn-primary w-full sm:w-auto">Save this team member</button>
+                        </form>
                         </div>
-                    @endforeach
-                </div>
-                <button type="button" id="settings-add-staff-member" class="mt-2 text-sm font-medium text-velour-600 hover:text-velour-700">+ Add another team member</button>
-                @error('staff_members')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                <button type="submit" class="btn-primary">Save Team Members</button>
-            </form>
+                    </div>
+                @endforeach
+            </div>
+            <button type="button" id="settings-add-staff-member" class="mt-2 text-sm font-medium text-velour-600 hover:text-velour-700">+ Add another team member</button>
+            @error('staff_members')<p class="mt-2 text-xs text-red-600">{{ $message }}</p>@enderror
         </div>
         @endunless
     </div>
@@ -1165,13 +1224,10 @@
             var catId = el.getAttribute('data-cat-id');
             var show = !!(slug && selectedSlugs[slug]);
 
-            // Show services only when at least one category is selected for that slug.
-            if (show) {
-                if ((selectedCountBySlug[slug] || 0) > 0) {
-                    show = !!selectedCategoryIds[catId];
-                } else {
-                    show = false;
-                }
+            // When at least one category is checked for this slug, filter services by category.
+            // When none are checked, show all starter services for the slug (categories are optional).
+            if (show && (selectedCountBySlug[slug] || 0) > 0) {
+                show = !!selectedCategoryIds[catId];
             }
 
             el.classList.toggle('hidden', !show);
@@ -1188,6 +1244,21 @@
                 inp.disabled = !checkedAndVisible;
                 inp.required = checkedAndVisible;
             });
+        });
+
+        document.querySelectorAll('.settings-service-offers-type-bundle').forEach(function (bundle) {
+            var slug = bundle.getAttribute('data-bt-slug');
+            var show = !!(slug && selectedSlugs[slug]);
+            bundle.classList.toggle('hidden', !show);
+        });
+        document.querySelectorAll('.settings-service-offers-cat-bundle').forEach(function (bundle) {
+            var any = false;
+            bundle.querySelectorAll('.settings-service-offer-option').forEach(function (row) {
+                if (!row.classList.contains('hidden')) {
+                    any = true;
+                }
+            });
+            bundle.classList.toggle('hidden', !any);
         });
 
         var categoriesWrap = document.getElementById('settings-service-categories-list');
@@ -1219,9 +1290,6 @@
     function renumberStaffRows() {
         var rows = container.querySelectorAll('.settings-staff-member-row');
         rows.forEach(function (row, i) {
-            row.querySelectorAll('[name^="staff_members"]').forEach(function (el) {
-                el.name = el.name.replace(/staff_members\[\d+\]/, 'staff_members[' + i + ']');
-            });
             var title = row.querySelector('.settings-staff-row-title');
             if (title) title.textContent = 'Team member ' + (i + 1);
             var rm = row.querySelector('.settings-staff-remove-btn');
@@ -1249,11 +1317,33 @@
             if (el.name && el.name.indexOf('[id]') !== -1) el.value = '';
             if (el.name && el.name.indexOf('assign_services') !== -1) el.value = '0';
         });
+        var toggle = clone.querySelector('.settings-staff-row-toggle');
+        var body = clone.querySelector('.settings-staff-row-body');
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', 'true');
+            var chev = toggle.querySelector('.settings-staff-row-chevron');
+            if (chev) chev.classList.remove('rotate-180');
+        }
+        if (body) body.classList.remove('hidden');
         container.appendChild(clone);
         renumberStaffRows();
     });
 
     container.addEventListener('click', function (e) {
+        var tbtn = e.target.closest('.settings-staff-row-toggle');
+        if (tbtn && container.contains(tbtn)) {
+            var row = tbtn.closest('.settings-staff-member-row');
+            var body = row && row.querySelector('.settings-staff-row-body');
+            if (body) {
+                var open = tbtn.getAttribute('aria-expanded') !== 'false';
+                var next = !open;
+                tbtn.setAttribute('aria-expanded', next ? 'true' : 'false');
+                body.classList.toggle('hidden', !next);
+                var chev = tbtn.querySelector('.settings-staff-row-chevron');
+                if (chev) chev.classList.toggle('rotate-180', !next);
+            }
+            return;
+        }
         var btn = e.target.closest('.settings-staff-remove-btn');
         if (!btn) return;
         var row = btn.closest('.settings-staff-member-row');

@@ -263,8 +263,16 @@ class ShareController extends Controller
 
         $hasLogo     = (bool) $salon->logo;
         $hasHours    = ! empty($salon->opening_hours);
-        $hasServices = Service::where('salon_id', $salonId)->where('status', 'active')->exists();
-        $hasStaff    = Staff::where('salon_id', $salonId)->where('is_active', true)->where('bookable_online', true)->exists();
+        $hasServices = Service::withoutTenantScope()
+            ->where('salon_id', $salonId)
+            ->where('status', 'active')
+            ->where('online_bookable', true)
+            ->exists();
+        $hasStaff = Staff::withoutTenantScope()
+            ->where('salon_id', $salonId)
+            ->where('is_active', true)
+            ->where('bookable_online', true)
+            ->exists();
         $hasAddress  = (bool) $salon->address_line1;
         $hasStripe   = (bool) $salon->stripe_account_id;
         $hasPhone    = (bool) $salon->phone;

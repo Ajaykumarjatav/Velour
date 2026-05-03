@@ -15,7 +15,7 @@ class BusinessTypeSeeder extends Seeder
     {
         $types = [
             ['name' => "Women's", 'slug' => 'womens'],
-            ['name' => "Man's", 'slug' => 'mans'],
+            ['name' => "Men's", 'slug' => 'mans'],
             ['name' => 'Unisex', 'slug' => 'unisex'],
             ['name' => 'Pet', 'slug' => 'pet'],
         ];

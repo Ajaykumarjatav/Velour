@@ -3,23 +3,25 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonBufferRule;
 use App\Models\SalonResource;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class AvailabilityResourcesController extends Controller
 {
+    use ResolvesActiveSalon;
+
     /** @var list<string> */
     public const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     private function authoriseSalonResource(SalonResource $resource): void
@@ -40,22 +42,22 @@ class AvailabilityResourcesController extends Controller
             $tab = 'availability';
         }
 
-        $staff = Staff::where('salon_id', $salon->id)
+        $staff = $this->salonScoped(Staff::class)
             ->orderBy('sort_order')
             ->orderBy('first_name')
             ->get();
 
-        $resources = SalonResource::where('salon_id', $salon->id)
+        $resources = $this->salonScoped(SalonResource::class)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        $leaveRequests = StaffLeaveRequest::where('salon_id', $salon->id)
+        $leaveRequests = $this->salonScoped(StaffLeaveRequest::class)
             ->with('staff')
             ->latest()
             ->get();
 
-        $bufferRule = SalonBufferRule::firstOrCreate(
+        $bufferRule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(
             ['salon_id' => $salon->id],
             []
         );
@@ -129,7 +131,7 @@ class AvailabilityResourcesController extends Controller
             'bookable'            => $request->boolean('bookable'),
             'status'              => $data['status'] ?? 'active',
             'availability_status' => $data['availability_status'] ?? 'available',
-            'sort_order'          => (int) SalonResource::where('salon_id', $salon->id)->max('sort_order') + 1,
+            'sort_order'          => (int) $this->salonScoped(SalonResource::class)->max('sort_order') + 1,
         ]);
 
         return redirect()
@@ -189,7 +191,7 @@ class AvailabilityResourcesController extends Controller
             'blocks_slots'  => ['nullable', 'boolean'],
         ]);
 
-        $staff = Staff::where('salon_id', $salon->id)->where('id', $data['staff_id'])->firstOrFail();
+        $staff = $this->salonScoped(Staff::class)->where('id', $data['staff_id'])->firstOrFail();
 
         StaffLeaveRequest::create([
             'salon_id'      => $salon->id,
@@ -244,7 +246,7 @@ class AvailabilityResourcesController extends Controller
             'overbooking_percent'              => ['required', 'integer', 'min:0', 'max:100'],
         ]);
 
-        $rule = SalonBufferRule::firstOrCreate(['salon_id' => $salon->id], []);
+        $rule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(['salon_id' => $salon->id], []);
         $rule->update($data);
 
         return redirect()

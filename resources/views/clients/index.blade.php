@@ -3,21 +3,21 @@
 @section('page-title', 'Clients')
 @section('content')
 
-<p class="text-sm text-muted mb-4">{{ number_format($clientTotal) }} total clients</p>
+<p class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-3">{{ number_format($clientTotal) }} total clients</p>
 
-<div class="card p-4 mb-5" x-data="{ openReviewRequest: false }">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-            <p class="font-semibold text-heading">Get more reviews from your valuable clients</p>
-            <p class="text-xs text-muted">Send email-only review requests to clients who have not submitted a review yet.</p>
+<div class="card p-5 sm:p-6 mb-6 shadow-sm dark:shadow-none" x-data="{ openReviewRequest: false }">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5">
+        <div class="min-w-0 space-y-1.5">
+            <p class="font-semibold text-heading leading-snug">Get more reviews from your valuable clients</p>
+            <p class="text-sm text-muted leading-relaxed max-w-2xl">Send email-only review requests to clients who have not submitted a review yet.</p>
         </div>
-        <button type="button" class="btn-primary" @click="openReviewRequest = true">Request Reviews</button>
+        <button type="button" class="btn-primary shrink-0 w-full sm:w-auto whitespace-nowrap" @click="openReviewRequest = true">Request Reviews</button>
     </div>
 
     <div x-show="openReviewRequest" x-cloak class="fixed inset-0 z-50">
         <div class="absolute inset-0 bg-black/40" @click="openReviewRequest = false"></div>
         <div class="absolute inset-x-0 top-10 mx-auto max-w-3xl px-4">
-            <div class="card p-5 max-h-[80vh] overflow-y-auto">
+            <div class="card p-6 max-h-[80vh] overflow-y-auto">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-semibold text-heading">Select clients for review request</h3>
                     <button type="button" class="btn-outline btn-sm" @click="openReviewRequest = false">Close</button>
@@ -63,36 +63,40 @@
 </div>
 
 @if(!empty($loyaltyFilterTier))
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-velour-200 dark:border-velour-800 bg-velour-50 dark:bg-velour-900/20 px-4 py-3 text-sm">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-velour-200/90 dark:border-velour-500/20 bg-velour-50 dark:bg-velour-950/35 px-5 py-4 text-sm leading-relaxed">
         <span class="text-body">Showing <strong class="text-heading">{{ $loyaltyFilterTier->name }}</strong> members</span>
-        <a href="{{ route('clients.index', request()->except('loyalty_tier_id')) }}" class="text-link font-medium">Clear filter</a>
+        <a href="{{ route('clients.index', request()->except('loyalty_tier_id')) }}" class="text-link font-semibold shrink-0 hover:underline">Clear filter</a>
     </div>
 @endif
 
-<div class="flex flex-col lg:flex-row gap-4 mb-6 items-start">
-    <form action="{{ route('clients.index') }}" method="GET" class="flex flex-1 flex-col sm:flex-row gap-3 min-w-0 w-full">
-        @if(request('loyalty_tier_id'))
-            <input type="hidden" name="loyalty_tier_id" value="{{ request('loyalty_tier_id') }}">
-        @endif
-        <input type="text" name="search" value="{{ $search }}" placeholder="Search name, email or phone…" class="form-input w-full min-w-0 flex-1">
-        <div class="flex flex-wrap gap-2 shrink-0">
-            <button type="submit" class="btn-secondary">Search</button>
-            @if($search)<a href="{{ route('clients.index') }}" class="btn-outline">Clear</a>@endif
+<div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 px-4 py-3.5 sm:px-5 sm:py-4 mb-7 shadow-sm dark:shadow-none">
+    <div class="flex flex-col xl:flex-row xl:items-center gap-4 xl:gap-5">
+        <form action="{{ route('clients.index') }}" method="GET" class="flex flex-1 flex-wrap items-center gap-2.5 sm:gap-3 min-w-0 w-full">
+            @if(request('loyalty_tier_id'))
+                <input type="hidden" name="loyalty_tier_id" value="{{ request('loyalty_tier_id') }}">
+            @endif
+            <input type="text" name="search" value="{{ $search }}" placeholder="Search name, email or phone…" class="form-input w-full min-w-0 sm:flex-1 sm:min-w-[12rem] xl:max-w-xl">
+            <div class="flex w-full sm:w-auto gap-2 shrink-0">
+                <button type="submit" class="btn-secondary flex-1 sm:flex-initial min-w-0">Search</button>
+                @if($search)<a href="{{ route('clients.index') }}" class="btn-outline flex-1 sm:flex-initial min-w-0 text-center">Clear</a>@endif
+            </div>
+        </form>
+        <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-2.5 shrink-0 xl:border-l xl:border-gray-200 xl:dark:border-gray-800 xl:pl-5">
+            <form action="{{ route('clients.import') }}" method="POST" enctype="multipart/form-data" class="inline-flex w-full sm:w-auto shrink-0 min-w-0">
+                @csrf
+                <label for="client-csv-upload" class="btn-outline cursor-pointer w-full sm:w-auto inline-flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    Import
+                </label>
+                <input id="client-csv-upload" type="file" name="file" accept=".csv,text/csv,text/plain,.txt" class="hidden" onchange="if(this.files.length)this.form.submit()">
+            </form>
+            <a href="{{ route('clients.export') }}" class="btn-outline w-full sm:w-auto inline-flex items-center justify-center gap-2 text-center">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Export
+            </a>
+            <a href="{{ route('clients.create') }}" class="btn-primary w-full sm:w-auto text-center whitespace-nowrap sm:min-w-[10.5rem]">+ Add Client</a>
         </div>
-    </form>
-    <form action="{{ route('clients.import') }}" method="POST" enctype="multipart/form-data" class="inline shrink-0">
-        @csrf
-        <label for="client-csv-upload" class="btn-outline cursor-pointer w-full sm:w-auto">
-            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            Import
-        </label>
-        <input id="client-csv-upload" type="file" name="file" accept=".csv,text/csv,text/plain,.txt" class="hidden" onchange="if(this.files.length)this.form.submit()">
-    </form>
-    <a href="{{ route('clients.export') }}" class="btn-outline flex-shrink-0 w-full sm:w-auto">
-        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        Export
-    </a>
-    <a href="{{ route('clients.create') }}" class="btn-primary flex-shrink-0 w-full sm:w-auto text-center">+ Add Client</a>
+    </div>
 </div>
 
 @php
@@ -138,7 +142,7 @@
     $firstClientId = optional($clients->first())->id;
 @endphp
 
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-4"
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-5 xl:gap-6"
      x-data="{
         selectedClientId: {{ $firstClientId ? (int) $firstClientId : 'null' }},
         clients: @js($clientRows),
@@ -172,7 +176,7 @@
             this.editMode = false;
         }
      }">
-    <div class="table-wrap">
+    <div class="table-wrap [&_thead_th]:py-3 [&_thead_th]:px-5 [&_tbody_td]:py-2.5 [&_tbody_td]:px-5">
         <table class="data-table">
             <thead>
             <tr>
@@ -190,7 +194,9 @@
             <tbody>
             @forelse($clients as $client)
             <tr @click="selectClient({{ (int) $client->id }})"
-                :class="selectedClientId === {{ (int) $client->id }} ? 'bg-velour-50/50 dark:bg-velour-900/20' : ''"
+                :class="selectedClientId === {{ (int) $client->id }}
+                    ? 'bg-velour-50/95 dark:bg-velour-950/35 ring-1 ring-inset ring-velour-200/80 dark:ring-velour-500/25 hover:bg-velour-100/85 dark:hover:bg-velour-950/45'
+                    : 'hover:bg-gray-50/90 dark:hover:bg-gray-800/40'"
                 class="cursor-pointer transition-colors">
                 <td>
                     <div class="flex items-center gap-3 min-h-[2.75rem]">
@@ -214,13 +220,13 @@
                 </td>
             </tr>
             @empty
-            <tr><td colspan="4" class="px-5 py-12 text-center text-sm text-muted">No clients found</td></tr>
+            <tr><td colspan="4" class="px-6 py-14 text-center text-sm text-muted">No clients found</td></tr>
             @endforelse
             </tbody>
         </table>
     </div>
 
-    <div class="card p-5 min-h-[18rem]" x-show="selectedClient()" x-cloak>
+    <div class="card p-6 min-h-[18rem] shadow-sm dark:shadow-none" x-show="selectedClient()" x-cloak>
         <template x-if="editMode && selectedClient()">
             <form :action="selectedClient().update_url" method="POST" class="space-y-4">
                 @csrf
@@ -290,34 +296,34 @@
         </template>
         <template x-if="selectedClient()">
             <div x-show="!editMode">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-11 h-11 rounded-full bg-velour-100 dark:bg-velour-900/40 flex items-center justify-center text-velour-700 dark:text-velour-300 font-bold text-base flex-shrink-0" x-text="selectedClient().initial"></div>
-                        <div class="min-w-0">
-                            <p class="font-semibold text-heading truncate" x-text="selectedClient().name"></p>
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <div class="w-11 h-11 rounded-full bg-velour-100 dark:bg-velour-900/45 flex items-center justify-center text-velour-700 dark:text-velour-300 font-bold text-base flex-shrink-0 ring-2 ring-white/10 dark:ring-gray-950/30" x-text="selectedClient().initial"></div>
+                        <div class="min-w-0 space-y-0.5">
+                            <p class="font-semibold text-heading truncate tracking-tight" x-text="selectedClient().name"></p>
                             <p class="text-xs text-muted truncate" x-text="selectedClient().email || '—'"></p>
-                            <p class="text-xs text-muted" x-text="selectedClient().phone || '—'"></p>
+                            <p class="text-xs text-muted tabular-nums" x-text="selectedClient().phone || '—'"></p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" @click="startEdit()" class="btn-outline text-xs">Edit</button>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" @click="startEdit()" class="btn-outline btn-sm whitespace-nowrap">Edit</button>
                     </div>
                 </div>
 
-                <div class="mt-4 grid grid-cols-3 gap-2">
-                    <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-3 text-center">
-                        <p class="text-[11px] uppercase tracking-wide text-muted">Visits</p>
-                        <p class="mt-1 text-lg font-semibold text-heading" x-text="selectedClient().visits"></p>
+                <div class="mt-5 grid grid-cols-3 gap-2.5 sm:gap-3">
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/25 p-3.5 text-center">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">Visits</p>
+                        <p class="mt-1.5 text-lg font-semibold tabular-nums text-heading" x-text="selectedClient().visits"></p>
                     </div>
-                    <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-3 text-center">
-                        <p class="text-[11px] uppercase tracking-wide text-muted">Total Spent</p>
-                        <p class="mt-1 text-lg font-semibold text-heading">
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/25 p-3.5 text-center">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">Total Spent</p>
+                        <p class="mt-1.5 text-lg font-semibold tabular-nums text-heading">
                             <span x-text="selectedClient().currency_symbol"></span><span x-text="selectedClient().total_spent"></span>
                         </p>
                     </div>
-                    <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-3 text-center">
-                        <p class="text-[11px] uppercase tracking-wide text-muted">Last Visit</p>
-                        <p class="mt-1 text-sm font-semibold text-heading" x-text="selectedClient().last_visit"></p>
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/25 p-3.5 text-center">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">Last Visit</p>
+                        <p class="mt-1.5 text-sm font-semibold text-heading" x-text="selectedClient().last_visit"></p>
                     </div>
                 </div>
 
@@ -328,7 +334,7 @@
                           x-text="selectedClient().marketing ? 'Opted in' : 'Opted out'"></span>
                 </div>
 
-                <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div class="mt-5 grid grid-cols-2 gap-x-4 gap-y-3.5 text-sm">
                     <div>
                         <p class="text-[11px] uppercase tracking-wide text-muted">Date of Birth</p>
                         <p class="mt-1 text-body capitalize" x-text="selectedClient().dob"></p>
@@ -361,39 +367,39 @@
                     <p class="mt-1 text-sm text-body" x-text="selectedClient().notes || 'No notes added.'"></p>
                 </div>
 
-                <div class="mt-5 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-                    <div class="px-4 py-3 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800">
-                        <h4 class="font-semibold text-heading">Appointments</h4>
+                <div class="mt-6 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                    <div class="px-5 py-3.5 bg-gray-50/90 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+                        <h4 class="text-sm font-semibold tracking-tight text-heading">Appointments</h4>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-sm">
-                            <thead class="text-xs uppercase tracking-wide text-muted bg-gray-50/80 dark:bg-gray-900/40">
+                            <thead class="text-[11px] font-semibold uppercase tracking-wider text-muted bg-gray-50/80 dark:bg-gray-900/45">
                                 <tr>
-                                    <th class="px-4 py-2 text-left">Date</th>
-                                    <th class="px-4 py-2 text-left">Services</th>
-                                    <th class="px-4 py-2 text-left">Staff</th>
-                                    <th class="px-4 py-2 text-left">Amount</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
+                                    <th class="px-5 py-2.5 text-left">Date</th>
+                                    <th class="px-5 py-2.5 text-left">Services</th>
+                                    <th class="px-5 py-2.5 text-left">Staff</th>
+                                    <th class="px-5 py-2.5 text-left">Amount</th>
+                                    <th class="px-5 py-2.5 text-left">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <template x-for="apt in (selectedClient().appointments || [])" :key="apt.date + apt.time + apt.staff">
-                                    <tr class="border-t border-gray-200/60 dark:border-gray-800/70">
-                                        <td class="px-4 py-2 text-body">
+                                    <tr class="border-t border-gray-100 dark:border-gray-800/80 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                                        <td class="px-5 py-2.5 text-body">
                                             <div x-text="apt.date"></div>
                                             <div class="text-xs text-muted" x-text="apt.time"></div>
                                         </td>
-                                        <td class="px-4 py-2 text-body" x-text="apt.services"></td>
-                                        <td class="px-4 py-2 text-body" x-text="apt.staff"></td>
-                                        <td class="px-4 py-2 text-body" x-text="apt.amount"></td>
-                                        <td class="px-4 py-2">
+                                        <td class="px-5 py-2.5 text-body" x-text="apt.services"></td>
+                                        <td class="px-5 py-2.5 text-body" x-text="apt.staff"></td>
+                                        <td class="px-5 py-2.5 text-body tabular-nums" x-text="apt.amount"></td>
+                                        <td class="px-5 py-2.5">
                                             <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
                                                   x-text="apt.status"></span>
                                         </td>
                                     </tr>
                                 </template>
                                 <tr x-show="!selectedClient().appointments || selectedClient().appointments.length === 0">
-                                    <td colspan="5" class="px-4 py-4 text-center text-sm text-muted">No appointments yet.</td>
+                                    <td colspan="5" class="px-5 py-6 text-center text-sm text-muted">No appointments yet.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -404,5 +410,5 @@
     </div>
 </div>
 
-<div class="mt-4">{{ $clients->links() }}</div>
+<div class="mt-6 flex justify-center sm:justify-end">{{ $clients->links() }}</div>
 @endsection

@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Voucher;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Client;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class VoucherController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index(Request $request)
@@ -23,7 +25,7 @@ class VoucherController extends Controller
         $type   = $request->get('type');
         $status = $request->get('status', 'active');
 
-        $query = Voucher::where('salon_id', $salon->id)
+        $query = $this->salonScoped(Voucher::class)
             ->with('client')
             ->latest();
 
@@ -53,10 +55,10 @@ class VoucherController extends Controller
         $vouchers = $query->paginate(25)->withQueryString();
 
         $stats = [
-            'total'       => Voucher::where('salon_id', $salon->id)->count(),
-            'active'      => Voucher::where('salon_id', $salon->id)->valid()->count(),
-            'gift_cards'  => Voucher::where('salon_id', $salon->id)->where('type', 'gift_card')->count(),
-            'total_value' => Voucher::where('salon_id', $salon->id)->valid()->sum('remaining_balance'),
+            'total'       => $this->salonScoped(Voucher::class)->count(),
+            'active'      => $this->salonScoped(Voucher::class)->valid()->count(),
+            'gift_cards'  => $this->salonScoped(Voucher::class)->where('type', 'gift_card')->count(),
+            'total_value' => $this->salonScoped(Voucher::class)->valid()->sum('remaining_balance'),
         ];
 
         return view('vouchers.index', compact('salon', 'vouchers', 'stats', 'search', 'type', 'status'));
@@ -65,7 +67,7 @@ class VoucherController extends Controller
     public function create()
     {
         $salon   = $this->salon();
-        $clients = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id', 'first_name', 'last_name']);
+        $clients = $this->salonScoped(Client::class)->orderBy('first_name')->get(['id', 'first_name', 'last_name']);
 
         return view('vouchers.create', compact('salon', 'clients'));
     }
@@ -106,7 +108,7 @@ class VoucherController extends Controller
     {
         abort_unless($voucher->salon_id === $this->salon()->id, 403);
         $salon   = $this->salon();
-        $clients = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id', 'first_name', 'last_name']);
+        $clients = $this->salonScoped(Client::class)->orderBy('first_name')->get(['id', 'first_name', 'last_name']);
 
         return view('vouchers.edit', compact('voucher', 'clients'));
     }

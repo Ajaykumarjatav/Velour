@@ -33,7 +33,7 @@ class DashboardController extends Controller
         [$todayStartUtc, $todayEndUtc] = SalonTime::dayRangeUtcFromYmd($salon, $now->toDateString());
 
         $todayRevenue = (float) $scopePos(
-            PosTransaction::where('salon_id', $salon->id)
+            PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->recognizedBetweenUtc($todayStartUtc, $todayEndUtc)
         )->sum('total');
 
@@ -42,14 +42,14 @@ class DashboardController extends Controller
         $monthEndUtc = $now->copy()->utc();
 
         $monthRevenue = (float) $scopePos(
-            PosTransaction::where('salon_id', $salon->id)
+            PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->recognizedBetweenUtc($monthStartUtc, $monthEndUtc)
         )->sum('total');
 
         $lastMonthStartLocal = $now->copy()->subMonthNoOverflow()->startOfMonth();
         $lastMonthEndLocal = $now->copy()->subMonthNoOverflow()->endOfMonth();
         $lastMonthRevenue = (float) $scopePos(
-            PosTransaction::where('salon_id', $salon->id)
+            PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->recognizedBetweenUtc($lastMonthStartLocal->copy()->utc(), $lastMonthEndLocal->copy()->utc())
         )->sum('total');
 
@@ -59,19 +59,19 @@ class DashboardController extends Controller
 
         [$todayAptStart, $todayAptEnd] = [$todayStartUtc, $todayEndUtc];
         $todayAppointments = $scopeAppointment(
-            Appointment::where('salon_id', $salon->id)
+            Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->whereBetween('starts_at', [$todayAptStart, $todayAptEnd])
                 ->whereNotIn('status', ['cancelled', 'no_show'])
         )->count();
 
         $completedVisitsToday = $scopeAppointment(
-            Appointment::where('salon_id', $salon->id)
+            Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->where('status', 'completed')
                 ->whereBetween('ends_at', [$todayAptStart, $todayAptEnd])
         )->count();
 
         $upcomingAppointments = $scopeAppointment(
-            Appointment::where('salon_id', $salon->id)
+            Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->where('starts_at', '>=', now())
                 ->where('status', 'confirmed')
         )
@@ -80,7 +80,7 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
-        $clientQuery = Client::where('salon_id', $salon->id);
+        $clientQuery = Client::withoutGlobalScopes()->where('salon_id', $salon->id);
         if ($staffScopeId !== null) {
             $clientQuery->whereHas(
                 'appointments',
@@ -94,7 +94,7 @@ class DashboardController extends Controller
             ->count();
 
         $recentSales = $scopePos(
-            PosTransaction::where('salon_id', $salon->id)
+            PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->with('client')
                 ->where('status', 'completed')
                 ->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$todayStartUtc, $todayEndUtc])
@@ -104,7 +104,7 @@ class DashboardController extends Controller
             ->get();
 
         $appointmentStats = $scopeAppointment(
-            Appointment::where('salon_id', $salon->id)
+            Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->whereBetween('starts_at', [$todayAptStart, $todayAptEnd])
         )
             ->select('status', DB::raw('count(*) as count'))
@@ -116,7 +116,7 @@ class DashboardController extends Controller
             $d = $now->copy()->subDays($i)->toDateString();
             [$dStart, $dEnd] = SalonTime::dayRangeUtcFromYmd($salon, $d);
             $rev = (float) $scopePos(
-                PosTransaction::where('salon_id', $salon->id)
+                PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
                     ->recognizedBetweenUtc($dStart, $dEnd)
             )->sum('total');
             $weeklyRevenue[] = [
@@ -125,7 +125,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $notificationsQuery = SalonNotification::where('salon_id', $salon->id)
+        $notificationsQuery = SalonNotification::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('is_read', false);
         if ($staffScopeId !== null) {
             $notificationsQuery->where(function ($q) use ($staffScopeId) {

@@ -36,7 +36,7 @@ class CalendarController extends Controller
         $filterStaffId = $request->filled('staff_id')
             ? (int) $request->get('staff_id')
             : null;
-        if ($filterStaffId && ! Staff::where('salon_id', $salon->id)->whereKey($filterStaffId)->exists()) {
+        if ($filterStaffId && ! Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($filterStaffId)->exists()) {
             $filterStaffId = null;
         }
 
@@ -45,7 +45,7 @@ class CalendarController extends Controller
             $filterStaffId = $scopedStaffId;
         }
 
-        $appointments = Appointment::where('salon_id', $salon->id)
+        $appointments = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$startUtc, $endUtc])
             ->when($filterStaffId, fn ($q) => $q->where('staff_id', $filterStaffId))
             ->with(['client', 'staff', 'services'])
@@ -63,7 +63,7 @@ class CalendarController extends Controller
                 'color'     => $this->statusColor($a->status),
             ]);
 
-        $staffQuery = Staff::where('salon_id', $salon->id)
+        $staffQuery = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('is_active', true);
         if ($scopedStaffId !== null) {
             $staffQuery->whereKey($scopedStaffId);
@@ -71,7 +71,7 @@ class CalendarController extends Controller
         $staff = $staffQuery->withName()->get();
 
         $selectedStaff = $filterStaffId
-            ? Staff::where('salon_id', $salon->id)->whereKey($filterStaffId)->first()
+            ? Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($filterStaffId)->first()
             : null;
 
         [$hourStart, $hourEnd] = $this->resolveHourBounds($salon, $selectedStaff);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Client;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
@@ -10,7 +11,6 @@ use App\Models\Salon;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Staff;
-use App\Models\Tenant;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,22 +20,13 @@ use Illuminate\Support\Str;
 
 class RelationQuickCreateController extends Controller
 {
-    private function currentSalon(): Salon
-    {
-        $user = Auth::user();
-        $activeSalonId = (int) session('active_salon_id', 0);
-        $salon = $activeSalonId > 0
-            ? $user->salons()->where('id', $activeSalonId)->first()
-            : null;
-
-        return $salon ?: $user->salons()->firstOrFail();
-    }
+    use ResolvesActiveSalon;
 
     public function storeClient(Request $request): JsonResponse
     {
         Gate::authorize('create', Client::class);
 
-        $salon = $this->currentSalon();
+        $salon = $this->activeSalon();
 
         $data = $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
@@ -65,7 +56,7 @@ class RelationQuickCreateController extends Controller
     {
         Gate::authorize('create', Staff::class);
 
-        $salon = $this->currentSalon();
+        $salon = $this->activeSalon();
 
         $data = $request->validate([
             'name'  => ['required', 'string', 'max:100'],
@@ -93,31 +84,11 @@ class RelationQuickCreateController extends Controller
         ]);
     }
 
-    /**
-     * Same salon resolution as {@see \App\Http\Controllers\Web\InventoryController::salon()}.
-     */
-    private function inventorySalon(): Salon
-    {
-        if (Tenant::checkCurrent()) {
-            return Salon::query()->findOrFail((int) Tenant::current()->getKey());
-        }
-
-        $user = Auth::user();
-        if ($user->salons()->exists()) {
-            return $user->salons()->firstOrFail();
-        }
-        if ($user->staffProfile?->salon_id) {
-            return Salon::query()->findOrFail($user->staffProfile->salon_id);
-        }
-
-        abort(403, 'No salon associated with this account.');
-    }
-
     public function storeInventoryCategory(Request $request): JsonResponse
     {
         Gate::authorize('create', InventoryItem::class);
 
-        $salon = $this->inventorySalon();
+        $salon = $this->activeSalon();
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
@@ -129,7 +100,7 @@ class RelationQuickCreateController extends Controller
         }
         $slug = $base;
         $n = 0;
-        while (InventoryCategory::query()
+        while (InventoryCategory::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->where('slug', $slug)
             ->exists()) {
@@ -137,7 +108,7 @@ class RelationQuickCreateController extends Controller
             $slug = $base.'-'.$n;
         }
 
-        $sortOrder = (int) InventoryCategory::query()
+        $sortOrder = (int) InventoryCategory::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->max('sort_order');
         $category = InventoryCategory::create([
@@ -160,7 +131,7 @@ class RelationQuickCreateController extends Controller
     {
         Gate::authorize('create', Service::class);
 
-        $salon = $this->currentSalon();
+        $salon = $this->activeSalon();
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
@@ -176,12 +147,12 @@ class RelationQuickCreateController extends Controller
         }
         $slug = $base;
         $n = 0;
-        while (Service::where('salon_id', $salon->id)->where('slug', $slug)->exists()) {
+        while (Service::withoutGlobalScopes()->where('salon_id', $salon->id)->where('slug', $slug)->exists()) {
             $n++;
             $slug = $base.'-'.$n;
         }
 
-        $sortOrder = (int) Service::where('salon_id', $salon->id)->max('sort_order');
+        $sortOrder = (int) Service::withoutGlobalScopes()->where('salon_id', $salon->id)->max('sort_order');
 
         $businessTypeId = (int) ($salon->businessTypes()->orderBy('business_types.sort_order')->value('business_types.id') ?? $salon->business_type_id);
 
@@ -214,7 +185,7 @@ class RelationQuickCreateController extends Controller
     {
         $businessTypeId = (int) ($salon->businessTypes()->orderBy('business_types.sort_order')->value('business_types.id') ?? $salon->business_type_id);
 
-        $existing = ServiceCategory::where('salon_id', $salon->id)
+        $existing = ServiceCategory::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('business_type_id', $businessTypeId)
             ->orderBy('sort_order')
             ->first();
@@ -225,12 +196,12 @@ class RelationQuickCreateController extends Controller
         $base = 'general';
         $slug = $base;
         $n = 0;
-        while (ServiceCategory::where('salon_id', $salon->id)->where('business_type_id', $businessTypeId)->where('slug', $slug)->exists()) {
+        while (ServiceCategory::withoutGlobalScopes()->where('salon_id', $salon->id)->where('business_type_id', $businessTypeId)->where('slug', $slug)->exists()) {
             $n++;
             $slug = $base.'-'.$n;
         }
 
-        $sortOrder = (int) ServiceCategory::where('salon_id', $salon->id)
+        $sortOrder = (int) ServiceCategory::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('business_type_id', $businessTypeId)
             ->max('sort_order');
         $category = ServiceCategory::create([

@@ -24,7 +24,7 @@ class PosController extends Controller
         $to     = $request->get('to');
         $method = $request->get('payment_method');
 
-        $query = PosTransaction::where('salon_id', $salon->id)
+        $query = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->with('client')
             ->latest();
 
@@ -45,8 +45,8 @@ class PosController extends Controller
         $transactions = $query->paginate(25)->withQueryString();
 
         // Today's summary
-        $todayRevenue  = PosTransaction::where('salon_id', $salon->id)->whereDate('created_at', today())->where('status','completed')->sum('total');
-        $todayCount    = PosTransaction::where('salon_id', $salon->id)->whereDate('created_at', today())->count();
+        $todayRevenue  = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->whereDate('created_at', today())->where('status','completed')->sum('total');
+        $todayCount    = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->whereDate('created_at', today())->count();
 
         return view('pos.index', compact('salon', 'transactions', 'search', 'from', 'to', 'method', 'todayRevenue', 'todayCount'));
     }
@@ -54,13 +54,13 @@ class PosController extends Controller
     public function create()
     {
         $salon    = $this->activeSalon();
-        $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
-        $services = Service::where('salon_id', $salon->id)
+        $clients  = Client::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
+        $services = Service::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->active()
             ->with('category:id,name')
             ->orderBy('sort_order')
             ->get();
-        $products = InventoryItem::where('salon_id', $salon->id)
+        $products = InventoryItem::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('stock_quantity', '>', 0)
             ->get(['id','name','retail_price as price','stock_quantity as quantity']);
 
@@ -71,7 +71,7 @@ class PosController extends Controller
             ->values();
 
         // Recent transactions for the bottom panel
-        $recentTransactions = PosTransaction::where('salon_id', $salon->id)
+        $recentTransactions = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->with('client')
             ->latest()
             ->limit(5)

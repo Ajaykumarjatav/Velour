@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\LinkVisit;
 use App\Models\PosTransaction;
@@ -37,11 +38,15 @@ use Illuminate\Support\Facades\Storage;
  */
 class GoLiveController extends Controller
 {
+    use ResolvesActiveSalon;
+
     public function index(Request $request)
     {
-        $user  = Auth::user();
-        $salon = $this->getSalon();
-        $salon->load(['staff', 'services']);
+        $salon = $this->activeSalon();
+        $salon->load([
+            'staff' => fn ($q) => $q->withoutGlobalScopes()->where('staff.salon_id', $salon->id),
+            'services' => fn ($q) => $q->withoutGlobalScopes()->where('services.salon_id', $salon->id),
+        ]);
 
         $salonId    = $salon->id;
         $bookingUrl = rtrim(config('app.url'), '/') . '/book/' . $salon->slug;
@@ -55,12 +60,12 @@ class GoLiveController extends Controller
 
         // ── This month stats (server-side to avoid flash) ─────────────────
         $from         = now()->startOfMonth();
-        $thisMonthVisits = LinkVisit::where('salon_id', $salonId)
+        $thisMonthVisits = LinkVisit::withoutGlobalScopes()->where('salon_id', $salonId)
             ->whereBetween('created_at', [$from, now()])->count();
-        $thisMonthConversions = LinkVisit::where('salon_id', $salonId)
+        $thisMonthConversions = LinkVisit::withoutGlobalScopes()->where('salon_id', $salonId)
             ->whereBetween('created_at', [$from, now()])
             ->where('converted', true)->count();
-        $onlineBookings = Appointment::where('salon_id', $salonId)
+        $onlineBookings = Appointment::withoutGlobalScopes()->where('salon_id', $salonId)
             ->whereIn('source', ['online', 'widget', 'qr', 'whatsapp', 'instagram', 'facebook', 'google'])
             ->whereBetween('starts_at', [$from, now()])->count();
 
@@ -105,7 +110,7 @@ class GoLiveController extends Controller
 
     public function uploadPhoto(Request $request): \Illuminate\Http\JsonResponse
     {
-        $salon = $this->getSalon();
+        $salon = $this->activeSalon();
 
         $request->validate([
             'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
@@ -133,7 +138,7 @@ class GoLiveController extends Controller
 
     public function uploadLogo(Request $request)
     {
-        $salon = $this->getSalon();
+        $salon = $this->activeSalon();
 
         $request->validate([
             'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
@@ -151,7 +156,7 @@ class GoLiveController extends Controller
 
     public function updateSettings(Request $request): \Illuminate\Http\JsonResponse
     {
-        $salon = $this->getSalon();
+        $salon = $this->activeSalon();
 
         $data = $request->validate([
             'online_booking_enabled'     => ['nullable', 'boolean'],
@@ -177,18 +182,13 @@ class GoLiveController extends Controller
 
     public function deletePhoto(Request $request, int $photoId): \Illuminate\Http\JsonResponse
     {
-        $salon = $this->getSalon();
+        $salon = $this->activeSalon();
         $photo = SalonPhoto::where('salon_id', $salon->id)->findOrFail($photoId);
 
         Storage::disk($photo->disk)->delete($photo->path);
         $photo->delete();
 
         return response()->json(['success' => true]);
-    }
-
-    private function getSalon(): Salon
-    {
-        return Salon::where('owner_id', Auth::id())->firstOrFail();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -201,8 +201,8 @@ class GoLiveController extends Controller
             ['key' => 'address',  'label' => 'Address set',             'done' => (bool) $salon->address_line1, 'priority' => 'high',   'link' => route('settings.index'), 'tip' => 'Clients need to know where you are.'],
             ['key' => 'phone',    'label' => 'Phone number added',      'done' => (bool) $salon->phone,         'priority' => 'high',   'link' => route('settings.index'), 'tip' => 'Required for booking confirmations.'],
             ['key' => 'hours',    'label' => 'Opening hours set',       'done' => ! empty($salon->opening_hours), 'priority' => 'high', 'link' => route('settings.index'), 'tip' => 'Without hours, no booking slots appear.'],
-            ['key' => 'services', 'label' => 'Bookable service added',  'done' => Service::where('salon_id', $salonId)->where('status', 'active')->where('online_bookable', true)->exists(), 'priority' => 'high', 'link' => route('services.index'), 'tip' => 'Enable online booking on at least one service.'],
-            ['key' => 'staff',    'label' => 'Staff bookable online',   'done' => Staff::where('salon_id', $salonId)->where('is_active', true)->where('bookable_online', true)->exists(),    'priority' => 'high', 'link' => route('staff.index'),    'tip' => 'Toggle bookable online in each staff profile.'],
+            ['key' => 'services', 'label' => 'Bookable service added',  'done' => Service::withoutGlobalScopes()->where('salon_id', $salonId)->where('status', 'active')->where('online_bookable', true)->exists(), 'priority' => 'high', 'link' => route('services.index'), 'tip' => 'Enable online booking on at least one service.'],
+            ['key' => 'staff',    'label' => 'Staff bookable online',   'done' => Staff::withoutGlobalScopes()->where('salon_id', $salonId)->where('is_active', true)->where('bookable_online', true)->exists(),    'priority' => 'high', 'link' => route('staff.index'),    'tip' => 'Toggle bookable online in each staff profile.'],
             ['key' => 'logo',     'label' => 'Logo uploaded',           'done' => (bool) $salon->logo,          'priority' => 'medium', 'link' => route('go-live') . '#logo-upload', 'tip' => 'Makes your booking page look professional.'],
             ['key' => 'desc',     'label' => 'Salon description added', 'done' => (bool) $salon->description,   'priority' => 'medium', 'link' => route('settings.index'), 'tip' => 'Helps new clients choose your salon.'],
             ['key' => 'stripe',   'label' => 'Stripe payments linked',  'done' => (bool) $salon->stripe_account_id, 'priority' => 'low', 'link' => route('settings.index'), 'tip' => 'Required to take deposits or online payments.'],

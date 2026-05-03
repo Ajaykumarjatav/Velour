@@ -299,13 +299,18 @@ class AppointmentService
             return;
         }
 
-        $staff = Staff::where('salon_id', $salonId)->findOrFail($staffId);
-        $linkedCount = $staff->services()->whereIn('services.id', $ids)->count();
+        $staff = Staff::withoutGlobalScopes()->where('salon_id', $salonId)->findOrFail($staffId);
+        $linkedCount = $staff->services()
+            ->withoutTenantScope()
+            ->where('services.salon_id', $salonId)
+            ->whereIn('services.id', $ids)
+            ->count();
         if ($linkedCount !== count($ids)) {
             throw new \InvalidArgumentException('Selected staff does not offer all selected services.');
         }
 
-        $blockedByRole = Service::where('salon_id', $salonId)
+        $blockedByRole = Service::withoutTenantScope()
+            ->where('salon_id', $salonId)
             ->whereIn('id', $ids)
             ->get(['id', 'allowed_roles'])
             ->contains(fn (Service $service) => ! $service->allowsStaffRole((string) $staff->role));

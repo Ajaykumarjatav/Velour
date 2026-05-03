@@ -15,8 +15,7 @@
   .badge-high  { @apply bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800 text-xs px-2 py-0.5 rounded-full font-medium; }
   .badge-med   { @apply bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800 text-xs px-2 py-0.5 rounded-full font-medium; }
   .badge-low   { @apply bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 text-xs px-2 py-0.5 rounded-full font-medium; }
-  .toggle-track{ @apply relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer; }
-  .toggle-thumb{ @apply inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform; }
+  {{-- Toggles use Tailwind utilities on the elements: @apply in this plain <style> block is NOT compiled (Tailwind CDN only processes app layout’s type="text/tailwindcss"). --}}
   .sparkline   { fill: none; stroke: #f59e0b; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .embed-code  { @apply font-mono text-xs bg-gray-900 text-green-300 rounded-xl p-4 overflow-x-auto whitespace-pre select-all leading-relaxed; }
   [x-cloak]   { display:none !important; }
@@ -63,9 +62,10 @@
         <p class="text-xs text-gray-400 dark:text-gray-500" x-text="salon.online_booking_enabled ? 'Clients can book right now' : 'Booking page is hidden'"></p>
       </div>
       <button
+        type="button"
         @click="toggleBooking()"
-        :class="salon.online_booking_enabled ? 'bg-green-500' : 'bg-gray-300'"
-        class="toggle-track flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
+        :class="salon.online_booking_enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
+        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50"
         :aria-checked="salon.online_booking_enabled"
         role="switch"
         aria-label="Toggle online booking"
@@ -73,7 +73,7 @@
       >
         <span
           :class="salon.online_booking_enabled ? 'translate-x-6' : 'translate-x-1'"
-          class="toggle-thumb"
+          class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform"
         ></span>
       </button>
     </div>
@@ -508,23 +508,27 @@
           <span x-show="saveOk" x-cloak class="text-xs text-green-600 font-medium">✅ Saved</span>
         </div>
         <div class="divide-y divide-gray-50 dark:divide-gray-700">
-
           <template x-for="setting in bookingSettings" :key="setting.key">
-            <div class="flex items-center justify-between px-5 py-3.5">
-              <div class="flex-1 pr-4">
+            <div class="flex items-center justify-between gap-3 px-5 py-3.5">
+              <div class="flex-1 min-w-0 pr-2">
                 <p class="text-sm font-medium text-gray-800 dark:text-gray-200" x-text="setting.label"></p>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5" x-text="setting.description"></p>
               </div>
               <template x-if="setting.type === 'toggle'">
                 <button
+                  type="button"
                   @click="saveSetting(setting.key, !salon[setting.key])"
                   :class="salon[setting.key] ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
-                  class="toggle-track flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1"
-                  :aria-checked="salon[setting.key]"
+                  class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800"
+                  :aria-checked="!!salon[setting.key]"
                   role="switch"
+                  :aria-label="setting.label"
                   :disabled="saving"
                 >
-                  <span :class="salon[setting.key] ? 'translate-x-6' : 'translate-x-1'" class="toggle-thumb"></span>
+                  <span
+                    :class="salon[setting.key] ? 'translate-x-6' : 'translate-x-1'"
+                    class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform"
+                  ></span>
                 </button>
               </template>
               <template x-if="setting.type === 'number'">
@@ -532,13 +536,13 @@
                   type="number"
                   :value="salon[setting.key]"
                   @change="saveSetting(setting.key, $event.target.valueAsNumber)"
-                  :min="setting.min" :max="setting.max"
-                  class="w-20 text-right text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-amber-300 outline-none"
+                  :min="setting.min"
+                  :max="setting.max"
+                  class="w-20 flex-shrink-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-right text-sm text-gray-800 outline-none focus:ring-2 focus:ring-amber-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
                 >
               </template>
             </div>
           </template>
-
         </div>
       </div>
 

@@ -28,11 +28,21 @@ class EnsureSalonAccess
             return response()->json(['message' => 'Your account has been suspended.'], 403);
         }
 
-        $cacheKey = "salon_access_user_{$user->id}";
+        $activeSalonId = (int) session('active_salon_id', 0);
+        // Include active location in the cache key so multi-location owners get the correct salon_id per branch.
+        $cacheKey = "salon_access_user_{$user->id}_{$activeSalonId}";
 
-        $access = Cache::remember($cacheKey, 300, function () use ($user) {
-            // Owner check
-            $salon = Salon::where('owner_id', $user->id)->where('is_active', true)->first();
+        $access = Cache::remember($cacheKey, 300, function () use ($user, $activeSalonId) {
+            // Owner check — prefer session active branch when the user owns it (matches web ResolvesActiveSalon).
+            $baseOwned = fn () => Salon::query()->where('owner_id', $user->id)->where('is_active', true);
+
+            $salon = $activeSalonId > 0
+                ? $baseOwned()->where('id', $activeSalonId)->first()
+                : null;
+            if (! $salon) {
+                $salon = $baseOwned()->orderBy('id')->first();
+            }
+
             if ($salon) {
                 return ['salon_id' => $salon->id, 'access_level' => 'owner', 'staff_id' => null];
             }
@@ -40,7 +50,7 @@ class EnsureSalonAccess
             // Staff member check
             $staff = Staff::where('user_id', $user->id)
                 ->where('is_active', true)
-                ->whereHas('salon', fn($q) => $q->where('is_active', true))
+                ->whereHas('salon', fn ($q) => $q->where('is_active', true))
                 ->first();
 
             if ($staff) {

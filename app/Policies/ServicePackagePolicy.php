@@ -5,26 +5,21 @@ namespace App\Policies;
 use App\Models\Salon;
 use App\Models\ServicePackage;
 use App\Models\Staff;
-use App\Models\Tenant;
 use App\Models\User;
+use App\Policies\Concerns\ResolvesActiveSalonForPolicy;
 
 class ServicePackagePolicy
 {
+    use ResolvesActiveSalonForPolicy;
+
     /**
      * Web routes do not run {@see \App\Http\Middleware\EnsureSalonAccess}, so
-     * `salon_id` / `access_level` may be missing. Fall back to current tenant + DB.
+     * `salon_id` / `access_level` may be missing. Use the same active location as
+     * {@see \App\Http\Controllers\Web\Concerns\ResolvesActiveSalon} (session + tenant + staff).
      */
     private function salonId(): int
     {
-        $fromRequest = (int) request()->attributes->get('salon_id');
-        if ($fromRequest > 0) {
-            return $fromRequest;
-        }
-        if (Tenant::checkCurrent()) {
-            return (int) Tenant::current()->getKey();
-        }
-
-        return 0;
+        return $this->resolveActiveSalonIdForPolicy();
     }
 
     private function canManagePackages(User $user): bool
@@ -43,7 +38,7 @@ class ServicePackagePolicy
             return true;
         }
 
-        $staff = Staff::query()
+        $staff = Staff::withoutGlobalScopes()
             ->where('user_id', $user->id)
             ->where('salon_id', $salonId)
             ->where('is_active', true)

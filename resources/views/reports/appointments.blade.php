@@ -5,6 +5,11 @@
 
 @include('reports._filter', ['type' => $type, 'from' => $from, 'to' => $to])
 
+<p class="text-sm text-muted mb-6 max-w-3xl">
+    Totals use each appointment’s <strong>scheduled start</strong> in this date range ({{ \App\Support\SalonTime::abbrev($salon) }}).
+    If a booking is missing, widen the end date so it includes that day.
+</p>
+
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
     <div class="stat-card text-center">
         <p class="text-2xl font-bold text-heading">{{ $total }}</p>

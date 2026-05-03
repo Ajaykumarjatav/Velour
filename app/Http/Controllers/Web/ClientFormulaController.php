@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Client;
 use App\Models\ClientFormula;
 use Illuminate\Http\Request;
@@ -10,9 +11,11 @@ use Illuminate\Support\Facades\Auth;
 
 class ClientFormulaController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function create(Client $client)

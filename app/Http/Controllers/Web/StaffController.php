@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -17,9 +17,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index()
@@ -30,23 +32,31 @@ class StaffController extends Controller
         $todayStr    = now()->toDateString();
         $taxRate     = 0.10;
 
-        $staff = Staff::where('salon_id', $salon->id)
+        $staff = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->withCount([
-                'appointments as total_appointments',
-                'appointments as completed_appointments' => fn ($q) => $q->where('status', 'completed'),
+                'appointments as total_appointments' => fn ($q) => $q
+                    ->withoutGlobalScopes()
+                    ->where('salon_id', $salon->id),
+                'appointments as completed_appointments' => fn ($q) => $q
+                    ->withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->where('status', 'completed'),
             ])
             ->withAvg('reviews', 'rating')
             ->orderBy('first_name')
             ->get();
 
-        $revenueByStaff = Appointment::where('salon_id', $salon->id)
+        $revenueByStaff = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->where('status', 'completed')
             ->whereBetween('starts_at', [$monthStart, $monthEnd])
             ->selectRaw('staff_id, COALESCE(SUM(total_price),0) as rev')
             ->groupBy('staff_id')
             ->pluck('rev', 'staff_id');
 
-        $apptsMonthByStaff = Appointment::where('salon_id', $salon->id)
+        $apptsMonthByStaff = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->whereNotIn('status', ['cancelled', 'no_show'])
             ->whereBetween('starts_at', [$monthStart, $monthEnd])
             ->selectRaw('staff_id, COUNT(*) as c')
@@ -145,9 +155,10 @@ class StaffController extends Controller
         $monthEnd   = $monthStart->copy()->endOfMonth();
         $taxRate    = 0.10;
 
-        $staff = Staff::where('salon_id', $salon->id)->orderBy('first_name')->get();
+        $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name')->get();
 
-        $revenueByStaff = Appointment::where('salon_id', $salon->id)
+        $revenueByStaff = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->where('status', 'completed')
             ->whereBetween('starts_at', [$monthStart, $monthEnd])
             ->selectRaw('staff_id, COALESCE(SUM(total_price),0) as rev')
@@ -235,8 +246,9 @@ class StaffController extends Controller
             ]);
         }
 
-        if (!empty($data['services'])) {
-            $staff->services()->sync($data['services']);
+        $serviceIds = array_values(array_map('intval', (array) ($data['services'] ?? [])));
+        if ($serviceIds !== []) {
+            $staff->services()->withoutTenantScope()->sync($serviceIds);
         }
 
         return redirect()->route('staff.index')->with('success', 'Staff member added.');
@@ -270,7 +282,7 @@ class StaffController extends Controller
         $salon    = $this->salon();
         $role = old('role', (string) $staff->role);
         $services = $this->eligibleServicesForRole($salon->id, $role);
-        $assigned = $staff->services()->pluck('services.id')->toArray();
+        $assigned = $staff->services()->withoutTenantScope()->pluck('services.id')->all();
 
         return view('staff.edit', compact('staff', 'services', 'assigned'));
     }
@@ -287,13 +299,14 @@ class StaffController extends Controller
             'bio'             => ['nullable', 'string', 'max:1000'],
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'is_active'       => ['boolean'],
+            'is_active'       => ['sometimes', 'boolean'],
             'services'        => ['nullable', 'array'],
             'services.*'      => [Rule::exists('services', 'id')->where('salon_id', $staff->salon_id)],
             'avatar'          => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
-        $this->assertServicesEligibleForRole($staff->salon_id, (string) $data['role'], $data['services'] ?? []);
+        $serviceIds = array_values(array_map('intval', (array) ($data['services'] ?? [])));
+        $this->assertServicesEligibleForRole($staff->salon_id, (string) $data['role'], $serviceIds);
 
         // Split 'name' into first_name / last_name for the Staff model
         if (isset($data['name'])) {
@@ -305,15 +318,14 @@ class StaffController extends Controller
 
         unset($data['avatar']);
 
-        $syncServices = array_key_exists('services', $data);
-        $serviceIds   = $data['services'] ?? [];
         unset($data['services']);
+
+        $data['is_active'] = $request->boolean('is_active');
 
         $staff->update($data);
 
-        if ($syncServices) {
-            $staff->services()->sync($serviceIds);
-        }
+        // Branch services must sync without Service's tenant scope (active salon ≠ Tenant::current()).
+        $staff->services()->withoutTenantScope()->sync($serviceIds);
 
         $this->syncStaffAvatarFromRequest($request, $staff);
 
@@ -356,7 +368,8 @@ class StaffController extends Controller
 
     private function eligibleServicesForRole(int $salonId, string $role)
     {
-        return Service::where('salon_id', $salonId)
+        return Service::withoutGlobalScopes()
+            ->where('salon_id', $salonId)
             ->active()
             ->orderBy('sort_order')
             ->get(['id', 'name', 'allowed_roles'])
@@ -372,7 +385,10 @@ class StaffController extends Controller
             return;
         }
 
-        $services = Service::where('salon_id', $salonId)->whereIn('id', $ids)->get(['id', 'name', 'allowed_roles']);
+        $services = Service::withoutGlobalScopes()
+            ->where('salon_id', $salonId)
+            ->whereIn('id', $ids)
+            ->get(['id', 'name', 'allowed_roles']);
         $blocked = $services->filter(fn (Service $service) => ! $service->allowsStaffRole($role))->pluck('name')->values();
         if ($blocked->isEmpty()) {
             return;

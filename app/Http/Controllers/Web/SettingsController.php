@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\BusinessType;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Staff;
 use App\Models\User;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
@@ -14,6 +15,7 @@ use App\Support\LanguageProficiency;
 use App\Support\RegistrationStarterServices;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -26,6 +28,20 @@ class SettingsController extends Controller
     private function salon()
     {
         return $this->activeSalon();
+    }
+
+    /**
+     * Services for the settings UI / starter sync: session "active" salon can differ from
+     * Tenant::current(), and BelongsToTenant would otherwise AND two different salon_ids.
+     */
+    private function servicesForSalonSettings(\App\Models\Salon $salon): \Illuminate\Database\Eloquent\Builder
+    {
+        return Service::withoutGlobalScopes()->where('salon_id', $salon->id);
+    }
+
+    private function serviceCategoriesForSalonSettings(\App\Models\Salon $salon): \Illuminate\Database\Eloquent\Builder
+    {
+        return ServiceCategory::withoutGlobalScopes()->where('salon_id', $salon->id);
     }
 
     /**
@@ -100,7 +116,9 @@ class SettingsController extends Controller
         $selectedStarterCategories = $this->selectedStarterCategoryKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $selectedStarterServices = $this->selectedStarterServiceKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $selectedStarterServiceMeta = $this->selectedStarterServiceMetaForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
-        $existingTeamMembers = $salon->staff()
+        // Same branch as Staff & HR: tenant scope + active_salon_id can disagree for multi-location.
+        $existingTeamMembers = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->where(function ($q) use ($salon) {
                 $q->whereNull('user_id')
                     ->orWhere('user_id', '!=', (int) $salon->owner_id);
@@ -202,7 +220,7 @@ class SettingsController extends Controller
         $currentPivotIds = $salon->businessTypes()->pluck('business_types.id')->map(fn ($id) => (int) $id)->all();
         $removed = array_diff($currentPivotIds, $typeIds);
         foreach ($removed as $rid) {
-            if ($salon->services()->where('business_type_id', $rid)->exists()) {
+            if ($this->servicesForSalonSettings($salon)->where('business_type_id', $rid)->exists()) {
                 throw ValidationException::withMessages([
                     'business_type_ids' => ['Remove or reassign services that use a business type before you can remove that type.'],
                 ]);
@@ -291,7 +309,8 @@ class SettingsController extends Controller
             $typeIds,
             array_values(array_unique(array_filter((array) ($data['starter_categories'] ?? []), fn ($v) => is_string($v) && $v !== ''))),
             $selectedServiceKeys,
-            $serviceOverrides
+            $serviceOverrides,
+            $request->has('starter_services')
         );
 
         return $this->redirectAfterSettingsSave($request, 'Service setup updated.', 'services');
@@ -417,9 +436,10 @@ class SettingsController extends Controller
         $salon = $this->salon();
 
         $langCodes = LanguageProficiency::allowedCodes();
+        $singleSave = $request->boolean('save_single_team_member');
 
         $data = $request->validate([
-            'staff_members'          => ['nullable', 'array', 'max:10'],
+            'staff_members'          => [$singleSave ? 'required' : 'nullable', 'array', $singleSave ? 'max:1' : 'max:10'],
             'staff_members.*.id'     => ['nullable', 'integer'],
             'staff_members.*.name'   => ['nullable', 'string', 'max:100'],
             'staff_members.*.email'  => ['nullable', 'email', 'max:150'],
@@ -435,16 +455,24 @@ class SettingsController extends Controller
         ]);
 
         $rows = $data['staff_members'] ?? [];
-        foreach ($rows as $i => $row) {
-            if (! is_array($row)) {
-                continue;
+        $rows = array_values(array_filter($rows, fn ($row) => is_array($row)));
+
+        if ($singleSave) {
+            if (count($rows) !== 1) {
+                throw ValidationException::withMessages([
+                    'staff_members' => ['Submit one team member at a time from this form.'],
+                ]);
             }
-            $rows[$i]['language_proficiency'] = LanguageProficiency::encode($row['language_proficiency'] ?? []);
+            $rows = $this->mergeSingleTeamMemberPayloadIntoFullList($salon, $rows[0]);
         }
+
+        $rows = $this->normalizeTeamMemberLanguageProficiencyForSync($rows);
 
         $this->syncTeamMembers($salon, $rows);
 
-        return $this->redirectAfterSettingsSave($request, 'Team members updated.', 'profile');
+        $message = $singleSave ? 'Team member saved.' : 'Team members updated.';
+
+        return $this->redirectAfterSettingsSave($request, $message, 'profile');
     }
 
     public function updatePassword(Request $request)
@@ -498,8 +526,11 @@ class SettingsController extends Controller
      * @param  list<string>  $selectedCategories
      * @param  list<string>  $selectedServices
      * @param  array<string, array<string, mixed>>  $serviceOverrides
+     * @param  bool  $pruneUnmatchedStarters When false, starter-catalog rows are not removed: the form
+     *               omits starter_services when no service checkboxes are checked, so saves that only
+     *               change business types or categories must not wipe the catalog.
      */
-    private function syncStarterSelections(\App\Models\Salon $salon, array $typeIds, array $selectedCategories, array $selectedServices, array $serviceOverrides = []): void
+    private function syncStarterSelections(\App\Models\Salon $salon, array $typeIds, array $selectedCategories, array $selectedServices, array $serviceOverrides = [], bool $pruneUnmatchedStarters = false): void
     {
         $allowedCategoryKeys = RegistrationStarterServices::allowedCategoryKeysForTypeIds($typeIds);
         foreach ($selectedCategories as $key) {
@@ -544,12 +575,12 @@ class SettingsController extends Controller
             }
         }
 
-        if ($serviceDefinitions === []) {
+        if ($serviceDefinitions === [] || ! $pruneUnmatchedStarters) {
             return;
         }
 
         $selectedKeyMap = array_fill_keys($selectedServices, true);
-        $existingServices = $salon->services()
+        $existingServices = $this->servicesForSalonSettings($salon)
             ->whereIn('business_type_id', $typeIds)
             ->get(['id', 'business_type_id', 'name', 'duration_minutes', 'price']);
 
@@ -572,19 +603,106 @@ class SettingsController extends Controller
     }
 
     /**
+     * @param  array<string, mixed>  $incoming  One validated form row (checkboxes, arrays, etc.)
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeSingleTeamMemberPayloadIntoFullList(\App\Models\Salon $salon, array $incoming): array
+    {
+        $base = $this->teamMemberRowsForSyncFromDatabase($salon);
+        $incId = isset($incoming['id']) ? (int) $incoming['id'] : 0;
+
+        if ($incId > 0) {
+            foreach ($base as $k => $row) {
+                if ((int) ($row['id'] ?? 0) === $incId) {
+                    $base[$k] = array_merge($row, $incoming);
+
+                    return array_values($base);
+                }
+            }
+
+            throw ValidationException::withMessages([
+                'staff_members.0.id' => ['That team member could not be found for this location.'],
+            ]);
+        }
+
+        $base[] = $incoming;
+
+        return array_values($base);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeTeamMemberLanguageProficiencyForSync(array $rows): array
+    {
+        foreach ($rows as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $lp = $row['language_proficiency'] ?? null;
+            if (is_string($lp)) {
+                $rows[$i]['language_proficiency'] = $lp;
+            } else {
+                $encoded = LanguageProficiency::encode(is_array($lp) ? $lp : []);
+                $rows[$i]['language_proficiency'] = $encoded;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Same shape as the profile team-member form rows, for merging single saves without dropping others.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function teamMemberRowsForSyncFromDatabase(\App\Models\Salon $salon): array
+    {
+        return Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where(function ($q) use ($salon) {
+                $q->whereNull('user_id')
+                    ->orWhere('user_id', '!=', (int) $salon->owner_id);
+            })
+            ->orderBy('sort_order')
+            ->get()
+            ->map(function (Staff $member) {
+                $hasServices = DB::table('service_staff')
+                    ->where('staff_id', $member->id)
+                    ->exists();
+
+                return [
+                    'id' => $member->id,
+                    'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'role' => $member->role,
+                    'experience' => $member->experience,
+                    'language_proficiency' => $member->language_proficiency,
+                    'commission_rate' => $member->commission_rate,
+                    'color' => $member->color ?: '#7C3AED',
+                    'bio' => $member->bio,
+                    'assign_services' => $hasServices ? '1' : '0',
+                ];
+            })
+            ->all();
+    }
+
+    /**
      * @param  array<int, array<string, mixed>>  $rows
      */
     private function syncTeamMembers(\App\Models\Salon $salon, array $rows): void
     {
         $rows = array_values(array_filter($rows, fn ($row) => is_array($row) && trim((string) ($row['name'] ?? '')) !== ''));
 
-        $services = Service::query()
+        $services = Service::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->orderBy('sort_order')
             ->get(['id', 'allowed_roles']);
 
         $defaultColors = ['#7C3AED', '#EC4899', '#0EA5E9', '#14B8A6', '#F59E0B', '#84CC16'];
-        $maxSort = (int) Staff::query()->where('salon_id', $salon->id)->max('sort_order');
+        $maxSort = (int) Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->max('sort_order');
         $keptIds = [];
 
         foreach ($rows as $i => $row) {
@@ -617,7 +735,10 @@ class SettingsController extends Controller
             $staff = null;
             $id = isset($row['id']) ? (int) $row['id'] : 0;
             if ($id > 0) {
-                $staff = $salon->staff()->where('id', $id)->first();
+                $staff = Staff::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->where('id', $id)
+                    ->first();
             }
 
             $roleName = $this->mapStaffRoleToLoginRole((string) $row['role']);
@@ -669,7 +790,8 @@ class SettingsController extends Controller
             $keptIds[] = (int) $staff->id;
         }
 
-        $toDelete = $salon->staff()
+        $toDelete = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->where(function ($q) use ($salon) {
                 $q->whereNull('user_id')
                     ->orWhere('user_id', '!=', (int) $salon->owner_id);
@@ -698,7 +820,7 @@ class SettingsController extends Controller
 
         $typeById = BusinessType::query()->whereIn('id', $typeIds)->get(['id', 'slug'])->keyBy('id');
         $selected = [];
-        $categories = $salon->serviceCategories()->whereIn('business_type_id', $typeIds)->get(['business_type_id', 'slug']);
+        $categories = $this->serviceCategoriesForSalonSettings($salon)->whereIn('business_type_id', $typeIds)->get(['business_type_id', 'slug']);
         foreach ($categories as $cat) {
             $type = $typeById->get((int) $cat->business_type_id);
             if (! $type) {
@@ -748,7 +870,7 @@ class SettingsController extends Controller
         }
 
         $selected = [];
-        $services = $salon->services()->whereIn('business_type_id', $typeIds)->get(['business_type_id', 'name']);
+        $services = $this->servicesForSalonSettings($salon)->whereIn('business_type_id', $typeIds)->get(['business_type_id', 'name']);
         foreach ($services as $service) {
             foreach ($definitions as $def) {
                 if ((int) $def['business_type_id'] !== (int) $service->business_type_id) {
@@ -798,7 +920,7 @@ class SettingsController extends Controller
         }
 
         $meta = [];
-        $services = $salon->services()
+        $services = $this->servicesForSalonSettings($salon)
             ->whereIn('business_type_id', $typeIds)
             ->get(['business_type_id', 'name', 'duration_minutes', 'price']);
 
@@ -920,16 +1042,41 @@ class SettingsController extends Controller
     private function redirectAfterSettingsSave(Request $request, string $message, string $tab)
     {
         $returnTo = trim((string) $request->input('return_to', ''));
-        if ($returnTo !== '') {
-            $path = (string) parse_url($returnTo, PHP_URL_PATH);
-            $query = (string) parse_url($returnTo, PHP_URL_QUERY);
-            if ($path !== '' && str_starts_with($path, '/')) {
-                $target = $path . ($query !== '' ? ('?' . $query) : '');
-                return redirect($target)->with('success', $message);
+        if ($returnTo === '') {
+            return back()->with('success', $message)->with('tab', $tab);
+        }
+
+        $parsed = parse_url($returnTo);
+        if ($parsed === false) {
+            return back()->with('success', $message)->with('tab', $tab);
+        }
+
+        if (isset($parsed['host']) && strcasecmp((string) $parsed['host'], $request->getHost()) !== 0) {
+            return back()->with('success', $message)->with('tab', $tab);
+        }
+
+        $path = (string) ($parsed['path'] ?? '');
+        $query = isset($parsed['query']) && is_string($parsed['query']) ? $parsed['query'] : '';
+
+        if ($path === '' || ! str_starts_with($path, '/') || str_starts_with($path, '//')) {
+            return back()->with('success', $message)->with('tab', $tab);
+        }
+
+        // return_to often carries the full path from the browser (e.g. /vellor/public/dashboard).
+        // redirect() prepends the app URL again, which already includes the base path — strip once
+        // so we pass a path relative to the application root (e.g. /dashboard).
+        $basePath = rtrim($request->getBasePath(), '/') ?: '';
+        if ($basePath !== '') {
+            if ($path === $basePath || $path === $basePath . '/') {
+                $path = '/';
+            } elseif (str_starts_with($path, $basePath . '/')) {
+                $path = substr($path, strlen($basePath)) ?: '/';
             }
         }
 
-        return back()->with('success', $message)->with('tab', $tab);
+        $target = $path . ($query !== '' ? ('?' . $query) : '');
+
+        return redirect($target)->with('success', $message);
     }
 
     /**

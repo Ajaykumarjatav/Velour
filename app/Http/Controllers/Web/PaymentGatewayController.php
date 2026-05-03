@@ -3,18 +3,28 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\PaymentGateway;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
 use Stripe\Exception\ApiErrorException;
 
 class PaymentGatewayController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
+    }
+
+    private function gatewayForSalon(): ?PaymentGateway
+    {
+        return PaymentGateway::withoutGlobalScopes()
+            ->where('salon_id', $this->activeSalon()->id)
+            ->where('provider', 'stripe')
+            ->first();
     }
 
     // ── Settings page ─────────────────────────────────────────────────────────
@@ -22,7 +32,7 @@ class PaymentGatewayController extends Controller
     public function edit()
     {
         $salon   = $this->salon();
-        $gateway = $salon->paymentGateway ?? new PaymentGateway(['provider' => 'stripe']);
+        $gateway = $this->gatewayForSalon() ?? new PaymentGateway(['provider' => 'stripe', 'salon_id' => $salon->id]);
 
         return view('payments.gateway', compact('salon', 'gateway'));
     }
@@ -38,7 +48,7 @@ class PaymentGatewayController extends Controller
         ]);
 
         // Don't overwrite existing secret if the masked placeholder was submitted
-        $existing = $salon->paymentGateway;
+        $existing = $this->gatewayForSalon();
 
         if ($existing) {
             if (empty($data['secret_key']) || $data['secret_key'] === '••••••••') {
@@ -49,8 +59,8 @@ class PaymentGatewayController extends Controller
             }
         }
 
-        $salon->paymentGateway()->updateOrCreate(
-            ['provider' => 'stripe'],
+        PaymentGateway::withoutGlobalScopes()->updateOrCreate(
+            ['salon_id' => $salon->id, 'provider' => 'stripe'],
             $data
         );
 
@@ -65,7 +75,7 @@ class PaymentGatewayController extends Controller
     public function showCharge(Request $request)
     {
         $salon   = $this->salon();
-        $gateway = $salon->paymentGateway;
+        $gateway = $this->gatewayForSalon();
 
         if (! $gateway?->isConfigured()) {
             return redirect()->route('payments.gateway')
@@ -87,7 +97,7 @@ class PaymentGatewayController extends Controller
     public function charge(Request $request)
     {
         $salon   = $this->salon();
-        $gateway = $salon->paymentGateway;
+        $gateway = $this->gatewayForSalon();
 
         if (! $gateway?->isConfigured()) {
             return back()->with('error', 'Payment gateway is not configured.');

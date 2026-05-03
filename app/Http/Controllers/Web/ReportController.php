@@ -49,44 +49,44 @@ class ReportController extends Controller
         $fyStartYear = now()->month >= 4 ? now()->year : now()->year - 1;
         $fyLabel = 'FY ' . $fyStartYear;
 
-        $revenue = (float) PosTransaction::where('salon_id', $salon->id)
+        $revenue = (float) PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('status', 'completed')
             ->whereBetween('created_at', [$from, $to])
             ->sum('total');
-        $prevRevenue = (float) PosTransaction::where('salon_id', $salon->id)
+        $prevRevenue = (float) PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('status', 'completed')
             ->whereBetween('created_at', [$prevFrom, $prevTo])
             ->sum('total');
 
-        $bookings = (int) Appointment::where('salon_id', $salon->id)
+        $bookings = (int) Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$from, $to])
             ->count();
-        $prevBookings = (int) Appointment::where('salon_id', $salon->id)
+        $prevBookings = (int) Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$prevFrom, $prevTo])
             ->count();
 
         $ticketSize = $bookings > 0 ? $revenue / $bookings : 0.0;
         $prevTicket = $prevBookings > 0 ? $prevRevenue / $prevBookings : 0.0;
 
-        $activeClientIds = Appointment::where('salon_id', $salon->id)
+        $activeClientIds = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$from, $to])
             ->where('status', 'completed')
             ->whereNotNull('client_id')
             ->pluck('client_id')
             ->unique();
-        $returningCount = Client::where('salon_id', $salon->id)
+        $returningCount = Client::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereIn('id', $activeClientIds)
             ->where('created_at', '<', $from)
             ->count();
         $retention = $activeClientIds->count() > 0 ? ($returningCount / $activeClientIds->count()) * 100 : 0.0;
 
-        $prevActiveClientIds = Appointment::where('salon_id', $salon->id)
+        $prevActiveClientIds = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$prevFrom, $prevTo])
             ->where('status', 'completed')
             ->whereNotNull('client_id')
             ->pluck('client_id')
             ->unique();
-        $prevReturningCount = Client::where('salon_id', $salon->id)
+        $prevReturningCount = Client::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereIn('id', $prevActiveClientIds)
             ->where('created_at', '<', $prevFrom)
             ->count();
@@ -98,7 +98,7 @@ class ReportController extends Controller
             $m = now()->subMonths($i);
             $mStart = $m->copy()->startOfMonth();
             $mEnd = $m->copy()->endOfMonth();
-            $mRevenue = (float) PosTransaction::where('salon_id', $salon->id)
+            $mRevenue = (float) PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->where('status', 'completed')
                 ->whereBetween('created_at', [$mStart, $mEnd])
                 ->sum('total');
@@ -124,7 +124,7 @@ class ReportController extends Controller
         $weeklyMax = 1.0;
         for ($i = 0; $i < 7; $i++) {
             $d = $weekStart->copy()->addDays($i);
-            $value = (float) PosTransaction::where('salon_id', $salon->id)
+            $value = (float) PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->where('status', 'completed')
                 ->whereBetween('created_at', [$d->copy()->startOfDay(), $d->copy()->endOfDay()])
                 ->sum('total');
@@ -138,7 +138,7 @@ class ReportController extends Controller
             'y' => (int) round(100 - (($p['value'] / $weeklyMax) * 100)),
         ])->all();
 
-        $staffRows = Staff::where('salon_id', $salon->id)
+        $staffRows = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('is_active', true)
             ->withCount(['appointments as appt_count' => fn ($q) => $q->whereBetween('starts_at', [$from, $to])])
             ->withSum(['appointments as revenue_sum' => fn ($q) =>
@@ -206,7 +206,7 @@ class ReportController extends Controller
                 ];
             });
 
-        $trafficRows = LinkVisit::query()
+        $trafficRows = LinkVisit::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->whereBetween('created_at', [$from, $to])
             ->selectRaw("COALESCE(NULLIF(source,''), 'direct') as source_label")
@@ -231,11 +231,11 @@ class ReportController extends Controller
 
         $visitTrendRows = collect(range(29, 0))->map(function (int $daysAgo) use ($salon) {
             $date = now()->subDays($daysAgo)->toDateString();
-            $visits = (int) LinkVisit::query()
+            $visits = (int) LinkVisit::withoutGlobalScopes()
                 ->where('salon_id', $salon->id)
                 ->whereDate('created_at', $date)
                 ->count();
-            $bookings = (int) Appointment::query()
+            $bookings = (int) Appointment::withoutGlobalScopes()
                 ->where('salon_id', $salon->id)
                 ->whereIn('source', ['online', 'widget', 'qr', 'whatsapp', 'instagram', 'facebook', 'google'])
                 ->whereDate('starts_at', $date)
@@ -248,7 +248,7 @@ class ReportController extends Controller
             ];
         })->values();
 
-        $deviceRows = LinkVisit::query()
+        $deviceRows = LinkVisit::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->where('created_at', '>=', now()->subDays(30))
             ->selectRaw("COALESCE(NULLIF(device,''), 'unknown') as device_label")
@@ -299,7 +299,12 @@ class ReportController extends Controller
     {
         $salon = $this->activeSalon();
         $from = $request->get('from', SalonTime::monthStartDateString($salon));
-        $to = $request->get('to', SalonTime::todayDateString($salon));
+        // Appointments are scheduled in the future; default "to" to month-end so the report
+        // includes in-month bookings (revenue-style "to = today" hides them).
+        $defaultTo = $type === 'appointments'
+            ? SalonTime::monthEndDateString($salon)
+            : SalonTime::todayDateString($salon);
+        $to = $request->get('to', $defaultTo);
 
         $data = match ($type) {
             'revenue' => $this->revenueReport($salon, $from, $to, $request),
@@ -323,7 +328,7 @@ class ReportController extends Controller
         $to = $request->get('to', SalonTime::todayDateString($salon));
         [$rangeStart, $rangeEnd] = $this->revenueRecognizedRangeUtc($salon, $from, $to);
         $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
-        if ($staffId && ! Staff::where('salon_id', $salon->id)->whereKey($staffId)->exists()) {
+        if ($staffId && ! Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($staffId)->exists()) {
             $staffId = null;
         }
         $paymentMethod = $request->get('payment_method');
@@ -380,15 +385,15 @@ class ReportController extends Controller
         [$rangeStart, $rangeEnd] = $this->revenueRecognizedRangeUtc($salon, $from, $to);
 
         $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
-        if ($staffId && ! Staff::where('salon_id', $salon->id)->whereKey($staffId)->exists()) {
+        if ($staffId && ! Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($staffId)->exists()) {
             $staffId = null;
         }
 
         $paymentMethod = $request->get('payment_method');
         $compare = $request->boolean('compare');
 
-        $staffList = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->orderBy('first_name')->get();
-        $staffById = Staff::where('salon_id', $salon->id)->get()->keyBy('id');
+        $staffList = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()->orderBy('first_name')->get();
+        $staffById = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->get()->keyBy('id');
 
         $daily = collect();
         $fromDay = Carbon::createFromFormat('Y-m-d', $from, $tz)->startOfDay();
@@ -401,7 +406,7 @@ class ReportController extends Controller
         while ($cursor->lte($toDay)) {
             $ymd = $cursor->toDateString();
             [$ds, $de] = SalonTime::dayRangeUtcFromYmd($salon, $ymd);
-            $q = PosTransaction::where('salon_id', $salon->id)->recognizedBetweenUtc($ds, $de);
+            $q = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->recognizedBetweenUtc($ds, $de);
             if ($staffId) {
                 $q->where('staff_id', $staffId);
             }
@@ -416,7 +421,7 @@ class ReportController extends Controller
             $cursor->addDay();
         }
 
-        $base = PosTransaction::where('salon_id', $salon->id)->recognizedBetweenUtc($rangeStart, $rangeEnd);
+        $base = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->recognizedBetweenUtc($rangeStart, $rangeEnd);
         if ($staffId) {
             $base->where('staff_id', $staffId);
         }
@@ -463,7 +468,7 @@ class ReportController extends Controller
         $totalRevenue = (float) (clone $base)->sum('total');
         $totalTransactions = (int) (clone $base)->count();
 
-        $appointmentCountScheduled = Appointment::where('salon_id', $salon->id)
+        $appointmentCountScheduled = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$rangeStart, $rangeEnd])
             ->whereNotIn('status', ['cancelled', 'no_show'])
             ->count();
@@ -479,7 +484,7 @@ class ReportController extends Controller
             $prevFrom = $prevStart->toDateString();
             $prevTo = $prevEnd->toDateString();
             [$p0, $p1] = $this->revenueRecognizedRangeUtc($salon, $prevFrom, $prevTo);
-            $pq = PosTransaction::where('salon_id', $salon->id)->recognizedBetweenUtc($p0, $p1);
+            $pq = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->recognizedBetweenUtc($p0, $p1);
             if ($staffId) {
                 $pq->where('staff_id', $staffId);
             }
@@ -487,7 +492,7 @@ class ReportController extends Controller
                 $pq->where('payment_method', $paymentMethod);
             }
             $prevTotalRevenue = (float) $pq->sum('total');
-            $prevAppointmentCount = Appointment::where('salon_id', $salon->id)
+            $prevAppointmentCount = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->whereBetween('starts_at', [$p0, $p1])
                 ->whereNotIn('status', ['cancelled', 'no_show'])
                 ->count();
@@ -514,21 +519,23 @@ class ReportController extends Controller
 
     private function appointmentsReport($salon, $from, $to): array
     {
-        $byStatus = Appointment::where('salon_id', $salon->id)
-            ->whereBetween('starts_at', [$from, $to . ' 23:59:59'])
+        [$rangeStart, $rangeEnd] = SalonTime::ymdRangeUtcInclusive($salon, $from, $to);
+
+        $byStatus = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
+            ->whereBetween('starts_at', [$rangeStart, $rangeEnd])
             ->select('status', DB::raw('COUNT(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status');
 
-        $daily = Appointment::where('salon_id', $salon->id)
-            ->whereBetween('starts_at', [$from, $to . ' 23:59:59'])
+        $daily = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
+            ->whereBetween('starts_at', [$rangeStart, $rangeEnd])
             ->select(DB::raw('DATE(starts_at) as date'), DB::raw('COUNT(*) as count'))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
-        $total = Appointment::where('salon_id', $salon->id)
-            ->whereBetween('starts_at', [$from, $to . ' 23:59:59'])
+        $total = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
+            ->whereBetween('starts_at', [$rangeStart, $rangeEnd])
             ->count();
 
         return compact('byStatus', 'daily', 'total');
@@ -536,7 +543,7 @@ class ReportController extends Controller
 
     private function staffReport($salon, $from, $to): array
     {
-        $staff = Staff::where('salon_id', $salon->id)
+        $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->withCount(['appointments as appointment_count' => fn($q) =>
                 $q->whereBetween('starts_at', [$from, $to . ' 23:59:59'])
             ])
@@ -553,18 +560,18 @@ class ReportController extends Controller
         $rangeStart = $from . ' 00:00:00';
         $rangeEnd = $to . ' 23:59:59';
 
-        $newClients = Client::where('salon_id', $salon->id)
+        $newClients = Client::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereBetween('created_at', [$rangeStart, $rangeEnd])
             ->count();
 
-        $returningClients = Client::where('salon_id', $salon->id)
+        $returningClients = Client::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereHas('appointments', fn($q) =>
                 $q->whereBetween('starts_at', [$rangeStart, $rangeEnd])->where('status', 'completed')
             )
             ->where('created_at', '<', $from)
             ->count();
 
-        $topClients = Client::where('salon_id', $salon->id)
+        $topClients = Client::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->withSum(['transactions as total_spent' => fn($q) =>
                 $q->where('status', 'completed')->whereBetween('created_at', [$rangeStart, $rangeEnd])
             ], 'total')
@@ -586,7 +593,7 @@ class ReportController extends Controller
             ->get();
 
         if ($topClients->isEmpty()) {
-            $topClients = Client::where('salon_id', $salon->id)
+            $topClients = Client::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->withSum(['transactions as total_spent' => fn($q) => $q->where('status', 'completed')], 'total')
                 ->withCount(['appointments as appointment_count' => fn($q) => $q->where('status', 'completed')])
                 ->orderByDesc('total_spent')
@@ -601,7 +608,7 @@ class ReportController extends Controller
 
     private function servicesReport($salon, $from, $to): array
     {
-        $services = Service::where('salon_id', $salon->id)
+        $services = Service::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->withCount(['appointmentServices as booking_count' => fn($q) =>
                 $q->whereHas('appointment', fn($aq) =>
                     $aq->whereBetween('starts_at', [$from, $to . ' 23:59:59'])->where('status', 'completed')

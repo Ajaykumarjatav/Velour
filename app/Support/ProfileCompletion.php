@@ -3,6 +3,9 @@
 namespace App\Support;
 
 use App\Models\Salon;
+use App\Models\Service;
+use App\Models\ServiceCategory;
+use App\Models\Staff;
 
 class ProfileCompletion
 {
@@ -18,9 +21,10 @@ class ProfileCompletion
     public static function forSalon(Salon $salon): array
     {
         $hasBusinessType = $salon->businessTypes()->exists() || $salon->business_type_id !== null;
-        $hasServiceCategories = $salon->serviceCategories()->exists();
-        $hasServices = $salon->services()->exists();
-        $hasStaff = $salon->staff()->where('is_active', true)->exists();
+        $salonId = (int) $salon->id;
+        $hasServiceCategories = ServiceCategory::withoutGlobalScopes()->where('salon_id', $salonId)->exists();
+        $hasServices = Service::withoutGlobalScopes()->where('salon_id', $salonId)->exists();
+        $hasStaff = Staff::withoutGlobalScopes()->where('salon_id', $salonId)->where('is_active', true)->exists();
 
         $completed = 0;
         foreach ([$hasBusinessType, $hasServiceCategories, $hasServices, $hasStaff] as $flag) {

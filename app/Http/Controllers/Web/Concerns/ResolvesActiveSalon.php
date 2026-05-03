@@ -5,10 +5,25 @@ namespace App\Http\Controllers\Web\Concerns;
 use App\Models\Salon;
 use App\Models\Staff;
 use App\Models\Tenant;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 trait ResolvesActiveSalon
 {
+    /**
+     * Query a tenant-scoped model for the active location without double-applying TenantScope
+     * (session active salon may differ from Tenant::current()).
+     *
+     * @template TModel of Model
+     * @param  class-string<TModel>  $modelClass
+     * @return Builder<TModel>
+     */
+    protected function salonScoped(string $modelClass): Builder
+    {
+        return $modelClass::withoutGlobalScopes()->where('salon_id', $this->activeSalon()->id);
+    }
+
     protected function activeSalon(): Salon
     {
         $user = Auth::user();

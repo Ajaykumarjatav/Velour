@@ -29,7 +29,7 @@ class ClientController extends Controller
         $sort   = $request->get('sort', 'created_at');
         $dir    = $request->get('dir', 'desc');
 
-        $query = Client::where('salon_id', $salon->id);
+        $query = Client::withoutGlobalScopes()->where('salon_id', $salon->id);
         $scopedStaffId = Auth::user()->dashboardScopedStaffId();
         if ($scopedStaffId !== null) {
             $query->whereHas(
@@ -79,7 +79,7 @@ class ClientController extends Controller
         }
 
 
-        $clientTotalQuery = Client::where('salon_id', $salon->id);
+        $clientTotalQuery = Client::withoutGlobalScopes()->where('salon_id', $salon->id);
         if ($scopedStaffId !== null) {
             $clientTotalQuery->whereHas(
                 'appointments',
@@ -94,7 +94,7 @@ class ClientController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'is_active']);
 
-        $reviewedClientIds = Review::query()
+        $reviewedClientIds = Review::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->whereNotNull('client_id')
             ->pluck('client_id')
@@ -102,7 +102,7 @@ class ClientController extends Controller
             ->unique()
             ->flip();
 
-        $reviewClientsQ = Client::query()
+        $reviewClientsQ = Client::withoutGlobalScopes()
             ->where('salon_id', $salon->id);
         if ($scopedStaffId !== null) {
             $reviewClientsQ->whereHas(
@@ -151,12 +151,12 @@ class ClientController extends Controller
         ]);
 
         $candidateIds = collect($data['client_ids'])->map(fn ($id) => (int) $id)->unique()->values();
-        $clients = Client::query()
+        $clients = Client::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->whereIn('id', $candidateIds)
             ->get(['id', 'first_name', 'last_name', 'email']);
 
-        $reviewedClientIds = Review::query()
+        $reviewedClientIds = Review::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->whereNotNull('client_id')
             ->whereIn('client_id', $clients->pluck('id'))
@@ -164,7 +164,7 @@ class ClientController extends Controller
             ->map(fn ($id) => (int) $id)
             ->flip();
 
-        $tenantReviewLink = ReviewLink::query()->firstOrCreate([
+        $tenantReviewLink = ReviewLink::withoutGlobalScopes()->firstOrCreate([
             'salon_id' => $salon->id,
             'staff_id' => null,
         ]);
@@ -212,7 +212,7 @@ class ClientController extends Controller
             fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
             fputcsv($out, ['first_name', 'last_name', 'email', 'phone', 'marketing_consent']);
 
-            Client::query()
+            Client::withoutGlobalScopes()
                 ->where('salon_id', $salon->id)
                 ->orderBy('first_name')
                 ->orderBy('last_name')
@@ -324,9 +324,9 @@ class ClientController extends Controller
 
             $duplicate = false;
             if ($email) {
-                $duplicate = Client::query()->where('salon_id', $salon->id)->where('email', $email)->exists();
+                $duplicate = Client::withoutGlobalScopes()->where('salon_id', $salon->id)->where('email', $email)->exists();
             } elseif ($phone) {
-                $duplicate = Client::query()
+                $duplicate = Client::withoutGlobalScopes()
                     ->where('salon_id', $salon->id)
                     ->where('first_name', $first)
                     ->where('last_name', $last)

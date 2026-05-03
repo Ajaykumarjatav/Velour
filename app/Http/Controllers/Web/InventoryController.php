@@ -3,35 +3,21 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\InventoryItem;
 use App\Models\InventoryCategory;
 use App\Models\InventoryAdjustment;
 use App\Models\Salon;
-use App\Models\Tenant;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InventoryController extends Controller
 {
-    /**
-     * Active salon for this request — must match {@see TenantScope} / route binding (owner or staff).
-     */
+    use ResolvesActiveSalon;
+
     private function salon(): Salon
     {
-        if (Tenant::checkCurrent()) {
-            return Salon::query()->findOrFail((int) Tenant::current()->getKey());
-        }
-
-        $user = Auth::user();
-        if ($user->salons()->exists()) {
-            return $user->salons()->firstOrFail();
-        }
-        if ($user->staffProfile?->salon_id) {
-            return Salon::query()->findOrFail($user->staffProfile->salon_id);
-        }
-
-        abort(403, 'No salon associated with this account.');
+        return $this->activeSalon();
     }
 
     public function index(Request $request)
@@ -44,8 +30,8 @@ class InventoryController extends Controller
         $query = $this->filteredInventoryQuery($salon, $request);
 
         $items      = $query->orderBy('name')->paginate(25)->withQueryString();
-        $categories = InventoryCategory::where('salon_id', $salon->id)->orderBy('name')->get(['id','name']);
-        $lowStockCount = InventoryItem::where('salon_id', $salon->id)->whereColumn('stock_quantity', '<', 'min_stock_level')->count();
+        $categories = $this->salonScoped(InventoryCategory::class)->orderBy('name')->get(['id','name']);
+        $lowStockCount = $this->salonScoped(InventoryItem::class)->whereColumn('stock_quantity', '<', 'min_stock_level')->count();
 
         $stats = $this->inventoryStats($salon->id);
 
@@ -63,7 +49,7 @@ class InventoryController extends Controller
         $lowStockSkus = 0;
         $criticalSkus = 0;
 
-        InventoryItem::where('salon_id', $salonId)
+        InventoryItem::withoutGlobalScopes()->where('salon_id', $salonId)
             ->select(['id', 'stock_quantity', 'min_stock_level'])
             ->chunkById(500, function ($chunk) use (&$lowStockSkus, &$criticalSkus) {
                 foreach ($chunk as $row) {
@@ -77,7 +63,7 @@ class InventoryController extends Controller
                 }
             });
 
-        $totalSkus = InventoryItem::where('salon_id', $salonId)->count();
+        $totalSkus = InventoryItem::withoutGlobalScopes()->where('salon_id', $salonId)->count();
         $alertCount = $lowStockSkus + $criticalSkus;
 
         return compact('totalSkus', 'lowStockSkus', 'criticalSkus', 'alertCount');
@@ -90,7 +76,7 @@ class InventoryController extends Controller
      */
     private function supplierNamesForSalon(int $salonId)
     {
-        return InventoryItem::where('salon_id', $salonId)
+        return InventoryItem::withoutGlobalScopes()->where('salon_id', $salonId)
             ->whereNotNull('supplier')
             ->where('supplier', '!=', '')
             ->distinct()
@@ -105,7 +91,7 @@ class InventoryController extends Controller
         $categoryId = $request->get('category_id');
         $lowStock   = $request->boolean('low_stock');
 
-        $query = InventoryItem::where('salon_id', $salon->id)->with('category');
+        $query = $this->salonScoped(InventoryItem::class)->with('category');
 
         if ($search) {
             $query->where(fn($q) =>
@@ -174,7 +160,7 @@ class InventoryController extends Controller
             return redirect()->route('inventory.index')->with('error', 'Enter a barcode or SKU to look up.');
         }
 
-        $item = InventoryItem::where('salon_id', $salon->id)
+        $item = $this->salonScoped(InventoryItem::class)
             ->where(function ($q) use ($code) {
                 $q->where('barcode', $code)->orWhere('sku', $code);
             })
@@ -198,7 +184,7 @@ class InventoryController extends Controller
             'supplier'          => ['nullable', 'string', 'max:150'],
         ]);
 
-        $item = InventoryItem::where('salon_id', $salon->id)->findOrFail($data['inventory_item_id']);
+        $item = $this->salonScoped(InventoryItem::class)->findOrFail($data['inventory_item_id']);
         $this->authorise($item);
 
         $note = 'Reorder requested: '.$data['order_quantity'].' units.';
@@ -222,7 +208,7 @@ class InventoryController extends Controller
     public function create()
     {
         $salon       = $this->salon();
-        $categories  = InventoryCategory::where('salon_id', $salon->id)->orderBy('name')->get(['id','name']);
+        $categories  = $this->salonScoped(InventoryCategory::class)->orderBy('name')->get(['id','name']);
         $suppliers = $this->supplierNamesForSalon($salon->id);
         $oldSupplier = old('supplier');
         if (is_string($oldSupplier) && $oldSupplier !== '' && ! $suppliers->contains(fn (string $s): bool => $s === $oldSupplier)) {
@@ -264,7 +250,7 @@ class InventoryController extends Controller
     {
         $this->authorise($inventory);
         $salon      = $this->salon();
-        $categories = InventoryCategory::where('salon_id', $salon->id)->orderBy('name')->get(['id','name']);
+        $categories = $this->salonScoped(InventoryCategory::class)->orderBy('name')->get(['id','name']);
         $suppliers    = $this->supplierNamesForSalon($salon->id);
         if ($inventory->supplier !== null && $inventory->supplier !== '' && ! $suppliers->contains(fn (string $s): bool => $s === $inventory->supplier)) {
             $suppliers = $suppliers->push($inventory->supplier)->sort()->values();
@@ -345,7 +331,7 @@ class InventoryController extends Controller
             'reason'            => ['nullable', 'string', 'max:255'],
         ]);
 
-        $item = InventoryItem::where('salon_id', $salon->id)->findOrFail($data['inventory_item_id']);
+        $item = $this->salonScoped(InventoryItem::class)->findOrFail($data['inventory_item_id']);
 
         $inner = Request::create('/', 'POST', [
             'type'   => $data['type'],
@@ -367,12 +353,6 @@ class InventoryController extends Controller
 
     private function authorise(InventoryItem $item): void
     {
-        if (Tenant::checkCurrent()) {
-            abort_unless((int) $item->salon_id === (int) Tenant::current()->getKey(), 403);
-
-            return;
-        }
-
         abort_unless((int) $item->salon_id === (int) $this->salon()->id, 403);
     }
 }

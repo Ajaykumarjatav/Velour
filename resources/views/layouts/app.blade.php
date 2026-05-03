@@ -46,7 +46,7 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style type="text/tailwindcss">
         /* App-wide: Inter at 400 / 500 / 600 only — map heavier utility classes to 600 */
         html, body {
@@ -96,15 +96,15 @@
 
         /* ── Sidebar links ── */
         .sidebar-link {
-            @apply flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-200
+            @apply flex items-center gap-2.5 pl-2 pr-2.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                    border-l-2 border-transparent
                    text-gray-600 hover:bg-gray-100 hover:text-gray-900
-                   dark:text-gray-400 dark:hover:bg-gray-800/80 dark:hover:text-gray-100;
+                   dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100;
         }
         .sidebar-link.active {
             @apply border-velour-600 bg-velour-50 text-velour-700
                    hover:bg-velour-100/80 dark:bg-velour-950/40 dark:text-velour-300 dark:border-velour-500
-                   dark:hover:bg-velour-950/60;
+                   dark:hover:bg-velour-950/55;
         }
         .nav-icon { @apply w-4 h-4 flex-shrink-0 opacity-90; }
         [x-cloak] { display: none !important; }
@@ -118,22 +118,22 @@
         /* ── Cards ── */
         .card {
             @apply bg-white dark:bg-gray-900
-                   border border-gray-200 dark:border-gray-800
-                   rounded-2xl shadow-sm;
+                   border border-gray-200 dark:border-gray-800/90
+                   rounded-2xl shadow-sm dark:shadow-none;
         }
         .card-header {
-            @apply px-5 py-4 border-b border-gray-100 dark:border-gray-800;
+            @apply px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-800;
         }
-        .card-body  { @apply px-5 py-4; }
+        .card-body  { @apply px-6 py-5; }
         .card-footer {
-            @apply px-5 py-3 border-t border-gray-100 dark:border-gray-800
+            @apply px-6 py-3.5 border-t border-gray-100 dark:border-gray-800
                    bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl;
         }
 
         /* ── Page headings ── */
         .page-title   { @apply text-lg sm:text-xl font-semibold tracking-tight text-gray-900 dark:text-white; }
         .page-subtitle{ @apply text-sm text-gray-500 dark:text-gray-300; }
-        .section-title{ @apply text-base font-semibold text-gray-800 dark:text-gray-100; }
+        .section-title{ @apply text-[15px] sm:text-base font-semibold tracking-tight text-gray-800 dark:text-gray-100; }
 
         /* ── Form elements ── */
         .form-label {
@@ -223,16 +223,16 @@
 
         /* ── Stat / metric cards ── */
         .stat-card {
-            @apply card p-5;
+            @apply card p-6;
         }
         .stat-label {
-            @apply text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1;
+            @apply text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-1.5;
         }
         .stat-value {
-            @apply text-2xl font-bold text-gray-900 dark:text-white;
+            @apply text-2xl sm:text-[1.65rem] font-[700] tracking-tight text-gray-900 dark:text-white;
         }
         .stat-sub {
-            @apply text-xs text-gray-500 dark:text-gray-400 mt-0.5;
+            @apply text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed;
         }
 
         /* ── Badges ── */
@@ -271,10 +271,10 @@
         }
 
         /* ── Alert / notice boxes ── */
-        .alert-info    { @apply flex gap-3 px-4 py-3 rounded-xl text-sm bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300; }
-        .alert-success { @apply flex gap-3 px-4 py-3 rounded-xl text-sm bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300; }
-        .alert-warning { @apply flex gap-3 px-4 py-3 rounded-xl text-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300; }
-        .alert-danger  { @apply flex gap-3 px-4 py-3 rounded-xl text-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300; }
+        .alert-info    { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-blue-50 dark:bg-blue-950/45 border border-blue-200/90 dark:border-blue-400/25 text-blue-900 dark:text-blue-100; }
+        .alert-success { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300; }
+        .alert-warning { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300; }
+        .alert-danger  { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300; }
 
         /* ── Modal / dialog ── */
         .modal-backdrop {
@@ -383,7 +383,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </button>
-                <h1 class="text-[15px] sm:text-base font-semibold tracking-tight text-gray-900 dark:text-white truncate">
+                <h1 class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 dark:text-white truncate">
                     @yield('page-title', 'Dashboard')
                 </h1>
             </div>
@@ -532,16 +532,18 @@
                 $profileFill = 'bg-red-500 dark:bg-red-400';
             }
         @endphp
-        <div class="px-4 sm:px-6 py-2 border-b {{ $profileToneWrap }}">
-            <div class="flex items-center gap-3">
-                <span class="text-xs font-semibold whitespace-nowrap {{ $profileToneText }}">
+        <div class="px-4 sm:px-6 py-2.5 border-b {{ $profileToneWrap }}">
+            <div class="flex items-center gap-3 min-h-8">
+                <span class="text-xs font-semibold leading-none tabular-nums whitespace-nowrap {{ $profileToneText }}">
                     Profile {{ $profilePct }}%
                 </span>
-                <div class="flex-1 h-2 rounded-full {{ $profileTrack }} overflow-hidden">
-                    <div class="h-2 rounded-full transition-all {{ $profileFill }}"
-                         style="width: {{ $profilePct }}%"></div>
+                <div class="flex-1 min-w-0 flex items-center">
+                    <div class="w-full h-2 rounded-full {{ $profileTrack }} overflow-hidden">
+                        <div class="h-full rounded-full transition-all {{ $profileFill }}"
+                             style="width: {{ $profilePct }}%"></div>
+                    </div>
                 </div>
-                <a href="{{ route('setup-progress') }}" class="text-xs font-medium hover:underline whitespace-nowrap {{ $profileToneText }}">
+                <a href="{{ route('setup-progress') }}" class="text-xs font-medium leading-none hover:underline whitespace-nowrap shrink-0 {{ $profileToneText }}">
                     Complete setup
                 </a>
             </div>
@@ -549,7 +551,7 @@
         @endif
 
         {{-- Page content --}}
-        <main class="flex-1 p-4 sm:p-6">
+        <main class="flex-1 p-5 sm:p-7 lg:p-8">
 
             @if(session('success'))
             <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm

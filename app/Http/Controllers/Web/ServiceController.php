@@ -3,21 +3,24 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\DynamicPricingRule;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
 class ServiceController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index(Request $request)
@@ -60,9 +63,16 @@ class ServiceController extends Controller
             }
         };
 
-        $categories = ServiceCategory::where('service_categories.salon_id', $salon->id)
+        $categories = ServiceCategory::withoutGlobalScopes()
+            ->where('service_categories.salon_id', $salon->id)
             ->when($filterCategoryId, fn ($q) => $q->where('service_categories.id', $filterCategoryId))
-            ->with(['services' => $applyServiceConstraints, 'businessType'])
+            ->with([
+                'services' => function ($q) use ($applyServiceConstraints, $salon) {
+                    $q->withoutTenantScope()->where('services.salon_id', $salon->id);
+                    $applyServiceConstraints($q);
+                },
+                'businessType',
+            ])
             ->join('business_types', 'business_types.id', '=', 'service_categories.business_type_id')
             ->orderBy('business_types.sort_order')
             ->orderBy('service_categories.sort_order')
@@ -71,25 +81,28 @@ class ServiceController extends Controller
             ->filter(fn ($c) => $c->services->isNotEmpty())
             ->values();
 
-        $uncategorisedQuery = Service::where('salon_id', $salon->id)
+        $uncategorisedQuery = Service::withoutTenantScope()
+            ->where('salon_id', $salon->id)
             ->whereNull('category_id');
         $applyServiceConstraints($uncategorisedQuery);
         $uncategorised = $uncategorisedQuery->orderBy('sort_order')->get();
 
-        $totalServices = Service::where('salon_id', $salon->id)->count();
+        $totalServices = Service::withoutTenantScope()->where('salon_id', $salon->id)->count();
 
         $accordionOpen = [];
         foreach ($categories as $i => $cat) {
             $accordionOpen[$cat->id] = $i === 0;
         }
 
-        $categoryChips = ServiceCategory::where('salon_id', $salon->id)
+        $categoryChips = ServiceCategory::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->with('businessType')
             ->get()
             ->sortBy(fn ($c) => [(int) ($c->businessType?->sort_order ?? 0), (int) $c->sort_order])
             ->values();
 
-        $pricingRules = DynamicPricingRule::where('salon_id', $salon->id)
+        $pricingRules = DynamicPricingRule::withoutTenantScope()
+            ->where('salon_id', $salon->id)
             ->orderBy('sort_order')
             ->get();
 
@@ -110,7 +123,8 @@ class ServiceController extends Controller
     public function create()
     {
         $salon      = $this->salon();
-        $categories = ServiceCategory::where('salon_id', $salon->id)
+        $categories = ServiceCategory::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->with('businessType')
             ->orderBy('business_type_id')
             ->orderBy('sort_order')
@@ -171,6 +185,8 @@ class ServiceController extends Controller
 
         $service = Service::create($data);
 
+        Cache::forget('plan_limit_services_'.$salon->id);
+
         if ($imageFile) {
             $service->update([
                 'image' => $imageFile->store('salons/'.$salon->id.'/services', 'public'),
@@ -185,7 +201,8 @@ class ServiceController extends Controller
         $this->authorise($service);
         $service->loadMissing('category');
         $salon      = $this->salon();
-        $categories = ServiceCategory::where('salon_id', $salon->id)
+        $categories = ServiceCategory::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
             ->with('businessType')
             ->orderBy('business_type_id')
             ->orderBy('sort_order')
@@ -252,6 +269,7 @@ class ServiceController extends Controller
         }
 
         $service->update($data);
+        Cache::forget('plan_limit_services_'.$service->salon_id);
 
         $this->syncServiceImage($request, $service);
 
@@ -264,7 +282,9 @@ class ServiceController extends Controller
         if ($service->image) {
             Storage::disk('public')->delete($service->image);
         }
+        $salonId = (int) $service->salon_id;
         $service->delete();
+        Cache::forget('plan_limit_services_'.$salonId);
 
         return redirect()->route('services.index')->with('success', 'Service deleted.');
     }
@@ -305,7 +325,7 @@ class ServiceController extends Controller
         $rows = $data['rules'] ?? [];
 
         DB::transaction(function () use ($salon, $rows): void {
-            DynamicPricingRule::where('salon_id', $salon->id)->delete();
+            DynamicPricingRule::withoutTenantScope()->where('salon_id', $salon->id)->delete();
             foreach ($rows as $i => $row) {
                 if (trim((string) ($row['title'] ?? '')) === '') {
                     continue;

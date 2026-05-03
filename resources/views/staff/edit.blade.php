@@ -3,7 +3,7 @@
 @section('page-title', 'Edit Staff Member')
 @section('content')
 
-<div class="max-w-2xl">
+<div class="max-w-2xl pb-16">
     <div class="card p-6">
         <form action="{{ route('staff.update', $staff->id) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             @csrf

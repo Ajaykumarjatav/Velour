@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Salon;
 use App\Models\SalonSetting;
 use Illuminate\Http\RedirectResponse;
@@ -12,19 +13,18 @@ use Illuminate\View\View;
 
 class SecuritySupportController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon(): Salon
     {
-        $user = Auth::user();
-        $activeSalonId = (int) session('active_salon_id', 0);
-        $salon = $activeSalonId > 0 ? $user->salons()->where('id', $activeSalonId)->first() : null;
-        return $salon ?: $user->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index(): View
     {
         $salon = $this->salon();
         $get = fn (string $key, string $default = '0') => (string) (
-            SalonSetting::where('salon_id', $salon->id)->where('key', $key)->value('value') ?? $default
+            SalonSetting::withoutGlobalScopes()->where('salon_id', $salon->id)->where('key', $key)->value('value') ?? $default
         );
 
         $security = [
@@ -72,12 +72,12 @@ class SecuritySupportController extends Controller
         ];
 
         foreach ($map as $field => $key) {
-            SalonSetting::updateOrCreate(
+            SalonSetting::withoutGlobalScopes()->updateOrCreate(
                 ['salon_id' => $salon->id, 'key' => $key],
                 ['value' => ($request->boolean($field) ? '1' : '0'), 'type' => 'boolean']
             );
         }
-        SalonSetting::updateOrCreate(
+        SalonSetting::withoutGlobalScopes()->updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'sec_last_audit_date'],
             ['value' => now()->toDateString(), 'type' => 'string']
         );

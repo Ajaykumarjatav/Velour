@@ -82,6 +82,36 @@ class Staff extends Model
     }
     public function salon()        { return $this->belongsTo(Salon::class); }
     public function user()         { return $this->belongsTo(User::class); }
+
+    /**
+     * Route binding without tenant scope so branch staff resolve when Tenant::current()
+     * is another salon; still limited to salons the viewer owns or works at.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field = $field ?: $this->getRouteKeyName();
+
+        $staff = static::withoutGlobalScopes()
+            ->where($field, $value)
+            ->firstOrFail();
+
+        $user = auth()->user();
+        abort_unless($user, 404);
+
+        if ($user->salons()->whereKey($staff->salon_id)->exists()) {
+            return $staff;
+        }
+
+        $viewerSalonId = static::withoutGlobalScopes()
+            ->where('user_id', $user->id)
+            ->value('salon_id');
+
+        if ($viewerSalonId && (int) $viewerSalonId === (int) $staff->salon_id) {
+            return $staff;
+        }
+
+        abort(404);
+    }
     public function services()     { return $this->belongsToMany(Service::class,'service_staff')->withPivot('price_override')->withTimestamps(); }
     public function appointments() { return $this->hasMany(Appointment::class); }
     public function leaveRequests() { return $this->hasMany(StaffLeaveRequest::class); }

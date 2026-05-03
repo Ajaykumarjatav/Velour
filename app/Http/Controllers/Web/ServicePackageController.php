@@ -4,19 +4,21 @@ namespace App\Http\Controllers\Web;
 
 use App\Helpers\CurrencyHelper;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Service;
 use App\Models\ServicePackage;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ServicePackageController extends Controller
 {
+    use ResolvesActiveSalon;
+
     private function salon()
     {
-        return Auth::user()->salons()->firstOrFail();
+        return $this->activeSalon();
     }
 
     public function index()
@@ -24,10 +26,17 @@ class ServicePackageController extends Controller
         Gate::authorize('viewAny', ServicePackage::class);
 
         $salon = $this->salon();
-        $packages = ServicePackage::where('salon_id', $salon->id)
-            ->with(['services' => fn ($q) => $q->orderByPivot('sort_order')])
-            ->withCount('services')
-            ->withSum('services', 'price')
+        $packages = ServicePackage::withoutTenantScope()
+            ->where('salon_id', $salon->id)
+            ->with([
+                'services' => function ($q) use ($salon) {
+                    $q->withoutTenantScope()
+                        ->where('services.salon_id', $salon->id)
+                        ->orderByPivot('sort_order');
+                },
+            ])
+            ->withCount(['services' => fn ($q) => $q->withoutTenantScope()->where('services.salon_id', $salon->id)])
+            ->withSum(['services' => fn ($q) => $q->withoutTenantScope()->where('services.salon_id', $salon->id)], 'price')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -78,7 +87,7 @@ class ServicePackageController extends Controller
             'price' => $data['price'],
             'online_bookable' => $request->boolean('online_bookable', true),
             'status' => $request->boolean('is_active', true) ? 'active' : 'inactive',
-            'sort_order' => (int) ServicePackage::where('salon_id', $salon->id)->max('sort_order') + 1,
+            'sort_order' => (int) ServicePackage::withoutTenantScope()->where('salon_id', $salon->id)->max('sort_order') + 1,
             'allowed_roles' => $this->normalizeAllowedRoles($data['allowed_roles'] ?? null),
         ]);
 
@@ -94,6 +103,8 @@ class ServicePackageController extends Controller
 
         $salon = $this->salon();
         $attachedIds = $servicePackage->services()
+            ->withoutTenantScope()
+            ->where('services.salon_id', $salon->id)
             ->orderByPivot('sort_order')
             ->get()
             ->pluck('id')
@@ -208,7 +219,8 @@ class ServicePackageController extends Controller
      */
     private function servicesForPackageCatalog(int $salonId, array $alwaysIncludeIds = [])
     {
-        return Service::where('salon_id', $salonId)
+        return Service::withoutTenantScope()
+            ->where('salon_id', $salonId)
             ->where(function ($q) use ($alwaysIncludeIds): void {
                 $q->whereIn('status', ['active', 'inactive']);
                 if ($alwaysIncludeIds !== []) {

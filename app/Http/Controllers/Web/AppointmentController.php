@@ -45,7 +45,7 @@ class AppointmentController extends Controller
             $staffId = $scopedStaffId;
         }
 
-        $query = Appointment::where('salon_id', $salon->id)
+        $query = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->with(['client', 'staff', 'services.service'])
             ->latest('starts_at');
 
@@ -73,7 +73,7 @@ class AppointmentController extends Controller
         }
 
         $appointments = $query->paginate(20)->withQueryString();
-        $staffQuery   = Staff::where('salon_id', $salon->id)->where('is_active', true);
+        $staffQuery   = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true);
         if ($scopedStaffId !== null) {
             $staffQuery->whereKey($scopedStaffId);
         }
@@ -85,14 +85,17 @@ class AppointmentController extends Controller
     public function create()
     {
         $salon    = $this->salon();
-        $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
-        $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()
-            ->with(['services' => fn ($q) => $q->where('services.salon_id', $salon->id)])
+        $clients  = Client::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
+        $staff    = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()
+            ->with([
+                'services' => fn ($q) => $q->withoutTenantScope()->where('services.salon_id', $salon->id),
+            ])
             ->get();
         $staffServiceIdsByStaffId = $staff->mapWithKeys(fn (Staff $s) => [
             $s->id => $s->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
         ])->all();
-        $services = Service::where('salon_id', $salon->id)
+        $services = Service::withoutTenantScope()
+            ->where('salon_id', $salon->id)
             ->active()
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -116,11 +119,11 @@ class AppointmentController extends Controller
 
         $salon = $this->salon();
         abort_unless(
-            Staff::where('salon_id', $salon->id)->where('id', $data['staff_id'])->exists(),
+            Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('id', $data['staff_id'])->exists(),
             404
         );
 
-        $staff = Staff::where('salon_id', $salon->id)->findOrFail($data['staff_id']);
+        $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->findOrFail($data['staff_id']);
         $starts = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
         $ends = isset($data['ends_at'])
             ? SalonTime::parseAppointmentStartsAt($salon, $data['ends_at'])
@@ -129,7 +132,7 @@ class AppointmentController extends Controller
         $exclude = isset($data['exclude_appointment_id']) ? (int) $data['exclude_appointment_id'] : null;
         if ($exclude) {
             abort_unless(
-                Appointment::where('salon_id', $salon->id)->whereKey($exclude)->exists(),
+                Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($exclude)->exists(),
                 404
             );
         }
@@ -162,14 +165,14 @@ class AppointmentController extends Controller
         $staffId = (int) $data['staff_id'];
 
         abort_unless(
-            Staff::where('salon_id', $salon->id)->where('id', $staffId)->exists(),
+            Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('id', $staffId)->exists(),
             404
         );
 
         $excludeId = isset($data['exclude_appointment_id']) ? (int) $data['exclude_appointment_id'] : null;
         if ($excludeId) {
             abort_unless(
-                Appointment::where('salon_id', $salon->id)->where('id', $excludeId)->exists(),
+                Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)->where('id', $excludeId)->exists(),
                 404
             );
         }
@@ -177,13 +180,18 @@ class AppointmentController extends Controller
         $serviceIds = array_values(array_unique(array_map('intval', $data['service_ids'] ?? [])));
 
         if ($serviceIds !== []) {
-            $svcRows = Service::where('salon_id', $salon->id)->active()->whereIn('id', $serviceIds)->get();
+            $svcRows = Service::withoutTenantScope()
+                ->where('salon_id', $salon->id)
+                ->active()
+                ->whereIn('id', $serviceIds)
+                ->get();
             if ($svcRows->count() !== count(array_unique($serviceIds))) {
                 abort(422, 'Invalid services selection.');
             }
             $maxMinutes = max(30, BookingService::combinedDurationMinutes($svcRows, $salon->id));
         } else {
-            $maxMinutes = Service::where('salon_id', $salon->id)
+            $maxMinutes = Service::withoutTenantScope()
+                ->where('salon_id', $salon->id)
                 ->active()
                 ->get(['duration_minutes', 'buffer_minutes'])
                 ->map(fn (Service $s) => (int) $s->duration_minutes + (int) ($s->buffer_minutes ?? 0))
@@ -217,7 +225,7 @@ class AppointmentController extends Controller
             ]);
         }
 
-        $staffMember = Staff::where('salon_id', $salon->id)->whereKey($staffId)->firstOrFail();
+        $staffMember = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($staffId)->firstOrFail();
         $tz          = SalonTime::timezone($salon);
         $availability = app(AvailabilityService::class);
 
@@ -298,7 +306,7 @@ class AppointmentController extends Controller
         $this->authorise($appointment);
         $appointment->load(['client', 'staff', 'services.service', 'transaction', 'review']);
         $salon = $this->salon();
-        $staff = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
+        $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
 
         return view('appointments.show', compact('appointment', 'staff', 'salon'));
     }
@@ -307,9 +315,10 @@ class AppointmentController extends Controller
     {
         $this->authorise($appointment);
         $salon    = $this->salon();
-        $clients  = Client::where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name']);
-        $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
-        $services = Service::where('salon_id', $salon->id)
+        $clients  = Client::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name']);
+        $staff    = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
+        $services = Service::withoutTenantScope()
+            ->where('salon_id', $salon->id)
             ->active()
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -342,7 +351,7 @@ class AppointmentController extends Controller
 
                 $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
                 $endsAt   = $startsAt->copy()->addMinutes($appointment->duration_minutes);
-                $staff    = Staff::where('salon_id', $salon->id)->findOrFail($staffId);
+                $staff    = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->findOrFail($staffId);
 
                 $result = app(AvailabilityService::class)->validateProposedWindow(
                     $salon,
