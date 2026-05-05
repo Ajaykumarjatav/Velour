@@ -229,18 +229,31 @@
             </button>
             <div x-show="open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="ml-4 mt-0.5 space-y-0.5">
                 @foreach([
-                    ['revenue',      '💰', 'Revenue'],
-                    ['appointments', '📅', 'Appointments'],
-                    ['staff',        '👤', 'Staff'],
-                    ['clients',      '🧑', 'Clients'],
-                    ['services',     '✂️', 'Services'],
-                ] as [$key, $icon, $label])
+                    ['revenue', 'Revenue'],
+                    ['appointments', 'Appointments'],
+                    ['staff', 'Staff'],
+                    ['clients', 'Clients'],
+                    ['services', 'Services'],
+                ] as [$key, $label])
                 <a href="{{ route('reports.show', $key) }}"
                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
                           {{ request()->routeIs('reports.show') && request()->route('type') === $key
                              ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-medium'
                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
-                    <span class="text-base leading-none">{{ $icon }}</span>
+                    <svg class="w-3.5 h-3.5 flex-shrink-0 {{ request()->routeIs('reports.show') && request()->route('type') === $key ? 'text-velour-600 dark:text-velour-300' : 'text-gray-400 dark:text-gray-500' }}"
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        @if($key === 'revenue')
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        @elseif($key === 'appointments')
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V5m8 2V5m-9 6h10M5 21h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        @elseif($key === 'staff')
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20a5 5 0 0110 0M12 11a3 3 0 100-6 3 3 0 000 6z" />
+                        @elseif($key === 'clients')
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19a3 3 0 100-6 3 3 0 000 6zM9 19a3 3 0 100-6 3 3 0 000 6zM12 7a3 3 0 100-6 3 3 0 000 6z" />
+                        @else
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7.5-3a3.5 3.5 0 110-7 3.5 3.5 0 010 7zM7 7l4 4m0-4l-4 4" />
+                        @endif
+                    </svg>
                     {{ $label }}
                 </a>
                 @endforeach
@@ -345,6 +358,16 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
             Growth Tips
+        </a>
+        @endif
+
+        @if($navShow('guide'))
+        <a href="{{ route('guide.index') }}"
+           class="sidebar-link {{ request()->routeIs('guide.index') ? 'active' : '' }}">
+            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253a3 3 0 11.001 5.999A3 3 0 0112 6.253zm-7.5 6.5h15M9 18h6" />
+            </svg>
+            Guide &amp; Setup
         </a>
         @endif
 

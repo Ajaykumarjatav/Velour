@@ -56,11 +56,12 @@
         select-id="voucher-create-client"
         type="client"
         :required="false"
+        :client-loyalty-tiers="$clientQuickCreateLoyaltyTiers ?? collect()"
         select-class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-velour-500">
         <option value="">Any client</option>
         @foreach($clients as $c)
         <option value="{{ $c->id }}" {{ old('client_id') == $c->id ? 'selected' : '' }}>
-          {{ $c->first_name }} {{ $c->last_name }}
+          {{ $c->first_name }} {{ $c->last_name }}{{ $c->phone ? ' — '.$c->phone : '' }}
         </option>
         @endforeach
       </x-relation-field-with-create>

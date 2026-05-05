@@ -342,16 +342,22 @@
             <form method="POST" action="{{ route('availability.leave.store') }}" class="space-y-4">
                 @csrf
                 <div class="flex items-end gap-2">
-                    <div class="flex-1 min-w-0">
-                        <label class="form-label text-xs uppercase tracking-wide" for="avail-leave-staff">Staff member</label>
-                        <select name="staff_id" id="avail-leave-staff" required class="form-select text-sm w-full">
-                            <option value="">Select…</option>
-                            @foreach($staff as $s)
-                                <option value="{{ $s->id }}">{{ $s->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <x-relation-quick-create-trigger type="staff" select-id="avail-leave-staff" />
+                    <x-searchable-select
+                        id="avail-leave-staff"
+                        name="staff_id"
+                        label="Staff member"
+                        :required="true"
+                        error-name="staff_id"
+                        :search-url="route('lookup.staff')"
+                        search-placeholder="Search staff…"
+                        hint="No match? Use + to add new."
+                        trigger-class="form-select text-sm w-full">
+                        <option value="">Select…</option>
+                        @foreach($staff as $s)
+                            <option value="{{ $s->id }}">{{ $s->name }}</option>
+                        @endforeach
+                    </x-searchable-select>
+                    <x-relation-quick-create-trigger type="staff" select-id="avail-leave-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
                 </div>
                 <div>
                     <label class="form-label text-xs uppercase tracking-wide">Leave type</label>

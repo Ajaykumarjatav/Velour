@@ -40,13 +40,20 @@
                     @error('phone')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="form-label">Role <span class="text-red-500">*</span></label>
-                    <select name="role" required class="form-select @error('role') form-input-error @enderror">
+                    <label class="form-label" for="staff-form-role-trigger">Role <span class="text-red-500">*</span></label>
+                    <x-searchable-select
+                        id="staff-form-role"
+                        name="role"
+                        :required="true"
+                        error-name="role"
+                        wrapper-class="w-full min-w-0"
+                        :search-url="null"
+                        search-placeholder="Search role…"
+                        trigger-class="form-select w-full @error('role') form-input-error @enderror">
                         @foreach(['stylist','therapist','manager','receptionist','junior','owner'] as $r)
                         <option value="{{ $r }}" {{ old('role', $staff->role ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
                         @endforeach
-                    </select>
-                    @error('role')<p class="form-error">{{ $message }}</p>@enderror
+                    </x-searchable-select>
                 </div>
                 <div>
                     <label class="form-label">Commission %</label>

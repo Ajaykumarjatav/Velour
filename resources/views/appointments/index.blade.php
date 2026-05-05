@@ -12,18 +12,30 @@
             <input type="date" name="date" value="{{ $date }}"
                    title="Filter by date"
                    class="form-input w-full min-w-[10.5rem] sm:w-[11.5rem] sm:flex-initial shrink-0">
-            <select name="status" class="form-select w-full min-w-0 sm:w-[10.5rem] shrink-0">
+            <x-searchable-select
+                id="appt-ix-status"
+                name="status"
+                wrapper-class="w-full min-w-0 sm:w-[10.5rem] shrink-0"
+                :search-url="null"
+                search-placeholder="Status…"
+                trigger-class="form-select w-full min-w-0 sm:w-[10.5rem] shrink-0">
                 <option value="">All statuses</option>
                 @foreach(['pending','confirmed','checked_in','in_progress','completed','cancelled','no_show'] as $s)
                 <option value="{{ $s }}" {{ $status === $s ? 'selected' : '' }}>{{ ucfirst(str_replace('_',' ',$s)) }}</option>
                 @endforeach
-            </select>
-            <select name="staff_id" class="form-select w-full min-w-0 sm:min-w-[10.5rem] sm:max-w-[14rem] shrink-0">
+            </x-searchable-select>
+            <x-searchable-select
+                id="appt-ix-staff"
+                name="staff_id"
+                wrapper-class="w-full min-w-0 sm:min-w-[10.5rem] sm:max-w-[14rem] shrink-0"
+                :search-url="route('lookup.staff')"
+                search-placeholder="Staff…"
+                trigger-class="form-select w-full min-w-0 sm:min-w-[10.5rem] sm:max-w-[14rem] shrink-0">
                 <option value="">All staff</option>
                 @foreach($staff as $s)
                 <option value="{{ $s->id }}" {{ $staffId == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
                 @endforeach
-            </select>
+            </x-searchable-select>
             <div class="flex w-full sm:w-auto gap-2 shrink-0">
                 <button type="submit" class="btn-secondary flex-1 sm:flex-initial min-w-0">Filter</button>
                 <a href="{{ route('appointments.index') }}" class="btn-outline flex-1 sm:flex-initial min-w-0 text-center">Clear</a>

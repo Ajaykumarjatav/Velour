@@ -18,22 +18,34 @@
             <input type="date" name="to" value="{{ $to }}" class="form-input w-auto min-w-[160px]">
         </div>
         <div>
-            <label class="form-label text-xs">Staff</label>
-            <select name="staff_id" class="form-select w-auto min-w-[160px]">
+            <label class="form-label text-xs" for="rev-report-staff-trigger">Staff</label>
+            <x-searchable-select
+                id="rev-report-staff"
+                name="staff_id"
+                wrapper-class="min-w-0"
+                :search-url="route('lookup.staff')"
+                search-placeholder="Staff…"
+                trigger-class="form-select w-auto min-w-[160px]">
                 <option value="">All</option>
                 @foreach($staffList as $st)
                 <option value="{{ $st->id }}" {{ (string)($staffId ?? '') === (string) $st->id ? 'selected' : '' }}>{{ $st->name }}</option>
                 @endforeach
-            </select>
+            </x-searchable-select>
         </div>
         <div>
-            <label class="form-label text-xs">Payment</label>
-            <select name="payment_method" class="form-select w-auto min-w-[140px]">
+            <label class="form-label text-xs" for="rev-report-pay-trigger">Payment</label>
+            <x-searchable-select
+                id="rev-report-pay"
+                name="payment_method"
+                wrapper-class="min-w-0"
+                :search-url="null"
+                search-placeholder="Payment…"
+                trigger-class="form-select w-auto min-w-[140px]">
                 <option value="">All</option>
                 @foreach(['cash','card','stripe','other'] as $pm)
                 <option value="{{ $pm }}" {{ ($paymentMethod ?? '') === $pm ? 'selected' : '' }}>{{ ucfirst($pm) }}</option>
                 @endforeach
-            </select>
+            </x-searchable-select>
         </div>
         <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer pb-2">
             <input type="checkbox" name="compare" value="1" class="rounded border-gray-300 text-velour-600" {{ !empty($compare) ? 'checked' : '' }}>

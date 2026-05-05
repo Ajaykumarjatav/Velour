@@ -8,6 +8,8 @@
         <form action="{{ route('marketing.update', $campaign) }}" method="POST" class="space-y-5"
               x-data="{
                 scheduledAt: @js(old('scheduled_at', optional($campaign->scheduled_at)->format('Y-m-d\\TH:i'))),
+                segment: @js(old('segment', $campaign->segment)),
+                clientCountsBySegment: @js($counts),
                 formattedSchedule() {
                     if (!this.scheduledAt) return '';
                     const d = new Date(this.scheduledAt);
@@ -23,19 +25,34 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="form-label">Type <span class="text-red-500">*</span></label>
-                    <select name="type" required class="form-select">
+                    <label class="form-label" for="mkt-edit-type-trigger">Type <span class="text-red-500">*</span></label>
+                    <x-searchable-select
+                        id="mkt-edit-type"
+                        name="type"
+                        :required="true"
+                        wrapper-class="w-full min-w-0"
+                        :search-url="null"
+                        search-placeholder="Search…"
+                        trigger-class="form-select w-full">
                         <option value="email" {{ old('type', $campaign->type) === 'email' ? 'selected' : '' }}>Email</option>
                         <option value="sms"   {{ old('type', $campaign->type) === 'sms'   ? 'selected' : '' }}>SMS</option>
-                    </select>
+                    </x-searchable-select>
                 </div>
                 <div>
-                    <label class="form-label">Audience segment <span class="text-red-500">*</span></label>
-                    <select name="segment" required class="form-select">
+                    <label class="form-label" for="mkt-edit-segment-trigger">Audience segment <span class="text-red-500">*</span></label>
+                    <x-searchable-select
+                        id="mkt-edit-segment"
+                        name="segment"
+                        :required="true"
+                        wrapper-class="w-full min-w-0"
+                        :search-url="null"
+                        search-placeholder="Search segment…"
+                        trigger-class="form-select w-full"
+                        x-model="segment">
                         @foreach(['all'=>'All clients','active'=>'Active (visited in 90d)','lapsed'=>'Lapsed (no visit 90d+)','birthday'=>'Birthday this month','new'=>'New clients (30d)'] as $val => $label)
                         <option value="{{ $val }}" {{ old('segment', $campaign->segment) === $val ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
-                    </select>
+                    </x-searchable-select>
                 </div>
             </div>
             <div>
@@ -61,7 +78,7 @@
             </div>
             <div class="bg-velour-50 dark:bg-velour-900/20 border border-velour-100 dark:border-velour-800 rounded-xl p-4">
                 <p class="text-sm text-velour-700 dark:text-velour-300">
-                    <strong>{{ $clientCount }}</strong> clients currently opted in to marketing.
+                    <strong x-text="clientCountsBySegment[segment] ?? 0"></strong> clients currently opted in to marketing.
                 </p>
             </div>
             <div class="flex gap-3 pt-2">

@@ -64,16 +64,28 @@
                         <input type="url" name="website" value="{{ old('website', $salon->website) }}" class="form-input">
                     </div>
                     <div>
-                        <label class="form-label">Currency</label>
-                        <select id="settings-salon-currency" name="currency" class="form-select">
+                        <label class="form-label" for="settings-salon-currency-trigger">Currency</label>
+                        <x-searchable-select
+                            id="settings-salon-currency"
+                            name="currency"
+                            wrapper-class="w-full min-w-0"
+                            :search-url="null"
+                            search-placeholder="Search currency…"
+                            trigger-class="form-select w-full">
                             @foreach(\App\Helpers\CurrencyHelper::selectList() as $code => $lbl)
                             <option value="{{ $code }}" {{ old('currency', $salon->currency ?? 'GBP') === $code ? 'selected' : '' }}>{{ $lbl }}</option>
                             @endforeach
-                        </select>
+                        </x-searchable-select>
                     </div>
                     <div>
-                        <label class="form-label">Timezone</label>
-                        <select id="settings-salon-timezone" name="timezone" class="form-select">
+                        <label class="form-label" for="settings-salon-timezone-trigger">Timezone</label>
+                        <x-searchable-select
+                            id="settings-salon-timezone"
+                            name="timezone"
+                            wrapper-class="w-full min-w-0"
+                            :search-url="null"
+                            search-placeholder="Search timezone…"
+                            trigger-class="form-select w-full">
                             @foreach(\App\Helpers\TimezoneHelper::grouped() as $region => $zones)
                             <optgroup label="{{ $region }}">
                                 @foreach($zones as $tz => $label)
@@ -81,7 +93,7 @@
                                 @endforeach
                             </optgroup>
                             @endforeach
-                        </select>
+                        </x-searchable-select>
                         <p class="form-hint">Dashboard, revenue, and calendar “days” follow this clock.</p>
                         <p id="settings-location-autosave-hint" class="form-hint hidden"></p>
                     </div>

@@ -12,30 +12,37 @@
     <div class="card p-6">
         <form action="{{ route('appointments.update', $appointment->id) }}" method="POST" class="space-y-5">
             @csrf @method('PUT')
-            <x-relation-field-with-create
-                label="Client"
-                name="client_id"
-                select-id="appt-edit-client"
-                type="client"
-                :required="true">
-                @foreach($clients as $client)
-                <option value="{{ $client->id }}" {{ old('client_id', $appointment->client_id) == $client->id ? 'selected' : '' }}>
-                    {{ $client->first_name }} {{ $client->last_name }}
-                </option>
-                @endforeach
-            </x-relation-field-with-create>
+            <div class="space-y-0">
+                <div class="flex items-end gap-2">
+                    @include('partials.appointment-client-picker', [
+                        'selectId' => 'appt-edit-client',
+                        'clients' => $clients,
+                        'selectedClientId' => old('client_id', $appointment->client_id),
+                    ])
+                    @if(auth()->user()->dashboardScopedStaffId() === null)
+                    <x-relation-quick-create-trigger type="client" select-id="appt-edit-client" :client-loyalty-tiers="$clientQuickCreateLoyaltyTiers ?? collect()" />
+                    @endif
+                </div>
+            </div>
 
             <div x-data="timeslotPickerEdit(@js($occupiedSlotsUrl), {{ $appointment->id }}, @js($editOccupiedServiceIds))" x-init="init()">
                 <div class="flex items-end gap-2">
-                    <div class="flex-1 min-w-0">
-                        <label class="form-label" for="appt-edit-staff">Staff member</label>
-                        <select name="staff_id" id="appt-edit-staff" required x-model="staffId" class="form-select w-full">
-                            @foreach($staff as $s)
-                            <option value="{{ $s->id }}" {{ (string) old('staff_id', $appointment->staff_id) === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <x-relation-quick-create-trigger type="staff" select-id="appt-edit-staff" />
+                    <x-searchable-select
+                        id="appt-edit-staff"
+                        name="staff_id"
+                        label="Staff member"
+                        :required="true"
+                        error-name="staff_id"
+                        :search-url="route('lookup.staff')"
+                        search-placeholder="Search staff…"
+                        hint="No match? Use + to add new."
+                        trigger-class="form-select w-full"
+                        x-model="staffId">
+                        @foreach($staff as $s)
+                        <option value="{{ $s->id }}" {{ (string) old('staff_id', $appointment->staff_id) === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                        @endforeach
+                    </x-searchable-select>
+                    <x-relation-quick-create-trigger type="staff" select-id="appt-edit-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
                 </div>
 
                 <div class="mb-4 mt-5">

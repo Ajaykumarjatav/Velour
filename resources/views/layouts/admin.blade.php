@@ -150,6 +150,7 @@
 
   @include('partials.chatbot', ['isAdminLayout' => true])
 
+  @include('partials.form-client-validation')
   @stack('scripts')
 </body>
 </html>

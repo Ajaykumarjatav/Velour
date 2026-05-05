@@ -34,6 +34,7 @@ final class SidebarNav
 
         return match ($item) {
             'dashboard', 'calendar' => true,
+            'guide' => true,
             'appointments' => $user->can('appointments.view'),
             'clients' => $user->can('clients.view'),
             'staff' => $user->can('staff.view'),

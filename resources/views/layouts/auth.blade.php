@@ -192,5 +192,7 @@
             </div>
         </div>
     </div>
+@stack('scripts')
+@include('partials.form-client-validation')
 </body>
 </html>

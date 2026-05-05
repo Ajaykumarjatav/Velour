@@ -6,6 +6,9 @@
 @php
     $occupiedSlotsUrl = route('appointments.occupied-slots');
     $staffServiceIdsByStaffId = $staffServiceIdsByStaffId ?? [];
+    $scopedStaffId = $scopedStaffId ?? auth()->user()->dashboardScopedStaffId();
+    $defaultStaffId = (string) ($defaultStaffId ?? old('staff_id', ''));
+    $lockedStaff = $scopedStaffId ? $staff->firstWhere('id', (int) $scopedStaffId) : null;
 @endphp
 
 <div class="max-w-2xl">
@@ -15,34 +18,47 @@
               @input="dirty = true"
               @change="dirty = true">
             @csrf
-            <x-relation-field-with-create
-                label="Client"
-                name="client_id"
-                select-id="appt-create-client"
-                type="client"
-                :required="true">
-                <option value="">Select a client…</option>
-                @foreach($clients as $client)
-                <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
-                    {{ $client->first_name }} {{ $client->last_name }} {{ $client->phone ? '— '.$client->phone : '' }}
-                </option>
-                @endforeach
-            </x-relation-field-with-create>
+            <div class="space-y-0">
+                <div class="flex items-end gap-2">
+                    @include('partials.appointment-client-picker', [
+                        'selectId' => 'appt-create-client',
+                        'clients' => $clients,
+                        'selectedClientId' => old('client_id'),
+                    ])
+                    @if(auth()->user()->dashboardScopedStaffId() === null)
+                    <x-relation-quick-create-trigger type="client" select-id="appt-create-client" :client-loyalty-tiers="$clientQuickCreateLoyaltyTiers ?? collect()" />
+                    @endif
+                </div>
+            </div>
 
             <div x-data="timeslotPicker(@js($occupiedSlotsUrl), @js($staffServiceIdsByStaffId))" x-init="init()">
                 <div class="flex items-end gap-2">
-                    <div class="flex-1 min-w-0">
-                        <label class="form-label" for="appt-create-staff">Staff member <span class="text-red-500">*</span></label>
-                        <select name="staff_id" id="appt-create-staff" required x-model="staffId"
-                                class="form-select w-full @error('staff_id') form-input-error @enderror">
+                    @if($scopedStaffId !== null)
+                        <div class="flex-1 min-w-0">
+                            <label class="form-label">Staff member <span class="text-red-500">*</span></label>
+                            <input type="text" class="form-input bg-gray-100 dark:bg-gray-800/70 cursor-not-allowed" value="{{ $lockedStaff?->name ?? 'Staff #' . $scopedStaffId }}" readonly>
+                            <input type="hidden" id="appt-create-staff" name="staff_id" value="{{ $scopedStaffId }}">
+                            <p class="text-xs text-muted mt-1">Staff panel bookings are locked to your own profile.</p>
+                        </div>
+                    @else
+                        <x-searchable-select
+                            id="appt-create-staff"
+                            name="staff_id"
+                            label="Staff member"
+                            :required="true"
+                            error-name="staff_id"
+                            :search-url="route('lookup.staff')"
+                            search-placeholder="Search staff…"
+                            hint="No match? Use + to add new."
+                            trigger-class="form-select w-full"
+                            x-model="staffId">
                             <option value="">Select staff…</option>
                             @foreach($staff as $s)
-                            <option value="{{ $s->id }}" {{ (string) old('staff_id', '') === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                            <option value="{{ $s->id }}" {{ (string) $defaultStaffId === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
                             @endforeach
-                        </select>
-                        @error('staff_id')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-                    <x-relation-quick-create-trigger type="staff" select-id="appt-create-staff" />
+                        </x-searchable-select>
+                        <x-relation-quick-create-trigger type="staff" select-id="appt-create-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
+                    @endif
                 </div>
 
                 {{-- Date --}}
@@ -212,7 +228,7 @@ function timeslotPicker(occupiedUrl, serviceStaffMap) {
         occupiedUrl,
         serviceStaffMap: serviceStaffMap || {},
         today: new Date().toISOString().split('T')[0],
-        staffId: '{{ old('staff_id', '') }}',
+        staffId: '{{ $defaultStaffId }}',
         selectedDate: '{{ old('starts_at') ? substr(old('starts_at'), 0, 10) : '' }}',
         selectedTime: '{{ old('starts_at') ? substr(old('starts_at'), 11, 5) : '' }}',
         blocked: [],

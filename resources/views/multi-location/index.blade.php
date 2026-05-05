@@ -155,10 +155,17 @@
                 <div><label class="form-label">Full address *</label><input name="address_line1" required class="form-input" placeholder="Street, Area, City, PIN"></div>
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="form-label">City *</label><input name="city" required class="form-input"></div>
-                    <div><label class="form-label">Timezone *</label>
-                        <select name="timezone" class="form-select" required>
+                    <div><label class="form-label" for="ml-add-tz-trigger">Timezone *</label>
+                        <x-searchable-select
+                            id="ml-add-tz"
+                            name="timezone"
+                            :required="true"
+                            wrapper-class="w-full min-w-0"
+                            :search-url="null"
+                            search-placeholder="Search timezone…"
+                            trigger-class="form-select w-full">
                             @foreach($timezones as $tz)<option value="{{ $tz }}">{{ $tz }}</option>@endforeach
-                        </select>
+                        </x-searchable-select>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">

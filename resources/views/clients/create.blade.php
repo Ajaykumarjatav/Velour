@@ -43,14 +43,20 @@
                     @error('date_of_birth')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="form-label">Gender</label>
-                    <select name="gender" class="form-select @error('gender') form-input-error @enderror">
+                    <label class="form-label" for="client-create-gender-trigger">Gender</label>
+                    <x-searchable-select
+                        id="client-create-gender"
+                        name="gender"
+                        error-name="gender"
+                        wrapper-class="w-full min-w-0"
+                        :search-url="null"
+                        search-placeholder="Search…"
+                        trigger-class="form-select w-full @error('gender') form-input-error @enderror">
                         <option value="">Prefer not to say</option>
                         <option value="female" {{ old('gender') === 'female' ? 'selected' : '' }}>Female</option>
                         <option value="male"   {{ old('gender') === 'male'   ? 'selected' : '' }}>Male</option>
                         <option value="non_binary" {{ old('gender') === 'non_binary' ? 'selected' : '' }}>Non-binary</option>
-                    </select>
-                    @error('gender')<p class="form-error">{{ $message }}</p>@enderror
+                    </x-searchable-select>
                 </div>
             </div>
             <div>
@@ -66,13 +72,19 @@
             </div>
             @if(isset($loyaltyTiers) && $loyaltyTiers->isNotEmpty())
             <div>
-                <label class="form-label">Loyalty plan</label>
-                <select name="loyalty_tier_id" class="form-select">
+                <label class="form-label" for="client-create-loyalty-trigger">Loyalty plan</label>
+                <x-searchable-select
+                    id="client-create-loyalty"
+                    name="loyalty_tier_id"
+                    wrapper-class="w-full min-w-0"
+                    :search-url="null"
+                    search-placeholder="Search plan…"
+                    trigger-class="form-select w-full">
                     <option value="">— None —</option>
                     @foreach($loyaltyTiers as $tier)
                         <option value="{{ $tier->id }}" {{ (string) old('loyalty_tier_id') === (string) $tier->id ? 'selected' : '' }}>{{ $tier->name }}</option>
                     @endforeach
-                </select>
+                </x-searchable-select>
             </div>
             @endif
             <div>

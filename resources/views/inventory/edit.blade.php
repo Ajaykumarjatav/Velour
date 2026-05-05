@@ -65,17 +65,19 @@
                 </div>
             </div>
             <div class="flex items-end gap-2">
-                <div class="flex-1 min-w-0">
-                    <label class="form-label" for="inv-edit-supplier">Supplier</label>
-                    <select name="supplier" id="inv-edit-supplier"
-                            class="form-select w-full @error('supplier') form-input-error @enderror">
-                        <option value="">No supplier</option>
-                        @foreach($suppliers as $s)
-                        <option value="{{ $s }}" @selected(old('supplier', $item->supplier) === $s)>{{ $s }}</option>
-                        @endforeach
-                    </select>
-                    @error('supplier')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
+                <x-searchable-select
+                    id="inv-edit-supplier"
+                    name="supplier"
+                    label="Supplier"
+                    error-name="supplier"
+                    :search-url="null"
+                    search-placeholder="Search supplier…"
+                    trigger-class="form-select w-full">
+                    <option value="">No supplier</option>
+                    @foreach($suppliers as $s)
+                    <option value="{{ $s }}" @selected(old('supplier', $item->supplier) === $s)>{{ $s }}</option>
+                    @endforeach
+                </x-searchable-select>
                 <x-relation-quick-create-trigger type="inventory_supplier" select-id="inv-edit-supplier" />
             </div>
             <div class="flex gap-3 pt-2">

@@ -23,12 +23,38 @@ class CalendarController extends Controller
         $view = $request->get('view', 'week');
         $dateStr = $request->get('date', Carbon::now($tz)->toDateString());
         $date = SalonTime::parseLocalDate($salon, $dateStr);
+        $customRangeActive = false;
+        $rangeFromYmd = null;
+        $rangeToYmd = null;
+        $rangeSpanDays = null;
 
-        match ($view) {
-            'day' => [$start, $end] = [$date->copy(), $date->copy()->endOfDay()],
-            'month' => [$start, $end] = [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()],
-            default => [$start, $end] = [$date->copy()->startOfWeek(Carbon::MONDAY), $date->copy()->endOfWeek(Carbon::SUNDAY)],
-        };
+        if ($view === 'week' && $request->filled('from') && $request->filled('to')) {
+            try {
+                $from = SalonTime::parseLocalDate($salon, (string) $request->get('from'))->startOfDay();
+                $to = SalonTime::parseLocalDate($salon, (string) $request->get('to'))->endOfDay();
+                if ($to->lt($from)) {
+                    [$from, $to] = [$to->startOfDay(), $from->endOfDay()];
+                }
+                // Guardrail for UI and query performance.
+                if ($from->diffInDays($to) > 60) {
+                    $to = $from->copy()->addDays(60)->endOfDay();
+                }
+                [$start, $end] = [$from, $to];
+                $date = $from->copy();
+                $customRangeActive = true;
+                $rangeFromYmd = $from->toDateString();
+                $rangeToYmd = $to->toDateString();
+                $rangeSpanDays = $from->diffInDays($to) + 1;
+            } catch (\Throwable) {
+                [$start, $end] = [$date->copy()->startOfWeek(Carbon::MONDAY), $date->copy()->endOfWeek(Carbon::SUNDAY)];
+            }
+        } else {
+            match ($view) {
+                'day' => [$start, $end] = [$date->copy(), $date->copy()->endOfDay()],
+                'month' => [$start, $end] = [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()],
+                default => [$start, $end] = [$date->copy()->startOfWeek(Carbon::MONDAY), $date->copy()->endOfWeek(Carbon::SUNDAY)],
+            };
+        }
 
         $startUtc = $start->copy()->utc();
         $endUtc = $end->copy()->utc();
@@ -88,7 +114,8 @@ class CalendarController extends Controller
             'salon', 'view', 'date', 'calendarData', 'staffData',
             'appointments', 'start', 'end', 'filterStaffId', 'staff',
             'salonTz', 'salonTodayYmd', 'tzAbbrev', 'hourStart', 'hourEnd',
-            'availabilityByDate', 'selectedStaff'
+            'availabilityByDate', 'selectedStaff', 'customRangeActive',
+            'rangeFromYmd', 'rangeToYmd', 'rangeSpanDays'
         ));
     }
 

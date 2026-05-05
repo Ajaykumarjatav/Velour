@@ -8,6 +8,8 @@
         <form action="{{ route('marketing.store') }}" method="POST" class="space-y-5"
               x-data="{
                 scheduledAt: @js(old('scheduled_at', '')),
+                segment: @js(old('segment', 'all')),
+                clientCountsBySegment: @js($counts),
                 formattedSchedule() {
                     if (!this.scheduledAt) return '';
                     const d = new Date(this.scheduledAt);
@@ -22,21 +24,36 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="form-label">Type <span class="text-red-500">*</span></label>
-                    <select name="type" required class="form-select">
+                    <label class="form-label" for="mkt-create-type-trigger">Type <span class="text-red-500">*</span></label>
+                    <x-searchable-select
+                        id="mkt-create-type"
+                        name="type"
+                        :required="true"
+                        wrapper-class="w-full min-w-0"
+                        :search-url="null"
+                        search-placeholder="Search…"
+                        trigger-class="form-select w-full">
                         <option value="email" {{ old('type') === 'email' ? 'selected' : '' }}>Email</option>
                         <option value="sms"   {{ old('type') === 'sms'   ? 'selected' : '' }}>SMS</option>
-                    </select>
+                    </x-searchable-select>
                 </div>
                 <div>
-                    <label class="form-label">Audience segment <span class="text-red-500">*</span></label>
-                    <select name="segment" required class="form-select">
+                    <label class="form-label" for="mkt-create-segment-trigger">Audience segment <span class="text-red-500">*</span></label>
+                    <x-searchable-select
+                        id="mkt-create-segment"
+                        name="segment"
+                        :required="true"
+                        wrapper-class="w-full min-w-0"
+                        :search-url="null"
+                        search-placeholder="Search segment…"
+                        trigger-class="form-select w-full"
+                        x-model="segment">
                         <option value="all"      {{ old('segment') === 'all'      ? 'selected' : '' }}>All clients</option>
                         <option value="active"   {{ old('segment') === 'active'   ? 'selected' : '' }}>Active (visited in 90d)</option>
                         <option value="lapsed"   {{ old('segment') === 'lapsed'   ? 'selected' : '' }}>Lapsed (no visit 90d+)</option>
                         <option value="birthday" {{ old('segment') === 'birthday' ? 'selected' : '' }}>Birthday this month</option>
                         <option value="new"      {{ old('segment') === 'new'      ? 'selected' : '' }}>New clients (30d)</option>
-                    </select>
+                    </x-searchable-select>
                 </div>
             </div>
             <div>
@@ -62,7 +79,7 @@
             </div>
             <div class="bg-velour-50 dark:bg-velour-900/20 border border-velour-100 dark:border-velour-800 rounded-xl p-4">
                 <p class="text-sm text-velour-700 dark:text-velour-300">
-                    <strong>{{ $clientCount }}</strong> clients currently opted in to marketing.
+                    <strong x-text="clientCountsBySegment[segment] ?? 0"></strong> clients currently opted in to marketing.
                 </p>
             </div>
             <div class="flex gap-3 pt-2">

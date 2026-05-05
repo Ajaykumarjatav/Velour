@@ -80,6 +80,10 @@
                 <p class="font-semibold text-heading">{{ $appointment->client->phone }}</p>
             </div>
             @endif
+            <div class="col-span-2 sm:col-span-3 border-t border-gray-100 dark:border-gray-800 pt-3 mt-1">
+                <p class="stat-label mb-1">Booked on</p>
+                <p class="font-semibold text-heading">@bizdatetime($appointment->created_at)</p>
+            </div>
             @if($appointment->deposit_required)
             <div>
                 <p class="stat-label mb-1">Deposit</p>
@@ -206,16 +210,21 @@
                         @error('starts_at')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div class="flex items-end gap-2">
-                        <div class="flex-1 min-w-0">
-                            <label class="form-label" for="appt-reschedule-staff">Reassign staff (optional)</label>
-                            <select name="staff_id" id="appt-reschedule-staff" class="form-select w-full">
-                                <option value="">Keep current ({{ $appointment->staff?->name }})</option>
-                                @foreach($staff as $s)
-                                <option value="{{ $s->id }}" {{ old('staff_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <x-relation-quick-create-trigger type="staff" select-id="appt-reschedule-staff" />
+                        <x-searchable-select
+                            id="appt-reschedule-staff"
+                            name="staff_id"
+                            label="Reassign staff (optional)"
+                            :required="false"
+                            :search-url="route('lookup.staff')"
+                            search-placeholder="Search staff…"
+                            hint="No match? Use + to add new."
+                            trigger-class="form-select w-full">
+                            <option value="" data-sticky>Keep current ({{ $appointment->staff?->name }})</option>
+                            @foreach($staff as $s)
+                            <option value="{{ $s->id }}" {{ old('staff_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                            @endforeach
+                        </x-searchable-select>
+                        <x-relation-quick-create-trigger type="staff" select-id="appt-reschedule-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
                     </div>
                 </div>
                 <div class="flex gap-2">

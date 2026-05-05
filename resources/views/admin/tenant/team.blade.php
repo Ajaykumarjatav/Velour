@@ -10,29 +10,29 @@
 <div class="max-w-3xl space-y-6">
 
   {{-- Invite member (staff profile must exist first — Staff & HR) --}}
-  <div class="bg-white rounded-2xl border border-gray-200 p-6" x-data="{ open: false }">
+  <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 p-6 shadow-sm dark:shadow-none" x-data="{ open: false }">
     <div class="flex items-center justify-between mb-1">
-      <h2 class="font-semibold text-gray-900">Invite a team member</h2>
+      <h2 class="font-semibold text-heading">Invite a team member</h2>
       <button @click="open=!open"
               class="px-4 py-2 text-sm font-medium rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
         + Invite
       </button>
     </div>
-    <p class="text-sm text-gray-500 mt-1">Add the person in <strong>Staff &amp; HR</strong> first (with an email). Then send an invitation: they receive a temporary password, sign in, and must set a new password before using the app.</p>
-    <p class="text-sm text-gray-500 mt-2">The list below only includes people marked <strong>Profile only</strong> in the team list—profiles that already have app access (roles like Stylist, no “Profile only” label) are not shown because they already have a login. Use <strong>Forgot password</strong> on the sign-in page if they need to get back in.</p>
+    <p class="text-sm text-muted mt-1">Add the person in <strong class="text-heading">Staff &amp; HR</strong> first (with an email). Then send an invitation: they receive a temporary password, sign in, and must set a new password before using the app.</p>
+    <p class="text-sm text-muted mt-2">The list below only includes people marked <strong class="text-heading">Profile only</strong> in the team list—profiles that already have app access (roles like Stylist, no “Profile only” label) are not shown because they already have a login. Use <strong class="text-heading">Forgot password</strong> on the sign-in page if they need to get back in.</p>
 
-    <div x-show="open" x-cloak class="mt-5 border-t border-gray-100 pt-5">
+    <div x-show="open" x-cloak class="mt-5 border-t border-gray-100 dark:border-gray-800 pt-5">
       @if(($invitableStaff ?? collect())->isEmpty())
-        <p class="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-          No staff profiles are ready to invite. Create a profile under <a href="{{ route('staff.index') }}" class="text-velour-600 font-medium underline">Staff &amp; HR</a> and enter an email address, then return here.
+        <p class="text-sm text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800/80 rounded-xl px-4 py-3">
+          No staff profiles are ready to invite. Create a profile under <a href="{{ route('staff.index') }}" class="text-velour-600 dark:text-velour-400 font-medium underline">Staff &amp; HR</a> and enter an email address, then return here.
         </p>
       @else
       <form method="POST" action="{{ route('salon-admin.team.invite') }}" class="space-y-4" id="salon-invite-form">
         @csrf
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Staff profile <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-medium text-heading mb-1.5">Staff profile <span class="text-red-500 dark:text-red-400">*</span></label>
           <select name="staff_id" id="invite-staff-id" required
-                  class="w-full px-4 py-2.5 rounded-xl border @error('staff_id') border-red-400 @else border-gray-200 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-velour-500">
+                  class="form-select w-full @error('staff_id') form-input-error @enderror">
             <option value="">Choose someone already on the team (no login yet)…</option>
             @foreach($invitableStaff as $s)
             <option value="{{ $s->id }}" data-default-role="{{ Staff::defaultSpatieRoleForStaffJob($s->role) }}"
@@ -41,17 +41,17 @@
             </option>
             @endforeach
           </select>
-          @error('staff_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+          @error('staff_id')<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">App role &amp; permissions <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-medium text-heading mb-1.5">App role &amp; permissions <span class="text-red-500 dark:text-red-400">*</span></label>
           <select name="role" id="invite-role" required
-                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-velour-500">
+                  class="form-select w-full">
             @foreach(['tenant_admin' => 'Admin — Full access', 'manager' => 'Manager — Operations', 'stylist' => 'Stylist — Own appointments', 'receptionist' => 'Receptionist — Front desk'] as $value => $label)
             <option value="{{ $value }}" {{ old('role', 'stylist') === $value ? 'selected' : '' }}>{{ $label }}</option>
             @endforeach
           </select>
-          <p class="text-xs text-gray-500 mt-1">Suggested from their job role when you pick a profile; you can change it before sending.</p>
+          <p class="text-xs text-muted mt-1">Suggested from their job role when you pick a profile; you can change it before sending.</p>
         </div>
         <div class="flex gap-3">
           <button type="submit"
@@ -59,7 +59,7 @@
             Send invitation email
           </button>
           <button type="button" @click="open=false"
-                  class="px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors">
+                  class="px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/70 text-gray-600 dark:text-gray-300 transition-colors">
             Cancel
           </button>
         </div>
@@ -85,49 +85,49 @@
   </div>
 
   {{-- Team members list --}}
-  <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-    <h2 class="px-6 py-4 font-semibold text-gray-900 border-b border-gray-100">
+  <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 overflow-hidden shadow-sm dark:shadow-none">
+    <h2 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">
       Team members ({{ $members->count() + (($unlinkedStaff ?? collect())->count()) }})
     </h2>
-    <div class="divide-y divide-gray-50">
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
       @foreach($members as $member)
       <div class="px-6 py-4 flex items-center gap-4" x-data="{ editRole: false }">
-        <div class="w-10 h-10 rounded-xl bg-velour-100 flex items-center justify-center text-velour-700 font-bold flex-shrink-0">
+        <div class="w-10 h-10 rounded-xl bg-velour-100 dark:bg-velour-900/40 flex items-center justify-center text-velour-700 dark:text-velour-300 font-bold flex-shrink-0">
           {{ strtoupper(substr($member->name, 0, 1)) }}
         </div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <p class="font-semibold text-gray-900">{{ $member->name }}</p>
+            <p class="font-semibold text-heading">{{ $member->name }}</p>
             @if($member->id === $salon->owner_id)
-            <span class="px-2 py-0.5 text-xs bg-velour-100 text-velour-700 rounded-lg font-semibold">Owner</span>
+            <span class="px-2 py-0.5 text-xs bg-velour-100 dark:bg-velour-900/50 text-velour-700 dark:text-velour-300 rounded-lg font-semibold">Owner</span>
             @endif
             @if($member->id !== $salon->owner_id)
-            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-lg">App access</span>
+            <span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg">App access</span>
             @endif
             @foreach($member->roles as $role)
-            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-lg">{{ ucfirst(str_replace('_',' ',$role->name)) }}</span>
+            <span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg">{{ ucfirst(str_replace('_',' ',$role->name)) }}</span>
             @endforeach
           </div>
-          <p class="text-sm text-gray-400">{{ $member->email }}</p>
+          <p class="text-sm text-muted">{{ $member->email }}</p>
         </div>
         @if($member->id !== $salon->owner_id)
         <div class="flex items-center gap-2 flex-shrink-0">
           {{-- Role change --}}
           <div x-show="!editRole">
-            <button @click="editRole=true" class="text-xs text-velour-600 hover:text-velour-700 font-medium">
+            <button @click="editRole=true" class="text-xs text-velour-600 dark:text-velour-400 hover:text-velour-700 dark:hover:text-velour-300 font-medium">
               Edit role
             </button>
           </div>
           <div x-show="editRole" x-cloak>
             <form method="POST" action="{{ route('salon-admin.team.role', $member->id) }}" class="flex gap-2">
               @csrf @method('PATCH')
-              <select name="role" class="px-3 py-1.5 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-velour-500">
+              <select name="role" class="px-3 py-1.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 max-w-[11rem] min-w-0 shrink focus:outline-none focus:ring-2 focus:ring-velour-500">
                 @foreach(['tenant_admin','manager','stylist','receptionist'] as $r)
                 <option value="{{ $r }}" {{ $member->hasRole($r) ? 'selected' : '' }}>{{ ucfirst(str_replace('_',' ',$r)) }}</option>
                 @endforeach
               </select>
               <button type="submit" class="px-3 py-1.5 text-xs font-medium rounded-xl bg-velour-600 text-white hover:bg-velour-700">Save</button>
-              <button type="button" @click="editRole=false" class="text-xs text-gray-400 hover:text-gray-600">✕</button>
+              <button type="button" @click="editRole=false" class="text-xs text-muted hover:text-heading">✕</button>
             </form>
           </div>
 
@@ -135,7 +135,7 @@
           <form method="POST" action="{{ route('salon-admin.team.remove', $member->id) }}"
                 onsubmit="return confirm('Remove {{ $member->name }} from the team?')">
             @csrf @method('DELETE')
-            <button type="submit" class="text-xs text-red-500 hover:text-red-600 font-medium">Remove</button>
+            <button type="submit" class="text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 font-medium">Remove</button>
           </form>
         </div>
         @endif
@@ -144,18 +144,18 @@
 
       @foreach(($unlinkedStaff ?? collect()) as $staffMember)
       <div class="px-6 py-4 flex items-center gap-4">
-        <div class="w-10 h-10 rounded-xl bg-velour-100 flex items-center justify-center text-velour-700 font-bold flex-shrink-0">
+        <div class="w-10 h-10 rounded-xl bg-velour-100 dark:bg-velour-900/40 flex items-center justify-center text-velour-700 dark:text-velour-300 font-bold flex-shrink-0">
           {{ strtoupper(substr($staffMember->name, 0, 1)) }}
         </div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <p class="font-semibold text-gray-900">{{ $staffMember->name }}</p>
-            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-lg">Profile only</span>
+            <p class="font-semibold text-heading">{{ $staffMember->name }}</p>
+            <span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg">Profile only</span>
             @if($staffMember->role)
-            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-lg">{{ ucfirst(str_replace('_',' ', $staffMember->role)) }}</span>
+            <span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg">{{ ucfirst(str_replace('_',' ', $staffMember->role)) }}</span>
             @endif
           </div>
-          <p class="text-sm text-gray-400">{{ $staffMember->email ?: 'No login account linked' }}</p>
+          <p class="text-sm text-muted">{{ $staffMember->email ?: 'No login account linked' }}</p>
         </div>
       </div>
       @endforeach
@@ -163,12 +163,12 @@
   </div>
 
   {{-- Permissions reference --}}
-  <div class="bg-white rounded-2xl border border-gray-200 p-6">
-    <h2 class="font-semibold text-gray-900 mb-4">Role permissions</h2>
+  <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 p-6 shadow-sm dark:shadow-none">
+    <h2 class="font-semibold text-heading mb-4">Role permissions</h2>
     <div class="overflow-x-auto">
       <table class="w-full text-xs text-center">
         <thead>
-        <tr class="text-gray-500 uppercase tracking-wider border-b border-gray-100">
+        <tr class="text-muted uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
           <th class="text-left pb-3 pr-4">Feature</th>
           <th class="pb-3 px-3">Admin</th>
           <th class="pb-3 px-3">Manager</th>
@@ -176,7 +176,7 @@
           <th class="pb-3 px-3">Receptionist</th>
         </tr>
         </thead>
-        <tbody class="divide-y divide-gray-50 text-sm">
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
         @foreach([
           'Appointments'    => [1,1,1,1],
           'Clients'         => [1,1,1,1],
@@ -192,9 +192,9 @@
           'Billing'         => [1,0,0,0],
         ] as $feature => $perms)
         <tr>
-          <td class="text-left py-2.5 pr-4 font-medium text-gray-700">{{ $feature }}</td>
+          <td class="text-left py-2.5 pr-4 font-medium text-heading">{{ $feature }}</td>
           @foreach($perms as $p)
-          <td class="py-2.5 px-3 {{ $p ? 'text-green-500' : 'text-gray-200' }}">{{ $p ? '✓' : '—' }}</td>
+          <td class="py-2.5 px-3 {{ $p ? 'text-green-600 dark:text-green-400' : 'text-gray-300 dark:text-gray-600' }}">{{ $p ? '✓' : '—' }}</td>
           @endforeach
         </tr>
         @endforeach

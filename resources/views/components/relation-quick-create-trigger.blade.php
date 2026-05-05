@@ -3,6 +3,9 @@
     'selectId',
     'buttonClass' => 'inline-flex items-center justify-center h-10 w-10 flex-shrink-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-velour-600 dark:text-velour-400 hover:bg-velour-50 dark:hover:bg-velour-900/30 hover:border-velour-300 dark:hover:border-velour-600 transition-colors focus:outline-none focus:ring-2 focus:ring-velour-400',
     'title' => null,
+    'clientLoyaltyTiers' => null,
+    /** @var array<string, list<array{id:int,name:string}>>|null */
+    'staffServicesByRole' => null,
 ])
 
 @php
@@ -18,6 +21,9 @@
         'postUrl' => $postUrl,
         'csrf' => csrf_token(),
     ];
+    if ($type === 'staff') {
+        $cfg['staffServicesByRole'] = $staffServicesByRole ?? [];
+    }
     $btnTitle = $title ?? match ($type) {
         'staff' => 'Add staff member',
         'inventory_category' => 'Add category',
@@ -46,20 +52,60 @@ document.addEventListener('alpine:init', () => {
         qcStaffPhone: '',
         qcInvCatName: '',
         qcInvSupplierName: '',
+        qcDateOfBirth: '',
+        qcGender: '',
+        qcAddress: '',
+        qcNotes: '',
+        qcLoyaltyTierId: '',
+        qcMarketingConsent: false,
+        qcStaffCommission: '0',
+        qcStaffColor: '#7C3AED',
+        qcStaffBio: '',
+        qcStaffServiceIds: [],
         cfg,
+        servicesForRole() {
+            const m = this.cfg.staffServicesByRole || {};
+            return m[this.qcRole] || [];
+        },
+        toggleStaffService(id, on) {
+            id = Number(id);
+            if (on) {
+                if (!this.qcStaffServiceIds.includes(id)) {
+                    this.qcStaffServiceIds.push(id);
+                }
+            } else {
+                this.qcStaffServiceIds = this.qcStaffServiceIds.filter((x) => x !== id);
+            }
+        },
         openModal() {
             this.fieldErrors = {};
             this.qcFirst = '';
             this.qcLast = '';
             this.qcPhone = '';
             this.qcEmail = '';
+            this.qcDateOfBirth = '';
+            this.qcGender = '';
+            this.qcAddress = '';
+            this.qcNotes = '';
+            this.qcLoyaltyTierId = '';
+            this.qcMarketingConsent = false;
             this.qcName = '';
             this.qcRole = 'stylist';
             this.qcStaffEmail = '';
             this.qcStaffPhone = '';
             this.qcInvCatName = '';
             this.qcInvSupplierName = '';
+            this.qcStaffCommission = '0';
+            this.qcStaffColor = '#7C3AED';
+            this.qcStaffBio = '';
+            this.qcStaffServiceIds = [];
             this.modalOpen = true;
+            this.$nextTick(() => {
+                const el = this.$refs.staffAvatarFile;
+                if (el) {
+                    el.value = '';
+                }
+            });
         },
         closeModal() {
             this.modalOpen = false;
@@ -115,11 +161,28 @@ document.addEventListener('alpine:init', () => {
                 fd.append('last_name', this.qcLast);
                 fd.append('phone', this.qcPhone || '');
                 fd.append('email', this.qcEmail || '');
+                fd.append('date_of_birth', this.qcDateOfBirth || '');
+                fd.append('gender', this.qcGender || '');
+                fd.append('address', this.qcAddress || '');
+                fd.append('notes', this.qcNotes || '');
+                fd.append('loyalty_tier_id', this.qcLoyaltyTierId || '');
+                if (this.qcMarketingConsent) {
+                    fd.append('marketing_consent', '1');
+                }
             } else if (this.cfg.type === 'staff') {
                 fd.append('name', this.qcName);
                 fd.append('role', this.qcRole);
                 fd.append('email', this.qcStaffEmail || '');
                 fd.append('phone', this.qcStaffPhone || '');
+                fd.append('bio', this.qcStaffBio || '');
+                fd.append('color', this.qcStaffColor || '#7C3AED');
+                fd.append('commission_rate', this.qcStaffCommission !== '' ? this.qcStaffCommission : '0');
+                (this.qcStaffServiceIds || []).forEach((id) => fd.append('services[]', String(id)));
+                const avatarEl = this.$refs.staffAvatarFile;
+                const file = avatarEl && avatarEl.files && avatarEl.files[0];
+                if (file) {
+                    fd.append('avatar', file);
+                }
             } else if (this.cfg.type === 'inventory_category') {
                 fd.append('name', this.qcInvCatName);
             }
@@ -184,7 +247,8 @@ document.addEventListener('alpine:init', () => {
          role="dialog"
          aria-modal="true"
          :aria-labelledby="'rqc-title-' + cfg.selectId">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-800"
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-800"
+             :class="(cfg.type === 'client' || cfg.type === 'staff') ? 'max-w-lg' : 'max-w-md'"
              @click.outside="closeModal()">
             <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
                 <h3 class="text-lg font-bold text-heading" :id="'rqc-title-' + cfg.selectId"
@@ -207,15 +271,68 @@ document.addEventListener('alpine:init', () => {
                                 <p class="form-error text-xs mt-0.5" x-show="err('last_name')" x-text="err('last_name')"></p>
                             </div>
                         </div>
-                        <div>
-                            <label class="form-label">Phone</label>
-                            <input type="tel" x-model="qcPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''" autocomplete="tel">
-                            <p class="form-error text-xs mt-0.5" x-show="err('phone')" x-text="err('phone')"></p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label">Email</label>
+                                <input type="email" x-model="qcEmail" class="form-input" :class="err('email') ? 'form-input-error' : ''" autocomplete="email">
+                                <p class="form-error text-xs mt-0.5" x-show="err('email')" x-text="err('email')"></p>
+                            </div>
+                            <div>
+                                <label class="form-label">Phone</label>
+                                <input type="tel" x-model="qcPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''" autocomplete="tel">
+                                <p class="form-error text-xs mt-0.5" x-show="err('phone')" x-text="err('phone')"></p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label">Date of birth</label>
+                                <input type="date" x-model="qcDateOfBirth" class="form-input" :class="err('date_of_birth') ? 'form-input-error' : ''">
+                                <p class="form-error text-xs mt-0.5" x-show="err('date_of_birth')" x-text="err('date_of_birth')"></p>
+                            </div>
+                            <div>
+                                <label class="form-label">Gender</label>
+                                <select x-model="qcGender" class="form-select" :class="err('gender') ? 'form-input-error' : ''">
+                                    <option value="">Prefer not to say</option>
+                                    <option value="female">Female</option>
+                                    <option value="male">Male</option>
+                                    <option value="non_binary">Non-binary</option>
+                                </select>
+                                <p class="form-error text-xs mt-0.5" x-show="err('gender')" x-text="err('gender')"></p>
+                            </div>
                         </div>
                         <div>
-                            <label class="form-label">Email</label>
-                            <input type="email" x-model="qcEmail" class="form-input" :class="err('email') ? 'form-input-error' : ''" autocomplete="email">
-                            <p class="form-error text-xs mt-0.5" x-show="err('email')" x-text="err('email')"></p>
+                            <label class="form-label">Address</label>
+                            <input type="text" x-model="qcAddress" class="form-input" :class="err('address') ? 'form-input-error' : ''" autocomplete="street-address">
+                            <p class="form-error text-xs mt-0.5" x-show="err('address')" x-text="err('address')"></p>
+                        </div>
+                        <div>
+                            <label class="form-label">Notes</label>
+                            <textarea x-model="qcNotes" rows="3" class="form-textarea" :class="err('notes') ? 'form-input-error' : ''"></textarea>
+                            <p class="form-error text-xs mt-0.5" x-show="err('notes')" x-text="err('notes')"></p>
+                        </div>
+                        @if($type === 'client' && $clientLoyaltyTiers && count($clientLoyaltyTiers))
+                        <div>
+                            <label class="form-label">Loyalty plan</label>
+                            <select x-model="qcLoyaltyTierId" class="form-select" :class="err('loyalty_tier_id') ? 'form-input-error' : ''">
+                                <option value="">— None —</option>
+                                @foreach($clientLoyaltyTiers as $tier)
+                                <option value="{{ $tier->id }}">{{ $tier->name }}</option>
+                                @endforeach
+                            </select>
+                            <p class="form-error text-xs mt-0.5" x-show="err('loyalty_tier_id')" x-text="err('loyalty_tier_id')"></p>
+                        </div>
+                        @endif
+                        <div>
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" x-model="qcMarketingConsent" class="rounded border-gray-300 dark:border-gray-600 text-velour-600 mt-1 shrink-0">
+                                <span class="flex-1 min-w-0">
+                                    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-body">
+                                        Marketing consent
+                                        <x-marketing-consent-help mode="tooltip" />
+                                    </span>
+                                    <x-marketing-consent-help mode="hint" class="mt-1.5" />
+                                </span>
+                            </label>
                         </div>
                     </div>
                 </template>
@@ -223,29 +340,70 @@ document.addEventListener('alpine:init', () => {
                 <template x-if="cfg.type === 'staff'">
                     <div class="space-y-4">
                         <div>
+                            <label class="form-label">Photo <span class="text-red-500">*</span></label>
+                            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" x-ref="staffAvatarFile"
+                                   class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
+                            <p class="form-hint">JPG, PNG or WebP · max 2&nbsp;MB</p>
+                            <p class="form-error text-xs mt-0.5" x-show="err('avatar')" x-text="err('avatar')"></p>
+                        </div>
+                        <div>
                             <label class="form-label">Full name <span class="text-red-500">*</span></label>
                             <input type="text" x-model="qcName" class="form-input" :class="err('name') ? 'form-input-error' : ''" autocomplete="name">
                             <p class="form-error text-xs mt-0.5" x-show="err('name')" x-text="err('name')"></p>
                         </div>
-                        <div>
-                            <label class="form-label">Role <span class="text-red-500">*</span></label>
-                            <select x-model="qcRole" class="form-select" :class="err('role') ? 'form-input-error' : ''">
-                                @foreach(['stylist','therapist','manager','receptionist','junior','owner'] as $r)
-                                    <option value="{{ $r }}">{{ ucfirst($r) }}</option>
-                                @endforeach
-                            </select>
-                            <p class="form-error text-xs mt-0.5" x-show="err('role')" x-text="err('role')"></p>
-                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="form-label">Email</label>
-                                <input type="email" x-model="qcStaffEmail" class="form-input" :class="err('email') ? 'form-input-error' : ''">
+                                <input type="email" x-model="qcStaffEmail" class="form-input" :class="err('email') ? 'form-input-error' : ''" autocomplete="email">
                                 <p class="form-error text-xs mt-0.5" x-show="err('email')" x-text="err('email')"></p>
                             </div>
                             <div>
                                 <label class="form-label">Phone</label>
-                                <input type="tel" x-model="qcStaffPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''">
+                                <input type="tel" x-model="qcStaffPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''" autocomplete="tel">
                                 <p class="form-error text-xs mt-0.5" x-show="err('phone')" x-text="err('phone')"></p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label">Role <span class="text-red-500">*</span></label>
+                                <select x-model="qcRole" @change="qcStaffServiceIds = []" class="form-select" :class="err('role') ? 'form-input-error' : ''">
+                                    @foreach(['stylist','therapist','manager','receptionist','junior','owner'] as $r)
+                                        <option value="{{ $r }}">{{ ucfirst($r) }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="form-error text-xs mt-0.5" x-show="err('role')" x-text="err('role')"></p>
+                            </div>
+                            <div>
+                                <label class="form-label">Commission %</label>
+                                <input type="number" x-model="qcStaffCommission" min="0" max="100" step="0.1" class="form-input" :class="err('commission_rate') ? 'form-input-error' : ''">
+                                <p class="form-error text-xs mt-0.5" x-show="err('commission_rate')" x-text="err('commission_rate')"></p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">Calendar colour</label>
+                            <input type="color" x-model="qcStaffColor" class="w-full h-10 px-2 py-1 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer">
+                            <p class="form-error text-xs mt-0.5" x-show="err('color')" x-text="err('color')"></p>
+                        </div>
+                        <div>
+                            <label class="form-label">Bio</label>
+                            <textarea x-model="qcStaffBio" rows="3" class="form-textarea" :class="err('bio') ? 'form-input-error' : ''"></textarea>
+                            <p class="form-error text-xs mt-0.5" x-show="err('bio')" x-text="err('bio')"></p>
+                        </div>
+                        <div x-show="servicesForRole().length > 0" x-cloak>
+                            <label class="form-label">Services offered</label>
+                            <p class="form-hint mb-2">Only services permitted for the role selected above are listed.</p>
+                            <p class="form-error text-xs mb-1" x-show="err('services')" x-text="err('services')"></p>
+                            <div class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
+                                <template x-for="svc in servicesForRole()" :key="svc.id">
+                                    <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
+                                        <input type="checkbox"
+                                               class="rounded border-gray-300 dark:border-gray-600 text-velour-600"
+                                               :value="svc.id"
+                                               :checked="qcStaffServiceIds.includes(Number(svc.id))"
+                                               @change="toggleStaffService(svc.id, $event.target.checked)">
+                                        <span class="text-sm text-body truncate" x-text="svc.name"></span>
+                                    </label>
+                                </template>
                             </div>
                         </div>
                     </div>

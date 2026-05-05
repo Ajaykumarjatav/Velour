@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Client;
+use App\Models\LoyaltyTier;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -67,9 +68,24 @@ class VoucherController extends Controller
     public function create()
     {
         $salon   = $this->salon();
-        $clients = $this->salonScoped(Client::class)->orderBy('first_name')->get(['id', 'first_name', 'last_name']);
+        $clients = $this->salonScoped(Client::class)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->limit(30)
+            ->get(['id', 'first_name', 'last_name', 'phone']);
+        $oldClientId = old('client_id');
+        if ($oldClientId && ! $clients->firstWhere('id', (int) $oldClientId)) {
+            $extra = $this->salonScoped(Client::class)->find((int) $oldClientId, ['id', 'first_name', 'last_name', 'phone']);
+            if ($extra) {
+                $clients->prepend($extra);
+            }
+        }
+        $clientQuickCreateLoyaltyTiers = LoyaltyTier::where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
 
-        return view('vouchers.create', compact('salon', 'clients'));
+        return view('vouchers.create', compact('salon', 'clients', 'clientQuickCreateLoyaltyTiers'));
     }
 
     public function store(Request $request)
@@ -108,9 +124,24 @@ class VoucherController extends Controller
     {
         abort_unless($voucher->salon_id === $this->salon()->id, 403);
         $salon   = $this->salon();
-        $clients = $this->salonScoped(Client::class)->orderBy('first_name')->get(['id', 'first_name', 'last_name']);
+        $clients = $this->salonScoped(Client::class)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->limit(30)
+            ->get(['id', 'first_name', 'last_name', 'phone']);
+        $selId = old('client_id', $voucher->client_id);
+        if ($selId && ! $clients->firstWhere('id', (int) $selId)) {
+            $extra = $this->salonScoped(Client::class)->find((int) $selId, ['id', 'first_name', 'last_name', 'phone']);
+            if ($extra) {
+                $clients->prepend($extra);
+            }
+        }
+        $clientQuickCreateLoyaltyTiers = LoyaltyTier::where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
 
-        return view('vouchers.edit', compact('voucher', 'clients'));
+        return view('vouchers.edit', compact('voucher', 'clients', 'clientQuickCreateLoyaltyTiers'));
     }
 
     public function update(Request $request, Voucher $voucher)

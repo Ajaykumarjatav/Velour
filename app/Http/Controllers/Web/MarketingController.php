@@ -136,9 +136,34 @@ class MarketingController extends Controller
     public function create()
     {
         $salon       = $this->salon();
-        $clientCount = $this->salonScoped(Client::class)->where('marketing_consent', true)->count();
+        $base = $this->salonScoped(Client::class)
+            ->where('marketing_consent', true)
+            ->where('status', 'active');
 
-        return view('marketing.create', compact('salon', 'clientCount'));
+        $today = now();
+        $counts = [
+            'all' => (int) $base->clone()->count(),
+            // "Active (visited in 90d)"
+            'active' => (int) $base->clone()
+                ->whereNotNull('last_visit_at')
+                ->where('last_visit_at', '>=', $today->copy()->subDays(90))
+                ->count(),
+            'lapsed' => (int) $base->clone()
+                ->where(fn ($q) =>
+                    $q->whereNull('last_visit_at')
+                      ->orWhere('last_visit_at', '<', $today->copy()->subDays(90))
+                )->count(),
+            // "Birthday this month"
+            'birthday' => (int) $base->clone()
+                ->whereNotNull('date_of_birth')
+                ->whereMonth('date_of_birth', $today->month)
+                ->count(),
+            'new' => (int) $base->clone()
+                ->where('created_at', '>=', $today->copy()->subDays(30))
+                ->count(),
+        ];
+
+        return view('marketing.create', compact('salon', 'counts'));
     }
 
     public function store(Request $request)
@@ -178,12 +203,35 @@ class MarketingController extends Controller
         abort_unless(in_array($marketing->status, ['draft', 'scheduled'], true), 422);
 
         $salon       = $this->salon();
-        $clientCount = $this->salonScoped(Client::class)->where('marketing_consent', true)->count();
+        $base = $this->salonScoped(Client::class)
+            ->where('marketing_consent', true)
+            ->where('status', 'active');
+
+        $today = now();
+        $counts = [
+            'all' => (int) $base->clone()->count(),
+            'active' => (int) $base->clone()
+                ->whereNotNull('last_visit_at')
+                ->where('last_visit_at', '>=', $today->copy()->subDays(90))
+                ->count(),
+            'lapsed' => (int) $base->clone()
+                ->where(fn ($q) =>
+                    $q->whereNull('last_visit_at')
+                      ->orWhere('last_visit_at', '<', $today->copy()->subDays(90))
+                )->count(),
+            'birthday' => (int) $base->clone()
+                ->whereNotNull('date_of_birth')
+                ->whereMonth('date_of_birth', $today->month)
+                ->count(),
+            'new' => (int) $base->clone()
+                ->where('created_at', '>=', $today->copy()->subDays(30))
+                ->count(),
+        ];
 
         return view('marketing.edit', [
             'campaign'    => $marketing,
             'salon'       => $salon,
-            'clientCount' => $clientCount,
+            'counts'      => $counts,
         ]);
     }
 

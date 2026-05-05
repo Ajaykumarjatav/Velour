@@ -8,7 +8,17 @@
     $salonTz = $salonTz ?? ($salon->timezone ?? config('app.timezone'));
     $salonTodayYmd = $salonTodayYmd ?? \Carbon\Carbon::now($salonTz)->toDateString();
     $tzAbbrev = $tzAbbrev ?? '';
-    $calRoute = fn ($v, $d) => route('calendar', array_filter(['view' => $v, 'date' => $d, 'staff_id' => $filterStaffId]));
+    $customRangeActive = (bool) ($customRangeActive ?? false);
+    $rangeFromYmd = $rangeFromYmd ?? null;
+    $rangeToYmd = $rangeToYmd ?? null;
+    $rangeSpanDays = (int) ($rangeSpanDays ?? 7);
+    $calRoute = fn ($v, $d, array $extra = []) => route('calendar', array_filter(array_merge([
+        'view' => $v,
+        'date' => $d,
+        'staff_id' => $filterStaffId,
+        'from' => ($v === 'week' && $customRangeActive) ? $rangeFromYmd : null,
+        'to' => ($v === 'week' && $customRangeActive) ? $rangeToYmd : null,
+    ], $extra), fn ($value) => $value !== null && $value !== ''));
 @endphp
 
 <div class="alert-info mb-7 text-sm">
@@ -26,9 +36,8 @@
 
 @if($filterStaffId)
     @php $filterStaffMember = \App\Models\Staff::where('salon_id', $salon->id)->whereKey($filterStaffId)->first(); @endphp
-    <div class="mb-6 px-5 py-4 rounded-2xl leading-relaxed bg-velour-50 dark:bg-velour-950/35 border border-velour-200/80 dark:border-velour-500/20 text-sm text-body flex flex-wrap items-center justify-between gap-3">
+    <div class="mb-6 px-5 py-4 rounded-2xl leading-relaxed bg-velour-50 dark:bg-velour-950/35 border border-velour-200/80 dark:border-velour-500/20 text-sm text-body">
         <span>Showing calendar for <strong>{{ $filterStaffMember?->name ?? 'staff #' . $filterStaffId }}</strong> only.</span>
-        <a href="{{ route('calendar', ['view' => $view, 'date' => $date->toDateString()]) }}" class="text-velour-700 dark:text-velour-300 font-semibold hover:underline shrink-0">Show all staff</a>
     </div>
 @endif
 
@@ -50,36 +59,77 @@
             <form method="GET" action="{{ route('calendar') }}" class="flex items-center gap-2">
                 <input type="hidden" name="view" value="{{ $view }}">
                 <input type="hidden" name="date" value="{{ $date->toDateString() }}">
-                <select name="staff_id" onchange="this.form.submit()" class="form-select text-sm min-w-[11rem] sm:min-w-[12.5rem]">
+                <x-searchable-select
+                    id="calendar-staff-filter"
+                    name="staff_id"
+                    wrapper-class="min-w-0"
+                    :search-url="route('lookup.staff')"
+                    search-placeholder="Search staff…"
+                    trigger-class="form-select text-sm min-w-[11rem] sm:min-w-[12.5rem]"
+                    onchange="this.form.submit()">
                     <option value="">All staff availability</option>
                     @foreach($staff as $st)
                         <option value="{{ $st->id }}" {{ (string) $filterStaffId === (string) $st->id ? 'selected' : '' }}>{{ $st->name }}</option>
                     @endforeach
-                </select>
+                </x-searchable-select>
             </form>
             @php
-                $prevDate = $view === 'day' ? $date->copy()->subDay() : ($view === 'month' ? $date->copy()->subMonth() : $date->copy()->subWeek());
-                $nextDate = $view === 'day' ? $date->copy()->addDay() : ($view === 'month' ? $date->copy()->addMonth() : $date->copy()->addWeek());
+                if ($view === 'week' && $customRangeActive) {
+                    $span = max(1, $rangeSpanDays);
+                    $prevDate = $date->copy()->subDays($span);
+                    $nextDate = $date->copy()->addDays($span);
+                    $prevFrom = $start->copy()->subDays($span)->toDateString();
+                    $prevTo = $end->copy()->subDays($span)->toDateString();
+                    $nextFrom = $start->copy()->addDays($span)->toDateString();
+                    $nextTo = $end->copy()->addDays($span)->toDateString();
+                } else {
+                    $prevDate = $view === 'day' ? $date->copy()->subDay() : ($view === 'month' ? $date->copy()->subMonth() : $date->copy()->subWeek());
+                    $nextDate = $view === 'day' ? $date->copy()->addDay() : ($view === 'month' ? $date->copy()->addMonth() : $date->copy()->addWeek());
+                    $prevFrom = $prevTo = $nextFrom = $nextTo = null;
+                }
             @endphp
-            <div class="inline-flex items-stretch rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-x divide-gray-200 dark:divide-gray-700 overflow-hidden shadow-sm dark:shadow-none">
-                <a href="{{ $calRoute($view, $prevDate->toDateString()) }}"
+            <div x-data="{ openRangePicker: false }" class="inline-flex items-stretch rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-x divide-gray-200 dark:divide-gray-700 overflow-visible shadow-sm dark:shadow-none relative">
+                <a href="{{ $calRoute($view, $prevDate->toDateString(), ($view === 'week' && $customRangeActive) ? ['from' => $prevFrom, 'to' => $prevTo] : []) }}"
                    class="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-body transition-colors"
                    title="Previous">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </a>
-                <span class="flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm font-semibold text-heading tabular-nums min-w-[10.5rem] sm:min-w-[12.5rem] text-center">
+                <button type="button"
+                        @click="openRangePicker = !openRangePicker"
+                        class="flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm font-semibold text-heading tabular-nums min-w-[10.5rem] sm:min-w-[12.5rem] text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     @if($view === 'day')   {{ $date->format('d F Y') }}
                     @elseif($view === 'month') {{ $date->format('F Y') }}
                     @else {{ $start->format('d M') }} – {{ $end->format('d M Y') }}
                     @endif
-                </span>
-                <a href="{{ $calRoute($view, $nextDate->toDateString()) }}"
+                </button>
+                <a href="{{ $calRoute($view, $nextDate->toDateString(), ($view === 'week' && $customRangeActive) ? ['from' => $nextFrom, 'to' => $nextTo] : []) }}"
                    class="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-body transition-colors"
                    title="Next">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
+                <div x-show="openRangePicker"
+                     x-cloak
+                     @click.outside="openRangePicker = false"
+                     class="absolute top-full right-0 mt-2 w-72 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-xl z-20">
+                    <form method="GET" action="{{ route('calendar') }}" class="space-y-3">
+                        <input type="hidden" name="view" value="week">
+                        <input type="hidden" name="staff_id" value="{{ $filterStaffId }}">
+                        <div>
+                            <label class="form-label text-xs">From</label>
+                            <input type="date" name="from" class="form-input text-sm" value="{{ $rangeFromYmd ?? $start->toDateString() }}">
+                        </div>
+                        <div>
+                            <label class="form-label text-xs">To</label>
+                            <input type="date" name="to" class="form-input text-sm" value="{{ $rangeToYmd ?? $end->toDateString() }}">
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button type="button" class="btn-outline btn-sm" @click="openRangePicker = false">Cancel</button>
+                            <button type="submit" class="btn-primary btn-sm">Apply</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <a href="{{ $calRoute($view, $salonTodayYmd) }}" class="btn-outline btn-sm whitespace-nowrap">Today</a>
+            <a href="{{ $calRoute($view, $salonTodayYmd, ['from' => null, 'to' => null]) }}" class="btn-outline btn-sm whitespace-nowrap">Today</a>
             <a href="{{ route('appointments.create') }}" class="btn-primary btn-sm whitespace-nowrap">+ New</a>
         </div>
     </div>

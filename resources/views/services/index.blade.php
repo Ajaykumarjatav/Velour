@@ -107,23 +107,35 @@
                     </div>
                 </div>
                 <div class="lg:col-span-3 space-y-1.5">
-                    <label for="svc-category" class="text-xs font-medium text-muted uppercase tracking-wide">Category</label>
-                    <select id="svc-category" name="category_id" class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full">
+                    <label for="svc-category-trigger" class="text-xs font-medium text-muted uppercase tracking-wide">Category</label>
+                    <x-searchable-select
+                        id="svc-category"
+                        name="category_id"
+                        wrapper-class="w-full min-w-0"
+                        :search-url="null"
+                        search-placeholder="Search category…"
+                        trigger-class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full">
                         <option value="">All categories</option>
                         @foreach($categoryChips as $chip)
                             <option value="{{ $chip->id }}" @selected((string) $filterCategoryId === (string) $chip->id)>
                                 {{ $chip->name }}@if($chip->businessType) — {{ $chip->businessType->name }}@endif
                             </option>
                         @endforeach
-                    </select>
+                    </x-searchable-select>
                 </div>
                 <div class="lg:col-span-2 space-y-1.5">
-                    <label for="svc-status" class="text-xs font-medium text-muted uppercase tracking-wide">Status</label>
-                    <select id="svc-status" name="status" class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full">
+                    <label for="svc-status-trigger" class="text-xs font-medium text-muted uppercase tracking-wide">Status</label>
+                    <x-searchable-select
+                        id="svc-status"
+                        name="status"
+                        wrapper-class="w-full min-w-0"
+                        :search-url="null"
+                        search-placeholder="Status…"
+                        trigger-class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full">
                         <option value="" @selected(($statusFilter ?? '') === '')>All</option>
                         <option value="active" @selected(($statusFilter ?? '') === 'active')>Active</option>
                         <option value="inactive" @selected(($statusFilter ?? '') === 'inactive')>Inactive</option>
-                    </select>
+                    </x-searchable-select>
                 </div>
                 <div class="lg:col-span-3 grid grid-cols-2 gap-3">
                     <div class="space-y-1.5">

@@ -8,6 +8,7 @@ use App\Models\SalonBufferRule;
 use App\Models\SalonResource;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
+use App\Support\StaffServiceEligibility;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -62,13 +63,16 @@ class AvailabilityResourcesController extends Controller
             []
         );
 
+        $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
+
         return view('availability.index', compact(
             'salon',
             'tab',
             'staff',
             'resources',
             'leaveRequests',
-            'bufferRule'
+            'bufferRule',
+            'staffQuickCreateServicesByRole'
         ));
     }
 

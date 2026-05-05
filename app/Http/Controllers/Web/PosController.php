@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\PosTransaction;
 use App\Models\Client;
+use App\Models\LoyaltyTier;
 use App\Models\Service;
 use App\Models\InventoryItem;
 use App\Models\Appointment;
@@ -54,7 +55,12 @@ class PosController extends Controller
     public function create()
     {
         $salon    = $this->activeSalon();
-        $clients  = Client::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
+        $clients  = Client::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->limit(50)
+            ->get(['id', 'first_name', 'last_name', 'phone']);
         $services = Service::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->active()
             ->with('category:id,name')
@@ -77,7 +83,12 @@ class PosController extends Controller
             ->limit(5)
             ->get();
 
-        return view('pos.create', compact('salon', 'clients', 'services', 'products', 'categories', 'recentTransactions'));
+        $clientQuickCreateLoyaltyTiers = LoyaltyTier::where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
+
+        return view('pos.create', compact('salon', 'clients', 'services', 'products', 'categories', 'recentTransactions', 'clientQuickCreateLoyaltyTiers'));
     }
 
     public function store(Request $request)

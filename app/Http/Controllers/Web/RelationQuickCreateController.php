@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Client;
+use App\Models\LoyaltyTier;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\Salon;
@@ -12,11 +13,13 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Staff;
 use App\Services\NotificationService;
+use App\Support\StaffServiceEligibility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class RelationQuickCreateController extends Controller
 {
@@ -28,15 +31,33 @@ class RelationQuickCreateController extends Controller
 
         $salon = $this->activeSalon();
 
-        $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:100'],
-            'last_name'  => ['required', 'string', 'max:100'],
-            'email'      => ['nullable', 'email', 'max:150'],
-            'phone'      => ['nullable', 'string', 'max:20'],
+        $request->merge([
+            'date_of_birth'   => $request->filled('date_of_birth') ? $request->input('date_of_birth') : null,
+            'gender'          => $request->filled('gender') ? $request->input('gender') : null,
+            'loyalty_tier_id' => $request->filled('loyalty_tier_id') ? $request->input('loyalty_tier_id') : null,
         ]);
 
+        $data = $request->validate([
+            'first_name'        => ['required', 'string', 'max:100'],
+            'last_name'         => ['required', 'string', 'max:100'],
+            'email'             => ['nullable', 'email', 'max:150'],
+            'phone'             => ['nullable', 'string', 'max:20'],
+            'date_of_birth'     => ['nullable', 'date'],
+            'gender'            => ['nullable', 'in:female,male,non_binary,prefer_not_to_say'],
+            'address'           => ['nullable', 'string', 'max:500'],
+            'notes'             => ['nullable', 'string', 'max:2000'],
+            'loyalty_tier_id'   => ['nullable', 'integer', 'exists:loyalty_tiers,id'],
+        ]);
+
+        if (! empty($data['loyalty_tier_id'])) {
+            abort_unless(
+                LoyaltyTier::where('id', $data['loyalty_tier_id'])->where('salon_id', $salon->id)->exists(),
+                422
+            );
+        }
+
         $data['salon_id'] = $salon->id;
-        $data['marketing_consent'] = false;
+        $data['marketing_consent'] = $request->boolean('marketing_consent');
 
         $client = Client::create($data);
         app(NotificationService::class)->notifyTenantNewClientRegistered($salon, $client);
@@ -59,24 +80,45 @@ class RelationQuickCreateController extends Controller
         $salon = $this->activeSalon();
 
         $data = $request->validate([
-            'name'  => ['required', 'string', 'max:100'],
-            'role'  => ['required', 'in:owner,manager,stylist,therapist,receptionist,junior'],
-            'email' => ['nullable', 'email', 'max:150'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'name'            => ['required', 'string', 'max:100'],
+            'email'           => ['nullable', 'email', 'max:150'],
+            'phone'           => ['nullable', 'string', 'max:20'],
+            'role'            => ['required', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'bio'             => ['nullable', 'string', 'max:1000'],
+            'color'           => ['nullable', 'string', 'max:7'],
+            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'services'        => ['nullable', 'array'],
+            'services.*'      => [Rule::exists('services', 'id')->where('salon_id', $salon->id)],
+            'avatar'          => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
+        StaffServiceEligibility::assertEligibleForRole($salon->id, (string) $data['role'], $data['services'] ?? []);
+
         $nameParts = explode(' ', trim($data['name']), 2);
+        $avatarFile = $request->file('avatar');
+        unset($data['avatar']);
+
         $staff = Staff::create([
-            'salon_id'        => $salon->id,
-            'first_name'      => $nameParts[0],
-            'last_name'       => $nameParts[1] ?? '',
-            'email'           => $data['email'] ?? null,
-            'phone'           => $data['phone'] ?? null,
-            'role'            => $data['role'],
-            'color'           => '#7C3AED',
-            'commission_rate' => 0,
-            'is_active'       => true,
+            'salon_id'         => $salon->id,
+            'first_name'       => $nameParts[0],
+            'last_name'        => $nameParts[1] ?? '',
+            'email'            => $data['email'] ?? null,
+            'phone'            => $data['phone'] ?? null,
+            'role'             => $data['role'],
+            'bio'              => $data['bio'] ?? null,
+            'color'            => $data['color'] ?? '#7C3AED',
+            'commission_rate'  => $data['commission_rate'] ?? 0,
+            'is_active'        => true,
         ]);
+
+        $staff->update([
+            'avatar' => $avatarFile->store('salons/'.$salon->id.'/staff', 'public'),
+        ]);
+
+        $serviceIds = array_values(array_map('intval', (array) ($data['services'] ?? [])));
+        if ($serviceIds !== []) {
+            $staff->services()->withoutTenantScope()->sync($serviceIds);
+        }
 
         return response()->json([
             'id'    => $staff->id,

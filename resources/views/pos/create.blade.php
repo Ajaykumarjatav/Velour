@@ -263,13 +263,22 @@
 
             {{-- Client selector --}}
             <div class="flex items-end gap-2">
-                <select x-model="clientId" id="pos-client-select" class="form-select flex-1 min-w-0 text-sm">
+                <x-searchable-select
+                    id="pos-client-select"
+                    wrapper-class="flex-1 min-w-0"
+                    :search-url="route('lookup.clients')"
+                    search-placeholder="Search client…"
+                    :hint="auth()->user()->dashboardScopedStaffId() === null ? 'Optional. Use + to add.' : null"
+                    trigger-class="form-select w-full text-sm"
+                    x-model="clientId">
                     <option value="">Walk-in Client</option>
                     @foreach($clients as $c)
-                    <option value="{{ $c->id }}">{{ $c->first_name }} {{ $c->last_name }}</option>
+                    <option value="{{ $c->id }}">{{ $c->first_name }} {{ $c->last_name }}{{ $c->phone ? ' — '.$c->phone : '' }}</option>
                     @endforeach
-                </select>
-                <x-relation-quick-create-trigger type="client" select-id="pos-client-select" />
+                </x-searchable-select>
+                @if(auth()->user()->dashboardScopedStaffId() === null)
+                <x-relation-quick-create-trigger type="client" select-id="pos-client-select" :client-loyalty-tiers="$clientQuickCreateLoyaltyTiers ?? collect()" />
+                @endif
             </div>
 
             {{-- Clear / Charge --}}

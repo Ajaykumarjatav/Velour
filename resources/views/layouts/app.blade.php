@@ -501,7 +501,7 @@
             </div>
         </header>
 
-        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar))
+        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar) && !session('hide_profile_bar'))
         @php
             $profilePct = (int) ($headerProfileCompletion['percentage'] ?? 0);
             $profilePct = max(0, min(100, $profilePct));
@@ -532,7 +532,7 @@
                 $profileFill = 'bg-red-500 dark:bg-red-400';
             }
         @endphp
-        <div class="px-4 sm:px-6 py-2.5 border-b {{ $profileToneWrap }}">
+        <div id="profile-completion-bar" class="px-4 sm:px-6 py-2.5 border-b {{ $profileToneWrap }}">
             <div class="flex items-center gap-3 min-h-8">
                 <span class="text-xs font-semibold leading-none tabular-nums whitespace-nowrap {{ $profileToneText }}">
                     Profile {{ $profilePct }}%
@@ -546,6 +546,15 @@
                 <a href="{{ route('setup-progress') }}" class="text-xs font-medium leading-none hover:underline whitespace-nowrap shrink-0 {{ $profileToneText }}">
                     Complete setup
                 </a>
+                <button type="button"
+                        class="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-black/5 dark:hover:bg-white/10 shrink-0 opacity-80 hover:opacity-100 {{ $profileToneText }}"
+                        onclick="window.hideProfileCompletionBarForSession()"
+                        title="Hide for this session"
+                        aria-label="Hide for this session">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 15l-7-7-7 7" />
+                    </svg>
+                </button>
             </div>
         </div>
         @endif
@@ -687,12 +696,36 @@
             }, 6000);
         });
     });
+
+    // Hide profile completion/success bar for this login session.
+    window.hideProfileCompletionBarForSession = async function () {
+        var bar = document.getElementById('profile-completion-bar');
+        if (bar) {
+            bar.style.transition = 'opacity 0.2s ease';
+            bar.style.opacity = '0';
+            setTimeout(function () { bar.remove(); }, 200);
+        }
+        try {
+            await fetch(@json(route('ui.hide-profile-bar')), {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin',
+            });
+        } catch (e) {
+            // no-op: bar is already hidden locally
+        }
+    };
 </script>
 
 {{-- Toast notification container --}}
 <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none w-80 max-w-[calc(100vw-2.5rem)]"></div>
 
 @include('partials.chatbot')
+@include('partials.form-client-validation')
 @stack('scripts')
 </body>
 </html>

@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
-use App\Models\Service;
+use App\Support\StaffServiceEligibility;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffController extends Controller
@@ -199,7 +198,7 @@ class StaffController extends Controller
     {
         $salon    = $this->salon();
         $role = old('role', 'therapist');
-        $services = $this->eligibleServicesForRole($salon->id, $role);
+        $services = StaffServiceEligibility::eligibleServicesForRole($salon->id, $role);
 
         return view('staff.create', compact('salon', 'services'));
     }
@@ -221,7 +220,7 @@ class StaffController extends Controller
             'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
-        $this->assertServicesEligibleForRole($salon->id, (string) $data['role'], $data['services'] ?? []);
+        StaffServiceEligibility::assertEligibleForRole($salon->id, (string) $data['role'], $data['services'] ?? []);
 
         $nameParts = explode(' ', trim($data['name']), 2);
         $avatarFile = $request->file('avatar');
@@ -281,7 +280,7 @@ class StaffController extends Controller
         $this->authorise($staff);
         $salon    = $this->salon();
         $role = old('role', (string) $staff->role);
-        $services = $this->eligibleServicesForRole($salon->id, $role);
+        $services = StaffServiceEligibility::eligibleServicesForRole($salon->id, $role);
         $assigned = $staff->services()->withoutTenantScope()->pluck('services.id')->all();
 
         return view('staff.edit', compact('staff', 'services', 'assigned'));
@@ -306,7 +305,7 @@ class StaffController extends Controller
         ]);
 
         $serviceIds = array_values(array_map('intval', (array) ($data['services'] ?? [])));
-        $this->assertServicesEligibleForRole($staff->salon_id, (string) $data['role'], $serviceIds);
+        StaffServiceEligibility::assertEligibleForRole($staff->salon_id, (string) $data['role'], $serviceIds);
 
         // Split 'name' into first_name / last_name for the Staff model
         if (isset($data['name'])) {
@@ -366,36 +365,4 @@ class StaffController extends Controller
         }
     }
 
-    private function eligibleServicesForRole(int $salonId, string $role)
-    {
-        return Service::withoutGlobalScopes()
-            ->where('salon_id', $salonId)
-            ->active()
-            ->orderBy('sort_order')
-            ->get(['id', 'name', 'allowed_roles'])
-            ->filter(fn (Service $service) => $service->allowsStaffRole($role))
-            ->values();
-    }
-
-    /** @param  array<int, mixed>  $serviceIds */
-    private function assertServicesEligibleForRole(int $salonId, string $role, array $serviceIds): void
-    {
-        $ids = array_values(array_unique(array_map('intval', $serviceIds)));
-        if ($ids === []) {
-            return;
-        }
-
-        $services = Service::withoutGlobalScopes()
-            ->where('salon_id', $salonId)
-            ->whereIn('id', $ids)
-            ->get(['id', 'name', 'allowed_roles']);
-        $blocked = $services->filter(fn (Service $service) => ! $service->allowsStaffRole($role))->pluck('name')->values();
-        if ($blocked->isEmpty()) {
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            'services' => ['Selected role cannot be assigned these services: '.$blocked->implode(', ').'.'],
-        ]);
-    }
 }

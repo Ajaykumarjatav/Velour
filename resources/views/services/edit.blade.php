@@ -52,7 +52,14 @@
                 <label class="form-label">Category <span class="text-red-500">*</span></label>
                 <p class="form-hint mb-2">Business type is set on the category — pick the category that matches this service.</p>
                 <div class="flex items-center gap-2">
-                    <select name="category_id" required class="form-select @error('category_id') form-input-error @enderror flex-1" id="category-select">
+                    <x-searchable-select
+                        id="category-select"
+                        name="category_id"
+                        :required="true"
+                        error-name="category_id"
+                        :search-url="null"
+                        search-placeholder="Search category…"
+                        trigger-class="form-select @error('category_id') form-input-error @enderror flex-1">
                         <option value="" disabled {{ old('category_id', $service->category_id) ? '' : 'selected' }}>Select a category</option>
                         @foreach($assignedBusinessTypes as $bt)
                             @php $catsForBt = $categories->where('business_type_id', $bt->id); @endphp
@@ -64,11 +71,10 @@
                             </optgroup>
                             @endif
                         @endforeach
-                    </select>
+                    </x-searchable-select>
                     <button type="button" onclick="document.getElementById('inline-cat-modal').classList.remove('hidden')"
                             class="text-sm text-velour-600 dark:text-velour-400 font-medium whitespace-nowrap hover:underline">+ New</button>
                 </div>
-                @error('category_id')<p class="form-error">{{ $message }}</p>@enderror
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>

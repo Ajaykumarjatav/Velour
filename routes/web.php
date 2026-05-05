@@ -24,7 +24,9 @@ use App\Http\Controllers\Web\CustomizationController;
 use App\Http\Controllers\Web\SecuritySupportController;
 use App\Http\Controllers\Web\WebsiteSeoController;
 use App\Http\Controllers\Web\RelationQuickCreateController;
+use App\Http\Controllers\Web\TenantLookupController;
 use App\Http\Controllers\Web\SettingsController;
+use App\Http\Controllers\Web\GuideController;
 use App\Http\Controllers\Admin\SuperAdminController;
 use App\Http\Controllers\Admin\TenantAdminController;
 use App\Http\Middleware\InitializeTenancyFromDomain;
@@ -117,11 +119,21 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
+        Route::post('ui/hide-profile-bar', function (\Illuminate\Http\Request $request) {
+            $request->session()->put('hide_profile_bar', true);
+
+            return response()->json(['ok' => true]);
+        })->name('ui.hide-profile-bar');
+
+        Route::get('guide', [GuideController::class, 'index'])->name('guide.index');
 
         Route::post('appointments/validate-window', [AppointmentController::class, 'validateWindow'])
             ->name('appointments.validate-window');
         Route::get('appointments/occupied-slots', [AppointmentController::class, 'occupiedSlots'])
             ->name('appointments.occupied-slots');
+
+        Route::get('lookup/clients', [TenantLookupController::class, 'clients'])->name('lookup.clients');
+        Route::get('lookup/staff', [TenantLookupController::class, 'staff'])->name('lookup.staff');
 
         Route::resource('appointments', AppointmentController::class);
         Route::patch('appointments/{appointment}/status',     [AppointmentController::class, 'updateStatus'])->name('appointments.status');

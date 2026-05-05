@@ -42,13 +42,19 @@
             </div>
             @if(isset($loyaltyTiers) && $loyaltyTiers->isNotEmpty())
             <div>
-                <label class="form-label">Loyalty plan</label>
-                <select name="loyalty_tier_id" class="form-select">
+                <label class="form-label" for="client-edit-loyalty-trigger">Loyalty plan</label>
+                <x-searchable-select
+                    id="client-edit-loyalty"
+                    name="loyalty_tier_id"
+                    wrapper-class="w-full min-w-0"
+                    :search-url="null"
+                    search-placeholder="Search plan…"
+                    trigger-class="form-select w-full">
                     <option value="">— None —</option>
                     @foreach($loyaltyTiers as $tier)
                         <option value="{{ $tier->id }}" {{ (string) old('loyalty_tier_id', $client->loyalty_tier_id) === (string) $tier->id ? 'selected' : '' }}>{{ $tier->name }}</option>
                     @endforeach
-                </select>
+                </x-searchable-select>
                 <p class="form-hint">Used for marketing member counts and optional checkout discounts.</p>
             </div>
             @endif

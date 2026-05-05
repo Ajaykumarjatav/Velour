@@ -7,6 +7,7 @@ use App\Services\BookingService;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\LoyaltyTier;
 use App\Models\Staff;
 use App\Models\Service;
 use App\Models\StaffLeaveRequest;
@@ -15,6 +16,7 @@ use App\Services\AvailabilityService;
 use App\Services\NotificationService;
 use App\Services\Scheduling\AvailabilityRejectedException;
 use App\Support\SalonTime;
+use App\Support\StaffServiceEligibility;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -85,8 +87,27 @@ class AppointmentController extends Controller
     public function create()
     {
         $salon    = $this->salon();
-        $clients  = Client::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name','phone']);
-        $staff    = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        $clients  = Client::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->limit(30)
+            ->get(['id', 'first_name', 'last_name', 'phone']);
+        $oldClientId = old('client_id');
+        if ($oldClientId && ! $clients->firstWhere('id', (int) $oldClientId)) {
+            $extra = Client::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->find((int) $oldClientId, ['id', 'first_name', 'last_name', 'phone']);
+            if ($extra) {
+                $clients->prepend($extra);
+            }
+        }
+        $staffQuery = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true);
+        if ($scopedStaffId !== null) {
+            $staffQuery->whereKey($scopedStaffId);
+        }
+        $staff    = $staffQuery->withName()
             ->with([
                 'services' => fn ($q) => $q->withoutTenantScope()->where('services.salon_id', $salon->id),
             ])
@@ -101,7 +122,28 @@ class AppointmentController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('appointments.create', compact('salon', 'clients', 'staff', 'services', 'staffServiceIdsByStaffId'));
+        $clientQuickCreateLoyaltyTiers = LoyaltyTier::where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
+
+        $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
+        $defaultStaffId = old('staff_id', $scopedStaffId !== null ? (string) $scopedStaffId : '');
+        if ($scopedStaffId !== null) {
+            $defaultStaffId = (string) $scopedStaffId;
+        }
+
+        return view('appointments.create', compact(
+            'salon',
+            'clients',
+            'staff',
+            'services',
+            'staffServiceIdsByStaffId',
+            'clientQuickCreateLoyaltyTiers',
+            'staffQuickCreateServicesByRole',
+            'scopedStaffId',
+            'defaultStaffId'
+        ));
     }
 
     /**
@@ -256,6 +298,7 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         $salon = $this->salon();
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
 
         $data = $request->validate([
             'client_id'            => ['required', 'exists:clients,id'],
@@ -271,6 +314,10 @@ class AppointmentController extends Controller
             'internal_notes'       => ['nullable', 'string', 'max:1000'],
             'client_notes'         => ['nullable', 'string', 'max:1000'],
         ]);
+
+        if ($scopedStaffId !== null) {
+            $data['staff_id'] = (string) $scopedStaffId;
+        }
 
         $orderedIds = array_map('intval', $data['services']);
         $options    = [];
@@ -307,15 +354,29 @@ class AppointmentController extends Controller
         $appointment->load(['client', 'staff', 'services.service', 'transaction', 'review']);
         $salon = $this->salon();
         $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
+        $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
 
-        return view('appointments.show', compact('appointment', 'staff', 'salon'));
+        return view('appointments.show', compact('appointment', 'staff', 'salon', 'staffQuickCreateServicesByRole'));
     }
 
     public function edit(Appointment $appointment)
     {
         $this->authorise($appointment);
         $salon    = $this->salon();
-        $clients  = Client::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name')->get(['id','first_name','last_name']);
+        $clients  = Client::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->limit(30)
+            ->get(['id', 'first_name', 'last_name', 'phone']);
+        if (! $clients->contains('id', $appointment->client_id)) {
+            $selectedClient = Client::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->find($appointment->client_id, ['id', 'first_name', 'last_name', 'phone']);
+            if ($selectedClient) {
+                $clients->prepend($selectedClient);
+            }
+        }
         $staff    = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
         $services = Service::withoutTenantScope()
             ->where('salon_id', $salon->id)
@@ -324,7 +385,14 @@ class AppointmentController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('appointments.edit', compact('appointment', 'clients', 'staff', 'services'));
+        $clientQuickCreateLoyaltyTiers = LoyaltyTier::where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
+
+        $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
+
+        return view('appointments.edit', compact('appointment', 'clients', 'staff', 'services', 'clientQuickCreateLoyaltyTiers', 'staffQuickCreateServicesByRole'));
     }
 
     public function update(Request $request, Appointment $appointment)
