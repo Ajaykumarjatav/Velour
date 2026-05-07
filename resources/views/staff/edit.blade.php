@@ -77,6 +77,25 @@
                     @error('commission_rate')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
                 <div>
+                    <label class="form-label">Experience</label>
+                    <input type="text" name="experience" value="{{ old('experience', $staff->experience) }}"
+                           class="form-input @error('experience') form-input-error @enderror" placeholder="e.g. 5 years">
+                    @error('experience')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <div class="col-span-2">
+                    @php
+                        $staffLangSelected = old('language_proficiency');
+                        if (! is_array($staffLangSelected)) {
+                            $staffLangSelected = \App\Support\LanguageProficiency::codesFromStored($staff->language_proficiency ?? '');
+                        }
+                    @endphp
+                    @include('settings.partials.language-proficiency-field', [
+                        'name' => 'language_proficiency[]',
+                        'selected' => $staffLangSelected,
+                    ])
+                    @error('language_proficiency')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <div>
                     <label class="form-label">Calendar colour</label>
                     <input type="color" name="color" value="{{ old('color', $staff->color ?? '#7C3AED') }}"
                            class="w-full h-10 px-2 py-1 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer">

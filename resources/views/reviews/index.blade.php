@@ -10,6 +10,7 @@
     </div>
 
     <div class="space-y-3">
+        @if(!($isScopedStaff ?? false))
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
             <p class="text-sm font-semibold text-heading mb-2">Tenant Review Link</p>
             <div class="flex flex-col sm:flex-row gap-2">
@@ -23,9 +24,10 @@
                 <button type="button" class="btn-outline whitespace-nowrap copy-review-link-btn" data-target="tenant-review-link">Copy Link</button>
             </div>
         </div>
+        @endif
 
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p class="text-sm font-semibold text-heading mb-2">Staff Review Links</p>
+            <p class="text-sm font-semibold text-heading mb-2">{{ ($isScopedStaff ?? false) ? 'Your Review Link' : 'Staff Review Links' }}</p>
             <div class="space-y-2">
                 @forelse($staffReviewLinks as $row)
                 @php

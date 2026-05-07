@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
+use App\Support\LanguageProficiency;
 use App\Support\StaffServiceEligibility;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
@@ -212,6 +213,9 @@ class StaffController extends Controller
             'email'             => ['nullable', 'email', 'max:150'],
             'phone'             => ['nullable', 'string', 'max:20'],
             'role'              => ['required', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'experience'        => ['nullable', 'string', 'max:120'],
+            'language_proficiency'   => ['nullable', 'array', 'max:30'],
+            'language_proficiency.*' => ['string', Rule::in(LanguageProficiency::allowedCodes())],
             'bio'               => ['nullable', 'string', 'max:1000'],
             'color'             => ['nullable', 'string', 'max:7'],
             'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -225,6 +229,7 @@ class StaffController extends Controller
         $nameParts = explode(' ', trim($data['name']), 2);
         $avatarFile = $request->file('avatar');
         unset($data['avatar']);
+        $encodedLanguages = LanguageProficiency::encode($data['language_proficiency'] ?? []);
 
         $staff = Staff::create([
             'salon_id'        => $salon->id,
@@ -233,6 +238,8 @@ class StaffController extends Controller
             'email'           => $data['email'] ?? null,
             'phone'           => $data['phone'] ?? null,
             'role'            => $data['role'],
+            'experience'      => $data['experience'] ?? null,
+            'language_proficiency' => $encodedLanguages,
             'bio'             => $data['bio'] ?? null,
             'color'           => $data['color'] ?? '#7C3AED',
             'commission_rate' => $data['commission_rate'] ?? 0,
@@ -295,6 +302,9 @@ class StaffController extends Controller
             'email'           => ['nullable', 'email', 'max:150'],
             'phone'           => ['nullable', 'string', 'max:20'],
             'role'            => ['required', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'experience'      => ['nullable', 'string', 'max:120'],
+            'language_proficiency'   => ['nullable', 'array', 'max:30'],
+            'language_proficiency.*' => ['string', Rule::in(LanguageProficiency::allowedCodes())],
             'bio'             => ['nullable', 'string', 'max:1000'],
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -318,6 +328,7 @@ class StaffController extends Controller
         unset($data['avatar']);
 
         unset($data['services']);
+        $data['language_proficiency'] = LanguageProficiency::encode($data['language_proficiency'] ?? []);
 
         $data['is_active'] = $request->boolean('is_active');
 

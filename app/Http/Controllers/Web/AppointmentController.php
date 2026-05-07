@@ -88,6 +88,9 @@ class AppointmentController extends Controller
     {
         $salon    = $this->salon();
         $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        if ($scopedStaffId !== null) {
+            abort(403, 'Staff users cannot create appointments from this screen.');
+        }
         $clients  = Client::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->orderBy('first_name')
@@ -132,6 +135,7 @@ class AppointmentController extends Controller
         if ($scopedStaffId !== null) {
             $defaultStaffId = (string) $scopedStaffId;
         }
+        $todayYmd = SalonTime::todayDateString($salon);
 
         return view('appointments.create', compact(
             'salon',
@@ -142,7 +146,8 @@ class AppointmentController extends Controller
             'clientQuickCreateLoyaltyTiers',
             'staffQuickCreateServicesByRole',
             'scopedStaffId',
-            'defaultStaffId'
+            'defaultStaffId',
+            'todayYmd'
         ));
     }
 
@@ -254,6 +259,8 @@ class AppointmentController extends Controller
         ];
 
         $dateStr = $data['date'];
+        $isTodayInSalon = $dateStr === SalonTime::todayDateString($salon);
+        $nowInSalon = SalonTime::now($salon);
 
         if (StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $staffId, $dateStr)) {
             $blockedDetails = collect($slotTimes)->mapWithKeys(fn ($t) => [
@@ -278,6 +285,12 @@ class AppointmentController extends Controller
             $start = Carbon::createFromFormat('Y-m-d H:i', $dateStr . ' ' . $time, $tz);
             $end   = $start->copy()->addMinutes($maxMinutes);
 
+            if ($isTodayInSalon && $start->lte($nowInSalon)) {
+                $blocked[] = $time;
+                $blockedDetails[$time] = 'That time has already passed. Please choose a later time.';
+                continue;
+            }
+
             // Do not enforce "end before next midnight" here: assumed duration can be the salon's
             // longest service while no services are checked, which pushes the probe past midnight
             // for late slots. Real bookings still use full enforcement on store/update.
@@ -299,6 +312,9 @@ class AppointmentController extends Controller
     {
         $salon = $this->salon();
         $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        if ($scopedStaffId !== null) {
+            return back()->withErrors(['status' => 'Staff users cannot create appointments from this screen.']);
+        }
 
         $data = $request->validate([
             'client_id'            => ['required', 'exists:clients,id'],
@@ -315,10 +331,6 @@ class AppointmentController extends Controller
             'client_notes'         => ['nullable', 'string', 'max:1000'],
         ]);
 
-        if ($scopedStaffId !== null) {
-            $data['staff_id'] = (string) $scopedStaffId;
-        }
-
         $orderedIds = array_map('intval', $data['services']);
         $options    = [];
         foreach ($orderedIds as $sid) {
@@ -326,6 +338,11 @@ class AppointmentController extends Controller
                 'variant' => $data['service_variant'][$sid] ?? null,
                 'addons'  => array_values(array_filter($data['service_addons'][$sid] ?? [])),
             ];
+        }
+
+        $startsAtLocal = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
+        if ($startsAtLocal->lte(SalonTime::now($salon))) {
+            return back()->withErrors(['starts_at' => 'Please choose a future time slot.'])->withInput();
         }
 
         try {
@@ -391,8 +408,9 @@ class AppointmentController extends Controller
             ->get(['id', 'name']);
 
         $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
+        $todayYmd = SalonTime::todayDateString($salon);
 
-        return view('appointments.edit', compact('appointment', 'clients', 'staff', 'services', 'clientQuickCreateLoyaltyTiers', 'staffQuickCreateServicesByRole'));
+        return view('appointments.edit', compact('appointment', 'clients', 'staff', 'services', 'clientQuickCreateLoyaltyTiers', 'staffQuickCreateServicesByRole', 'todayYmd'));
     }
 
     public function update(Request $request, Appointment $appointment)
@@ -409,6 +427,10 @@ class AppointmentController extends Controller
 
         $salon   = $this->salon();
         $staffId = (int) $data['staff_id'];
+        $startsAtLocal = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
+        if ($startsAtLocal->lte(SalonTime::now($salon))) {
+            return back()->withErrors(['starts_at' => 'Please choose a future time slot.'])->withInput();
+        }
 
         try {
             DB::transaction(function () use ($salon, $appointment, $data, $staffId) {
@@ -454,6 +476,9 @@ class AppointmentController extends Controller
     {
         $this->authorise($appointment);
         $data = $request->validate(['status' => ['required', 'in:confirmed,completed,cancelled,no_show']]);
+        if (Auth::user()->dashboardScopedStaffId() !== null && $data['status'] === 'cancelled') {
+            return back()->withErrors(['status' => 'Staff users cannot cancel bookings.']);
+        }
         $appointment->update(['status' => $data['status']]);
 
         return back()->with('success', 'Status updated.');
@@ -482,6 +507,9 @@ class AppointmentController extends Controller
     public function cancel(Request $request, Appointment $appointment): RedirectResponse
     {
         $this->authorise($appointment);
+        if (Auth::user()->dashboardScopedStaffId() !== null) {
+            return back()->withErrors(['status' => 'Staff users cannot cancel bookings.']);
+        }
 
         if (in_array($appointment->status, ['completed', 'cancelled', 'no_show'])) {
             return back()->withErrors(['status' => 'This appointment cannot be cancelled.']);

@@ -28,6 +28,7 @@ class ClientController extends Controller
         $search = $request->get('search');
         $sort   = $request->get('sort', 'created_at');
         $dir    = $request->get('dir', 'desc');
+        $isScopedStaffPanel = Auth::user()->dashboardScopedStaffId() !== null;
 
         $query = Client::withoutGlobalScopes()->where('salon_id', $salon->id);
         $scopedStaffId = Auth::user()->dashboardScopedStaffId();
@@ -138,7 +139,8 @@ class ClientController extends Controller
             'loyaltyFilterTier',
             'appointmentsByClient',
             'loyaltyTiers',
-            'reviewRequestClients'
+            'reviewRequestClients',
+            'isScopedStaffPanel'
         ));
     }
 
@@ -198,6 +200,7 @@ class ClientController extends Controller
      */
     public function export(): StreamedResponse
     {
+        abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot export client data.');
         Gate::authorize('export', Client::class);
 
         $salon = $this->activeSalon();
@@ -239,6 +242,7 @@ class ClientController extends Controller
      */
     public function import(Request $request)
     {
+        abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot import client data.');
         Gate::authorize('create', Client::class);
 
         $request->validate([
@@ -413,6 +417,7 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
+        abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot view full client details.');
         $this->authorise($client);
         $client->load('loyaltyTier');
 
@@ -430,6 +435,7 @@ class ClientController extends Controller
 
     public function edit(Client $client)
     {
+        abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot edit full client details.');
         $this->authorise($client);
         $loyaltyTiers = LoyaltyTier::where('salon_id', $this->activeSalon()->id)->where('is_active', true)->orderBy('sort_order')->get();
 
@@ -438,6 +444,7 @@ class ClientController extends Controller
 
     public function update(Request $request, Client $client)
     {
+        abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot edit full client details.');
         $this->authorise($client);
 
         $data = $request->validate([
@@ -475,6 +482,7 @@ class ClientController extends Controller
 
     public function destroy(Client $client)
     {
+        abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot delete clients.');
         $this->authorise($client);
         $client->delete();
 

@@ -2,6 +2,9 @@
 @section('title', 'Appointment #'.$appointment->reference)
 @section('page-title', 'Appointment Details')
 @section('content')
+@php
+    $isScopedStaffPanel = auth()->user()?->dashboardScopedStaffId() !== null;
+@endphp
 
 <div class="max-w-2xl space-y-5">
 
@@ -68,13 +71,13 @@
                 <p class="stat-label mb-1">Source</p>
                 <p class="font-semibold text-heading capitalize">{{ str_replace('_', ' ', $appointment->source ?? 'walk_in') }}</p>
             </div>
-            @if($appointment->client?->email)
+            @if(!$isScopedStaffPanel && $appointment->client?->email)
             <div>
                 <p class="stat-label mb-1">Client Email</p>
                 <p class="font-semibold text-heading truncate">{{ $appointment->client->email }}</p>
             </div>
             @endif
-            @if($appointment->client?->phone)
+            @if(!$isScopedStaffPanel && $appointment->client?->phone)
             <div>
                 <p class="stat-label mb-1">Client Phone</p>
                 <p class="font-semibold text-heading">{{ $appointment->client->phone }}</p>
@@ -184,7 +187,7 @@
             @endif
 
             {{-- Cancel toggle (not terminal) --}}
-            @if(! in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
+            @if(!$isScopedStaffPanel && ! in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
             <button @click="showCancel = !showCancel; showReschedule = false"
                     class="px-4 py-2 text-sm font-semibold rounded-xl border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                 ✕ Cancel
@@ -240,7 +243,7 @@
         @endif
 
         {{-- Cancel form --}}
-        @if(! in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
+        @if(!$isScopedStaffPanel && ! in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
         <div x-show="showCancel" x-cloak
              class="border border-red-200 dark:border-red-800 rounded-xl p-4 bg-red-50 dark:bg-red-900/10 space-y-3">
             <p class="text-sm font-semibold text-red-700 dark:text-red-400">Cancel Appointment</p>

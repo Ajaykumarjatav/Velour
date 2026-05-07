@@ -19,10 +19,17 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $salon = $this->activeSalon();
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
 
         $filter = $request->get('filter'); // 'unread' | '' (all)
 
         $query = SalonNotification::where('salon_id', $salon->id)->latest();
+        if ($scopedStaffId !== null) {
+            $query->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
 
         if ($filter === 'unread') {
             $query->where('is_read', false);
@@ -33,8 +40,15 @@ class NotificationController extends Controller
             $notification->setAttribute('resolved_action_url', $this->resolveActionUrl($notification));
             return $notification;
         });
-        $unreadCount   = SalonNotification::where('salon_id', $salon->id)
-                            ->where('is_read', false)->count();
+        $unreadCountQuery = SalonNotification::where('salon_id', $salon->id)
+            ->where('is_read', false);
+        if ($scopedStaffId !== null) {
+            $unreadCountQuery->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+        $unreadCount = $unreadCountQuery->count();
 
         return view('notifications.index', compact('notifications', 'unreadCount', 'filter'));
     }
@@ -45,6 +59,10 @@ class NotificationController extends Controller
     public function markRead(Request $request, SalonNotification $notification)
     {
         abort_unless($notification->salon_id === $this->activeSalon()->id, 403);
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        if ($scopedStaffId !== null) {
+            abort_unless($notification->staff_id === null || (int) $notification->staff_id === (int) $scopedStaffId, 403);
+        }
 
         $notification->markRead();
 
@@ -67,10 +85,17 @@ class NotificationController extends Controller
     public function markAllRead()
     {
         $salon = $this->activeSalon();
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
 
-        SalonNotification::where('salon_id', $salon->id)
-            ->where('is_read', false)
-            ->update(['is_read' => true, 'read_at' => now()]);
+        $query = SalonNotification::where('salon_id', $salon->id)
+            ->where('is_read', false);
+        if ($scopedStaffId !== null) {
+            $query->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+        $query->update(['is_read' => true, 'read_at' => now()]);
 
         return back()->with('success', 'All notifications marked as read.');
     }
@@ -81,8 +106,16 @@ class NotificationController extends Controller
     public function dropdown()
     {
         $salon = $this->activeSalon();
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
 
-        $items = SalonNotification::where('salon_id', $salon->id)
+        $itemsQuery = SalonNotification::where('salon_id', $salon->id);
+        if ($scopedStaffId !== null) {
+            $itemsQuery->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+        $items = $itemsQuery
             ->latest()
             ->limit(8)
             ->get(['id', 'type', 'title', 'body', 'is_read', 'action_url', 'created_at']);
@@ -91,8 +124,15 @@ class NotificationController extends Controller
             return $notification;
         });
 
-        $unreadCount = SalonNotification::where('salon_id', $salon->id)
-            ->where('is_read', false)->count();
+        $unreadCountQuery = SalonNotification::where('salon_id', $salon->id)
+            ->where('is_read', false);
+        if ($scopedStaffId !== null) {
+            $unreadCountQuery->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+        $unreadCount = $unreadCountQuery->count();
 
         return response()->json([
             'notifications' => $items,

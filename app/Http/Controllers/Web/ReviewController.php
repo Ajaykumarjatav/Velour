@@ -18,12 +18,17 @@ class ReviewController extends Controller
     public function index(Request $request)
     {
         $salon  = $this->activeSalon();
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        $isScopedStaff = $scopedStaffId !== null;
         $rating = $request->get('rating');
         $replied = $request->get('replied');
 
         $query = Review::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->with(['client', 'appointment', 'service'])
             ->latest();
+        if ($isScopedStaff) {
+            $query->where('staff_id', $scopedStaffId);
+        }
 
         if ($rating) {
             $query->where('rating', $rating);
@@ -37,31 +42,50 @@ class ReviewController extends Controller
 
         $reviews = $query->paginate(20)->withQueryString();
 
-        $averageRating = Review::withoutGlobalScopes()->where('salon_id', $salon->id)->avg('rating');
-        $ratingCounts  = Review::withoutGlobalScopes()->where('salon_id', $salon->id)
+        $statsQuery = Review::withoutGlobalScopes()->where('salon_id', $salon->id);
+        if ($isScopedStaff) {
+            $statsQuery->where('staff_id', $scopedStaffId);
+        }
+        $averageRating = (float) ($statsQuery->avg('rating') ?? 0);
+        $ratingCounts  = (clone $statsQuery)
             ->select('rating', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
             ->groupBy('rating')
             ->pluck('count', 'rating');
 
-        $tenantReviewLink = ReviewLink::withoutGlobalScopes()->firstOrCreate(
-            ['salon_id' => $salon->id, 'staff_id' => null]
-        );
-
-        $staffMembers = Staff::withoutGlobalScopes()
-            ->where('salon_id', $salon->id)
-            ->where('is_active', true)
-            ->orderBy('first_name')
-            ->get();
-
+        $tenantReviewLink = null;
         $staffReviewLinks = collect();
-        foreach ($staffMembers as $staff) {
-            $link = ReviewLink::withoutGlobalScopes()->firstOrCreate(
-                ['salon_id' => $salon->id, 'staff_id' => $staff->id]
+        if ($isScopedStaff) {
+            $staff = Staff::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('id', $scopedStaffId)
+                ->where('is_active', true)
+                ->first();
+            if ($staff) {
+                $link = ReviewLink::withoutGlobalScopes()->firstOrCreate(
+                    ['salon_id' => $salon->id, 'staff_id' => $staff->id]
+                );
+                $staffReviewLinks->push(['staff' => $staff, 'link' => $link]);
+            }
+        } else {
+            $tenantReviewLink = ReviewLink::withoutGlobalScopes()->firstOrCreate(
+                ['salon_id' => $salon->id, 'staff_id' => null]
             );
-            $staffReviewLinks->push([
-                'staff' => $staff,
-                'link' => $link,
-            ]);
+
+            $staffMembers = Staff::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('is_active', true)
+                ->orderBy('first_name')
+                ->get();
+
+            foreach ($staffMembers as $staff) {
+                $link = ReviewLink::withoutGlobalScopes()->firstOrCreate(
+                    ['salon_id' => $salon->id, 'staff_id' => $staff->id]
+                );
+                $staffReviewLinks->push([
+                    'staff' => $staff,
+                    'link' => $link,
+                ]);
+            }
         }
 
         return view('reviews.index', compact(
@@ -72,13 +96,18 @@ class ReviewController extends Controller
             'averageRating',
             'ratingCounts',
             'tenantReviewLink',
-            'staffReviewLinks'
+            'staffReviewLinks',
+            'isScopedStaff'
         ));
     }
 
     public function reply(Request $request, Review $review)
     {
         abort_unless($review->salon_id === $this->activeSalon()->id, 403);
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        if ($scopedStaffId !== null) {
+            abort_unless((int) $review->staff_id === (int) $scopedStaffId, 403);
+        }
 
         $data = $request->validate([
             'reply' => ['required', 'string', 'max:1000'],

@@ -10,7 +10,9 @@ use App\Models\LoyaltyTier;
 use App\Models\Service;
 use App\Models\InventoryItem;
 use App\Models\Appointment;
+use App\Models\Staff;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PosController extends Controller
@@ -94,6 +96,7 @@ class PosController extends Controller
     public function store(Request $request)
     {
         $salon = $this->activeSalon();
+        $user = Auth::user();
 
         $data = $request->validate([
             'client_id'       => ['nullable', 'exists:clients,id'],
@@ -115,11 +118,31 @@ class PosController extends Controller
         $taxable  = max(0, $subtotal - $discount);
         $tax      = round($taxable * ($taxRate / 100), 2);
         $total    = $taxable + $tax;
+        $staffId = $user?->dashboardScopedStaffId();
+        if (! $staffId) {
+            $staffId = Staff::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('user_id', (int) $user->id)
+                ->where('is_active', true)
+                ->value('id');
+        }
+        if (! $staffId) {
+            $staffId = Staff::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->value('id');
+        }
+        if (! $staffId) {
+            return back()->withErrors(['status' => 'No active staff member found for this sale.'])->withInput();
+        }
 
-        DB::transaction(function () use ($data, $salon, $subtotal, $discount, $tax, $total) {
+        DB::transaction(function () use ($data, $salon, $subtotal, $discount, $tax, $total, $staffId) {
             $transaction = PosTransaction::create([
                 'salon_id'        => $salon->id,
                 'client_id'       => $data['client_id'] ?? null,
+                'staff_id'        => (int) $staffId,
                 'payment_method'  => $data['payment_method'],
                 'subtotal'        => $subtotal,
                 'discount_amount' => $discount,

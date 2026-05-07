@@ -13,10 +13,12 @@ use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
 use App\Support\LanguageProficiency;
 use App\Support\RegistrationStarterServices;
+use App\Support\StaffServiceEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -52,6 +54,26 @@ class SettingsController extends Controller
         if (Auth::user()->dashboardScopedStaffId() !== null) {
             abort(403, 'You can only update your profile and security here. Contact a salon admin to change business or service settings.');
         }
+    }
+
+    private function resolveProfileStaff(\App\Models\Salon $salon, User $user): ?Staff
+    {
+        $staff = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('user_id', $user->id)
+            ->first();
+        if ($staff) {
+            return $staff;
+        }
+        $scopedStaffId = $user->dashboardScopedStaffId();
+        if (! $scopedStaffId) {
+            return null;
+        }
+
+        return Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('id', $scopedStaffId)
+            ->first();
     }
 
     public function index()
@@ -125,6 +147,18 @@ class SettingsController extends Controller
             })
             ->orderBy('sort_order')
             ->get();
+        $profileStaff = $this->resolveProfileStaff($salon, $user);
+        $profileStaffServices = collect();
+        $profileStaffAssignedServiceIds = [];
+        if ($profileStaff) {
+            $profileStaffServices = StaffServiceEligibility::eligibleServicesForRole($salon->id, (string) $profileStaff->role);
+            $profileStaffAssignedServiceIds = $profileStaff->services()
+                ->withoutTenantScope()
+                ->pluck('services.id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all();
+        }
 
         return view('settings.index', compact(
             'salon',
@@ -143,6 +177,9 @@ class SettingsController extends Controller
             'selectedStarterServices',
             'selectedStarterServiceMeta',
             'existingTeamMembers',
+            'profileStaff',
+            'profileStaffServices',
+            'profileStaffAssignedServiceIds',
             'settingsTabLabels',
             'settingsPersonalOnly',
             'settingsInitialTab',
@@ -416,16 +453,90 @@ class SettingsController extends Controller
             'name'      => ['required', 'string', 'max:100'],
             'email'     => ['required', 'email', 'unique:users,email,' . $user->id],
             'phone'     => ['nullable', 'string', 'max:20'],
+            'staff_phone' => ['nullable', 'string', 'max:20'],
             'experience' => ['nullable', 'string', 'max:120'],
+            'staff_experience' => ['nullable', 'string', 'max:120'],
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
             'language_proficiency.*' => ['string', Rule::in($langCodes)],
+            'staff_commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'staff_role' => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'staff_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'staff_bio' => ['nullable', 'string', 'max:1000'],
+            'staff_services' => ['nullable', 'array'],
+            'staff_services.*' => ['integer', Rule::exists('services', 'id')->where('salon_id', $this->salon()->id)],
+            'staff_is_active' => ['nullable', 'boolean'],
+            'avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'remove_avatar' => ['nullable', 'boolean'],
             'timezone'  => ['nullable', 'string', 'timezone:all'],
             'locale'    => ['nullable', 'string', 'in:' . implode(',', array_keys(\App\Support\DisplayFormatter::localeOptions()))],
         ]);
+        $staffPhone = $data['staff_phone'] ?? null;
+        $staffExperience = $data['staff_experience'] ?? null;
+        if ($staffPhone !== null) {
+            $data['phone'] = $staffPhone;
+        }
+        if ($staffExperience !== null) {
+            $data['experience'] = $staffExperience;
+        }
 
         $data['language_proficiency'] = LanguageProficiency::encode($data['language_proficiency'] ?? []);
+        $staffProfileData = [
+            'staff_commission_rate' => $data['staff_commission_rate'] ?? null,
+            'staff_role' => $data['staff_role'] ?? null,
+            'staff_color' => $data['staff_color'] ?? null,
+            'staff_bio' => $data['staff_bio'] ?? null,
+            'staff_services' => array_values(array_map('intval', (array) ($data['staff_services'] ?? []))),
+            'staff_is_active' => $request->boolean('staff_is_active'),
+        ];
+        unset($data['staff_phone'], $data['staff_experience'], $data['staff_commission_rate'], $data['staff_role'], $data['staff_color'], $data['staff_bio'], $data['staff_services'], $data['staff_is_active'], $data['avatar'], $data['remove_avatar']);
 
         $user->update($data);
+
+        $salon = $this->salon();
+        $profileStaff = $this->resolveProfileStaff($salon, $user);
+        if ($profileStaff) {
+            $nameParts = preg_split('/\s+/u', trim((string) ($data['name'] ?? '')), 2, PREG_SPLIT_NO_EMPTY) ?: [];
+            $firstName = (string) ($nameParts[0] ?? '');
+            $lastName = (string) ($nameParts[1] ?? '');
+            $nextRole = (string) ($staffProfileData['staff_role'] ?? $profileStaff->role);
+            StaffServiceEligibility::assertEligibleForRole(
+                $salon->id,
+                $nextRole,
+                $staffProfileData['staff_services'] ?? []
+            );
+            $profileStaff->update([
+                'first_name' => $firstName !== '' ? $firstName : $profileStaff->first_name,
+                'last_name' => $lastName,
+                'email' => $data['email'] ?? $profileStaff->email,
+                'phone' => $data['phone'] ?? null,
+                'role' => $nextRole,
+                'experience' => $data['experience'] ?? null,
+                'language_proficiency' => $data['language_proficiency'] ?? null,
+                'commission_rate' => $staffProfileData['staff_commission_rate'] !== null
+                    ? (float) $staffProfileData['staff_commission_rate']
+                    : $profileStaff->commission_rate,
+                'color' => $staffProfileData['staff_color'] ?? ($profileStaff->color ?: '#7C3AED'),
+                'bio' => $staffProfileData['staff_bio'] ?? $profileStaff->bio,
+                'is_active' => $staffProfileData['staff_is_active'],
+            ]);
+            $profileStaff->services()->withoutTenantScope()->sync($staffProfileData['staff_services'] ?? []);
+            if (! empty($staffProfileData['staff_role'])) {
+                $user->syncRoles([$this->mapStaffRoleToLoginRole((string) $staffProfileData['staff_role'])]);
+            }
+            if ($request->hasFile('avatar')) {
+                if ($profileStaff->avatar) {
+                    Storage::disk('public')->delete($profileStaff->avatar);
+                }
+                $profileStaff->update([
+                    'avatar' => $request->file('avatar')->store('salons/' . $salon->id . '/staff', 'public'),
+                ]);
+            } elseif ($request->boolean('remove_avatar')) {
+                if ($profileStaff->avatar) {
+                    Storage::disk('public')->delete($profileStaff->avatar);
+                }
+                $profileStaff->update(['avatar' => null]);
+            }
+        }
 
         return $this->redirectAfterSettingsSave($request, 'Profile updated.', 'profile');
     }

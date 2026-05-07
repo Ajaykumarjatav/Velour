@@ -43,6 +43,7 @@ class NotificationService
         $this->createNotification($appointment->salon_id, 'reminder', [
             'title' => 'Appointment Reminder Sent',
             'body'  => "Reminder sent to {$appointment->client->first_name} for {$appointment->starts_at->format('D j M')}",
+            'staff_id' => $appointment->staff_id,
             'data'  => ['appointment_id' => $appointment->id],
         ]);
     }
@@ -261,6 +262,7 @@ class NotificationService
         $this->createNotification($appointment->salon_id, 'appointment', [
             'title' => 'New Booking',
             'body'  => "{$appointment->client->first_name} {$appointment->client->last_name} — {$appointment->starts_at->format('D j M, g:ia')}",
+            'staff_id' => $appointment->staff_id,
             'data'  => ['appointment_id' => $appointment->id],
         ]);
 
@@ -289,6 +291,7 @@ class NotificationService
         $this->createNotification($appointment->salon_id, 'cancellation', [
             'title' => 'Booking Cancelled',
             'body'  => "{$appointment->client->first_name} {$appointment->client->last_name} cancelled their {$appointment->starts_at->format('D j M')} appointment.",
+            'staff_id' => $appointment->staff_id,
             'data'  => ['appointment_id' => $appointment->id],
         ]);
 
@@ -313,6 +316,7 @@ class NotificationService
         $this->createNotification($appointment->salon_id, 'reschedule', [
             'title' => 'Booking Rescheduled',
             'body'  => "{$appointment->client->first_name} {$appointment->client->last_name} rescheduled to {$appointment->starts_at->format('D j M, g:ia')}.",
+            'staff_id' => $appointment->staff_id,
             'data'  => ['appointment_id' => $appointment->id],
         ]);
 
@@ -393,6 +397,7 @@ class NotificationService
     {
         SalonNotification::create([
             'salon_id' => $salonId,
+            'staff_id' => isset($payload['staff_id']) ? (int) $payload['staff_id'] : null,
             'type'     => $type,
             'title'    => $payload['title'],
             'body'     => $payload['body'] ?? null,

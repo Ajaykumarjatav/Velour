@@ -50,6 +50,9 @@
                     <input type="date"
                            x-model="selectedDate"
                            @change="onDateChange()"
+                           @keydown.prevent
+                           @paste.prevent
+                           @drop.prevent
                            :min="today"
                            required
                            class="form-input">
@@ -128,7 +131,7 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId, serviceIds) {
         occupiedUrl,
         excludeAppointmentId,
         serviceIds: Array.isArray(serviceIds) ? serviceIds : [],
-        today: new Date().toISOString().split('T')[0],
+        today: @js($todayYmd),
         staffId: '{{ old('staff_id', $appointment->staff_id) }}',
         selectedDate: dateInit,
         selectedTime: timeInit,
@@ -144,6 +147,9 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId, serviceIds) {
             '17:30','18:00','18:30','19:00',
         ],
         init() {
+            if (this.selectedDate < this.today) {
+                this.selectedDate = this.today;
+            }
             this.$watch('staffId', () => {
                 this.selectedTime = '';
                 this.fetchBlocked();
@@ -154,6 +160,9 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId, serviceIds) {
             if (this.staffId && this.selectedDate) this.fetchBlocked();
         },
         onDateChange() {
+            if (this.selectedDate < this.today) {
+                this.selectedDate = this.today;
+            }
             this.selectedTime = '';
             this.fetchBlocked();
         },

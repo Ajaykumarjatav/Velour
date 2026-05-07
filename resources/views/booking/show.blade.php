@@ -651,12 +651,8 @@ function bookingApp() {
         slots:         [],
         combinedInfo:  null,
 
-        today:   new Date().toISOString().split('T')[0],
-        maxDate: (() => {
-            const d = new Date();
-            d.setDate(d.getDate() + {{ $salon->booking_advance_days ?? 90 }});
-            return d.toISOString().split('T')[0];
-        })(),
+        today:   '{{ $todayYmd }}',
+        maxDate: '{{ $maxDateYmd }}',
 
         selected: { services: [], staff: undefined, date: '', slot: null },
         client:   { first_name: '', last_name: '', email: '', phone: '', notes: '', marketing_consent: false },
@@ -763,6 +759,9 @@ function bookingApp() {
 
         async loadSlots() {
             if (!this.selected.date || !this.selected.services.length) return;
+            if (this.selected.date < this.today) {
+                this.selected.date = this.today;
+            }
             this.slotsLoading = true;
             this.slots = [];
             this.combinedInfo = null;

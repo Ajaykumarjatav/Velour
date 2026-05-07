@@ -7,6 +7,7 @@ use App\Models\Review;
 use App\Models\Salon;
 use App\Models\Service;
 use App\Models\Staff;
+use App\Support\SalonTime;
 
 class BookingController extends Controller
 {
@@ -52,13 +53,20 @@ class BookingController extends Controller
             ->where('salon_id', $salon->id)
             ->where('is_public', true)
             ->count();
+        $todayYmd = SalonTime::todayDateString($salon);
+        $maxDateYmd = SalonTime::now($salon)
+            ->copy()
+            ->addDays((int) ($salon->booking_advance_days ?? 90))
+            ->toDateString();
 
         return view('booking.show', compact(
             'salon',
             'publicServiceCount',
             'bookableStaffCount',
             'avgRating',
-            'reviewCount'
+            'reviewCount',
+            'todayYmd',
+            'maxDateYmd'
         ));
     }
 }

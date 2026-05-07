@@ -2,6 +2,9 @@
 @section('title', 'Appointments')
 @section('page-title', 'Appointments')
 @section('content')
+@php
+    $isScopedStaffPanel = auth()->user()?->dashboardScopedStaffId() !== null;
+@endphp
 
 <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 px-4 py-3.5 sm:px-5 sm:py-4 mb-7 shadow-sm dark:shadow-none">
     <div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-5">
@@ -41,10 +44,12 @@
                 <a href="{{ route('appointments.index') }}" class="btn-outline flex-1 sm:flex-initial min-w-0 text-center">Clear</a>
             </div>
         </form>
-        <a href="{{ route('appointments.create') }}"
-           class="btn-primary shrink-0 w-full lg:w-auto text-center whitespace-nowrap lg:min-w-[11rem]">
-            + New Appointment
-        </a>
+        @if(!$isScopedStaffPanel)
+            <a href="{{ route('appointments.create') }}"
+               class="btn-primary shrink-0 w-full lg:w-auto text-center whitespace-nowrap lg:min-w-[11rem]">
+                + New Appointment
+            </a>
+        @endif
     </div>
 </div>
 

@@ -2,9 +2,13 @@
 @section('title', 'Clients')
 @section('page-title', 'Clients')
 @section('content')
+@php
+    $isScopedStaffPanel = auth()->user()?->dashboardScopedStaffId() !== null;
+@endphp
 
 <p class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-3">{{ number_format($clientTotal) }} total clients</p>
 
+@if(!($isScopedStaffPanel ?? false))
 <div class="card p-5 sm:p-6 mb-6 shadow-sm dark:shadow-none" x-data="{ openReviewRequest: false }">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5">
         <div class="min-w-0 space-y-1.5">
@@ -61,6 +65,7 @@
         </div>
     </div>
 </div>
+@endif
 
 @if(!empty($loyaltyFilterTier))
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-velour-200/90 dark:border-velour-500/20 bg-velour-50 dark:bg-velour-950/35 px-5 py-4 text-sm leading-relaxed">
@@ -82,6 +87,7 @@
             </div>
         </form>
         <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-2.5 shrink-0 xl:border-l xl:border-gray-200 xl:dark:border-gray-800 xl:pl-5">
+            @if(!($isScopedStaffPanel ?? false))
             <form action="{{ route('clients.import') }}" method="POST" enctype="multipart/form-data" class="inline-flex w-full sm:w-auto shrink-0 min-w-0">
                 @csrf
                 <label for="client-csv-upload" class="btn-outline cursor-pointer w-full sm:w-auto inline-flex items-center justify-center gap-2">
@@ -94,6 +100,7 @@
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Export
             </a>
+            @endif
             <a href="{{ route('clients.create') }}" class="btn-primary w-full sm:w-auto text-center whitespace-nowrap sm:min-w-[10.5rem]">+ Add Client</a>
         </div>
     </div>
@@ -101,27 +108,27 @@
 
 @php
     $appointmentsMap = isset($appointmentsByClient) ? $appointmentsByClient : collect();
-    $clientRows = $clients->map(function ($c) use ($salon, $appointmentsMap) {
+    $clientRows = $clients->map(function ($c) use ($salon, $appointmentsMap, $isScopedStaffPanel) {
         return [
             'id' => (int) $c->id,
             'name' => trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')),
             'first_name' => (string) ($c->first_name ?? ''),
             'last_name' => (string) ($c->last_name ?? ''),
             'initial' => strtoupper(substr((string) ($c->first_name ?? '?'), 0, 1)),
-            'email' => $c->email,
-            'phone' => $c->phone,
+            'email' => $isScopedStaffPanel ? null : $c->email,
+            'phone' => $isScopedStaffPanel ? null : $c->phone,
             'added' => $c->created_at?->format('d M Y'),
             'marketing' => (bool) $c->marketing_consent,
             'visits' => (int) ($c->visit_count ?? 0),
             'total_spent' => number_format((float) ($c->total_spent ?? 0), 2, '.', ''),
             'last_visit' => $c->last_visit_at ? $c->last_visit_at->format('d M Y') : '—',
-            'dob' => $c->date_of_birth ? $c->date_of_birth->format('d M Y') : '—',
-            'gender' => $c->gender ? str_replace('_', ' ', (string) $c->gender) : '—',
-            'address' => $c->address,
+            'dob' => $isScopedStaffPanel ? '—' : ($c->date_of_birth ? $c->date_of_birth->format('d M Y') : '—'),
+            'gender' => $isScopedStaffPanel ? '—' : ($c->gender ? str_replace('_', ' ', (string) $c->gender) : '—'),
+            'address' => $isScopedStaffPanel ? null : $c->address,
             'status' => $c->status ?: 'active',
             'source' => $c->source ?: '—',
             'is_vip' => (bool) ($c->is_vip ?? false),
-            'notes' => $c->notes,
+            'notes' => $isScopedStaffPanel ? null : $c->notes,
             'loyalty_tier_id' => $c->loyalty_tier_id ? (string) $c->loyalty_tier_id : '',
             'show_url' => route('clients.show', $c->id),
             'update_url' => route('clients.update', $c->id),
@@ -145,6 +152,7 @@
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 xl:gap-6"
      x-data="{
         selectedClientId: {{ $firstClientId ? (int) $firstClientId : 'null' }},
+        isScopedStaff: {{ ($isScopedStaffPanel ?? false) ? 'true' : 'false' }},
         clients: @js($clientRows),
         loyaltyOptions: @js(($loyaltyTiers ?? collect())->map(fn($t) => ['id' => (string) $t->id, 'name' => (string) $t->name])->values()),
         editMode: false,
@@ -181,14 +189,18 @@
             <thead>
             <tr>
                 <th>Name</th>
+                @if(!$isScopedStaffPanel)
                 <th class="hidden sm:table-cell">Contact</th>
+                @endif
                 <th class="hidden md:table-cell">Added</th>
+                @if(!$isScopedStaffPanel)
                 <th scope="col" class="hidden lg:table-cell">
                     <span class="inline-flex items-center gap-1">
                         Marketing
                         <x-marketing-consent-help mode="tooltip" />
                     </span>
                 </th>
+                @endif
             </tr>
             </thead>
             <tbody>
@@ -209,8 +221,11 @@
                         </div>
                     </div>
                 </td>
+                @if(!$isScopedStaffPanel)
                 <td class="hidden sm:table-cell text-body">{{ $client->phone ?? '—' }}</td>
+                @endif
                 <td class="hidden md:table-cell text-muted text-xs">{{ $client->created_at->format('d M Y') }}</td>
+                @if(!$isScopedStaffPanel)
                 <td class="hidden lg:table-cell">
                     @if($client->marketing_consent)
                         <span class="badge-green">Opted in</span>
@@ -218,16 +233,17 @@
                         <span class="badge-gray">Opted out</span>
                     @endif
                 </td>
+                @endif
             </tr>
             @empty
-            <tr><td colspan="4" class="px-6 py-14 text-center text-sm text-muted">No clients found</td></tr>
+            <tr><td colspan="{{ $isScopedStaffPanel ? 2 : 4 }}" class="px-6 py-14 text-center text-sm text-muted">No clients found</td></tr>
             @endforelse
             </tbody>
         </table>
     </div>
 
     <div class="card p-6 min-h-[18rem] shadow-sm dark:shadow-none" x-show="selectedClient()" x-cloak>
-        <template x-if="editMode && selectedClient()">
+        <template x-if="!isScopedStaff && editMode && selectedClient()">
             <form :action="selectedClient().update_url" method="POST" class="space-y-4">
                 @csrf
                 @method('PUT')
@@ -301,12 +317,16 @@
                         <div class="w-11 h-11 rounded-full bg-velour-100 dark:bg-velour-900/45 flex items-center justify-center text-velour-700 dark:text-velour-300 font-bold text-base flex-shrink-0 ring-2 ring-white/10 dark:ring-gray-950/30" x-text="selectedClient().initial"></div>
                         <div class="min-w-0 space-y-0.5">
                             <p class="font-semibold text-heading truncate tracking-tight" x-text="selectedClient().name"></p>
-                            <p class="text-xs text-muted truncate" x-text="selectedClient().email || '—'"></p>
-                            <p class="text-xs text-muted tabular-nums" x-text="selectedClient().phone || '—'"></p>
+                            <template x-if="!isScopedStaff">
+                                <p class="text-xs text-muted truncate" x-text="selectedClient().email || '—'"></p>
+                            </template>
+                            <template x-if="!isScopedStaff">
+                                <p class="text-xs text-muted tabular-nums" x-text="selectedClient().phone || '—'"></p>
+                            </template>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                        <button type="button" @click="startEdit()" class="btn-outline btn-sm whitespace-nowrap">Edit</button>
+                        <button x-show="!isScopedStaff" type="button" @click="startEdit()" class="btn-outline btn-sm whitespace-nowrap">Edit</button>
                     </div>
                 </div>
 
@@ -327,14 +347,14 @@
                     </div>
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-4" x-show="!isScopedStaff">
                     <p class="text-[11px] uppercase tracking-wide text-muted">Marketing</p>
                     <span class="mt-1 inline-flex px-2 py-0.5 rounded-full text-xs font-medium"
                           :class="selectedClient().marketing ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'"
                           x-text="selectedClient().marketing ? 'Opted in' : 'Opted out'"></span>
                 </div>
 
-                <div class="mt-5 grid grid-cols-2 gap-x-4 gap-y-3.5 text-sm">
+                <div class="mt-5 grid grid-cols-2 gap-x-4 gap-y-3.5 text-sm" x-show="!isScopedStaff">
                     <div>
                         <p class="text-[11px] uppercase tracking-wide text-muted">Date of Birth</p>
                         <p class="mt-1 text-body capitalize" x-text="selectedClient().dob"></p>
@@ -353,7 +373,7 @@
                     </div>
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-4" x-show="!isScopedStaff">
                     <p class="text-[11px] uppercase tracking-wide text-muted">Address</p>
                     <p class="mt-1 text-sm text-body" x-text="selectedClient().address || '—'"></p>
                 </div>
@@ -362,7 +382,7 @@
                     <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">VIP Client</span>
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-4" x-show="!isScopedStaff">
                     <p class="text-[11px] uppercase tracking-wide text-muted">Notes</p>
                     <p class="mt-1 text-sm text-body" x-text="selectedClient().notes || 'No notes added.'"></p>
                 </div>

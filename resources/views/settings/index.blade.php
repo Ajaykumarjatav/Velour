@@ -650,35 +650,128 @@
                     </button>
                 </div>
             </div>
-            <form x-show="profileCardOpen" x-cloak action="{{ route('settings.profile') }}" method="POST" class="space-y-4">
+            <form x-show="profileCardOpen" x-cloak action="{{ route('settings.profile') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                @if($profileStaff)
+                <div>
+                    <label class="form-label">Photo</label>
+                    <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+                        @if($profileStaff->avatar_url)
+                            <img src="{{ $profileStaff->avatar_url }}" alt="" width="64" height="64" class="w-16 h-16 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0">
+                        @else
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0"
+                                 style="background-color: {{ $profileStaff->color ?? '#7C3AED' }}">
+                                {{ strtoupper(mb_substr($profileStaff->first_name, 0, 1).mb_substr($profileStaff->last_name, 0, 1)) }}
+                            </div>
+                        @endif
+                        <div class="flex-1 min-w-0 space-y-2">
+                            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"
+                                   class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
+                            <p class="form-hint">JPG, PNG or WebP · max 2 MB</p>
+                            @if($profileStaff->avatar)
+                                <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                    <input type="checkbox" name="remove_avatar" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                    Remove current photo
+                                </label>
+                            @endif
+                            @error('avatar')<p class="form-error">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+                </div>
+                @endif
                 <div>
                     <label class="form-label">Full name</label>
-                    <input type="text" name="name" value="{{ old('name', $user->name) }}" required class="form-input">
+                    <input type="text" name="name" value="{{ old('name', $profileStaff ? $profileStaff->name : $user->name) }}" required class="form-input">
                 </div>
                 <div>
                     <label class="form-label">Email address</label>
-                    <input type="email" name="email" value="{{ old('email', $user->email) }}" required class="form-input">
+                    <input type="email" name="email" value="{{ old('email', $profileStaff ? $profileStaff->email : $user->email) }}" required class="form-input">
                 </div>
                 <div>
                     <label class="form-label">Phone</label>
-                    <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" class="form-input" autocomplete="tel">
+                    @if($profileStaff)
+                        <input type="tel" name="staff_phone" value="{{ old('staff_phone', $profileStaff->phone) }}" class="form-input" autocomplete="tel">
+                    @else
+                        <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" class="form-input" autocomplete="tel">
+                    @endif
+                </div>
+                @if($profileStaff)
+                <div>
+                    <label class="form-label">Role</label>
+                    <select name="staff_role" class="form-select">
+                        @foreach(['stylist','therapist','manager','receptionist','junior','owner'] as $r)
+                            <option value="{{ $r }}" {{ old('staff_role', $profileStaff->role ?? 'stylist') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div>
+                    <label class="form-label">Commission %</label>
+                    <input type="number" name="staff_commission_rate" min="0" max="100" step="0.1"
+                           value="{{ old('staff_commission_rate', $profileStaff->commission_rate ?? 0) }}" class="form-input">
+                </div>
+                @endif
+                <div>
                     <label class="form-label">Experience</label>
-                    <input type="text" name="experience" value="{{ old('experience', $user->experience) }}" class="form-input" placeholder="e.g. 5 years">
+                    @if($profileStaff)
+                        <input type="text" name="staff_experience" value="{{ old('staff_experience', $profileStaff->experience) }}" class="form-input" placeholder="e.g. 5 years">
+                    @else
+                        <input type="text" name="experience" value="{{ old('experience', $user->experience) }}" class="form-input" placeholder="e.g. 5 years">
+                    @endif
                 </div>
                 @php
                     $profileLangSelected = old('language_proficiency');
                     if (! is_array($profileLangSelected)) {
-                        $profileLangSelected = \App\Support\LanguageProficiency::codesFromStored($user->language_proficiency);
+                        $profileLangSelected = \App\Support\LanguageProficiency::codesFromStored($profileStaff->language_proficiency ?? $user->language_proficiency);
                     }
                 @endphp
                 @include('settings.partials.language-proficiency-field', [
                     'name' => 'language_proficiency[]',
                     'selected' => $profileLangSelected,
                 ])
+                @if($profileStaff)
+                <div>
+                    <label class="form-label">Calendar colour</label>
+                    <input type="color" name="staff_color" value="{{ old('staff_color', $profileStaff->color ?? '#7C3AED') }}"
+                           class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer">
+                </div>
+                <div>
+                    <label class="form-label">Bio</label>
+                    <textarea name="staff_bio" rows="3" class="form-textarea">{{ old('staff_bio', $profileStaff->bio) }}</textarea>
+                </div>
+                @if(($profileStaffServices ?? collect())->count())
+                <div>
+                    <label class="form-label">Services offered</label>
+                    <div class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
+                        @php
+                            $selectedStaffServices = old('staff_services');
+                            if (! is_array($selectedStaffServices)) {
+                                $selectedStaffServices = $profileStaffAssignedServiceIds ?? [];
+                            }
+                            $selectedStaffServices = array_map('intval', $selectedStaffServices);
+                        @endphp
+                        @foreach($profileStaffServices as $svc)
+                        <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
+                            <input type="checkbox" name="staff_services[]" value="{{ $svc->id }}"
+                                   {{ in_array((int) $svc->id, $selectedStaffServices, true) ? 'checked' : '' }}
+                                   class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                            <span class="text-sm text-body truncate">{{ $svc->name }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                    @error('staff_services')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                @endif
+                <div>
+                    <label class="inline-flex items-center gap-3 cursor-pointer">
+                        <input type="hidden" name="staff_is_active" value="0">
+                        <input type="checkbox" name="staff_is_active" value="1"
+                               {{ old('staff_is_active', $profileStaff->is_active ?? true) ? 'checked' : '' }}
+                               class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                        <span class="text-sm text-body">Active (shows in calendar and booking)</span>
+                    </label>
+                </div>
+                @endif
                 {{--
                 <div>
                     <label class="form-label">Your timezone</label>

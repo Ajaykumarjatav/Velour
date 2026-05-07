@@ -109,7 +109,7 @@ class BookingController extends Controller
             'service_id'    => ['nullable', 'integer'],
             'service_ids'   => ['nullable', 'array'],
             'service_ids.*' => ['integer'],
-            'date'          => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'date'          => ['required', 'date_format:Y-m-d'],
             'staff_id'      => ['nullable', 'integer', 'exists:staff,id'],
         ]);
 
@@ -133,13 +133,20 @@ class BookingController extends Controller
         }
 
         try {
-            $date = Carbon::createFromFormat('Y-m-d', $validated['date'])->startOfDay();
+            $date = SalonTime::parseLocalDate($salon, $validated['date']);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Invalid date format'], 422);
         }
 
+        $today = SalonTime::parseLocalDate($salon, SalonTime::todayDateString($salon));
+        if ($date->lt($today)) {
+            return response()->json([
+                'error' => 'Please select today or a future date.',
+            ], 422);
+        }
+
         $maxDays = $salon->booking_advance_days ?? 60;
-        if ($date->diffInDays(now()->startOfDay(), false) < -$maxDays) {
+        if ($date->diffInDays($today, false) < -$maxDays) {
             return response()->json([
                 'error' => "Bookings can only be made up to $maxDays days in advance",
             ], 422);

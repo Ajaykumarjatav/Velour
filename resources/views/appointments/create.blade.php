@@ -68,6 +68,9 @@
                            name="date_picker"
                            x-model="selectedDate"
                            @change="onDateChange()"
+                           @keydown.prevent
+                           @paste.prevent
+                           @drop.prevent
                            :min="today"
                            required
                            class="form-input @error('starts_at') form-input-error @enderror">
@@ -227,7 +230,7 @@ function timeslotPicker(occupiedUrl, serviceStaffMap) {
     return {
         occupiedUrl,
         serviceStaffMap: serviceStaffMap || {},
-        today: new Date().toISOString().split('T')[0],
+        today: @js($todayYmd),
         staffId: '{{ $defaultStaffId }}',
         selectedDate: '{{ old('starts_at') ? substr(old('starts_at'), 0, 10) : '' }}',
         selectedTime: '{{ old('starts_at') ? substr(old('starts_at'), 11, 5) : '' }}',
@@ -261,6 +264,9 @@ function timeslotPicker(occupiedUrl, serviceStaffMap) {
             });
         },
         init() {
+            if (!this.selectedDate || this.selectedDate < this.today) {
+                this.selectedDate = this.today;
+            }
             this.$watch('staffId', () => {
                 this.selectedTime = '';
                 this.uncheckDisallowedServices();
@@ -294,6 +300,9 @@ function timeslotPicker(occupiedUrl, serviceStaffMap) {
             });
         },
         onDateChange() {
+            if (this.selectedDate < this.today) {
+                this.selectedDate = this.today;
+            }
             this.selectedTime = '';
             this.fetchBlocked();
         },
