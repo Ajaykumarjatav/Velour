@@ -8,7 +8,7 @@
     $settingsPersonalOnly = $settingsPersonalOnly ?? false;
     $settingsTabLabels = $settingsTabLabels ?? [
         'salon' => 'Business', 'services' => 'Service', 'hours' => 'Hours', 'social' => 'Social Links',
-        'notifications' => 'Notifications', 'profile' => 'Profile', 'security' => 'Security',
+        'notifications' => 'Notifications', 'profile' => 'Profile', 'team' => 'Team', 'security' => 'Security',
     ];
     $settingsInitialTab = $settingsInitialTab ?? session('tab', request()->get('tab', $settingsPersonalOnly ? 'profile' : 'salon'));
     // One JSON object for Alpine: must use single-quoted HTML attribute (see x-data below) — double-quoted x-data breaks when @json emits "quotes".
@@ -200,7 +200,7 @@
                 </div>
                 <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                     <label class="form-label mb-0">Service categories <span class="text-gray-400 font-normal">(optional)</span></label>
-                    <p class="form-hint">Optional: tick categories to narrow the list below. Leave them unchecked to show every starter service for your selected business types.</p>
+                    <p class="form-hint">Optional: tick categories to choose which starter services appear below. If no category is selected, services stay hidden.</p>
                     <div id="settings-service-categories-list" class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         @foreach($starterCatalog as $slug => $items)
                             @php
@@ -231,7 +231,7 @@
                 </div>
                 <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                     <label class="form-label mb-0">Services <span class="text-gray-400 font-normal">(optional)</span></label>
-                    <p class="form-hint">Select services, then enter time and price manually for each. With no category filter, the list is grouped by business type and category.</p>
+                    <p class="form-hint">Select services, then enter time and price manually for each. Services appear only after selecting at least one category.</p>
                     <div id="settings-service-offers-list" class="flex flex-col gap-6">
                         @foreach($starterCatalog as $slug => $items)
                             @php
@@ -801,7 +801,16 @@
                 <button type="submit" class="btn-primary">Update Profile</button>
             </form>
         </div>
-        @unless($settingsPersonalOnly)
+    </div>
+
+    {{-- ── Team Members ── --}}
+    <div x-show="tab==='team'" x-cloak class="space-y-5">
+        @if($settingsPersonalOnly)
+        <div class="card p-6">
+            <h2 class="font-semibold text-heading mb-2">Team</h2>
+            <p class="text-sm text-muted">Team members are managed by your salon admin.</p>
+        </div>
+        @else
         <div class="card p-6">
             @php
                 $mapMemberToRow = function ($member) {
@@ -821,6 +830,7 @@
                         'color' => $member->color ?: '#7C3AED',
                         'bio' => $member->bio,
                         'assign_services' => $hasServices ? '1' : '0',
+                        'services' => $member->services()->withoutTenantScope()->pluck('services.id')->map(fn ($id) => (int) $id)->values()->all(),
                     ];
                 };
                 $staffRows = old('staff_members');
@@ -876,6 +886,7 @@
                             <input type="hidden" name="return_to" value="{{ $returnTo }}">
                             <input type="hidden" name="save_single_team_member" value="1">
                             <input type="hidden" name="staff_members[0][id]" value="{{ $st['id'] ?? '' }}">
+                            <input type="hidden" name="staff_members[0][services_present]" value="1">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-medium text-body mb-1">Full name</label>
@@ -948,11 +959,43 @@
                                 <span>Offer all services on this menu to this team member <span class="text-muted font-normal">(filtered by this member’s role)</span></span>
                             </label>
                             <p class="text-xs text-muted pl-7 -mt-1">Service dependency is defined according to each staff member’s role; “all services” means every service that role may perform.</p>
+                            @php
+                                $rowRole = (string) ($st['role'] ?? '');
+                                $rowServiceOptions = (array) (($teamServicesByRole ?? [])[$rowRole] ?? []);
+                                $selectedRowServices = old('staff_members.0.services');
+                                if (! is_array($selectedRowServices)) {
+                                    $selectedRowServices = array_map('intval', (array) ($st['services'] ?? []));
+                                } else {
+                                    $selectedRowServices = array_map('intval', $selectedRowServices);
+                                }
+                            @endphp
+                            <div>
+                                <label class="block text-xs font-medium text-body mb-1">Services offered</label>
+                                <p class="text-xs text-muted mb-2">The list follows the selected role for this team member.</p>
+                                @if(count($rowServiceOptions))
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
+                                        @foreach($rowServiceOptions as $svc)
+                                            @php $svcId = (int) ($svc['id'] ?? 0); @endphp
+                                            <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
+                                                <input type="checkbox" name="staff_members[0][services][]" value="{{ $svcId }}"
+                                                       {{ in_array($svcId, $selectedRowServices, true) ? 'checked' : '' }}
+                                                       class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                                <span class="text-sm text-body truncate">{{ (string) ($svc['name'] ?? '') }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 px-3 py-2 text-xs text-muted">
+                                        Select a role first to choose services.
+                                    </div>
+                                @endif
+                            </div>
                             @error('staff_members.0.name')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.role')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.id')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.language_proficiency')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.services')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             <button type="submit" class="btn-primary w-full sm:w-auto">Save this team member</button>
                         </form>
                         </div>
@@ -962,7 +1005,7 @@
             <button type="button" id="settings-add-staff-member" class="mt-2 text-sm font-medium text-velour-600 hover:text-velour-700">+ Add another team member</button>
             @error('staff_members')<p class="mt-2 text-xs text-red-600">{{ $message }}</p>@enderror
         </div>
-        @endunless
+        @endif
     </div>
 
     {{-- ── Security / 2FA ── --}}
@@ -1329,10 +1372,10 @@
             var catId = el.getAttribute('data-cat-id');
             var show = !!(slug && selectedSlugs[slug]);
 
-            // When at least one category is checked for this slug, filter services by category.
-            // When none are checked, show all starter services for the slug (categories are optional).
-            if (show && (selectedCountBySlug[slug] || 0) > 0) {
-                show = !!selectedCategoryIds[catId];
+            // Keep services hidden until at least one category is selected for this slug.
+            if (show) {
+                var hasSelectedCategoryForSlug = (selectedCountBySlug[slug] || 0) > 0;
+                show = hasSelectedCategoryForSlug && !!selectedCategoryIds[catId];
             }
 
             el.classList.toggle('hidden', !show);

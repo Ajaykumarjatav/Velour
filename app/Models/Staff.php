@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Staff extends Model
 {
@@ -78,7 +80,26 @@ class Staff extends Model
     /** Public URL for uploaded profile photo (stored path is relative to the public disk). */
     public function getAvatarUrlAttribute(): ?string
     {
-        return $this->avatar ? asset('storage/'.$this->avatar) : null;
+        $avatar = trim((string) ($this->avatar ?? ''));
+        if ($avatar === '') {
+            return null;
+        }
+
+        // Already absolute URL (CDN/S3/external) -> use as-is.
+        if (Str::startsWith($avatar, ['http://', 'https://'])) {
+            return $avatar;
+        }
+
+        // Normalize older/local variants to a public-disk relative path.
+        $relative = ltrim($avatar, '/');
+        if (Str::startsWith($relative, 'storage/')) {
+            $relative = (string) Str::after($relative, 'storage/');
+        }
+        if (Str::startsWith($relative, 'public/')) {
+            $relative = (string) Str::after($relative, 'public/');
+        }
+
+        return Storage::disk('public')->url($relative);
     }
     public function salon()        { return $this->belongsTo(Salon::class); }
     public function user()         { return $this->belongsTo(User::class); }

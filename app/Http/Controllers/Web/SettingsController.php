@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
 use App\Support\LanguageProficiency;
+use App\Support\ProfileCompletion;
 use App\Support\RegistrationStarterServices;
 use App\Support\StaffServiceEligibility;
 use Illuminate\Http\Request;
@@ -90,10 +91,11 @@ class SettingsController extends Controller
             'social' => 'Social Links',
             'notifications' => 'Notifications',
             'profile' => 'Profile',
+            'team' => 'Team',
             'security' => 'Security',
         ];
         $allowedTabKeys = $settingsPersonalOnly
-            ? ['profile', 'security']
+            ? ['profile', 'team', 'security']
             : array_keys($tabLabelsOrder);
         $settingsTabLabels = [];
         foreach ($tabLabelsOrder as $key => $label) {
@@ -159,6 +161,7 @@ class SettingsController extends Controller
                 ->values()
                 ->all();
         }
+        $teamServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
 
         return view('settings.index', compact(
             'salon',
@@ -180,6 +183,7 @@ class SettingsController extends Controller
             'profileStaff',
             'profileStaffServices',
             'profileStaffAssignedServiceIds',
+            'teamServicesByRole',
             'settingsTabLabels',
             'settingsPersonalOnly',
             'settingsInitialTab',
@@ -563,6 +567,9 @@ class SettingsController extends Controller
             'staff_members.*.language_proficiency.*' => ['string', Rule::in($langCodes)],
             'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
             'staff_members.*.assign_services' => ['nullable'],
+            'staff_members.*.services_present' => ['nullable'],
+            'staff_members.*.services' => ['nullable', 'array'],
+            'staff_members.*.services.*' => ['integer', Rule::exists('services', 'id')->where('salon_id', $salon->id)],
         ]);
 
         $rows = $data['staff_members'] ?? [];
@@ -583,7 +590,7 @@ class SettingsController extends Controller
 
         $message = $singleSave ? 'Team member saved.' : 'Team members updated.';
 
-        return $this->redirectAfterSettingsSave($request, $message, 'profile');
+        return $this->redirectAfterSettingsSave($request, $message, 'team');
     }
 
     public function updatePassword(Request $request)
@@ -719,6 +726,12 @@ class SettingsController extends Controller
      */
     private function mergeSingleTeamMemberPayloadIntoFullList(\App\Models\Salon $salon, array $incoming): array
     {
+        // In single-row saves, unchecked service checkboxes are omitted by browser.
+        // Use an explicit marker so we can treat missing "services" as an intentional empty selection.
+        if (array_key_exists('services_present', $incoming) && ! array_key_exists('services', $incoming)) {
+            $incoming['services'] = [];
+        }
+
         $base = $this->teamMemberRowsForSyncFromDatabase($salon);
         $incId = isset($incoming['id']) ? (int) $incoming['id'] : 0;
 
@@ -795,6 +808,12 @@ class SettingsController extends Controller
                     'color' => $member->color ?: '#7C3AED',
                     'bio' => $member->bio,
                     'assign_services' => $hasServices ? '1' : '0',
+                    'services' => DB::table('service_staff')
+                        ->where('staff_id', $member->id)
+                        ->pluck('service_id')
+                        ->map(fn ($id) => (int) $id)
+                        ->values()
+                        ->all(),
                 ];
             })
             ->all();
@@ -837,11 +856,26 @@ class SettingsController extends Controller
             $commission = isset($row['commission_rate']) ? (float) $row['commission_rate'] : 0.0;
             $commission = max(0.0, min(100.0, $commission));
             $role = (string) $row['role'];
-            $serviceIds = $services
+            $eligibleServiceIds = $services
                 ->filter(fn (Service $service) => $service->allowsStaffRole($role))
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->all();
+            $servicesWereSubmitted = array_key_exists('services', $row) || array_key_exists('services_present', $row);
+            $requestedServiceIds = array_values(array_unique(array_map('intval', (array) ($row['services'] ?? []))));
+            $serviceIds = [];
+
+            if ($servicesWereSubmitted) {
+                $blockedIds = array_values(array_diff($requestedServiceIds, $eligibleServiceIds));
+                if ($blockedIds !== []) {
+                    throw ValidationException::withMessages([
+                        "staff_members.{$i}.services" => ['Selected services are not allowed for this role.'],
+                    ]);
+                }
+                $serviceIds = $requestedServiceIds;
+            } elseif ($assign) {
+                $serviceIds = $eligibleServiceIds;
+            }
 
             $staff = null;
             $id = isset($row['id']) ? (int) $row['id'] : 0;
@@ -893,11 +927,7 @@ class SettingsController extends Controller
                 ]);
             }
 
-            if ($assign && $serviceIds !== []) {
-                $staff->services()->sync($serviceIds);
-            } else {
-                $staff->services()->sync([]);
-            }
+            $staff->services()->sync($serviceIds);
             $keptIds[] = (int) $staff->id;
         }
 
@@ -1154,23 +1184,35 @@ class SettingsController extends Controller
     {
         $returnTo = trim((string) $request->input('return_to', ''));
         if ($returnTo === '') {
-            return back()->with('success', $message)->with('tab', $tab);
+            return redirect()
+                ->route('settings.index', ['tab' => $tab])
+                ->with('success', $message)
+                ->with('tab', $tab);
         }
 
         $parsed = parse_url($returnTo);
         if ($parsed === false) {
-            return back()->with('success', $message)->with('tab', $tab);
+            return redirect()
+                ->route('settings.index', ['tab' => $tab])
+                ->with('success', $message)
+                ->with('tab', $tab);
         }
 
         if (isset($parsed['host']) && strcasecmp((string) $parsed['host'], $request->getHost()) !== 0) {
-            return back()->with('success', $message)->with('tab', $tab);
+            return redirect()
+                ->route('settings.index', ['tab' => $tab])
+                ->with('success', $message)
+                ->with('tab', $tab);
         }
 
         $path = (string) ($parsed['path'] ?? '');
         $query = isset($parsed['query']) && is_string($parsed['query']) ? $parsed['query'] : '';
 
         if ($path === '' || ! str_starts_with($path, '/') || str_starts_with($path, '//')) {
-            return back()->with('success', $message)->with('tab', $tab);
+            return redirect()
+                ->route('settings.index', ['tab' => $tab])
+                ->with('success', $message)
+                ->with('tab', $tab);
         }
 
         // return_to often carries the full path from the browser (e.g. /vellor/public/dashboard).
@@ -1185,7 +1227,26 @@ class SettingsController extends Controller
             }
         }
 
-        $target = $path . ($query !== '' ? ('?' . $query) : '');
+        // During initial setup, redirecting to blocked pages (e.g. multi-location) bounces back
+        // to Settings with tab=salon. Keep users on the tab they saved instead.
+        $completion = ProfileCompletion::forSalon($this->salon());
+        $isSetupIncomplete = (int) ($completion['percentage'] ?? 0) < 100;
+        $isSettingsPath = str_starts_with($path, '/settings');
+        if ($isSetupIncomplete && ! $isSettingsPath) {
+            return redirect()
+                ->route('settings.index', ['tab' => $tab])
+                ->with('success', $message)
+                ->with('tab', $tab);
+        }
+
+        $params = [];
+        if ($query !== '') {
+            parse_str($query, $params);
+        }
+        // Keep users on the tab they just saved, even when return_to is used.
+        $params['tab'] = $tab;
+        $rebuiltQuery = http_build_query($params);
+        $target = $path . ($rebuiltQuery !== '' ? ('?' . $rebuiltQuery) : '');
 
         return redirect($target)->with('success', $message);
     }

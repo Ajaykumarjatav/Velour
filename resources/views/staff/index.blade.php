@@ -57,7 +57,7 @@
         <div class="flex flex-wrap gap-2 shrink-0">
             <button type="button" @click="openPayroll()" class="btn-outline text-sm inline-flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                Payroll
+                Payroll (All Staff)
             </button>
             <a href="{{ route('staff.create') }}" class="btn-primary text-sm">+ Add Staff</a>
         </div>
@@ -185,19 +185,15 @@
                 </div>
                 <div class="grid grid-cols-3 gap-2 mt-2">
                     <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}"
-                       class="btn-primary text-center text-xs py-2 col-span-1">Schedule</a>
-                    <button type="button" @click="openPayroll()" class="btn-outline text-center text-xs py-2">Payroll</button>
-                    <a href="{{ route('staff.show', $member) }}#notes" class="btn-outline text-center text-xs py-2 flex items-center justify-center" title="Open profile">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                    </a>
+                       class="btn-primary text-center text-xs py-2 col-span-1">Appointments</a>
+                    <button type="button"
+                            class="btn-outline text-center text-xs py-2"
+                            data-staff='@json($schedulePayload)'
+                            @click="openSchedule(JSON.parse($event.currentTarget.dataset.staff))">
+                        Weekly schedule
+                    </button>
+                    <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="btn-outline text-center text-xs py-2">Leave</a>
                 </div>
-
-                <button type="button"
-                        class="mt-2 w-full text-xs text-velour-600 dark:text-velour-400 font-medium py-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20"
-                        data-staff='@json($schedulePayload)'
-                        @click="openSchedule(JSON.parse($event.currentTarget.dataset.staff))">
-                    Weekly schedule…
-                </button>
             </div>
         @empty
             <div class="col-span-full empty-state">
