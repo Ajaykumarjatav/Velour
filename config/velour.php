@@ -24,7 +24,7 @@ return [
             'marketing'          => false,
             'reports'            => false,
             'pos'                => true,
-            'inventory'          => false,
+            'inventory'          => true,
             'multi_location'     => false,
         ],
         'growth' => [

@@ -30,6 +30,7 @@ class SalonController extends Controller
         $data = $request->validate([
             'name'         => 'sometimes|string|max:255',
             'description'  => 'nullable|string|max:2000',
+            'awards_accolades' => 'nullable|string|max:5000',
             'phone'        => 'nullable|string|max:30',
             'email'        => 'nullable|email',
             'website'      => 'nullable|url',

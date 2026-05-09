@@ -234,6 +234,7 @@
             <form id="pos-form" action="{{ route('pos.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="tax_rate" value="{{ $taxRate }}">
+                <input type="hidden" name="tax_mode" x-bind:value="taxMode">
                 <input type="hidden" name="payment_method" x-bind:value="paymentMethod">
                 <input type="hidden" name="client_id" x-bind:value="clientId">
                 <input type="hidden" name="discount_amount" value="0">
@@ -261,23 +262,44 @@
                 @endforeach
             </div>
 
+            {{-- GST mode --}}
+            <div class="grid grid-cols-2 gap-1.5">
+                <button @click="taxMode = 'excluded'"
+                        :class="taxMode === 'excluded'
+                            ? 'bg-velour-600 text-white border-velour-600'
+                            : 'bg-white dark:bg-gray-800 text-body border-gray-200 dark:border-gray-700 hover:border-gray-300'"
+                        class="py-2 rounded-xl border text-xs font-semibold transition-all">
+                    GST Excluded
+                </button>
+                <button @click="taxMode = 'included'"
+                        :class="taxMode === 'included'
+                            ? 'bg-velour-600 text-white border-velour-600'
+                            : 'bg-white dark:bg-gray-800 text-body border-gray-200 dark:border-gray-700 hover:border-gray-300'"
+                        class="py-2 rounded-xl border text-xs font-semibold transition-all">
+                    GST Included
+                </button>
+            </div>
+
             {{-- Client selector --}}
             <div class="flex items-end gap-2">
                 <x-searchable-select
                     id="pos-client-select"
+                    panel-placement="top"
                     wrapper-class="flex-1 min-w-0"
                     :search-url="route('lookup.clients')"
                     search-placeholder="Search client…"
-                    :hint="auth()->user()->dashboardScopedStaffId() === null ? 'Optional. Use + to add.' : null"
+                    :hint="auth()->user()->dashboardScopedStaffId() === null ? 'Search client in database or keep Walk-in Client.' : null"
                     trigger-class="form-select w-full text-sm"
                     x-model="clientId">
                     <option value="">Walk-in Client</option>
                     @foreach($clients as $c)
-                    <option value="{{ $c->id }}">{{ $c->first_name }} {{ $c->last_name }}{{ $c->phone ? ' — '.$c->phone : '' }}</option>
+                    <option value="{{ $c->id }}" data-sticky="1">{{ $c->first_name }} {{ $c->last_name }}{{ $c->phone ? ' — '.$c->phone : '' }}</option>
                     @endforeach
                 </x-searchable-select>
                 @if(auth()->user()->dashboardScopedStaffId() === null)
-                <x-relation-quick-create-trigger type="client" select-id="pos-client-select" :client-loyalty-tiers="$clientQuickCreateLoyaltyTiers ?? collect()" />
+                <div x-show="!clientId" x-cloak>
+                    <x-relation-quick-create-trigger type="client" select-id="pos-client-select" :client-loyalty-tiers="$clientQuickCreateLoyaltyTiers ?? collect()" />
+                </div>
                 @endif
             </div>
 
@@ -311,12 +333,28 @@ function posApp() {
         cart:           [],
         paymentMethod:  'cash',
         clientId:       '',
+        taxMode:        'excluded',
         pickerOpen:     false,
         pickItem:       null,
         pickVariantName:'',
         pickAddonNames: [],
 
-        init() {},
+        init() {
+            const selectEl = document.getElementById('pos-client-select');
+            if (!selectEl) return;
+
+            this.clientId = selectEl.value || '';
+            selectEl.addEventListener('change', () => {
+                this.clientId = selectEl.value || '';
+            });
+
+            this.$watch('clientId', (value) => {
+                const normalized = value == null ? '' : String(value);
+                if (String(selectEl.value || '') === normalized) return;
+                selectEl.value = normalized;
+                selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        },
 
         get filteredItems() {
             return POS_ITEMS.filter(item => {
@@ -397,8 +435,19 @@ function posApp() {
         clearCart()     { this.cart = []; },
 
         get subtotal() { return this.cart.reduce((s, i) => s + i.price * i.qty, 0); },
-        get gst()      { return Math.round(this.subtotal * (POS_TAX_RATE / 100) * 100) / 100; },
-        get total()    { return Math.round((this.subtotal + this.gst) * 100) / 100; },
+        get gst() {
+            if (this.taxMode === 'included') {
+                const base = this.subtotal / (1 + (POS_TAX_RATE / 100));
+                return Math.round((this.subtotal - base) * 100) / 100;
+            }
+            return Math.round(this.subtotal * (POS_TAX_RATE / 100) * 100) / 100;
+        },
+        get total() {
+            if (this.taxMode === 'included') {
+                return Math.round(this.subtotal * 100) / 100;
+            }
+            return Math.round((this.subtotal + this.gst) * 100) / 100;
+        },
 
         submitSale() {
             if (this.cart.length === 0) return;

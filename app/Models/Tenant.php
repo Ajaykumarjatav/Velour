@@ -58,6 +58,7 @@ class Tenant extends SpatieTenant
         'domain',       // Custom domain:   bookings.mysalon.com
         'subdomain',    // Velour subdomain: mysalon  (→ mysalon.velour.app)
         'description',
+        'awards_accolades',
         'phone',
         'email',
         'website',

@@ -27,6 +27,7 @@ class AppointmentService
      *   service_ids: array<int>,
      *   starts_at: string,
      *   source?: string,
+     *   payment_status?: string,
      *   client_notes?: ?string,
      *   internal_notes?: ?string,
      *   service_options?: array<int, array{variant?: ?string, addons?: list<string>}>
@@ -60,6 +61,7 @@ class AppointmentService
                 'total_price'       => $snapshot['total_price'],
                 'status'            => 'confirmed',
                 'source'            => $data['source'] ?? 'manual',
+                'payment_status'    => $data['payment_status'] ?? Appointment::PAYMENT_UNPAID,
                 'client_notes'      => $data['client_notes'] ?? null,
                 'internal_notes'    => $data['internal_notes'] ?? null,
                 'confirmed_at'      => now(),

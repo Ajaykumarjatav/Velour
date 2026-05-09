@@ -35,13 +35,27 @@
         <a href="{{ route('staff.edit', $staff->id) }}" class="flex-shrink-0 btn-outline">Edit</a>
     </div>
 
+    @if(trim((string) ($staff->bio ?? '')) !== '')
+    <div class="card p-6">
+        <h3 class="text-sm font-semibold text-heading mb-2">Bio</h3>
+        <p class="text-sm text-body whitespace-pre-line">{{ $staff->bio }}</p>
+    </div>
+    @endif
+
+    @if(trim((string) ($staff->awards_accolades ?? '')) !== '')
+    <div class="card p-6">
+        <h3 class="text-sm font-semibold text-heading mb-2">Awards &amp; accolades</h3>
+        <p class="text-sm text-body whitespace-pre-line">{{ $staff->awards_accolades }}</p>
+    </div>
+    @endif
+
     <div class="grid grid-cols-3 gap-4">
         <div class="stat-card text-center">
             <p class="stat-value">@money($totalRevenue)</p>
             <p class="stat-label mt-1">Revenue</p>
         </div>
         <div class="stat-card text-center">
-            <p class="stat-value">{{ $completedAppointments->total() }}</p>
+            <p class="stat-value">{{ $completedCount }}</p>
             <p class="stat-label mt-1">Completed</p>
         </div>
         <div class="stat-card text-center">
@@ -62,7 +76,7 @@
             </tr>
             </thead>
             <tbody>
-            @forelse($completedAppointments as $apt)
+            @forelse($recentAppointments as $apt)
             <tr>
                 <td>
                     <a href="{{ route('appointments.show', $apt->id) }}" class="font-medium text-link">
@@ -80,8 +94,8 @@
             @endforelse
             </tbody>
         </table>
-        @if($completedAppointments->hasPages())
-        <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-800">{{ $completedAppointments->links() }}</div>
+        @if($recentAppointments->hasPages())
+        <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-800">{{ $recentAppointments->links() }}</div>
         @endif
     </div>
 </div>

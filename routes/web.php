@@ -3,6 +3,8 @@
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\TwoFactorController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\SalonActionItemController;
+use App\Http\Controllers\Web\TaskController;
 use App\Http\Controllers\Web\CalendarController;
 use App\Http\Controllers\Web\AppointmentController;
 use App\Http\Controllers\Web\ClientController;
@@ -14,6 +16,7 @@ use App\Http\Controllers\Web\ServiceCategoryController;
 use App\Http\Controllers\Billing\BillingController;
 use App\Http\Controllers\Web\CheckoutController;
 use App\Http\Controllers\Web\InventoryController;
+use App\Http\Controllers\Web\FacilityController;
 use App\Http\Controllers\Web\PaymentGatewayController;
 use App\Http\Controllers\Web\PosController;
 use App\Http\Controllers\Web\MarketingController;
@@ -117,6 +120,12 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
         Route::get('/', fn() => redirect()->route('dashboard'));
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::post('action-items', [SalonActionItemController::class, 'store'])->name('action-items.store');
+        Route::patch('action-items/{actionItem}', [SalonActionItemController::class, 'update'])->name('action-items.update');
+
+        Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
+        Route::patch('tasks/{actionItem}', [TaskController::class, 'update'])->name('tasks.update');
+        Route::delete('tasks/{actionItem}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 
         Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
         Route::post('ui/hide-profile-bar', function (\Illuminate\Http\Request $request) {
@@ -191,6 +200,8 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::resource('inventory', InventoryController::class);
         Route::post('inventory/{item}/adjust', [InventoryController::class, 'adjust'])
              ->name('inventory.adjust');
+
+        Route::resource('facilities', FacilityController::class);
 
         Route::resource('pos', PosController::class)->only(['index','create','store','show']);
 
@@ -354,6 +365,7 @@ use App\Http\Controllers\Admin\AdminRevenueController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSupportController;
 use App\Http\Controllers\Admin\AdminAnalyticsController;
+use App\Http\Controllers\Admin\AdminFacilityController;
 
 Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin'])
     ->prefix('admin')
@@ -362,6 +374,9 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin']
 
     // ── Dashboard ────────────────────────────────────────────────────────────
     Route::get('/', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+
+    // ── Facilities (read-only cross-tenant) ───────────────────────────────────
+    Route::get('facilities',                 [AdminFacilityController::class, 'index'])->name('facilities');
 
     // ── Tenants (full management) ─────────────────────────────────────────────
     Route::get('tenants',                    [AdminTenantController::class, 'index'])->name('tenants');

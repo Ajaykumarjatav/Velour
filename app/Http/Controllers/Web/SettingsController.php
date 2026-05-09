@@ -150,10 +150,19 @@ class SettingsController extends Controller
             ->orderBy('sort_order')
             ->get();
         $profileStaff = $this->resolveProfileStaff($salon, $user);
+        $allSalonServices = Service::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereNull('deleted_at')
+            ->whereNotNull('duration_minutes')
+            ->where('duration_minutes', '>', 0)
+            ->whereNotNull('price')
+            ->where('price', '>', 0)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
         $profileStaffServices = collect();
         $profileStaffAssignedServiceIds = [];
         if ($profileStaff) {
-            $profileStaffServices = StaffServiceEligibility::eligibleServicesForRole($salon->id, (string) $profileStaff->role);
+            $profileStaffServices = $allSalonServices;
             $profileStaffAssignedServiceIds = $profileStaff->services()
                 ->withoutTenantScope()
                 ->pluck('services.id')
@@ -161,7 +170,10 @@ class SettingsController extends Controller
                 ->values()
                 ->all();
         }
-        $teamServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
+        $teamServices = $allSalonServices
+            ->map(fn (Service $s) => ['id' => (int) $s->id, 'name' => (string) $s->name])
+            ->values()
+            ->all();
 
         return view('settings.index', compact(
             'salon',
@@ -183,7 +195,7 @@ class SettingsController extends Controller
             'profileStaff',
             'profileStaffServices',
             'profileStaffAssignedServiceIds',
-            'teamServicesByRole',
+            'teamServices',
             'settingsTabLabels',
             'settingsPersonalOnly',
             'settingsInitialTab',
@@ -202,6 +214,7 @@ class SettingsController extends Controller
             'phone'              => ['nullable', 'string', 'max:20'],
             'website'            => ['nullable', 'url', 'max:200'],
             'description'        => ['nullable', 'string', 'max:1000'],
+            'awards_accolades'   => ['nullable', 'string', 'max:5000'],
             'address_line1'      => ['nullable', 'string', 'max:200'],
             'address_line2'      => ['nullable', 'string', 'max:200'],
             'city'               => ['nullable', 'string', 'max:100'],
@@ -466,6 +479,7 @@ class SettingsController extends Controller
             'staff_role' => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
             'staff_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'staff_bio' => ['nullable', 'string', 'max:1000'],
+            'staff_awards_accolades' => ['nullable', 'string', 'max:5000'],
             'staff_services' => ['nullable', 'array'],
             'staff_services.*' => ['integer', Rule::exists('services', 'id')->where('salon_id', $this->salon()->id)],
             'staff_is_active' => ['nullable', 'boolean'],
@@ -489,10 +503,11 @@ class SettingsController extends Controller
             'staff_role' => $data['staff_role'] ?? null,
             'staff_color' => $data['staff_color'] ?? null,
             'staff_bio' => $data['staff_bio'] ?? null,
+            'staff_awards_accolades' => $data['staff_awards_accolades'] ?? null,
             'staff_services' => array_values(array_map('intval', (array) ($data['staff_services'] ?? []))),
             'staff_is_active' => $request->boolean('staff_is_active'),
         ];
-        unset($data['staff_phone'], $data['staff_experience'], $data['staff_commission_rate'], $data['staff_role'], $data['staff_color'], $data['staff_bio'], $data['staff_services'], $data['staff_is_active'], $data['avatar'], $data['remove_avatar']);
+        unset($data['staff_phone'], $data['staff_experience'], $data['staff_commission_rate'], $data['staff_role'], $data['staff_color'], $data['staff_bio'], $data['staff_awards_accolades'], $data['staff_services'], $data['staff_is_active'], $data['avatar'], $data['remove_avatar']);
 
         $user->update($data);
 
@@ -503,11 +518,6 @@ class SettingsController extends Controller
             $firstName = (string) ($nameParts[0] ?? '');
             $lastName = (string) ($nameParts[1] ?? '');
             $nextRole = (string) ($staffProfileData['staff_role'] ?? $profileStaff->role);
-            StaffServiceEligibility::assertEligibleForRole(
-                $salon->id,
-                $nextRole,
-                $staffProfileData['staff_services'] ?? []
-            );
             $profileStaff->update([
                 'first_name' => $firstName !== '' ? $firstName : $profileStaff->first_name,
                 'last_name' => $lastName,
@@ -521,6 +531,7 @@ class SettingsController extends Controller
                     : $profileStaff->commission_rate,
                 'color' => $staffProfileData['staff_color'] ?? ($profileStaff->color ?: '#7C3AED'),
                 'bio' => $staffProfileData['staff_bio'] ?? $profileStaff->bio,
+                'awards_accolades' => $staffProfileData['staff_awards_accolades'],
                 'is_active' => $staffProfileData['staff_is_active'],
             ]);
             $profileStaff->services()->withoutTenantScope()->sync($staffProfileData['staff_services'] ?? []);
@@ -562,6 +573,7 @@ class SettingsController extends Controller
             'staff_members.*.role'   => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
             'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
+            'staff_members.*.awards_accolades' => ['nullable', 'string', 'max:5000'],
             'staff_members.*.experience' => ['nullable', 'string', 'max:120'],
             'staff_members.*.language_proficiency'   => ['nullable', 'array', 'max:30'],
             'staff_members.*.language_proficiency.*' => ['string', Rule::in($langCodes)],
@@ -570,10 +582,58 @@ class SettingsController extends Controller
             'staff_members.*.services_present' => ['nullable'],
             'staff_members.*.services' => ['nullable', 'array'],
             'staff_members.*.services.*' => ['integer', Rule::exists('services', 'id')->where('salon_id', $salon->id)],
+            'staff_member_avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'staff_member_remove_avatar' => ['nullable', 'boolean'],
         ]);
 
         $rows = $data['staff_members'] ?? [];
         $rows = array_values(array_filter($rows, fn ($row) => is_array($row)));
+        $singleIncoming = $singleSave && count($rows) === 1 ? $rows[0] : null;
+        $singleIncomingId = is_array($singleIncoming) ? (int) ($singleIncoming['id'] ?? 0) : 0;
+
+        if ($singleSave) {
+            $incomingName = trim((string) ($singleIncoming['name'] ?? ''));
+            $incomingRole = trim((string) ($singleIncoming['role'] ?? ''));
+            if ($incomingName === '') {
+                throw ValidationException::withMessages([
+                    'staff_members.0.name' => ['Full name is required.'],
+                ]);
+            }
+            if ($incomingRole === '') {
+                throw ValidationException::withMessages([
+                    'staff_members.0.role' => ['Role is required.'],
+                ]);
+            }
+        }
+
+        if ($singleSave) {
+            $targetForPhotoCheck = null;
+            if ($singleIncomingId > 0) {
+                $targetForPhotoCheck = Staff::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->where('id', $singleIncomingId)
+                    ->first();
+            }
+            if (! $targetForPhotoCheck) {
+                $incomingEmail = $this->optionalString($singleIncoming['email'] ?? null);
+                if ($incomingEmail) {
+                    $targetForPhotoCheck = Staff::withoutGlobalScopes()
+                        ->where('salon_id', $salon->id)
+                        ->whereRaw('LOWER(email) = ?', [mb_strtolower($incomingEmail)])
+                        ->first();
+                }
+            }
+
+            $hasExistingAvatar = (bool) trim((string) ($targetForPhotoCheck?->avatar ?? ''));
+            $uploadProvided = $request->hasFile('staff_member_avatar');
+            $removeRequested = $request->boolean('staff_member_remove_avatar');
+
+            if ((! $hasExistingAvatar && ! $uploadProvided) || ($removeRequested && ! $uploadProvided)) {
+                throw ValidationException::withMessages([
+                    'staff_member_avatar' => ['Photo is required. Please upload a photo.'],
+                ]);
+            }
+        }
 
         if ($singleSave) {
             if (count($rows) !== 1) {
@@ -587,6 +647,41 @@ class SettingsController extends Controller
         $rows = $this->normalizeTeamMemberLanguageProficiencyForSync($rows);
 
         $this->syncTeamMembers($salon, $rows);
+
+        if ($singleSave && ($request->hasFile('staff_member_avatar') || $request->boolean('staff_member_remove_avatar'))) {
+            $targetStaff = null;
+            if ($singleIncomingId > 0) {
+                $targetStaff = Staff::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->where('id', $singleIncomingId)
+                    ->first();
+            }
+            if (! $targetStaff) {
+                $incomingEmail = $this->optionalString($singleIncoming['email'] ?? null);
+                if ($incomingEmail) {
+                    $targetStaff = Staff::withoutGlobalScopes()
+                        ->where('salon_id', $salon->id)
+                        ->whereRaw('LOWER(email) = ?', [mb_strtolower($incomingEmail)])
+                        ->first();
+                }
+            }
+
+            if ($targetStaff) {
+                if ($request->hasFile('staff_member_avatar')) {
+                    if ($targetStaff->avatar) {
+                        Storage::disk('public')->delete($targetStaff->avatar);
+                    }
+                    $targetStaff->update([
+                        'avatar' => $request->file('staff_member_avatar')->store('salons/' . $salon->id . '/staff', 'public'),
+                    ]);
+                } elseif ($request->boolean('staff_member_remove_avatar')) {
+                    if ($targetStaff->avatar) {
+                        Storage::disk('public')->delete($targetStaff->avatar);
+                    }
+                    $targetStaff->update(['avatar' => null]);
+                }
+            }
+        }
 
         $message = $singleSave ? 'Team member saved.' : 'Team members updated.';
 
@@ -806,7 +901,9 @@ class SettingsController extends Controller
                     'language_proficiency' => $member->language_proficiency,
                     'commission_rate' => $member->commission_rate,
                     'color' => $member->color ?: '#7C3AED',
+                    'avatar' => $member->avatar,
                     'bio' => $member->bio,
+                    'awards_accolades' => $member->awards_accolades,
                     'assign_services' => $hasServices ? '1' : '0',
                     'services' => DB::table('service_staff')
                         ->where('staff_id', $member->id)
@@ -828,6 +925,7 @@ class SettingsController extends Controller
 
         $services = Service::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
+            ->whereNull('deleted_at')
             ->orderBy('sort_order')
             ->get(['id', 'allowed_roles']);
 
@@ -856,8 +954,7 @@ class SettingsController extends Controller
             $commission = isset($row['commission_rate']) ? (float) $row['commission_rate'] : 0.0;
             $commission = max(0.0, min(100.0, $commission));
             $role = (string) $row['role'];
-            $eligibleServiceIds = $services
-                ->filter(fn (Service $service) => $service->allowsStaffRole($role))
+            $allServiceIds = $services
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->all();
@@ -866,15 +963,9 @@ class SettingsController extends Controller
             $serviceIds = [];
 
             if ($servicesWereSubmitted) {
-                $blockedIds = array_values(array_diff($requestedServiceIds, $eligibleServiceIds));
-                if ($blockedIds !== []) {
-                    throw ValidationException::withMessages([
-                        "staff_members.{$i}.services" => ['Selected services are not allowed for this role.'],
-                    ]);
-                }
                 $serviceIds = $requestedServiceIds;
             } elseif ($assign) {
-                $serviceIds = $eligibleServiceIds;
+                $serviceIds = $allServiceIds;
             }
 
             $staff = null;
@@ -897,6 +988,7 @@ class SettingsController extends Controller
                     'phone' => $this->optionalString($row['phone'] ?? null),
                     'role' => $role,
                     'bio' => $this->optionalString($row['bio'] ?? null),
+                    'awards_accolades' => $this->optionalString($row['awards_accolades'] ?? null),
                     'experience' => $this->optionalString($row['experience'] ?? null),
                     'language_proficiency' => $this->optionalString(is_string($row['language_proficiency'] ?? null) ? $row['language_proficiency'] : null),
                     'user_id' => $linkedUser?->id,
@@ -916,6 +1008,7 @@ class SettingsController extends Controller
                     'phone' => $this->optionalString($row['phone'] ?? null),
                     'role' => $role,
                     'bio' => $this->optionalString($row['bio'] ?? null),
+                    'awards_accolades' => $this->optionalString($row['awards_accolades'] ?? null),
                     'experience' => $this->optionalString($row['experience'] ?? null),
                     'language_proficiency' => $this->optionalString(is_string($row['language_proficiency'] ?? null) ? $row['language_proficiency'] : null),
                     'color' => $color,
@@ -927,7 +1020,21 @@ class SettingsController extends Controller
                 ]);
             }
 
-            $staff->services()->sync($serviceIds);
+            // Multi-location-safe sync: write pivot rows directly to avoid relation scope edge-cases.
+            DB::table('service_staff')->where('staff_id', $staff->id)->delete();
+            if ($serviceIds !== []) {
+                $nowTs = now();
+                $rows = array_map(
+                    fn (int $serviceId) => [
+                        'staff_id' => (int) $staff->id,
+                        'service_id' => $serviceId,
+                        'created_at' => $nowTs,
+                        'updated_at' => $nowTs,
+                    ],
+                    $serviceIds
+                );
+                DB::table('service_staff')->insert($rows);
+            }
             $keptIds[] = (int) $staff->id;
         }
 

@@ -11,6 +11,7 @@ use App\Models\Service;
 use App\Models\InventoryItem;
 use App\Models\Appointment;
 use App\Models\Staff;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -109,15 +110,24 @@ class PosController extends Controller
             'payment_method'  => ['required', 'in:cash,card,bank_transfer,voucher'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'tax_rate'        => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'tax_mode'        => ['nullable', 'in:excluded,included'],
             'notes'           => ['nullable', 'string', 'max:500'],
         ]);
 
         $subtotal = collect($data['items'])->sum(fn($i) => $i['qty'] * $i['price']);
         $discount = $data['discount_amount'] ?? 0;
         $taxRate  = $data['tax_rate'] ?? 18;
-        $taxable  = max(0, $subtotal - $discount);
-        $tax      = round($taxable * ($taxRate / 100), 2);
-        $total    = $taxable + $tax;
+        $taxMode  = $data['tax_mode'] ?? 'excluded';
+        $gross    = max(0, $subtotal - $discount);
+        if ($taxMode === 'included') {
+            $taxable = round($gross / (1 + ($taxRate / 100)), 2);
+            $tax = round($gross - $taxable, 2);
+            $total = $gross;
+        } else {
+            $taxable = $gross;
+            $tax = round($taxable * ($taxRate / 100), 2);
+            $total = $taxable + $tax;
+        }
         $staffId = $user?->dashboardScopedStaffId();
         if (! $staffId) {
             $staffId = Staff::withoutGlobalScopes()
@@ -169,7 +179,12 @@ class PosController extends Controller
 
     public function show(PosTransaction $transaction)
     {
-        abort_unless($transaction->salon_id === $this->activeSalon()->id, 403);
+        // Authorize against the same tenant Spatie bound for this request (see BelongsToTenant),
+        // not only activeSalon(), which must stay aligned with the tenant finder but can drift.
+        abort_unless(
+            Tenant::checkCurrent() && (int) $transaction->salon_id === (int) Tenant::current()->getKey(),
+            403
+        );
         $transaction->load(['client', 'items']);
 
         return view('pos.show', compact('transaction'));

@@ -134,6 +134,11 @@
                         <label class="form-label">Description</label>
                         <textarea name="description" rows="3" class="form-textarea">{{ old('description', $salon->description) }}</textarea>
                     </div>
+                    <div class="col-span-2">
+                        <label class="form-label">Awards &amp; accolades</label>
+                        <textarea name="awards_accolades" rows="4" class="form-textarea" placeholder="Certifications, press, industry awards, memberships…">{{ old('awards_accolades', $salon->awards_accolades) }}</textarea>
+                        <p class="form-hint">Shown on your profile and public site where supported. One item per line works well.</p>
+                    </div>
                     <div>
                         <label class="form-label">Address line 1</label>
                         <input type="text" name="address_line1" value="{{ old('address_line1', $salon->address_line1) }}" class="form-input">
@@ -739,6 +744,10 @@
                     <label class="form-label">Bio</label>
                     <textarea name="staff_bio" rows="3" class="form-textarea">{{ old('staff_bio', $profileStaff->bio) }}</textarea>
                 </div>
+                <div>
+                    <label class="form-label">Awards &amp; accolades</label>
+                    <textarea name="staff_awards_accolades" rows="3" class="form-textarea" placeholder="Certifications, press, industry awards…">{{ old('staff_awards_accolades', $profileStaff->awards_accolades) }}</textarea>
+                </div>
                 @if(($profileStaffServices ?? collect())->count())
                 <div>
                     <label class="form-label">Services offered</label>
@@ -828,7 +837,9 @@
                         'language_proficiency' => $member->language_proficiency,
                         'commission_rate' => $member->commission_rate,
                         'color' => $member->color ?: '#7C3AED',
+                        'avatar' => $member->avatar,
                         'bio' => $member->bio,
+                        'awards_accolades' => $member->awards_accolades,
                         'assign_services' => $hasServices ? '1' : '0',
                         'services' => $member->services()->withoutTenantScope()->pluck('services.id')->map(fn ($id) => (int) $id)->values()->all(),
                     ];
@@ -881,16 +892,55 @@
                             </div>
                         </div>
                         <div class="settings-staff-row-body">
-                        <form action="{{ route('settings.team-members') }}" method="POST" class="space-y-3">
+                        <form action="{{ route('settings.team-members') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
                             @csrf @method('PUT')
                             <input type="hidden" name="return_to" value="{{ $returnTo }}">
                             <input type="hidden" name="save_single_team_member" value="1">
                             <input type="hidden" name="staff_members[0][id]" value="{{ $st['id'] ?? '' }}">
                             <input type="hidden" name="staff_members[0][services_present]" value="1">
+                            @php
+                                $avatarUrl = \App\Models\Staff::resolvePublicAvatarUrl($st['avatar'] ?? null);
+                                $nameLabel = trim((string) ($st['name'] ?? ''));
+                                $nameParts = $nameLabel !== '' ? preg_split('/\s+/u', $nameLabel, -1, PREG_SPLIT_NO_EMPTY) : [];
+                                $nameInitials = $nameParts === []
+                                    ? '?'
+                                    : (count($nameParts) === 1
+                                        ? strtoupper(mb_substr($nameParts[0], 0, 2))
+                                        : strtoupper(mb_substr($nameParts[0], 0, 1).mb_substr($nameParts[1], 0, 1)));
+                                $isExistingMember = !empty($st['id']);
+                            @endphp
+                            <div>
+                                <label class="block text-xs font-medium text-body mb-1">Photo @if(!$avatarUrl)<span class="text-red-500">*</span>@endif</label>
+                                <div class="flex items-start gap-3">
+                                    @if($avatarUrl)
+                                        <img src="{{ $avatarUrl }}" alt="" width="44" height="44" class="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0">
+                                    @else
+                                        <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-[10px] leading-tight shrink-0 ring-1 ring-gray-200/80 dark:ring-gray-600"
+                                             style="background-color: {{ $st['color'] ?? '#7C3AED' }}"
+                                             aria-hidden="true">
+                                            {{ $nameInitials }}
+                                        </div>
+                                    @endif
+                                    <div class="flex-1 min-w-0 space-y-2">
+                                        <input type="file" name="staff_member_avatar" accept="image/jpeg,image/png,image/webp"
+                                               @if(!$avatarUrl) required @endif
+                                               class="form-input text-xs file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
+                                        <p class="text-[11px] text-muted">JPG, PNG or WebP · max 2 MB</p>
+                                        @if($avatarUrl)
+                                            <label class="inline-flex items-center gap-2 text-xs text-body cursor-pointer">
+                                                <input type="checkbox" name="staff_member_remove_avatar" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                                Remove current photo
+                                            </label>
+                                        @endif
+                                        @error('staff_member_avatar')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+                                </div>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                 <div class="md:col-span-2">
-                                    <label class="block text-xs font-medium text-body mb-1">Full name</label>
+                                    <label class="block text-xs font-medium text-body mb-1">Full name <span class="text-red-500">*</span></label>
                                     <input type="text" name="staff_members[0][name]" value="{{ $st['name'] ?? '' }}"
+                                           required
                                            class="form-input"
                                            placeholder="e.g. Alex Smith">
                                 </div>
@@ -905,8 +955,8 @@
                                            class="form-input">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span> <span class="text-gray-400 font-normal">(if adding)</span></label>
-                                    <select name="staff_members[0][role]" class="form-select">
+                                    <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span></label>
+                                    <select name="staff_members[0][role]" required class="form-select">
                                         <option value="">-</option>
                                         @foreach($staffRoles as $r)
                                             <option value="{{ $r }}" {{ ($st['role'] ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
@@ -947,6 +997,11 @@
                                     <textarea name="staff_members[0][bio]" rows="2" placeholder="Optional"
                                               class="form-textarea">{{ $st['bio'] ?? '' }}</textarea>
                                 </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-medium text-body mb-1">Awards &amp; accolades</label>
+                                    <textarea name="staff_members[0][awards_accolades]" rows="2" placeholder="Optional — certifications, press, awards…"
+                                              class="form-textarea">{{ $st['awards_accolades'] ?? '' }}</textarea>
+                                </div>
                             </div>
                             <input type="hidden" name="staff_members[0][assign_services]" value="0">
                             @php
@@ -960,8 +1015,7 @@
                             </label>
                             <p class="text-xs text-muted pl-7 -mt-1">Service dependency is defined according to each staff member’s role; “all services” means every service that role may perform.</p>
                             @php
-                                $rowRole = (string) ($st['role'] ?? '');
-                                $rowServiceOptions = (array) (($teamServicesByRole ?? [])[$rowRole] ?? []);
+                                $rowServiceOptions = (array) ($teamServices ?? []);
                                 $selectedRowServices = old('staff_members.0.services');
                                 if (! is_array($selectedRowServices)) {
                                     $selectedRowServices = array_map('intval', (array) ($st['services'] ?? []));
@@ -971,7 +1025,7 @@
                             @endphp
                             <div>
                                 <label class="block text-xs font-medium text-body mb-1">Services offered</label>
-                                <p class="text-xs text-muted mb-2">The list follows the selected role for this team member.</p>
+                                <p class="text-xs text-muted mb-2">Only services with both time and price configured are shown.</p>
                                 @if(count($rowServiceOptions))
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
                                         @foreach($rowServiceOptions as $svc)
@@ -986,7 +1040,7 @@
                                     </div>
                                 @else
                                     <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 px-3 py-2 text-xs text-muted">
-                                        Select a role first to choose services.
+                                        No services available yet.
                                     </div>
                                 @endif
                             </div>

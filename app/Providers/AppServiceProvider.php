@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\Facility;
 use App\Models\InventoryItem;
 use App\Models\MarketingCampaign;
 use App\Models\PosTransaction;
@@ -16,6 +17,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Policies\AppointmentPolicy;
 use App\Policies\ClientPolicy;
+use App\Policies\FacilityPolicy;
 use App\Policies\InventoryPolicy;
 use App\Policies\MarketingCampaignPolicy;
 use App\Policies\PosTransactionPolicy;
@@ -39,6 +41,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Stripe\ApiRequestor;
@@ -70,6 +73,9 @@ class AppServiceProvider extends ServiceProvider
 
         // ── Eloquent strict mode (catches N+1, lazy loads in dev) ──────────
         Model::shouldBeStrict(! app()->isProduction());
+
+        Paginator::defaultView('vendor.pagination.tailwind');
+        Paginator::defaultSimpleView('vendor.pagination.simple-tailwind');
 
         // ── Share current salon + apply viewer locale for translated dates ─
         View::composer('*', function ($view) {
@@ -165,6 +171,7 @@ class AppServiceProvider extends ServiceProvider
         // ── Policy registrations ───────────────────────────────────────────
         Gate::policy(Appointment::class,      AppointmentPolicy::class);
         Gate::policy(Client::class,           ClientPolicy::class);
+        Gate::policy(Facility::class,        FacilityPolicy::class);
         Gate::policy(Staff::class,            StaffPolicy::class);
         Gate::policy(Service::class,          ServicePolicy::class);
         Gate::policy(ServicePackage::class,   ServicePackagePolicy::class);

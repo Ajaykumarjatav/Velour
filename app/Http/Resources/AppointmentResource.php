@@ -19,6 +19,7 @@ class AppointmentResource extends JsonResource
             'total_price'     => number_format((float) $this->total_price, 2, '.', ''),
             'deposit_paid'    => (bool) $this->deposit_paid,
             'source'          => $this->source,
+            'payment_status'  => $this->payment_status,
             'client_notes'    => $this->client_notes,
             'internal_notes'  => $this->when(
                 $request->user()?->staffProfile?->access_level !== 'staff',

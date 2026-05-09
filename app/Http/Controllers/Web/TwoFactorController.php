@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Notifications\TwoFactorCodeNotification;
+use App\Support\AuthRedirect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -171,8 +172,12 @@ class TwoFactorController extends Controller
     {
         $user = Auth::user();
 
-        if (! $user?->hasTwoFactorEnabled()) {
-            return redirect()->intended($this->defaultRedirect());
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        if (! $user->hasTwoFactorEnabled()) {
+            return redirect()->to(AuthRedirect::afterLoginUrl($request, $user));
         }
 
         // For email OTP: auto-send code on first visit
@@ -207,7 +212,7 @@ class TwoFactorController extends Controller
         session(['two_factor_passed' => true]);
         session()->forget('two_factor_code_sent');
 
-        return redirect()->intended($this->defaultRedirect());
+        return redirect()->to(AuthRedirect::afterLoginUrl($request, $user));
     }
 
     public function resendCode(Request $request)
@@ -256,10 +261,4 @@ class TwoFactorController extends Controller
         $user->notify(new TwoFactorCodeNotification($code));
     }
 
-    private function defaultRedirect(): string
-    {
-        return Auth::user()->isSuperAdmin()
-            ? route('admin.dashboard')
-            : route('dashboard');
-    }
 }

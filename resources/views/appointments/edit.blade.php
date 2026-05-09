@@ -101,6 +101,27 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                    <label class="form-label">Source of booking <span class="text-red-500">*</span></label>
+                    <select name="source" class="form-select @error('source') form-input-error @enderror" required>
+                        @foreach(\App\Models\Appointment::bookingSourceOptions() as $val => $label)
+                            <option value="{{ $val }}" @selected(old('source', $appointment->source) === $val)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('source')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="form-label">Payment status <span class="text-red-500">*</span></label>
+                    <select name="payment_status" class="form-select @error('payment_status') form-input-error @enderror" required>
+                        @foreach(\App\Models\Appointment::paymentStatusOptions() as $val => $label)
+                            <option value="{{ $val }}" @selected(old('payment_status', $appointment->payment_status ?? \App\Models\Appointment::PAYMENT_UNPAID) === $val)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('payment_status')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                     <label class="form-label">Client notes</label>
                     <textarea name="client_notes" rows="3" class="form-textarea">{{ old('client_notes', $appointment->client_notes) }}</textarea>
                 </div>

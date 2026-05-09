@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
@@ -81,7 +82,25 @@ class AppointmentController extends Controller
         }
         $staff = $staffQuery->withName()->get();
 
-        return view('appointments.index', compact('salon', 'appointments', 'staff', 'search', 'status', 'date', 'staffId'));
+        $selectedQuery = (int) $request->input('selected', 0);
+        $firstApptId = $appointments->first()?->id;
+        $initialSelectedAppointmentId = null;
+        if ($firstApptId) {
+            $initialSelectedAppointmentId = ($selectedQuery > 0 && $appointments->contains(fn (Appointment $a) => (int) $a->id === $selectedQuery))
+                ? $selectedQuery
+                : (int) $firstApptId;
+        }
+
+        return view('appointments.index', compact(
+            'salon',
+            'appointments',
+            'staff',
+            'search',
+            'status',
+            'date',
+            'staffId',
+            'initialSelectedAppointmentId'
+        ));
     }
 
     public function create()
@@ -327,6 +346,8 @@ class AppointmentController extends Controller
             'service_addons'       => ['nullable', 'array'],
             'service_addons.*'     => ['nullable', 'array'],
             'service_addons.*.*'   => ['nullable', 'string', 'max:100'],
+            'source'               => ['required', Rule::in(Appointment::bookingSourceKeys())],
+            'payment_status'       => ['required', Rule::in(Appointment::paymentStatusKeys())],
             'internal_notes'       => ['nullable', 'string', 'max:1000'],
             'client_notes'         => ['nullable', 'string', 'max:1000'],
         ]);
@@ -352,7 +373,8 @@ class AppointmentController extends Controller
                 'starts_at'         => $data['starts_at'],
                 'service_ids'       => $orderedIds,
                 'service_options'   => $options,
-                'source'            => 'walk_in',
+                'source'            => $data['source'],
+                'payment_status'    => $data['payment_status'],
                 'internal_notes'    => $data['internal_notes'] ?? null,
                 'client_notes'      => $data['client_notes'] ?? null,
             ]);
@@ -418,11 +440,13 @@ class AppointmentController extends Controller
         $this->authorise($appointment);
 
         $data = $request->validate([
-            'client_id'      => ['required', 'exists:clients,id'],
-            'staff_id'       => ['required', 'exists:staff,id'],
-            'starts_at'      => ['required', 'date'],
-            'internal_notes' => ['nullable', 'string', 'max:1000'],
-            'client_notes'   => ['nullable', 'string', 'max:1000'],
+            'client_id'        => ['required', 'exists:clients,id'],
+            'staff_id'         => ['required', 'exists:staff,id'],
+            'starts_at'        => ['required', 'date'],
+            'source'           => ['required', Rule::in(Appointment::bookingSourceKeys())],
+            'payment_status'   => ['required', Rule::in(Appointment::paymentStatusKeys())],
+            'internal_notes'   => ['nullable', 'string', 'max:1000'],
+            'client_notes'     => ['nullable', 'string', 'max:1000'],
         ]);
 
         $salon   = $this->salon();
@@ -457,12 +481,14 @@ class AppointmentController extends Controller
                 }
 
                 $appointment->update([
-                    'client_id'      => $data['client_id'],
-                    'staff_id'       => $staffId,
-                    'starts_at'      => $startsAt->copy()->utc(),
-                    'ends_at'        => $endsAt->copy()->utc(),
-                    'internal_notes' => $data['internal_notes'] ?? null,
-                    'client_notes'   => $data['client_notes'] ?? null,
+                    'client_id'        => $data['client_id'],
+                    'staff_id'         => $staffId,
+                    'starts_at'        => $startsAt->copy()->utc(),
+                    'ends_at'          => $endsAt->copy()->utc(),
+                    'source'           => $data['source'],
+                    'payment_status'   => $data['payment_status'],
+                    'internal_notes'   => $data['internal_notes'] ?? null,
+                    'client_notes'     => $data['client_notes'] ?? null,
                 ]);
             });
         } catch (ValidationException $e) {

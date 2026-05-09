@@ -30,11 +30,13 @@ trait ResolvesActiveSalon
         $activeSalonId = (int) session('active_salon_id', 0);
 
         if ($user->salons()->exists()) {
+            // Keep this in sync with DomainOrSubdomainTenantFinder::resolveTenantForUser
+            // so Tenant::current(), BelongsToTenant scopes, and activeSalon() agree.
             $salon = $activeSalonId > 0
-                ? $user->salons()->where('id', $activeSalonId)->first()
+                ? $user->salons()->whereKey($activeSalonId)->first()
                 : null;
 
-            return $salon ?: $user->salons()->firstOrFail();
+            return $salon ?? $user->salons()->orderBy('id')->firstOrFail();
         }
 
         if (Tenant::checkCurrent()) {

@@ -12,9 +12,12 @@ final class SidebarNav
     /** Stylist-only accounts: minimal nav, no salon-management screens. */
     private const STYLIST_NAV = [
         'dashboard',
+        'action_center',
+        'tasks',
         'calendar',
         'appointments',
         'clients',
+        'facilities',
         'pos',
         'reviews',
         'notifications',
@@ -33,7 +36,7 @@ final class SidebarNav
         }
 
         return match ($item) {
-            'dashboard', 'calendar' => true,
+            'dashboard', 'calendar', 'action_center', 'tasks' => true,
             'guide' => true,
             'appointments' => $user->can('appointments.view'),
             'clients' => $user->can('clients.view'),
@@ -43,6 +46,9 @@ final class SidebarNav
             'multi_location' => $user->hasAnyRole(['tenant_admin', 'manager']),
             'availability' => $user->hasAnyRole(['tenant_admin', 'manager', 'receptionist']),
             'inventory' => $user->can('inventory.view'),
+            'facilities' => $user->can('facilities.view')
+                || $user->can('facilities.manage')
+                || $user->salons()->exists(),
             'pos' => $user->can('pos.view'),
             'revenue' => $user->can('reports.view'),
             'go_live' => $user->hasAnyRole(['tenant_admin', 'manager']),

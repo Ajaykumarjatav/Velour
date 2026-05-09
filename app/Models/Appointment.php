@@ -12,9 +12,17 @@ class Appointment extends Model
 {
     use AuditLog, BelongsToTenant;
     use HasFactory, SoftDeletes;
+    public const PAYMENT_UNPAID = 'unpaid';
+
+    public const PAYMENT_PARTIAL = 'partial';
+
+    public const PAYMENT_PAID = 'paid';
+
+    public const PAYMENT_REFUNDED = 'refunded';
+
     protected $fillable = [
         'salon_id','client_id','staff_id','reference','starts_at','ends_at',
-        'duration_minutes','total_price','deposit_paid','amount_paid','status','source',
+        'duration_minutes','total_price','deposit_paid','amount_paid','status','source','payment_status',
         'client_notes','internal_notes','reminder_sent','reminder_sent_at','reminder_dispatch_keys','review_requested',
         'confirmed_at','cancelled_at','cancellation_reason','deposit_required','deposit_paid_flag',
     ];
@@ -47,6 +55,61 @@ class Appointment extends Model
     protected static function newFactory()
     {
         return \Database\Factories\AppointmentFactory::new();
+    }
+
+    /** @return array<string, string> */
+    public static function bookingSourceOptions(): array
+    {
+        return [
+            'online' => 'Online',
+            'phone' => 'Phone',
+            'walk_in' => 'Walk-in',
+            'google' => 'Google',
+            'instagram' => 'Instagram',
+            'facebook' => 'Facebook',
+            'whatsapp' => 'WhatsApp',
+            'website_embed' => 'Website embed',
+            'qr_code' => 'QR code',
+            'manual' => 'Manual / desk',
+            'other' => 'Other',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function bookingSourceKeys(): array
+    {
+        return array_keys(self::bookingSourceOptions());
+    }
+
+    public static function sourceLabel(?string $source): string
+    {
+        $opts = self::bookingSourceOptions();
+
+        return $opts[$source] ?? ucfirst(str_replace('_', ' ', (string) ($source ?? 'manual')));
+    }
+
+    /** @return array<string, string> */
+    public static function paymentStatusOptions(): array
+    {
+        return [
+            self::PAYMENT_UNPAID => 'Unpaid',
+            self::PAYMENT_PARTIAL => 'Partially paid',
+            self::PAYMENT_PAID => 'Paid',
+            self::PAYMENT_REFUNDED => 'Refunded',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function paymentStatusKeys(): array
+    {
+        return array_keys(self::paymentStatusOptions());
+    }
+
+    public static function paymentStatusLabel(?string $status): string
+    {
+        $opts = self::paymentStatusOptions();
+
+        return $opts[$status] ?? ucfirst(str_replace('_', ' ', (string) ($status ?? self::PAYMENT_UNPAID)));
     }
 
 }

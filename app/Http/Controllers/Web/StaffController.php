@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Support\LanguageProficiency;
-use App\Support\StaffServiceEligibility;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
+use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -198,8 +198,15 @@ class StaffController extends Controller
     public function create()
     {
         $salon    = $this->salon();
-        $role = old('role', 'therapist');
-        $services = StaffServiceEligibility::eligibleServicesForRole($salon->id, $role);
+        $services = \App\Models\Service::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereNull('deleted_at')
+            ->whereNotNull('duration_minutes')
+            ->where('duration_minutes', '>', 0)
+            ->whereNotNull('price')
+            ->where('price', '>', 0)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
 
         return view('staff.create', compact('salon', 'services'));
     }
@@ -217,14 +224,13 @@ class StaffController extends Controller
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
             'language_proficiency.*' => ['string', Rule::in(LanguageProficiency::allowedCodes())],
             'bio'               => ['nullable', 'string', 'max:1000'],
+            'awards_accolades'  => ['nullable', 'string', 'max:5000'],
             'color'             => ['nullable', 'string', 'max:7'],
             'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
             'services'          => ['nullable', 'array'],
             'services.*'        => [Rule::exists('services', 'id')->where('salon_id', $salon->id)],
             'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
-
-        StaffServiceEligibility::assertEligibleForRole($salon->id, (string) $data['role'], $data['services'] ?? []);
 
         $nameParts = explode(' ', trim($data['name']), 2);
         $avatarFile = $request->file('avatar');
@@ -241,6 +247,7 @@ class StaffController extends Controller
             'experience'      => $data['experience'] ?? null,
             'language_proficiency' => $encodedLanguages,
             'bio'             => $data['bio'] ?? null,
+            'awards_accolades' => $data['awards_accolades'] ?? null,
             'color'           => $data['color'] ?? '#7C3AED',
             'commission_rate' => $data['commission_rate'] ?? 0,
             'is_active'       => true,
@@ -263,31 +270,51 @@ class StaffController extends Controller
     public function show(Staff $staff)
     {
         $this->authorise($staff);
+        $salon = $this->salon();
 
-        $completedAppointments = Appointment::where('staff_id', $staff->id)
-            ->where('status', 'completed')
+        $recentAppointments = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('staff_id', $staff->id)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
             ->with(['client', 'services.service'])
             ->latest('starts_at')
             ->paginate(10);
 
-        $totalRevenue = $staff->appointments()
+        $completedCount = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('staff_id', $staff->id)
+            ->where('status', 'completed')
+            ->count();
+
+        $totalRevenue = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('staff_id', $staff->id)
             ->where('status', 'completed')
             ->sum('total_price');
 
-        $upcomingCount = $staff->appointments()
+        $upcomingCount = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('staff_id', $staff->id)
             ->where('starts_at', '>=', now())
             ->where('status', 'confirmed')
             ->count();
 
-        return view('staff.show', compact('staff', 'completedAppointments', 'totalRevenue', 'upcomingCount'));
+        return view('staff.show', compact('staff', 'recentAppointments', 'completedCount', 'totalRevenue', 'upcomingCount'));
     }
 
     public function edit(Staff $staff)
     {
         $this->authorise($staff);
         $salon    = $this->salon();
-        $role = old('role', (string) $staff->role);
-        $services = StaffServiceEligibility::eligibleServicesForRole($salon->id, $role);
+        $services = Service::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereNull('deleted_at')
+            ->whereNotNull('duration_minutes')
+            ->where('duration_minutes', '>', 0)
+            ->whereNotNull('price')
+            ->where('price', '>', 0)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
         $assigned = $staff->services()->withoutTenantScope()->pluck('services.id')->all();
 
         return view('staff.edit', compact('staff', 'services', 'assigned'));
@@ -306,6 +333,7 @@ class StaffController extends Controller
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
             'language_proficiency.*' => ['string', Rule::in(LanguageProficiency::allowedCodes())],
             'bio'             => ['nullable', 'string', 'max:1000'],
+            'awards_accolades' => ['nullable', 'string', 'max:5000'],
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'is_active'       => ['sometimes', 'boolean'],
@@ -315,7 +343,6 @@ class StaffController extends Controller
         ]);
 
         $serviceIds = array_values(array_map('intval', (array) ($data['services'] ?? [])));
-        StaffServiceEligibility::assertEligibleForRole($staff->salon_id, (string) $data['role'], $serviceIds);
 
         // Split 'name' into first_name / last_name for the Staff model
         if (isset($data['name'])) {

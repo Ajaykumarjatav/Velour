@@ -65,6 +65,7 @@
       @php
         $nav = [
           ['route' => 'admin.dashboard',    'icon' => '◼',  'label' => 'Dashboard'],
+          ['route' => 'admin.facilities',   'icon' => '🏢',  'label' => 'Facilities'],
           ['route' => 'admin.tenants',      'icon' => '🏠',  'label' => 'Tenants'],
           ['route' => 'admin.users',        'icon' => '👤',  'label' => 'Users'],
           ['route' => 'admin.revenue',      'icon' => '💰',  'label' => 'Revenue'],

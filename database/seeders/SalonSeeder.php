@@ -41,6 +41,8 @@ class SalonSeeder extends Seeder
             'is_active'=> true,
         ]);
 
+        $owner->assignRole('tenant_admin');
+
         Salon::create([
             'owner_id'               => $owner->id,
             'business_type_id'       => BusinessType::defaultId(),

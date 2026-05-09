@@ -11,12 +11,21 @@
     'triggerClass' => 'form-select w-full',
     /** Tailwind classes for outer wrapper (width/flex in toolbars vs full-width fields). */
     'wrapperClass' => 'flex-1 min-w-0 relative w-full',
+    /**
+     * bottom: open below the trigger (default).
+     * top: open above the trigger — use at the bottom of a clipped/scrollable panel (e.g. POS bill).
+     */
+    'panelPlacement' => 'bottom',
 ])
 
 @php
     $errorName = $errorName ?? $name;
     $hasErr = $errorName && $errors->has($errorName);
     $remoteUrl = $searchUrl ? (string) $searchUrl : '';
+    $panelPlacement = in_array($panelPlacement, ['top', 'bottom'], true) ? $panelPlacement : 'bottom';
+    $panelPositionClasses = $panelPlacement === 'top'
+        ? 'bottom-full mb-1'
+        : 'top-full mt-1';
 @endphp
 
     <div class="searchable-select-root relative {{ $wrapperClass }}"
@@ -43,7 +52,7 @@
     </button>
 
     <div id="{{ $id }}-panel"
-         class="hidden absolute left-0 right-0 z-50 mt-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden"
+         class="hidden absolute left-0 right-0 z-[100] {{ $panelPositionClasses }} rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden"
          role="listbox">
         <div class="p-2 border-b border-gray-100 dark:border-gray-800">
             <input type="search"

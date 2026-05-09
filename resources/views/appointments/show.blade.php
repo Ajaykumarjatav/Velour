@@ -68,8 +68,12 @@
                 <p class="font-bold text-heading text-base">@money($appointment->total_price)</p>
             </div>
             <div>
-                <p class="stat-label mb-1">Source</p>
-                <p class="font-semibold text-heading capitalize">{{ str_replace('_', ' ', $appointment->source ?? 'walk_in') }}</p>
+                <p class="stat-label mb-1">Source of booking</p>
+                <p class="font-semibold text-heading">{{ \App\Models\Appointment::sourceLabel($appointment->source) }}</p>
+            </div>
+            <div>
+                <p class="stat-label mb-1">Payment status</p>
+                <p class="font-semibold text-heading">{{ \App\Models\Appointment::paymentStatusLabel($appointment->payment_status) }}</p>
             </div>
             @if(!$isScopedStaffPanel && $appointment->client?->email)
             <div>
@@ -84,7 +88,7 @@
             </div>
             @endif
             <div class="col-span-2 sm:col-span-3 border-t border-gray-100 dark:border-gray-800 pt-3 mt-1">
-                <p class="stat-label mb-1">Booked on</p>
+                <p class="stat-label mb-1">Time of booking</p>
                 <p class="font-semibold text-heading">@bizdatetime($appointment->created_at)</p>
             </div>
             @if($appointment->deposit_required)
@@ -283,7 +287,7 @@
         {{-- Navigation --}}
         <div class="flex gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
             <a href="{{ route('appointments.edit', $appointment->id) }}" class="btn-outline text-sm">Edit Details</a>
-            <a href="{{ route('appointments.index') }}" class="btn text-sm text-muted hover:text-body">← Back to list</a>
+            <a href="{{ route('appointments.index', ['selected' => $appointment->id]) }}" class="btn text-sm text-muted hover:text-body">← Back to list</a>
         </div>
     </div>
 

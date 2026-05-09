@@ -86,6 +86,11 @@
                         @endif
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
+                        @if($card['is_current'])
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-velour-100 text-velour-700 dark:bg-velour-900/40 dark:text-velour-300">
+                                Current
+                            </span>
+                        @endif
                         <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $card['status'] === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' }}">
                             {{ $card['status'] === 'active' ? 'Active' : 'Opening Soon' }}
                         </span>

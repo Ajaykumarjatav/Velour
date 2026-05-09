@@ -7,7 +7,10 @@ use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\PosTransaction;
+use App\Models\SalonActionItem;
 use App\Models\SalonNotification;
+use App\Models\Staff;
+use App\Models\StaffLeaveRequest;
 use App\Support\ProfileCompletion;
 use App\Support\SalonTime;
 use Carbon\Carbon;
@@ -31,11 +34,6 @@ class DashboardController extends Controller
         $scopeAppointment = fn ($q) => $staffScopeId === null ? $q : $q->where('staff_id', $staffScopeId);
 
         [$todayStartUtc, $todayEndUtc] = SalonTime::dayRangeUtcFromYmd($salon, $now->toDateString());
-
-        $todayRevenue = (float) $scopePos(
-            PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
-                ->recognizedBetweenUtc($todayStartUtc, $todayEndUtc)
-        )->sum('total');
 
         $monthStartLocal = $now->copy()->startOfMonth();
         $monthStartUtc = $monthStartLocal->copy()->utc();
@@ -62,12 +60,6 @@ class DashboardController extends Controller
             Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
                 ->whereBetween('starts_at', [$todayAptStart, $todayAptEnd])
                 ->whereNotIn('status', ['cancelled', 'no_show'])
-        )->count();
-
-        $completedVisitsToday = $scopeAppointment(
-            Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
-                ->where('status', 'completed')
-                ->whereBetween('ends_at', [$todayAptStart, $todayAptEnd])
         )->count();
 
         $upcomingAppointments = $scopeAppointment(
@@ -103,14 +95,6 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
-        $appointmentStats = $scopeAppointment(
-            Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
-                ->whereBetween('starts_at', [$todayAptStart, $todayAptEnd])
-        )
-            ->select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
-            ->pluck('count', 'status');
-
         $weeklyRevenue = [];
         for ($i = 6; $i >= 0; $i--) {
             $d = $now->copy()->subDays($i)->toDateString();
@@ -138,28 +122,75 @@ class DashboardController extends Controller
             ->get();
 
         $tzAbbr = SalonTime::abbrev($salon);
-        $todayLabel = $now->format('d M Y');
         $profileCompletion = ProfileCompletion::forSalon($salon);
+
+        $user = Auth::user();
+        $canManageDesk = ! $stylistDashboardScoped
+            && ($user->hasAnyRole(['tenant_admin', 'manager', 'receptionist'])
+                || $user->salons()->whereKey($salon->id)->exists());
+
+        $pendingLeaveRequests = collect();
+        $openDeskItems = collect();
+        $myDeskSubmissions = collect();
+        $deskStaffForAssign = collect();
+
+        if ($canManageDesk) {
+            $pendingLeaveRequests = StaffLeaveRequest::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('status', 'pending')
+                ->with('staff')
+                ->orderByDesc('created_at')
+                ->limit(12)
+                ->get();
+
+            $openDeskItems = SalonActionItem::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->whereIn('status', ['open', 'in_progress'])
+                ->with(['staff', 'assignedStaff'])
+                ->orderByRaw("CASE priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END")
+                ->orderByDesc('created_at')
+                ->limit(25)
+                ->get();
+
+            $deskStaffForAssign = Staff::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('is_active', true)
+                ->orderBy('first_name')
+                ->orderBy('last_name')
+                ->get();
+        } elseif ($staffScopeId !== null) {
+            $myDeskSubmissions = SalonActionItem::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('staff_id', $staffScopeId)
+                ->whereIn('status', ['open', 'in_progress'])
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get();
+        }
+
+        $deskKindLabels = SalonActionItem::kindLabels();
 
         return view('dashboard.index', compact(
             'salon',
-            'todayRevenue',
             'monthRevenue',
             'lastMonthRevenue',
             'revenueChange',
             'todayAppointments',
-            'completedVisitsToday',
             'upcomingAppointments',
             'totalClients',
             'newClientsThisMonth',
             'recentSales',
-            'appointmentStats',
             'weeklyRevenue',
             'notifications',
             'tzAbbr',
-            'todayLabel',
             'profileCompletion',
-            'stylistDashboardScoped'
+            'stylistDashboardScoped',
+            'canManageDesk',
+            'pendingLeaveRequests',
+            'openDeskItems',
+            'myDeskSubmissions',
+            'deskKindLabels',
+            'deskStaffForAssign'
         ));
     }
 }

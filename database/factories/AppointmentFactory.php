@@ -22,6 +22,7 @@ class AppointmentFactory extends Factory
             'total_price'      => 85.00,
             'status'           => 'confirmed',
             'source'           => 'manual',
+            'payment_status'   => \App\Models\Appointment::PAYMENT_UNPAID,
         ];
     }
 }

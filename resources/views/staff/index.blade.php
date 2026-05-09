@@ -277,7 +277,7 @@
                                :class="scheduleStaff.working_days.includes(day) ? 'bg-velour-50 dark:bg-velour-900/30 border-velour-200' : 'opacity-60'">
                             <input type="checkbox" name="working_days[]" :value="day" x-model="scheduleStaff.working_days"
                                    class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                            <span x-text="day"></span>
+                            <span class="text-gray-900 dark:text-gray-100" x-text="day"></span>
                         </label>
                     </template>
                 </div>

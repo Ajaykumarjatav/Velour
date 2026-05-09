@@ -1,5 +1,6 @@
 <?php
 namespace App\Models;
+use App\Support\DefaultInventoryCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ class Salon extends Model
 {
     use HasFactory, SoftDeletes;
     protected $fillable = [
-        'owner_id','business_type_id','name','slug','subdomain','description','phone','email','website',
+        'owner_id','business_type_id','name','slug','subdomain','description','awards_accolades','phone','email','website',
         'address_line1','address_line2','city','county','postcode','country',
         'latitude','longitude','timezone','currency','locale',
         'logo','cover_image','social_links','booking_url','google_place_id',
@@ -52,6 +53,7 @@ class Salon extends Model
             if ($salon->business_type_id) {
                 $salon->businessTypes()->syncWithoutDetaching([(int) $salon->business_type_id]);
             }
+            DefaultInventoryCatalog::ensureCategoriesForSalon((int) $salon->id);
         });
     }
     public function staff()                { return $this->hasMany(Staff::class); }

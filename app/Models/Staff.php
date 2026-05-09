@@ -24,7 +24,7 @@ class Staff extends Model
         'salon_id','user_id','first_name','last_name','email','phone',
         'avatar','initials','color','role','bio','experience','language_proficiency','specialisms','commission_rate','base_salary',
         'access_level','start_time','end_time','working_days','hired_at',
-        'is_active','bookable_online','sort_order',
+        'is_active','bookable_online','sort_order','awards_accolades',
     ];
     protected $casts = [
         'specialisms'=>'array','working_days'=>'array',
@@ -77,20 +77,21 @@ class Staff extends Model
         };
     }
 
-    /** Public URL for uploaded profile photo (stored path is relative to the public disk). */
-    public function getAvatarUrlAttribute(): ?string
+    /**
+     * Public URL for a stored avatar path, or null when empty, remote-only, or file missing on disk.
+     * Avoids showing broken/wrong images when the DB path is stale or mis-normalized.
+     */
+    public static function resolvePublicAvatarUrl(?string $avatar): ?string
     {
-        $avatar = trim((string) ($this->avatar ?? ''));
+        $avatar = trim((string) $avatar);
         if ($avatar === '') {
             return null;
         }
 
-        // Already absolute URL (CDN/S3/external) -> use as-is.
         if (Str::startsWith($avatar, ['http://', 'https://'])) {
             return $avatar;
         }
 
-        // Normalize older/local variants to a public-disk relative path.
         $relative = ltrim($avatar, '/');
         if (Str::startsWith($relative, 'storage/')) {
             $relative = (string) Str::after($relative, 'storage/');
@@ -99,7 +100,17 @@ class Staff extends Model
             $relative = (string) Str::after($relative, 'public/');
         }
 
+        if (! Storage::disk('public')->exists($relative)) {
+            return null;
+        }
+
         return Storage::disk('public')->url($relative);
+    }
+
+    /** Public URL for uploaded profile photo (stored path is relative to the public disk). */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return static::resolvePublicAvatarUrl($this->avatar);
     }
     public function salon()        { return $this->belongsTo(Salon::class); }
     public function user()         { return $this->belongsTo(User::class); }

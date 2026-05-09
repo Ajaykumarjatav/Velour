@@ -7,6 +7,7 @@ use App\Jobs\OnboardNewTenant;
 use App\Models\Salon;
 use App\Models\Staff;
 use App\Models\User;
+use App\Support\AuthRedirect;
 use App\Support\ProfileCompletion;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -86,7 +87,7 @@ class AuthController extends Controller
             }
         }
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->to(AuthRedirect::afterLoginUrl($request, $user));
     }
 
     public function showForcePassword()
@@ -106,7 +107,8 @@ class AuthController extends Controller
             'force_password_change' => false,
         ]);
 
-        return redirect()->intended(route('dashboard'))->with('success', 'Password changed successfully.');
+        return redirect()->to(AuthRedirect::afterLoginUrl($request, $user))
+            ->with('success', 'Password changed successfully.');
     }
 
     // ── Register ──────────────────────────────────────────────────────────────
@@ -212,7 +214,9 @@ class AuthController extends Controller
     public function verificationNotice()
     {
         if (Auth::user()->hasVerifiedEmail()) {
-            return redirect()->route('dashboard');
+            return Auth::user()->isSuperAdmin()
+                ? redirect()->route('admin.dashboard')
+                : redirect()->route('dashboard');
         }
         return view('auth.verify-email');
     }
@@ -229,7 +233,9 @@ class AuthController extends Controller
             }
         }
 
-        return redirect()->route('dashboard')->with('success', 'Email verified. Welcome to Velour!');
+        return $user->isSuperAdmin()
+            ? redirect()->route('admin.dashboard')->with('success', 'Email verified. Welcome to Velour!')
+            : redirect()->route('dashboard')->with('success', 'Email verified. Welcome to Velour!');
     }
 
     public function resendVerification(Request $request)

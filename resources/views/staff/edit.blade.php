@@ -105,6 +105,11 @@
                     <textarea name="bio" rows="3" class="form-textarea @error('bio') form-input-error @enderror">{{ old('bio', $staff->bio) }}</textarea>
                     @error('bio')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
+                <div class="col-span-2">
+                    <label class="form-label">Awards &amp; accolades</label>
+                    <textarea name="awards_accolades" rows="3" class="form-textarea @error('awards_accolades') form-input-error @enderror" placeholder="Optional — certifications, press, awards…">{{ old('awards_accolades', $staff->awards_accolades) }}</textarea>
+                    @error('awards_accolades')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
             </div>
 
             @if($services->count())

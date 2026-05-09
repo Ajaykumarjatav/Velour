@@ -67,6 +67,7 @@ class AppointmentSeeder extends Seeder
                     'total_price'      => $service->price,
                     'status'           => $status,
                     'source'           => $this->sources[array_rand($this->sources)],
+                    'payment_status'   => collect(\App\Models\Appointment::paymentStatusKeys())->random(),
                     'confirmed_at'     => $startsAt->copy()->subDays(rand(1, 5)),
                 ]);
 
@@ -110,6 +111,7 @@ class AppointmentSeeder extends Seeder
                     'total_price'      => $service->price,
                     'status'           => 'confirmed',
                     'source'           => $this->sources[array_rand($this->sources)],
+                    'payment_status'   => collect(\App\Models\Appointment::paymentStatusKeys())->random(),
                     'confirmed_at'     => now()->subHours(rand(1, 48)),
                 ]);
 

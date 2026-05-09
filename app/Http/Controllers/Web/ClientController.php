@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
+use App\Mail\ClientExportCsvMail;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\LoyaltyTier;
@@ -16,7 +17,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientController extends Controller
 {
@@ -198,47 +198,33 @@ class ClientController extends Controller
     /**
      * CSV export for the current salon (matches columns useful for re-import).
      */
-    public function export(): StreamedResponse
+    public function export()
     {
         abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot export client data.');
         Gate::authorize('export', Client::class);
 
         $salon = $this->activeSalon();
-        $slug   = $salon->slug ?: 'salon';
-        $name   = 'clients-' . preg_replace('/[^a-z0-9_-]+/i', '-', $slug) . '-' . now()->format('Y-m-d') . '.csv';
+        $adminEmail = (string) ($salon->owner?->email ?? '');
+        if ($adminEmail === '') {
+            return redirect()->route('clients.index')->with('error', 'Admin email is missing. Unable to send export.');
+        }
 
-        return response()->streamDownload(function () use ($salon) {
-            $out = fopen('php://output', 'w');
-            if ($out === false) {
-                return;
-            }
-            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($out, ['first_name', 'last_name', 'email', 'phone', 'marketing_consent']);
+        $slug = $salon->slug ?: 'salon';
+        $fileName = 'clients-' . preg_replace('/[^a-z0-9_-]+/i', '-', $slug) . '-' . now()->format('Y-m-d') . '.csv';
+        $csvContent = $this->buildClientsExportCsv($salon->id);
 
-            Client::withoutGlobalScopes()
-                ->where('salon_id', $salon->id)
-                ->orderBy('first_name')
-                ->orderBy('last_name')
-                ->chunk(200, function ($chunk) use ($out): void {
-                    foreach ($chunk as $c) {
-                        fputcsv($out, [
-                            $c->first_name,
-                            $c->last_name,
-                            $c->email,
-                            $c->phone,
-                            $c->marketing_consent ? '1' : '0',
-                        ]);
-                    }
-                });
+        Mail::to($adminEmail)->send(new ClientExportCsvMail(
+            salonName: (string) $salon->name,
+            fileName: $fileName,
+            csvContent: $csvContent
+        ));
 
-            fclose($out);
-        }, $name, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+        return redirect()->route('clients.index')->with('success', 'Client export has been emailed to the admin.');
     }
 
     /**
-     * Import clients from CSV (first row = headers: first_name, last_name, email, phone, marketing_consent).
+     * Import clients from CSV (first row = headers: first_name, last_name, email,
+     * mobile/phone, address, gender, marketing_consent).
      */
     public function import(Request $request)
     {
@@ -276,7 +262,7 @@ class ClientController extends Controller
 
                 return redirect()->route('clients.index')->with(
                     'error',
-                    'CSV must include columns: first_name, last_name (optional: email, phone, marketing_consent).'
+                    'CSV must include columns: first_name, last_name (optional: email, mobile/phone, address, gender, marketing_consent).'
                 );
             }
         }
@@ -318,9 +304,23 @@ class ClientController extends Controller
                 $email = null;
             }
 
-            $phone = $get('phone') ?: null;
+            $phone = $get('mobile');
+            if ($phone === '') {
+                $phone = $get('phone');
+            }
+            $phone = $phone !== '' ? $phone : null;
             if ($phone !== null && strlen($phone) > 20) {
                 $phone = substr($phone, 0, 20);
+            }
+
+            $address = $get('address') ?: null;
+            if ($address !== null && strlen($address) > 500) {
+                $address = substr($address, 0, 500);
+            }
+
+            $gender = strtolower($get('gender'));
+            if (! in_array($gender, ['female', 'male', 'non_binary', 'prefer_not_to_say'], true)) {
+                $gender = null;
             }
 
             $marketingRaw = strtolower($get('marketing_consent'));
@@ -350,6 +350,8 @@ class ClientController extends Controller
                 'last_name'           => $last,
                 'email'               => $email,
                 'phone'               => $phone,
+                'address'             => $address,
+                'gender'              => $gender,
                 'marketing_consent'   => $marketing,
             ]);
             $imported++;
@@ -374,6 +376,41 @@ class ClientController extends Controller
         }
 
         return true;
+    }
+
+    private function buildClientsExportCsv(int $salonId): string
+    {
+        $stream = fopen('php://temp', 'r+');
+        if ($stream === false) {
+            return '';
+        }
+
+        fprintf($stream, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fputcsv($stream, ['first_name', 'last_name', 'email', 'mobile', 'address', 'gender', 'marketing_consent']);
+
+        Client::withoutGlobalScopes()
+            ->where('salon_id', $salonId)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->chunk(200, function ($chunk) use ($stream): void {
+                foreach ($chunk as $c) {
+                    fputcsv($stream, [
+                        $c->first_name,
+                        $c->last_name,
+                        $c->email,
+                        $c->phone,
+                        $c->address,
+                        $c->gender,
+                        $c->marketing_consent ? '1' : '0',
+                    ]);
+                }
+            });
+
+        rewind($stream);
+        $content = stream_get_contents($stream);
+        fclose($stream);
+
+        return $content !== false ? $content : '';
     }
 
     public function create()

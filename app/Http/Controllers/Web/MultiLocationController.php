@@ -30,34 +30,54 @@ class MultiLocationController extends Controller
             ->get();
 
         $locationIds = $locations->pluck('id');
+        $activeSalonId = (int) session('active_salon_id', 0);
+        if ($activeSalonId <= 0 && $locations->isNotEmpty()) {
+            $activeSalonId = (int) $locations->first()->id;
+        }
         $today = today();
         $monthStart = now()->startOfMonth();
         $monthEnd = now();
 
-        $staffBySalon = Staff::whereIn('salon_id', $locationIds)
+        $staffBySalon = Staff::withoutGlobalScopes()->whereIn('salon_id', $locationIds)
             ->where('is_active', true)
             ->select('salon_id', DB::raw('count(*) as c'))
             ->groupBy('salon_id')
             ->pluck('c', 'salon_id');
 
-        $todayApptBySalon = Appointment::whereIn('salon_id', $locationIds)
+        $todayApptBySalon = Appointment::withoutGlobalScopes()->whereIn('salon_id', $locationIds)
             ->whereDate('starts_at', $today)
             ->select('salon_id', DB::raw('count(*) as c'))
             ->groupBy('salon_id')
             ->pluck('c', 'salon_id');
 
-        $monthlyRevenueBySalon = PosTransaction::whereIn('salon_id', $locationIds)
+        $monthlyRevenueBySalon = PosTransaction::withoutGlobalScopes()->whereIn('salon_id', $locationIds)
             ->where('status', 'completed')
             ->whereBetween('created_at', [$monthStart, $monthEnd])
             ->select('salon_id', DB::raw('COALESCE(sum(total),0) as t'))
             ->groupBy('salon_id')
             ->pluck('t', 'salon_id');
 
-        $branchManagers = SalonSetting::whereIn('salon_id', $locationIds)
+        $branchManagers = SalonSetting::withoutGlobalScopes()->whereIn('salon_id', $locationIds)
             ->where('key', 'branch_manager_name')
             ->pluck('value', 'salon_id');
+        $managerNamesBySalon = Staff::withoutGlobalScopes()
+            ->whereIn('salon_id', $locationIds)
+            ->whereIn('role', ['manager', 'owner'])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['salon_id', 'first_name', 'last_name'])
+            ->groupBy('salon_id')
+            ->map(function ($rows) {
+                $first = $rows->first();
+                $name = trim((string) ($first->first_name ?? '') . ' ' . (string) ($first->last_name ?? ''));
+                return $name !== '' ? $name : null;
+            });
 
-        $cards = $locations->map(function (Salon $salon) use ($staffBySalon, $todayApptBySalon, $monthlyRevenueBySalon, $branchManagers) {
+        $cards = $locations->map(function (Salon $salon) use ($staffBySalon, $todayApptBySalon, $monthlyRevenueBySalon, $branchManagers, $managerNamesBySalon, $activeSalonId) {
+            $branchManagerName = trim((string) ($branchManagers[$salon->id] ?? ''));
+            if ($branchManagerName === '') {
+                $branchManagerName = (string) ($managerNamesBySalon[$salon->id] ?? '');
+            }
             $card = [
                 'id' => $salon->id,
                 'name' => $salon->name,
@@ -68,10 +88,11 @@ class MultiLocationController extends Controller
                 'phone' => (string) ($salon->phone ?? ''),
                 'online_booking_enabled' => (bool) $salon->online_booking_enabled,
                 'status' => $salon->is_active ? 'active' : 'opening_soon',
+                'is_current' => (int) $salon->id === $activeSalonId,
                 'staff_count' => (int) ($staffBySalon[$salon->id] ?? 0),
                 'today_appointments' => (int) ($todayApptBySalon[$salon->id] ?? 0),
                 'monthly_revenue' => (float) ($monthlyRevenueBySalon[$salon->id] ?? 0),
-                'branch_manager' => (string) ($branchManagers[$salon->id] ?? ''),
+                'branch_manager' => $branchManagerName,
             ];
             $card['report'] = $this->buildBranchReport($salon->id);
             return $card;

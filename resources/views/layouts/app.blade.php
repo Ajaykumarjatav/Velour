@@ -559,8 +559,8 @@
         </div>
         @endif
 
-        {{-- Page content --}}
-        <main class="flex-1 p-5 sm:p-7 lg:p-8">
+        {{-- Page content — extra bottom padding clears fixed chat FAB + toasts --}}
+        <main class="flex-1 p-5 sm:p-7 lg:p-8 pb-24 sm:pb-28">
 
             @if(session('success'))
             <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm

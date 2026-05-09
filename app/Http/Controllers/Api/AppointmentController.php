@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Staff;
+use Illuminate\Validation\Rule;
 use App\Services\AppointmentService;
 use App\Services\NotificationService;
 use App\Services\Scheduling\AvailabilityRejectedException;
@@ -76,7 +77,8 @@ class AppointmentController extends Controller
             'service_ids'    => 'required|array|min:1',
             'service_ids.*'  => 'integer',
             'starts_at'      => 'required|date|after:now',
-            'source'         => 'nullable|string',
+            'source'         => ['nullable', Rule::in(Appointment::bookingSourceKeys())],
+            'payment_status' => ['nullable', Rule::in(Appointment::paymentStatusKeys())],
             'client_notes'   => 'nullable|string|max:1000',
             'internal_notes' => 'nullable|string|max:1000',
             'send_confirmation' => 'nullable|boolean',
@@ -119,12 +121,14 @@ class AppointmentController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $data = $request->validate([
-            'staff_id'       => 'sometimes|integer',
-            'service_ids'    => 'sometimes|array',
-            'service_ids.*'  => 'integer',
-            'starts_at'      => 'sometimes|date',
-            'client_notes'   => 'nullable|string|max:1000',
-            'internal_notes' => 'nullable|string|max:1000',
+            'staff_id'         => 'sometimes|integer',
+            'service_ids'      => 'sometimes|array',
+            'service_ids.*'    => 'integer',
+            'starts_at'        => 'sometimes|date',
+            'source'           => ['sometimes', Rule::in(Appointment::bookingSourceKeys())],
+            'payment_status'   => ['sometimes', Rule::in(Appointment::paymentStatusKeys())],
+            'client_notes'     => 'nullable|string|max:1000',
+            'internal_notes'   => 'nullable|string|max:1000',
         ]);
 
         $appointment = Appointment::where('salon_id', $request->attributes->get('salon_id'))

@@ -73,6 +73,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'inventory.delete',
             'inventory.adjust-stock',
 
+            // Facilities (rooms, stations, areas)
+            'facilities.view',
+            'facilities.manage',
+
             // POS / Transactions
             'pos.view',
             'pos.create',
@@ -130,6 +134,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'services.view', 'services.create', 'services.edit', 'services.delete',
             'inventory.view', 'inventory.create', 'inventory.edit',
             'inventory.delete', 'inventory.adjust-stock',
+            'facilities.view', 'facilities.manage',
             'pos.view', 'pos.create', 'pos.refund',
             'marketing.view', 'marketing.create', 'marketing.edit',
             'marketing.delete', 'marketing.send',
@@ -150,6 +155,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'staff.view', 'staff.edit',
             'services.view', 'services.create', 'services.edit',
             'inventory.view', 'inventory.create', 'inventory.edit', 'inventory.adjust-stock',
+            'facilities.view', 'facilities.manage',
             'pos.view', 'pos.create',
             'marketing.view', 'marketing.create', 'marketing.edit', 'marketing.send',
             'reports.view', 'reports.export',
@@ -165,6 +171,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'clients.view', 'clients.create', 'clients.edit',
             'clients.view-notes', 'clients.manage-notes',
             'services.view',
+            'facilities.view',
             'pos.view', 'pos.create',
             'reviews.view',
         ]);
@@ -177,6 +184,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'clients.view', 'clients.create', 'clients.edit', 'clients.view-notes',
             'services.view',
             'inventory.view',
+            'facilities.view',
             'pos.view', 'pos.create',
             'reports.view',
             'reviews.view',

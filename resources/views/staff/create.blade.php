@@ -92,12 +92,17 @@
                     <textarea name="bio" rows="3" class="form-textarea @error('bio') form-input-error @enderror">{{ old('bio', $staff->bio ?? '') }}</textarea>
                     @error('bio')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
+                <div class="col-span-2">
+                    <label class="form-label">Awards &amp; accolades</label>
+                    <textarea name="awards_accolades" rows="3" class="form-textarea @error('awards_accolades') form-input-error @enderror" placeholder="Optional — certifications, press, awards…">{{ old('awards_accolades', $staff->awards_accolades ?? '') }}</textarea>
+                    @error('awards_accolades')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
             </div>
 
             @if($services->count())
             <div>
                 <label class="form-label">Services offered</label>
-                <p class="form-hint mb-2">The extent of service reliance will vary depending on the staff member’s role. Only services permitted for the role you selected above are shown here.</p>
+                <p class="form-hint mb-2">All services are shown here during staff creation.</p>
                 <div class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
                     @foreach($services as $svc)
                     <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
