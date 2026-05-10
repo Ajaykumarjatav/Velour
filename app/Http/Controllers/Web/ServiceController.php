@@ -101,11 +101,6 @@ class ServiceController extends Controller
             ->sortBy(fn ($c) => [(int) ($c->businessType?->sort_order ?? 0), (int) $c->sort_order])
             ->values();
 
-        $pricingRules = DynamicPricingRule::withoutTenantScope()
-            ->where('salon_id', $salon->id)
-            ->orderBy('sort_order')
-            ->get();
-
         return view('services.index', compact(
             'salon',
             'categories',
@@ -114,7 +109,6 @@ class ServiceController extends Controller
             'categoryChips',
             'filterCategoryId',
             'search',
-            'pricingRules',
             'statusFilter',
             'accordionOpen'
         ));

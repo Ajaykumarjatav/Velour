@@ -40,13 +40,11 @@
                     @foreach($transaction->items as $item)
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-body">
-                            {{ ucfirst($item->item_type) }}
-                            @if($item->item_type === 'service' && $item->service) — {{ $item->service->name }}
-                            @elseif($item->item_type === 'product' && $item->product) — {{ $item->product->name }}
-                            @endif
+                            <span class="text-muted capitalize">{{ $item->type }}</span>
+                            — {{ $item->name }}
                             @if($item->quantity > 1)<span class="text-muted"> × {{ $item->quantity }}</span>@endif
                         </span>
-                        <span class="font-semibold text-heading">@money($item->subtotal)</span>
+                        <span class="font-semibold text-heading">@money($item->total)</span>
                     </div>
                     @endforeach
                 </div>
@@ -61,6 +59,12 @@
                 <div class="flex justify-between text-green-600 dark:text-green-400">
                     <span>Discount</span>
                     <span>−@money($transaction->discount_amount)</span>
+                </div>
+                @endif
+                @if($transaction->tax_amount > 0)
+                <div class="flex justify-between text-muted">
+                    <span>Tax</span>
+                    <span>@money($transaction->tax_amount)</span>
                 </div>
                 @endif
                 <div class="flex justify-between font-bold text-heading text-base pt-1 border-t border-gray-100 dark:border-gray-800">

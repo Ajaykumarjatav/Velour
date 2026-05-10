@@ -13,13 +13,6 @@
 @section('content')
 
 @php
-    $rulesPayload = $pricingRules->map(fn ($r) => [
-        'title' => $r->title,
-        'description' => $r->description ?? '',
-        'adjustment_percent' => (int) $r->adjustment_percent,
-        'enabled' => (bool) $r->enabled,
-    ])->values()->all();
-
     $svcGradients = [
         'linear-gradient(145deg, #5b21b6 0%, #7c3aed 45%, #a78bfa 100%)',
         'linear-gradient(145deg, #4c1d95 0%, #6d28d9 50%, #818cf8 100%)',
@@ -60,19 +53,13 @@
 
 <div class="space-y-8"
      x-data="{
-        pricingOpen: false,
         variantOpen: false,
         variantUrl: '',
         variantTitle: '',
         vRows: [],
         aRows: [],
-        rules: {{ \Illuminate\Support\Js::from($rulesPayload) }},
         catOpen: {{ \Illuminate\Support\Js::from($accordionOpen ?? []) }},
         toggleCat(id) { this.catOpen[id] = !this.catOpen[id]; },
-        openPricing() { this.pricingOpen = true; },
-        closePricing() { this.pricingOpen = false; },
-        addRule() { this.rules.push({ title: '', description: '', adjustment_percent: 0, enabled: true }); },
-        removeRule(i) { this.rules.splice(i, 1); },
         openVariants(url, title, variants, addons) {
             this.variantUrl = url;
             this.variantTitle = title;
@@ -179,10 +166,6 @@
                 <svg class="w-4 h-4 text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                 Categories
             </a>
-            <button type="button" @click="openPricing()" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm font-medium text-body hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors duration-200">
-                <svg class="w-4 h-4 text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Dynamic pricing
-            </button>
         </div>
     </div>
 
@@ -363,47 +346,6 @@
                 <a href="{{ route('services.index') }}" class="btn-outline mt-6 inline-flex rounded-xl">Reset filters</a>
             </div>
         @endif
-    </div>
-
-    {{-- Dynamic pricing modal --}}
-    <div x-show="pricingOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-         @keydown.escape.window="closePricing()">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
-             @click.outside="closePricing()">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-heading">Dynamic Pricing Rules</h3>
-                <button type="button" class="text-muted hover:text-heading" @click="closePricing()" aria-label="Close">&times;</button>
-            </div>
-            <p class="text-xs text-muted bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-3 py-2">
-                Dynamic pricing automatically adjusts service prices based on time, staff level, and demand. Rules are stored for your salon; connect them to checkout in a future release.
-            </p>
-            <form action="{{ route('services.pricing-rules') }}" method="POST" class="space-y-3">
-                @csrf
-                @method('PUT')
-                <template x-for="(rule, idx) in rules" :key="idx">
-                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-2">
-                        <div class="flex justify-between gap-2">
-                            <input type="text" :name="'rules['+idx+'][title]'" x-model="rule.title" class="form-input text-sm flex-1" placeholder="Rule title">
-                            <input type="number" :name="'rules['+idx+'][adjustment_percent]'" x-model="rule.adjustment_percent" class="form-input w-24 text-sm" placeholder="%">
-                        </div>
-                        <input type="text" :name="'rules['+idx+'][description]'" x-model="rule.description" class="form-input text-sm" placeholder="Condition description">
-                        <div class="flex items-center justify-between">
-                            <label class="flex items-center gap-2 text-sm text-body cursor-pointer">
-                                <input type="hidden" :name="'rules['+idx+'][enabled]'" :value="rule.enabled ? 1 : 0">
-                                <input type="checkbox" :checked="rule.enabled" @change="rule.enabled = $event.target.checked" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                                Enabled
-                            </label>
-                            <button type="button" class="text-xs text-red-500 hover:underline" @click="removeRule(idx)">Remove</button>
-                        </div>
-                    </div>
-                </template>
-                <button type="button" class="btn-outline w-full text-sm" @click="addRule()">+ New Rule</button>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" class="btn-outline" @click="closePricing()">Cancel</button>
-                    <button type="submit" class="btn-primary">Save Rules</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     {{-- Variants / add-ons modal --}}

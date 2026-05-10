@@ -18,8 +18,8 @@
     $allProducts = $products->map(fn($p) => [
         'id'    => $p->id,
         'name'  => $p->name,
-        'price' => (float) $p->price,
-        'qty'   => $p->quantity,
+        'price' => (float) $p->retail_price,
+        'qty'   => (int) $p->stock_quantity,
         'cat'   => 'Products',
         'type'  => 'product',
     ])->values()->toArray();

@@ -46,7 +46,15 @@ class InventoryItem extends Model
 
     public function getQuantityAttribute(): ?int
     {
-        return $this->stock_quantity;
+        // Support partial selects that alias stock_quantity → quantity (avoid strict missing-attribute errors).
+        if (array_key_exists('quantity', $this->attributes)) {
+            return (int) $this->attributes['quantity'];
+        }
+        if (array_key_exists('stock_quantity', $this->attributes)) {
+            return (int) $this->attributes['stock_quantity'];
+        }
+
+        return null;
     }
 
     public function setQuantityAttribute($value): void

@@ -11,10 +11,12 @@ use App\Models\Service;
 use App\Models\InventoryItem;
 use App\Models\Appointment;
 use App\Models\Staff;
-use App\Models\Tenant;
+use App\Mail\PosTransactionInvoiceMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class PosController extends Controller
 {
@@ -71,7 +73,7 @@ class PosController extends Controller
             ->get();
         $products = InventoryItem::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('stock_quantity', '>', 0)
-            ->get(['id','name','retail_price as price','stock_quantity as quantity']);
+            ->get(['id', 'name', 'retail_price', 'stock_quantity']);
 
         // Group services by category for the filter tabs
         $categories = $services->pluck('category.name', 'category_id')
@@ -114,7 +116,64 @@ class PosController extends Controller
             'notes'           => ['nullable', 'string', 'max:500'],
         ]);
 
-        $subtotal = collect($data['items'])->sum(fn($i) => $i['qty'] * $i['price']);
+        if (! empty($data['client_id'])) {
+            $clientOk = Client::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->whereKey($data['client_id'])
+                ->exists();
+            if (! $clientOk) {
+                throw ValidationException::withMessages([
+                    'client_id' => __('The selected client is not valid for this salon.'),
+                ]);
+            }
+        }
+
+        // Catalogue prices only — do not trust browser-submitted line prices.
+        $resolvedItems = [];
+        foreach ($data['items'] as $idx => $line) {
+            if ($line['type'] === 'service') {
+                $svc = Service::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->whereKey($line['id'])
+                    ->first();
+                if (! $svc || $svc->status !== 'active') {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.id" => __('One or more services are missing or inactive. Refresh and try again.'),
+                    ]);
+                }
+                $resolvedItems[] = [
+                    'type' => 'service',
+                    'id' => (int) $svc->id,
+                    'name' => $svc->name,
+                    'qty' => (int) $line['qty'],
+                    'price' => (float) $svc->price,
+                ];
+            } else {
+                $prod = InventoryItem::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->whereKey($line['id'])
+                    ->first();
+                if (! $prod || ! $prod->is_active) {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.id" => __('One or more products are missing or inactive.'),
+                    ]);
+                }
+                if ((int) $prod->stock_quantity < (int) $line['qty']) {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.qty" => __('Not enough stock for :name.', ['name' => $prod->name]),
+                    ]);
+                }
+                $resolvedItems[] = [
+                    'type' => 'product',
+                    'id' => (int) $prod->id,
+                    'name' => $prod->name,
+                    'qty' => (int) $line['qty'],
+                    'price' => (float) $prod->retail_price,
+                ];
+            }
+        }
+
+        $subtotal = collect($resolvedItems)->sum(fn ($i) => $i['qty'] * $i['price']);
         $discount = $data['discount_amount'] ?? 0;
         $taxRate  = $data['tax_rate'] ?? 18;
         $taxMode  = $data['tax_mode'] ?? 'excluded';
@@ -148,12 +207,17 @@ class PosController extends Controller
             return back()->withErrors(['status' => 'No active staff member found for this sale.'])->withInput();
         }
 
-        DB::transaction(function () use ($data, $salon, $subtotal, $discount, $tax, $total, $staffId) {
-            $transaction = PosTransaction::create([
+        $paymentMethod = match ($data['payment_method']) {
+            'bank_transfer' => 'account',
+            default => $data['payment_method'],
+        };
+
+        $transaction = DB::transaction(function () use ($resolvedItems, $salon, $subtotal, $discount, $tax, $total, $staffId, $paymentMethod, $data) {
+            $tx = PosTransaction::create([
                 'salon_id'        => $salon->id,
                 'client_id'       => $data['client_id'] ?? null,
                 'staff_id'        => (int) $staffId,
-                'payment_method'  => $data['payment_method'],
+                'payment_method'  => $paymentMethod,
                 'subtotal'        => $subtotal,
                 'discount_amount' => $discount,
                 'tax_amount'      => $tax,
@@ -163,28 +227,58 @@ class PosController extends Controller
                 'completed_at'    => now(),
             ]);
 
-            foreach ($data['items'] as $item) {
-                $transaction->items()->create([
-                    'name'        => $item['name'],
-                    'type'        => $item['type'],
-                    'quantity'    => $item['qty'],
-                    'unit_price'  => $item['price'],
-                    'total'       => $item['qty'] * $item['price'],
+            foreach ($resolvedItems as $item) {
+                $itemableClass = $item['type'] === 'service' ? Service::class : InventoryItem::class;
+                $tx->items()->create([
+                    'itemable_id'   => $item['id'],
+                    'itemable_type' => $itemableClass,
+                    'name'          => $item['name'],
+                    'type'          => $item['type'],
+                    'quantity'      => $item['qty'],
+                    'unit_price'    => $item['price'],
+                    'total'         => $item['qty'] * $item['price'],
                 ]);
+
+                if ($item['type'] === 'product') {
+                    $row = InventoryItem::withoutGlobalScopes()
+                        ->where('salon_id', $salon->id)
+                        ->whereKey($item['id'])
+                        ->lockForUpdate()
+                        ->first();
+                    if ($row) {
+                        $row->decrement('stock_quantity', $item['qty']);
+                    }
+                }
             }
+
+            if ($tx->client_id) {
+                Client::withoutGlobalScopes()
+                    ->whereKey($tx->client_id)
+                    ->increment('total_spent', $tx->total);
+            }
+
+            return $tx;
         });
+
+        if ($transaction && $transaction->client_id) {
+            $transaction->load(['client', 'items', 'salon']);
+            $recipient = $transaction->client?->email;
+            if (is_string($recipient) && filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+                try {
+                    Mail::to($recipient)->send(new PosTransactionInvoiceMail($transaction));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+        }
 
         return redirect()->route('pos.index')->with('success', 'Sale recorded successfully.');
     }
 
     public function show(PosTransaction $transaction)
     {
-        // Authorize against the same tenant Spatie bound for this request (see BelongsToTenant),
-        // not only activeSalon(), which must stay aligned with the tenant finder but can drift.
-        abort_unless(
-            Tenant::checkCurrent() && (int) $transaction->salon_id === (int) Tenant::current()->getKey(),
-            403
-        );
+        $this->authorize('view', $transaction);
+
         $transaction->load(['client', 'items']);
 
         return view('pos.show', compact('transaction'));

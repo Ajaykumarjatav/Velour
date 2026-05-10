@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PosTransactionItem extends Model
 {
     protected $fillable = [
-        'transaction_id', 'name', 'type', 'quantity',
+        'transaction_id', 'itemable_id', 'itemable_type', 'name', 'type', 'quantity',
         'unit_price', 'discount', 'total', 'staff_id',
     ];
 
