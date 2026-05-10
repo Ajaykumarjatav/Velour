@@ -153,9 +153,6 @@ class ServiceController extends Controller
             'addons.*.price'           => ['nullable', 'numeric', 'min:0'],
             'addons_text'              => ['nullable', 'string', 'max:2000'],
             'dynamic_pricing_enabled'  => ['sometimes', 'boolean'],
-            'staff_level'              => ['nullable', 'in:any,standard,senior,apprentice'],
-            'allowed_roles'            => ['nullable', 'array'],
-            'allowed_roles.*'          => ['string', Rule::in(Service::supportedStaffRoles())],
             'service_location'         => ['required', 'in:onsite,home'],
             'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
@@ -164,6 +161,7 @@ class ServiceController extends Controller
         unset($data['image']);
 
         $data['salon_id']                = $salon->id;
+        $data['staff_level']             = 'any';
         $data['status']                  = isset($data['is_active']) ? ($data['is_active'] ? 'active' : 'inactive') : 'active';
         $data['online_bookable']         = $data['online_booking'] ?? false;
         $data['dynamic_pricing_enabled'] = $request->boolean('dynamic_pricing_enabled');
@@ -172,7 +170,7 @@ class ServiceController extends Controller
             Service::normalizePriceRows($data['addons'] ?? null),
             $data['addons_text'] ?? null
         );
-        $data['allowed_roles']           = $this->normalizeAllowedRoles($data['allowed_roles'] ?? null);
+        $data['allowed_roles']           = null;
         unset($data['is_active'], $data['online_booking'], $data['addons_text']);
 
         $data['slug'] = $this->uniqueServiceSlug($salon->id, $data['name']);
@@ -202,6 +200,9 @@ class ServiceController extends Controller
             ->orderBy('sort_order')
             ->get();
         $assignedBusinessTypes = $salon->businessTypes()->orderBy('business_types.sort_order')->get();
+        $service->loadMissing([
+            'staff' => fn ($q) => $q->orderBy('first_name')->orderBy('last_name'),
+        ]);
 
         return view('services.edit', compact('service', 'salon', 'categories', 'assignedBusinessTypes'));
     }
@@ -232,9 +233,6 @@ class ServiceController extends Controller
             'addons.*.price'           => ['nullable', 'numeric', 'min:0'],
             'addons_text'              => ['nullable', 'string', 'max:2000'],
             'dynamic_pricing_enabled'  => ['sometimes', 'boolean'],
-            'staff_level'              => ['nullable', 'in:any,standard,senior,apprentice'],
-            'allowed_roles'            => ['nullable', 'array'],
-            'allowed_roles.*'          => ['string', Rule::in(Service::supportedStaffRoles())],
             'service_location'         => ['required', 'in:onsite,home'],
             'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
@@ -255,7 +253,6 @@ class ServiceController extends Controller
             Service::normalizePriceRows($data['addons'] ?? null),
             $data['addons_text'] ?? null
         );
-        $data['allowed_roles']           = $this->normalizeAllowedRoles($data['allowed_roles'] ?? null);
         unset($data['addons_text'], $data['image']);
 
         if (trim((string) $data['name']) !== trim((string) $service->name)) {
@@ -387,24 +384,4 @@ class ServiceController extends Controller
         }
     }
 
-    /** @param  array<int, mixed>|null  $roles */
-    private function normalizeAllowedRoles(?array $roles): ?array
-    {
-        if ($roles === null || $roles === []) {
-            return null;
-        }
-
-        $valid = array_flip(Service::supportedStaffRoles());
-        $out = [];
-        foreach ($roles as $role) {
-            $key = strtolower(trim((string) $role));
-            if ($key !== '' && isset($valid[$key])) {
-                $out[$key] = true;
-            }
-        }
-
-        $normalized = array_keys($out);
-
-        return $normalized === [] ? null : $normalized;
-    }
 }

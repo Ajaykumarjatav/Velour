@@ -16,7 +16,7 @@ class PosTransactionInvoiceMail extends Mailable
     public function __construct(
         public PosTransaction $transaction,
     ) {
-        $this->transaction->loadMissing(['salon', 'client', 'items']);
+        $this->transaction->loadMissing(['salon', 'client', 'items', 'staff']);
     }
 
     public function envelope(): Envelope
@@ -24,7 +24,7 @@ class PosTransactionInvoiceMail extends Mailable
         $salonName = $this->transaction->salon?->name ?? config('app.name');
 
         return new Envelope(
-            subject: 'Your receipt from '.$salonName.' — '.$this->transaction->reference,
+            subject: 'Invoice '.$this->transaction->reference.' — '.$salonName,
         );
     }
 

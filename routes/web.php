@@ -65,6 +65,12 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password',        [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
+// Signed POS invoice PDF (e.g. WhatsApp) — tenant from host, no login
+Route::middleware([InitializeTenancyFromDomain::class, 'tenant', 'signed'])->group(function () {
+    Route::get('invoice/pos/{transaction}', [PosController::class, 'invoicePdfSigned'])
+        ->name('pos.invoice.pdf.signed');
+});
+
 // ── Logout ────────────────────────────────────────────────────────────────────
 
 Route::post('logout', [AuthController::class, 'logout'])
@@ -187,7 +193,6 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::post('availability/leave', [AvailabilityResourcesController::class, 'storeLeave'])->name('availability.leave.store');
         Route::patch('availability/leave/{leave}/approve', [AvailabilityResourcesController::class, 'approveLeave'])->name('availability.leave.approve');
         Route::patch('availability/leave/{leave}/reject', [AvailabilityResourcesController::class, 'rejectLeave'])->name('availability.leave.reject');
-        Route::put('availability/buffer-rules', [AvailabilityResourcesController::class, 'updateBufferRules'])->name('availability.buffer-rules.update');
         Route::post('availability/staff/{staff}/toggle-day', [AvailabilityResourcesController::class, 'toggleStaffDay'])->name('availability.staff.toggle-day');
         Route::get('service-categories', [ServiceCategoryController::class, 'index'])->name('service-categories.index');
         Route::post('service-categories', [ServiceCategoryController::class, 'store'])->name('service-categories.store');
@@ -203,7 +208,9 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
         Route::resource('facilities', FacilityController::class);
 
+        Route::get('pos/{po}/invoice.pdf', [PosController::class, 'invoicePdf'])->name('pos.invoice.pdf');
         Route::resource('pos', PosController::class)->only(['index','create','store','show']);
+        Route::post('pos/{po}/invoice/email', [PosController::class, 'sendInvoiceEmail'])->name('pos.invoice.email');
 
         // Marketing — requires Pro plan or above (specific routes before {marketing} wildcard)
         Route::middleware('subscription:feature:marketing')->group(function () {
@@ -281,6 +288,8 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::get('set_socket_blocking', fn () => redirect()->route('settings.index', ['tab' => 'services']))->name('set_socket_blocking');
         Route::put('settings/salon',         [SettingsController::class, 'updateSalon'])->name('settings.salon');
+        Route::put('settings/booking',       [SettingsController::class, 'updateBooking'])->name('settings.booking');
+        Route::put('settings/buffer-rules',  [SettingsController::class, 'updateBufferRules'])->name('settings.buffer-rules');
         Route::put('settings/services',      [SettingsController::class, 'updateServices'])->name('settings.services');
         Route::put('settings/hours',         [SettingsController::class, 'updateHours'])->name('settings.hours');
         Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');

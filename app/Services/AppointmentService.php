@@ -311,13 +311,14 @@ class AppointmentService
             throw new \InvalidArgumentException('Selected staff does not offer all selected services.');
         }
 
-        $blockedByRole = Service::withoutTenantScope()
+        $blocked = Service::withoutTenantScope()
             ->where('salon_id', $salonId)
             ->whereIn('id', $ids)
+            ->withCount('staff')
             ->get(['id', 'allowed_roles'])
-            ->contains(fn (Service $service) => ! $service->allowsStaffRole((string) $staff->role));
-        if ($blockedByRole) {
-            throw new \InvalidArgumentException('Selected staff role is not permitted for one or more selected services.');
+            ->contains(fn (Service $service) => ! $service->allowsStaffMember($staff));
+        if ($blocked) {
+            throw new \InvalidArgumentException('Selected staff is not permitted for one or more selected services.');
         }
     }
 }

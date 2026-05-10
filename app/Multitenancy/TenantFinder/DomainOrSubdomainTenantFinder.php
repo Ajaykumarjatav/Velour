@@ -5,6 +5,7 @@ namespace App\Multitenancy\TenantFinder;
 use App\Models\Staff;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Scopes\TenantScope;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,12 +73,27 @@ class DomainOrSubdomainTenantFinder extends TenantFinder
                 : null;
         }
 
-        $staffSalonId = Staff::withoutGlobalScopes()
+        // Staff: respect active_salon_id when they have a row there (same as owners); else first row.
+        $activeSalonId = $request->hasSession()
+            ? (int) $request->session()->get('active_salon_id', 0)
+            : 0;
+
+        if ($activeSalonId > 0) {
+            $onBranch = Staff::withoutGlobalScope(TenantScope::class)
+                ->where('user_id', $user->id)
+                ->where('salon_id', $activeSalonId)
+                ->first();
+            if ($onBranch) {
+                return Tenant::query()->withoutGlobalScopes()->find($onBranch->salon_id);
+            }
+        }
+
+        $staff = Staff::withoutGlobalScope(TenantScope::class)
             ->where('user_id', $user->id)
-            ->whereNull('deleted_at')
-            ->value('salon_id');
-        if ($staffSalonId) {
-            return Tenant::query()->withoutGlobalScopes()->find($staffSalonId);
+            ->orderBy('id')
+            ->first();
+        if ($staff) {
+            return Tenant::query()->withoutGlobalScopes()->find($staff->salon_id);
         }
 
         return null;

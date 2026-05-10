@@ -194,5 +194,6 @@
     </div>
 @stack('scripts')
 @include('partials.form-client-validation')
+@include('partials.disable-double-submit')
 </body>
 </html>

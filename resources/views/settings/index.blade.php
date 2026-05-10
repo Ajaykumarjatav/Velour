@@ -7,7 +7,7 @@
     $returnTo = old('return_to', request()->query('return_to'));
     $settingsPersonalOnly = $settingsPersonalOnly ?? false;
     $settingsTabLabels = $settingsTabLabels ?? [
-        'salon' => 'Business', 'services' => 'Service', 'hours' => 'Hours', 'social' => 'Social Links',
+        'salon' => 'Business', 'booking' => 'Booking', 'services' => 'Service', 'hours' => 'Hours', 'social' => 'Social Links',
         'notifications' => 'Notifications', 'profile' => 'Profile', 'team' => 'Team', 'security' => 'Security',
     ];
     $settingsInitialTab = $settingsInitialTab ?? session('tab', request()->get('tab', $settingsPersonalOnly ? 'profile' : 'salon'));
@@ -19,7 +19,7 @@
         'profileCardOpen' => true,
     ];
 @endphp
-<div class="max-w-3xl" x-data='@json($settingsAlpineData)'>
+<div class="max-w-3xl w-full min-w-0" x-data='@json($settingsAlpineData)'>
 
     @if($settingsPersonalOnly)
     <div class="mb-6 rounded-xl border border-velour-200 dark:border-velour-800 bg-velour-50 dark:bg-velour-950/40 px-4 py-3 text-sm text-velour-900 dark:text-velour-100">
@@ -28,22 +28,24 @@
     </div>
     @endif
 
-    {{-- Tab bar --}}
-    <div class="flex flex-wrap gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl w-fit">
-        @foreach($settingsTabLabels as $key => $label)
-        <button type="button" @click="tab='{{ $key }}'"
-                :class="tab==='{{ $key }}' ? 'bg-white dark:bg-gray-700 text-velour-700 dark:text-velour-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
-                class="px-4 py-2 text-sm font-medium rounded-xl transition-all">
-            {{ $label }}
-        </button>
-        @endforeach
+    {{-- Tab bar: single row, no horizontal scroll — equal-width cells; hover for full label --}}
+    <div class="mb-6 min-w-0 rounded-2xl">
+        <div class="flex w-full min-w-0 flex-nowrap gap-0.5 sm:gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl">
+            @foreach($settingsTabLabels as $key => $label)
+            <button type="button" @click="tab='{{ $key }}'" role="tab" title="{{ $label }}"
+                    :class="tab==='{{ $key }}' ? 'bg-white dark:bg-gray-700 text-velour-700 dark:text-velour-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+                    class="min-w-0 flex-1 basis-0 truncate px-1 sm:px-2 py-2 text-center text-[10px] font-medium leading-tight rounded-lg sm:rounded-xl sm:text-xs md:text-sm transition-all">
+                {{ $label }}
+            </button>
+            @endforeach
+        </div>
     </div>
 
     {{-- ── Salon Settings ── --}}
     <div x-show="tab==='salon'" x-cloak>
         <div class="card p-6">
             <h2 class="font-semibold text-heading mb-5">Salon Profile</h2>
-            <form id="settings-salon-form" action="{{ route('settings.salon') }}" method="POST" class="space-y-4">
+            <form id="settings-salon-form" action="{{ route('settings.salon') }}" method="POST" class="space-y-4 scroll-mt-24">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <div class="grid grid-cols-2 gap-4">
@@ -159,6 +161,138 @@
                 <button type="submit" class="btn-primary">Save Changes</button>
             </form>
         </div>
+    </div>
+
+    {{-- ── Online booking & widget ── --}}
+    <div x-show="tab==='booking'" x-cloak>
+        <div class="card p-6 min-w-0">
+            <div class="flex items-start gap-2 mb-5">
+                <span class="text-lg" aria-hidden="true">⚙️</span>
+                <div>
+                    <h2 class="font-semibold text-heading">Booking settings</h2>
+                    <p class="text-sm text-muted mt-1">Public booking link, embed widget, and client self-service rules.</p>
+                </div>
+            </div>
+            <form id="settings-booking-form" action="{{ route('settings.booking') }}" method="POST" class="space-y-0">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 divide-y divide-gray-200/80 dark:divide-gray-700/80">
+                    @foreach([
+                        ['online_booking_enabled', 'Online booking', 'Allow clients to book via your link & widget', (bool) old('online_booking_enabled', $salon->online_booking_enabled)],
+                        ['new_client_booking_enabled', 'New client bookings', 'Accept bookings from first-time clients', (bool) old('new_client_booking_enabled', $salon->new_client_booking_enabled)],
+                        ['deposit_required', 'Require deposit', 'Charge deposit to reduce no-shows', (bool) old('deposit_required', $salon->deposit_required)],
+                        ['instant_confirmation', 'Instant confirmation', 'Confirm bookings automatically (no approval needed)', (bool) old('instant_confirmation', $salon->instant_confirmation)],
+                    ] as $bookingToggle)
+                        @php [$bName, $bLabel, $bHint, $bOn] = $bookingToggle; $bId = 'settings-booking-tab-' . $bName; @endphp
+                        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
+                            <div class="space-y-0.5 min-w-0 max-w-full">
+                                <label for="{{ $bId }}" class="text-sm font-medium text-heading cursor-pointer block">{{ $bLabel }}</label>
+                                <p class="text-xs text-muted leading-snug">{{ $bHint }}</p>
+                            </div>
+                            <div class="flex items-center justify-start sm:justify-end pt-0.5 sm:pt-0">
+                                <input type="hidden" name="{{ $bName }}" value="0">
+                                <input type="checkbox" id="{{ $bId }}" name="{{ $bName }}" value="1"
+                                       class="rounded border-gray-300 text-velour-600 focus:ring-velour-500 h-5 w-5 shrink-0"
+                                       {{ $bOn ? 'checked' : '' }}>
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
+                        <div class="space-y-0.5 min-w-0 max-w-full">
+                            <label for="settings-booking-deposit_percentage" class="text-sm font-medium text-heading block">Deposit %</label>
+                            <p class="text-xs text-muted leading-snug">Percentage of service cost charged upfront</p>
+                        </div>
+                        <input type="number" id="settings-booking-deposit_percentage" name="deposit_percentage"
+                               value="{{ old('deposit_percentage', $salon->deposit_percentage ?? 20) }}"
+                               min="1" max="100" required
+                               class="form-input w-full sm:w-24 max-w-[8rem] text-right text-sm tabular-nums shrink-0 @error('deposit_percentage') form-input-error @enderror">
+                    </div>
+                    @error('deposit_percentage')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
+
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
+                        <div class="space-y-0.5 min-w-0 max-w-full">
+                            <label for="settings-booking-booking_advance_days" class="text-sm font-medium text-heading block">Book up to (days)</label>
+                            <p class="text-xs text-muted leading-snug">How far ahead clients can schedule</p>
+                        </div>
+                        <input type="number" id="settings-booking-booking_advance_days" name="booking_advance_days"
+                               value="{{ old('booking_advance_days', $salon->booking_advance_days ?? 60) }}"
+                               min="1" max="365" required
+                               class="form-input w-full sm:w-24 max-w-[8rem] text-right text-sm tabular-nums shrink-0 @error('booking_advance_days') form-input-error @enderror">
+                    </div>
+                    @error('booking_advance_days')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
+
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
+                        <div class="space-y-0.5 min-w-0 max-w-full">
+                            <label for="settings-booking-cancellation_hours" class="text-sm font-medium text-heading block">Cancel notice (hours)</label>
+                            <p class="text-xs text-muted leading-snug">Minimum notice for free cancellation</p>
+                        </div>
+                        <input type="number" id="settings-booking-cancellation_hours" name="cancellation_hours"
+                               value="{{ old('cancellation_hours', $salon->cancellation_hours ?? 24) }}"
+                               min="0" max="168" required
+                               class="form-input w-full sm:w-24 max-w-[8rem] text-right text-sm tabular-nums shrink-0 @error('cancellation_hours') form-input-error @enderror">
+                    </div>
+                    @error('cancellation_hours')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
+                    <button type="submit" class="btn-primary shrink-0">Save booking settings</button>
+                </div>
+            </form>
+        </div>
+
+        @if(!($settingsPersonalOnly ?? false))
+        <div id="settings-buffer-rules" class="card p-6 min-w-0 mt-6 scroll-mt-24">
+            <div class="flex items-start gap-2 mb-5">
+                <span class="text-lg" aria-hidden="true">⏱️</span>
+                <div>
+                    <h2 class="font-semibold text-heading">Buffer time &amp; booking rules</h2>
+                    <p class="text-sm text-muted mt-1">Values are saved per salon. Adjust numbers below, then save.</p>
+                </div>
+            </div>
+            <form action="{{ route('settings.buffer-rules') }}" method="POST" class="space-y-0">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                @php
+                    $bufferRule = $bufferRule ?? null;
+                    $bufferRows = [
+                        ['buffer_before_minutes', 'Buffer before service', 'Prep time before each appointment.', 'min', 0, 240],
+                        ['buffer_after_minutes', 'Buffer after service', 'Clean-up / turnaround time.', 'min', 0, 240],
+                        ['max_daily_bookings_per_staff', 'Max daily bookings per staff', 'Cap appointments per staff member per day.', 'appts', 1, 100],
+                        ['advance_booking_days', 'Advance booking window', 'How far ahead clients can book.', 'days', 1, 730],
+                        ['last_minute_cutoff_hours', 'Last-minute cut-off', 'Minimum notice before start time.', 'hours', 0, 168],
+                        ['overbooking_percent', 'Overbooking allowance', 'Extra capacity on busy days.', '%', 0, 100],
+                    ];
+                @endphp
+                <ul class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 divide-y divide-gray-200/80 dark:divide-gray-700/80">
+                    @foreach($bufferRows as [$field, $label, $help, $unit, $min, $max])
+                        <li class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_5.5rem_3rem] gap-2 sm:gap-x-4 sm:items-center px-4 py-3.5 sm:px-5">
+                            <div class="min-w-0">
+                                <label for="settings-buf-{{ $field }}" class="text-sm font-medium text-heading">{{ $label }}</label>
+                                <p id="settings-buf-help-{{ $field }}" class="text-xs text-muted mt-0.5 leading-snug">{{ $help }}</p>
+                                @error($field)<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+                            </div>
+                            <div class="flex items-center gap-2 sm:contents">
+                                <input id="settings-buf-{{ $field }}" type="number" name="{{ $field }}"
+                                       value="{{ old($field, $bufferRule?->$field) }}"
+                                       aria-describedby="settings-buf-help-{{ $field }}"
+                                       min="{{ $min }}" max="{{ $max }}" required
+                                       class="form-input w-24 max-w-[40%] sm:max-w-none sm:w-[5.5rem] text-sm text-right tabular-nums py-2 px-2 sm:justify-self-end @error($field) form-input-error @enderror">
+                                <span class="text-xs text-muted tabular-nums w-10 shrink-0 sm:w-auto sm:justify-self-end">{{ $unit }}</span>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+                <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
+                    <button type="submit" class="btn-primary shrink-0">Save rules</button>
+                </div>
+            </form>
+            <p class="text-xs text-muted mt-4 leading-relaxed">
+                Booking today still uses each service’s own buffers and staff working days. Hooking these salon-wide rules into live availability can be added in a later release.
+            </p>
+        </div>
+        @endif
     </div>
 
     {{-- ── Service Setup ── --}}

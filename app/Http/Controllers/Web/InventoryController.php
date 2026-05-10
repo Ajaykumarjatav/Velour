@@ -26,6 +26,8 @@ class InventoryController extends Controller
         $search     = $request->get('search');
         $categoryId = $request->get('category_id');
         $lowStock   = $request->boolean('low_stock');
+        $stockLevelRaw = $request->query('stock_level');
+        $stockLevel = in_array($stockLevelRaw, ['low', 'critical'], true) ? $stockLevelRaw : null;
 
         $query = $this->filteredInventoryQuery($salon, $request);
 
@@ -36,7 +38,7 @@ class InventoryController extends Controller
         $stats = $this->inventoryStats($salon->id);
 
         return view('inventory.index', array_merge(
-            compact('salon', 'items', 'categories', 'search', 'categoryId', 'lowStock', 'lowStockCount'),
+            compact('salon', 'items', 'categories', 'search', 'categoryId', 'lowStock', 'lowStockCount', 'stockLevel'),
             $stats
         ));
     }
@@ -90,6 +92,8 @@ class InventoryController extends Controller
         $search     = $request->get('search');
         $categoryId = $request->get('category_id');
         $lowStock   = $request->boolean('low_stock');
+        $stockLevelRaw = $request->query('stock_level');
+        $stockLevel = in_array($stockLevelRaw, ['low', 'critical'], true) ? $stockLevelRaw : null;
 
         $query = $this->salonScoped(InventoryItem::class)->with('category');
 
@@ -105,8 +109,13 @@ class InventoryController extends Controller
             $query->where('category_id', $categoryId);
         }
 
+        // Checkbox "below minimum" is broader than tier cards; it wins when checked.
         if ($lowStock) {
             $query->whereColumn('stock_quantity', '<', 'min_stock_level');
+        } elseif ($stockLevel === 'low') {
+            $query->whereStockTierLow();
+        } elseif ($stockLevel === 'critical') {
+            $query->whereStockTierCritical();
         }
 
         return $query;

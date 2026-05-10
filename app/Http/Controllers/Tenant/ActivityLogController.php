@@ -18,16 +18,6 @@ use Spatie\Activitylog\Models\Activity;
  */
 class ActivityLogController extends Controller
 {
-    /**
-     * Stub authorization check.
-     * Spatie\Permission not compatible with L11 + PHP 8.3.
-     * For now, middleware guards access.
-     */
-    protected function authorize($ability, $arguments = null)
-    {
-        return true;
-    }
-
     public function index(Request $request)
     {
         $this->authorize('view-activity-log');

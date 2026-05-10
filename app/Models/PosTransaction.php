@@ -1,15 +1,16 @@
 <?php
 
 namespace App\Models;
-use App\Traits\BelongsToTenant;
 
+use App\Scopes\TenantScope;
 use App\Traits\AuditLog;
-
+use App\Traits\BelongsToTenant;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PosTransaction extends Model
 {
@@ -65,6 +66,81 @@ class PosTransaction extends Model
     public function invoice(): HasMany
     {
         return $this->hasMany(Invoice::class, 'transaction_id');
+    }
+
+    /**
+     * Implicit route binding runs inside the `web` stack before `InitializeTenancyFromDomain`,
+     * so TenantScope often does not apply yet. Scope by the same salon the user will get as
+     * tenant (session + owner/staff), otherwise we load the wrong row and policy returns 403.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field = $field ?: $this->getRouteKeyName();
+        $salonId = static::inferSalonIdForImplicitBinding();
+
+        $query = static::withoutGlobalScopes()->where($field, $value);
+        if ($salonId !== null) {
+            $query->where('salon_id', $salonId);
+        }
+
+        return $query->firstOrFail();
+    }
+
+    /**
+     * @return int|null null when guest / unknown — binding falls back to id-only (auth runs next).
+     */
+    protected static function inferSalonIdForImplicitBinding(): ?int
+    {
+        if (Tenant::checkCurrent()) {
+            return (int) Tenant::current()->getKey();
+        }
+
+        $request = request();
+        if (! $request->hasSession()) {
+            return null;
+        }
+
+        $user = auth()->user();
+        if (! $user) {
+            $guard = config('auth.defaults.guard', 'web');
+            $sessionUserKey = 'login_' . $guard . '_' . sha1(SessionGuard::class);
+            $userId = (int) ($request->session()->get($sessionUserKey) ?? 0);
+            if ($userId <= 0) {
+                return null;
+            }
+            $user = User::query()->find($userId);
+            if (! $user) {
+                return null;
+            }
+        }
+
+        if ($user->salons()->exists()) {
+            $activeSalonId = (int) $request->session()->get('active_salon_id', 0);
+            $salon = $activeSalonId > 0
+                ? $user->salons()->whereKey($activeSalonId)->first()
+                : null;
+            $salon ??= $user->salons()->orderBy('id')->first();
+
+            return $salon ? (int) $salon->id : null;
+        }
+
+        $activeSalonId = (int) $request->session()->get('active_salon_id', 0);
+        if ($activeSalonId > 0) {
+            $onBranch = Staff::withoutGlobalScope(TenantScope::class)
+                ->where('user_id', $user->id)
+                ->where('salon_id', $activeSalonId)
+                ->first();
+            if ($onBranch) {
+                return (int) $onBranch->salon_id;
+            }
+        }
+
+        $staff = Staff::withoutGlobalScope(TenantScope::class)
+            ->where('user_id', $user->id)
+            ->orderBy('id')
+            ->first();
+
+        return $staff ? (int) $staff->salon_id : null;
     }
 
     /* ── Scopes ────────────────────────────────────────────────────────── */

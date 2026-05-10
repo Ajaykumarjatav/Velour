@@ -158,7 +158,7 @@
 
             <a href="{{ route('availability.index') }}" class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/40 p-4 hover:border-velour-300 dark:hover:border-velour-700 transition-colors">
                 <p class="font-semibold text-gray-900 dark:text-gray-100">Availability &amp; Resources</p>
-                <p class="text-sm text-muted mt-1">Working days, leave, and buffer settings.</p>
+                <p class="text-sm text-muted mt-1">Working days, leave, and bookable resources.</p>
                 <p class="text-xs text-muted mt-2">Tip: approved leave blocks booking slots automatically.</p>
             </a>
 

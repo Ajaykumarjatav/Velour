@@ -7,6 +7,11 @@
     $currency = $currentSalon->currency ?? 'GBP';
     $chipBase = request()->except(['category_id', 'page']);
     $filterHidden = request()->except(['search', 'page', 'low_stock']);
+    $statsLinkBase = request()->except(['page', 'stock_level', 'low_stock']);
+    $stockLevel = $stockLevel ?? null;
+    $statCardActiveTotal = ! $lowStock && $stockLevel === null;
+    $statCardActiveLow = ! $lowStock && $stockLevel === 'low';
+    $statCardActiveCritical = ! $lowStock && $stockLevel === 'critical';
 @endphp
 
 <div class="space-y-6"
@@ -43,33 +48,39 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div class="card p-4 flex items-center gap-3">
+        <a href="{{ route('inventory.index', $statsLinkBase) }}" title="{{ __('Show all products (keeps search and category)') }}"
+           class="card p-4 flex items-center gap-3 no-underline text-inherit rounded-2xl border transition-all cursor-pointer hover:border-velour-400/50 dark:hover:border-velour-600/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-velour-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 {{ $statCardActiveTotal ? 'ring-2 ring-velour-500/60 border-velour-400/40 dark:border-velour-600/50' : '' }}"
+           @if($statCardActiveTotal) aria-current="page" @endif>
             <div class="rounded-xl bg-velour-100 dark:bg-velour-900/40 p-2.5 text-velour-700 dark:text-velour-300">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             </div>
             <div>
                 <p class="text-2xl font-bold text-heading leading-tight">{{ $totalSkus }}</p>
                 <p class="text-xs text-muted font-medium uppercase tracking-wide">Total SKUs</p>
             </div>
-        </div>
-        <div class="card p-4 flex items-center gap-3">
+        </a>
+        <a href="{{ route('inventory.index', array_merge($statsLinkBase, ['stock_level' => 'low'])) }}" title="{{ __('Filter list: low stock tier only') }}"
+           class="card p-4 flex items-center gap-3 no-underline text-inherit rounded-2xl border transition-all cursor-pointer hover:border-amber-400/60 dark:hover:border-amber-600/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 {{ $statCardActiveLow ? 'ring-2 ring-amber-500/60 border-amber-400/50 dark:border-amber-600/50' : '' }}"
+           @if($statCardActiveLow) aria-current="page" @endif>
             <div class="rounded-xl bg-amber-100 dark:bg-amber-900/30 p-2.5 text-amber-700 dark:text-amber-300">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </div>
             <div>
                 <p class="text-2xl font-bold text-heading leading-tight">{{ $lowStockSkus }}</p>
                 <p class="text-xs text-muted font-medium uppercase tracking-wide">Low stock</p>
             </div>
-        </div>
-        <div class="card p-4 flex items-center gap-3">
+        </a>
+        <a href="{{ route('inventory.index', array_merge($statsLinkBase, ['stock_level' => 'critical'])) }}" title="{{ __('Filter list: critical stock only') }}"
+           class="card p-4 flex items-center gap-3 no-underline text-inherit rounded-2xl border transition-all cursor-pointer hover:border-red-400/60 dark:hover:border-red-600/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 {{ $statCardActiveCritical ? 'ring-2 ring-red-500/60 border-red-400/50 dark:border-red-600/50' : '' }}"
+           @if($statCardActiveCritical) aria-current="page" @endif>
             <div class="rounded-xl bg-red-100 dark:bg-red-900/30 p-2.5 text-red-700 dark:text-red-300">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </div>
             <div>
                 <p class="text-2xl font-bold text-heading leading-tight">{{ $criticalSkus }}</p>
                 <p class="text-xs text-muted font-medium uppercase tracking-wide">Critical</p>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="flex flex-wrap items-center gap-2">

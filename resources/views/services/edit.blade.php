@@ -31,8 +31,12 @@
                     @if($service->image_url)
                         <img src="{{ $service->image_url }}" alt="" width="80" height="80" class="w-20 h-20 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shrink-0">
                     @else
-                        <div class="w-20 h-20 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0"
-                             style="background-color: {{ $service->color ?? '#7C3AED' }}">{{ strtoupper(mb_substr($service->name, 0, 1)) }}</div>
+                        @include('services.partials.service-placeholder-thumb', [
+                            'service' => $service,
+                            'category' => $service->category,
+                            'thumbClass' => 'w-20 h-20 shrink-0',
+                            'iconClass' => 'w-10 h-10',
+                        ])
                     @endif
                     <div class="flex-1 min-w-0 space-y-2">
                         <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
@@ -113,26 +117,6 @@
                 @error('service_location')<p class="form-error">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="form-label">Allowed staff roles</label>
-                <p class="form-hint mb-2">The level of service dependency is determined based on the roles and responsibilities of the staff. Service dependency is defined according to each staff member’s role—select which roles may perform this service. If none are selected, any role may be assigned when linking staff to this service.</p>
-                @php
-                    $allowedRoles = old('allowed_roles', $service->allowed_roles ?? []);
-                    $roleOptions = ['owner', 'manager', 'stylist', 'therapist', 'receptionist', 'junior'];
-                @endphp
-                <div class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800">
-                    @foreach($roleOptions as $roleOption)
-                        <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
-                            <input type="checkbox" name="allowed_roles[]" value="{{ $roleOption }}"
-                                   {{ in_array($roleOption, $allowedRoles, true) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                            <span class="text-sm text-body">{{ ucfirst($roleOption) }}</span>
-                        </label>
-                    @endforeach
-                </div>
-                @error('allowed_roles')<p class="form-error">{{ $message }}</p>@enderror
-                @error('allowed_roles.*')<p class="form-error">{{ $message }}</p>@enderror
-            </div>
-            <div>
                 <label class="form-label">Calendar colour</label>
                 <input type="color" name="color" value="{{ old('color', $service->color ?? '#7C3AED') }}"
                        class="h-10 w-20 px-2 py-1 rounded-xl border border-gray-300 dark:border-gray-700 cursor-pointer bg-white dark:bg-gray-800">
@@ -149,6 +133,26 @@
             </div>
 
             @include('services.partials.form-extras', ['service' => $service])
+
+            <div>
+                <label class="form-label">Staff who perform this service</label>
+                <p class="form-hint mb-2">Only team members who have this service on their profile are listed. They can take bookings for it. To add or remove someone, open their record under <a href="{{ route('staff.index') }}" class="font-medium text-velour-600 dark:text-velour-400 underline hover:opacity-90">Staff &amp; HR</a> and update Services.</p>
+                @if($service->staff->isEmpty())
+                    <p class="text-sm text-muted rounded-xl border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800">No staff linked yet. Assign this service from each team member’s profile in Staff &amp; HR.</p>
+                @else
+                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 list-none m-0" role="list">
+                        @foreach($service->staff as $member)
+                            <li class="flex items-center gap-2 px-1.5 py-1.5 rounded-lg {{ ! $member->is_active ? 'opacity-70' : '' }}">
+                                <span class="text-sm text-body">
+                                    {{ $member->name }}
+                                    <span class="text-muted">· {{ ucfirst((string) $member->role) }}</span>
+                                    @if(! $member->is_active)<span class="text-xs text-amber-600 dark:text-amber-400">(inactive)</span>@endif
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
 
             @endif
             <div class="flex gap-3 pt-2">

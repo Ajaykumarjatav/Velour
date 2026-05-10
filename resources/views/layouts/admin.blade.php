@@ -152,6 +152,7 @@
   @include('partials.chatbot', ['isAdminLayout' => true])
 
   @include('partials.form-client-validation')
+  @include('partials.disable-double-submit')
   @stack('scripts')
 </body>
 </html>

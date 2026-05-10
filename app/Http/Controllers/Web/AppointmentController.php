@@ -603,7 +603,9 @@ class AppointmentController extends Controller
         $client->increment('visit_count');
         $client->update(['last_visit_at' => $appointment->starts_at]);
 
-        return back()->with('success', 'Appointment marked as completed.');
+        return redirect()
+            ->route('pos.create', ['appointment' => $appointment->id])
+            ->with('success', __('Appointment marked complete. Review the bill and take payment.'));
     }
 
     public function destroy(Appointment $appointment)

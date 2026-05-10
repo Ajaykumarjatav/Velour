@@ -18,16 +18,6 @@
         addAddon() { this.addons.push({ name: '', price: '' }); },
      }">
 
-    <div>
-        <label class="form-label">Staff level</label>
-        <select name="staff_level" class="form-select max-w-xs">
-            <option value="any" {{ old('staff_level', $svcModel?->staff_level ?? 'any') === 'any' ? 'selected' : '' }}>Any</option>
-            <option value="standard" {{ old('staff_level', $svcModel?->staff_level ?? 'any') === 'standard' ? 'selected' : '' }}>Standard</option>
-            <option value="senior" {{ old('staff_level', $svcModel?->staff_level ?? 'any') === 'senior' ? 'selected' : '' }}>Senior</option>
-            <option value="apprentice" {{ old('staff_level', $svcModel?->staff_level ?? 'any') === 'apprentice' ? 'selected' : '' }}>Apprentice</option>
-        </select>
-    </div>
-
     <label class="flex items-center gap-2 cursor-pointer">
         <input type="hidden" name="dynamic_pricing_enabled" value="0">
         <input type="checkbox" name="dynamic_pricing_enabled" value="1"

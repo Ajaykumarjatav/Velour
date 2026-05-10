@@ -38,6 +38,7 @@ final class StaffServiceEligibility
             ->where('salon_id', $salonId)
             ->active()
             ->orderBy('sort_order')
+            ->withCount('staff')
             ->get(['id', 'name', 'allowed_roles'])
             ->filter(fn (Service $service) => $service->allowsStaffRole($role))
             ->values();
@@ -54,6 +55,7 @@ final class StaffServiceEligibility
         $services = Service::withoutGlobalScopes()
             ->where('salon_id', $salonId)
             ->whereIn('id', $ids)
+            ->withCount('staff')
             ->get(['id', 'name', 'allowed_roles']);
         $blocked = $services->filter(fn (Service $service) => ! $service->allowsStaffRole($role))->pluck('name')->values();
         if ($blocked->isEmpty()) {

@@ -24,7 +24,7 @@
 
 @section('content')
 <div class="alert-info mb-2 text-sm max-w-6xl mx-auto w-full">
-    <p class="font-medium">Staff templates, leave, and buffer rules here feed online booking and the <a href="{{ route('calendar') }}" class="underline font-semibold">calendar</a>. For one-off bookings, use <a href="{{ route('appointments.create') }}" class="underline font-semibold">Appointments</a>.</p>
+    <p class="font-medium">Staff templates and leave here feed online booking and the <a href="{{ route('calendar') }}" class="underline font-semibold">calendar</a>. For one-off bookings, use <a href="{{ route('appointments.create') }}" class="underline font-semibold">Appointments</a>.</p>
 </div>
 <div class="space-y-5 max-w-6xl mx-auto w-full"
      x-data="{
@@ -75,7 +75,7 @@
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div class="min-w-0">
                     <h1 class="font-serif text-xl sm:text-2xl text-heading tracking-tight leading-tight">Availability &amp; Resources</h1>
-                    <p class="text-sm text-muted mt-1">Staff schedules, rooms, chairs &amp; buffer rules</p>
+                    <p class="text-sm text-muted mt-1">Staff schedules, rooms &amp; chairs</p>
                 </div>
                 <div class="flex flex-wrap gap-2 shrink-0">
                     <button type="button" @click="openLeave()" class="btn-outline inline-flex items-center justify-center gap-2 text-sm px-3 py-2">
@@ -95,8 +95,6 @@
                    class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'resources' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Resources</a>
                 <a href="{{ route('availability.index', ['tab' => 'leave']) }}"
                    class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'leave' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Leave</a>
-                <a href="{{ route('availability.index', ['tab' => 'buffer']) }}"
-                   class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'buffer' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Buffer Rules</a>
             </nav>
         </div>
     </div>
@@ -282,53 +280,6 @@
                     <li class="py-10 text-center text-muted text-sm">No leave requests yet.</li>
                 @endforelse
             </ul>
-        </div>
-    @endif
-
-    {{-- Buffer rules --}}
-    @if($tab === 'buffer')
-        <div class="card p-0 overflow-hidden">
-            <form method="POST" action="{{ route('availability.buffer-rules.update') }}" class="max-w-2xl mx-auto">
-                @csrf
-                @method('PUT')
-                <div class="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-100 dark:border-gray-800">
-                    <h2 class="text-base sm:text-lg font-bold text-heading">Buffer time &amp; booking rules</h2>
-                    <p class="text-xs text-muted mt-1">Values are saved per salon. Adjust numbers below, then save.</p>
-                </div>
-                @php
-                    $rows = [
-                        ['buffer_before_minutes', 'Buffer before service', 'Prep time before each appointment.', 'min'],
-                        ['buffer_after_minutes', 'Buffer after service', 'Clean-up / turnaround time.', 'min'],
-                        ['max_daily_bookings_per_staff', 'Max daily bookings per staff', 'Cap appointments per staff member per day.', 'appts'],
-                        ['advance_booking_days', 'Advance booking window', 'How far ahead clients can book.', 'days'],
-                        ['last_minute_cutoff_hours', 'Last-minute cut-off', 'Minimum notice before start time.', 'hours'],
-                        ['overbooking_percent', 'Overbooking allowance', 'Extra capacity on busy days.', '%'],
-                    ];
-                @endphp
-                <ul class="divide-y divide-gray-100 dark:divide-gray-800 px-4 sm:px-6">
-                    @foreach($rows as [$field, $label, $help, $unit])
-                        <li class="py-3.5 sm:py-3 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_5.5rem_3rem] gap-2 sm:gap-x-4 sm:items-center">
-                            <div class="min-w-0">
-                                <label for="buf-{{ $field }}" class="font-medium text-body text-sm">{{ $label }}</label>
-                                <p id="buf-help-{{ $field }}" class="text-xs text-muted mt-0.5 leading-snug">{{ $help }}</p>
-                            </div>
-                            <div class="flex items-center gap-2 sm:contents">
-                                <input id="buf-{{ $field }}" type="number" name="{{ $field }}" value="{{ old($field, $bufferRule->$field) }}"
-                                       aria-describedby="buf-help-{{ $field }}"
-                                       class="form-input w-24 max-w-[40%] sm:max-w-none sm:w-[5.5rem] text-sm text-right tabular-nums py-2 px-2 sm:justify-self-end"
-                                       min="0" max="{{ $field === 'overbooking_percent' ? 100 : ($field === 'advance_booking_days' ? 730 : 999) }}" required>
-                                <span class="text-xs text-muted tabular-nums w-10 shrink-0 sm:w-auto">{{ $unit }}</span>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-                <div class="px-4 sm:px-6 py-4 sm:py-5 bg-gray-50/80 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800">
-                    <button type="submit" class="btn-primary w-full sm:w-auto min-w-[10rem] text-sm">Save rules</button>
-                </div>
-            </form>
-            <p class="text-xs text-muted px-4 sm:px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/30 leading-relaxed max-w-2xl mx-auto">
-                Booking today still uses each service’s own buffers and staff working days. Hooking these salon-wide rules into live availability can be added in a later release.
-            </p>
         </div>
     @endif
 

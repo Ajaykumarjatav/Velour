@@ -369,8 +369,8 @@
         @include('partials.sidebar')
     </aside>
 
-    {{-- Main --}}
-    <div class="flex-1 flex flex-col min-h-screen lg:pl-56">
+    {{-- Main — min-w-0 so wide children (tables, POS grids) shrink instead of overflowing under the fixed sidebar --}}
+    <div class="flex-1 flex flex-col min-h-screen min-w-0 lg:pl-56">
 
         {{-- Top bar --}}
         <header class="sticky top-0 z-20 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
@@ -560,7 +560,7 @@
         @endif
 
         {{-- Page content — extra bottom padding clears fixed chat FAB + toasts --}}
-        <main class="flex-1 p-5 sm:p-7 lg:p-8 pb-24 sm:pb-28">
+        <main class="flex-1 min-w-0 p-5 sm:p-7 lg:p-8 pb-24 sm:pb-28">
 
             @if(session('success'))
             <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm
@@ -726,6 +726,7 @@
 
 @include('partials.chatbot')
 @include('partials.form-client-validation')
+@include('partials.disable-double-submit')
 @stack('scripts')
 </body>
 </html>

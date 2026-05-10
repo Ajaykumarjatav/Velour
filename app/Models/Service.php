@@ -387,8 +387,28 @@ class Service extends Model
         return array_keys($out);
     }
 
+    /**
+     * When specific staff are linked on the service (service_staff), only those people may perform it.
+     * Otherwise fall back to the allowed_roles allowlist (empty = any role).
+     */
+    public function hasExplicitStaffAssignees(): bool
+    {
+        if ($this->staff_count !== null) {
+            return (int) $this->staff_count > 0;
+        }
+        if ($this->relationLoaded('staff')) {
+            return $this->staff->isNotEmpty();
+        }
+
+        return $this->staff()->exists();
+    }
+
     public function allowsStaffRole(?string $role): bool
     {
+        if ($this->hasExplicitStaffAssignees()) {
+            return false;
+        }
+
         $allowed = $this->normalizedAllowedRoles();
         if ($allowed === []) {
             return true;
@@ -397,6 +417,19 @@ class Service extends Model
         $role = strtolower(trim((string) $role));
 
         return $role !== '' && in_array($role, $allowed, true);
+    }
+
+    public function allowsStaffMember(Staff $staff): bool
+    {
+        if ($this->hasExplicitStaffAssignees()) {
+            if ($this->relationLoaded('staff')) {
+                return $this->staff->contains('id', (int) $staff->id);
+            }
+
+            return $this->staff()->where('staff.id', $staff->id)->exists();
+        }
+
+        return $this->allowsStaffRole((string) $staff->role);
     }
 
     public function setIsActiveAttribute($value): void

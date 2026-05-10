@@ -9,6 +9,7 @@ use App\Models\ServiceCategory;
 use App\Models\Staff;
 use App\Models\User;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
+use App\Models\SalonBufferRule;
 use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
 use App\Support\LanguageProficiency;
@@ -17,6 +18,7 @@ use App\Support\RegistrationStarterServices;
 use App\Support\StaffServiceEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -77,7 +79,7 @@ class SettingsController extends Controller
             ->first();
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $salon    = $this->salon();
         $settings = $salon->settings()->pluck('value', 'key');
@@ -86,6 +88,7 @@ class SettingsController extends Controller
         $settingsPersonalOnly = $user->dashboardScopedStaffId() !== null;
         $tabLabelsOrder       = [
             'salon' => 'Business',
+            'booking' => 'Booking',
             'services' => 'Service',
             'hours' => 'Hours',
             'social' => 'Social Links',
@@ -108,6 +111,25 @@ class SettingsController extends Controller
         if (! in_array($requestedTab, $allowedTabKeys, true)) {
             $requestedTab = $defaultTab;
         }
+
+        $bookingSettingsErrorKeys = [
+            'online_booking_enabled', 'new_client_booking_enabled', 'deposit_required',
+            'deposit_percentage', 'instant_confirmation', 'booking_advance_days', 'cancellation_hours',
+            'buffer_before_minutes', 'buffer_after_minutes', 'max_daily_bookings_per_staff',
+            'advance_booking_days', 'last_minute_cutoff_hours', 'overbooking_percent',
+        ];
+        if (in_array('booking', $allowedTabKeys, true) && $request->session()->has('errors')) {
+            $bag = $request->session()->get('errors');
+            if ($bag instanceof \Illuminate\Support\ViewErrorBag && $bag->isNotEmpty()) {
+                foreach ($bookingSettingsErrorKeys as $bk) {
+                    if ($bag->has($bk)) {
+                        $requestedTab = 'booking';
+                        break;
+                    }
+                }
+            }
+        }
+
         $settingsInitialTab = $requestedTab;
         $hideSalonProfileBar = $settingsPersonalOnly;
 
@@ -175,6 +197,11 @@ class SettingsController extends Controller
             ->values()
             ->all();
 
+        $bufferRule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(
+            ['salon_id' => $salon->id],
+            []
+        );
+
         return view('settings.index', compact(
             'salon',
             'settings',
@@ -196,6 +223,7 @@ class SettingsController extends Controller
             'profileStaffServices',
             'profileStaffAssignedServiceIds',
             'teamServices',
+            'bufferRule',
             'settingsTabLabels',
             'settingsPersonalOnly',
             'settingsInitialTab',
@@ -234,12 +262,64 @@ class SettingsController extends Controller
 
         $salon->update($data);
 
+        Cache::forget("share:checklist:{$salon->id}");
+
         SalonSetting::updateOrCreate(
             ['salon_id' => $salon->id, 'key' => 'booking_time_display'],
             ['value' => $bookingTimeDisplay, 'type' => 'string']
         );
 
         return $this->redirectAfterSettingsSave($request, 'Salon profile updated.', 'salon');
+    }
+
+    public function updateBooking(Request $request)
+    {
+        $this->abortUnlessCanEditSalonWideSettings();
+        $salon = $this->salon();
+
+        $request->validate([
+            'deposit_percentage' => ['required', 'numeric', 'min:1', 'max:100'],
+            'booking_advance_days' => ['required', 'integer', 'min:1', 'max:365'],
+            'cancellation_hours' => ['required', 'integer', 'min:0', 'max:168'],
+        ]);
+
+        $salon->update([
+            'online_booking_enabled' => $request->boolean('online_booking_enabled'),
+            'new_client_booking_enabled' => $request->boolean('new_client_booking_enabled'),
+            'deposit_required' => $request->boolean('deposit_required'),
+            'instant_confirmation' => $request->boolean('instant_confirmation'),
+            'deposit_percentage' => $request->input('deposit_percentage'),
+            'booking_advance_days' => $request->input('booking_advance_days'),
+            'cancellation_hours' => $request->input('cancellation_hours'),
+        ]);
+
+        Cache::forget("share:checklist:{$salon->id}");
+
+        return $this->redirectAfterSettingsSave($request, 'Booking settings updated.', 'booking');
+    }
+
+    public function updateBufferRules(Request $request)
+    {
+        $this->abortUnlessCanEditSalonWideSettings();
+        $salon = $this->salon();
+
+        $data = $request->validate([
+            'buffer_before_minutes' => ['required', 'integer', 'min:0', 'max:240'],
+            'buffer_after_minutes' => ['required', 'integer', 'min:0', 'max:240'],
+            'max_daily_bookings_per_staff' => ['required', 'integer', 'min:1', 'max:100'],
+            'advance_booking_days' => ['required', 'integer', 'min:1', 'max:730'],
+            'last_minute_cutoff_hours' => ['required', 'integer', 'min:0', 'max:168'],
+            'overbooking_percent' => ['required', 'integer', 'min:0', 'max:100'],
+        ]);
+
+        $rule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(['salon_id' => $salon->id], []);
+        $rule->update($data);
+
+        Cache::forget("share:checklist:{$salon->id}");
+
+        $response = $this->redirectAfterSettingsSave($request, 'Buffer and booking rules saved.', 'booking');
+
+        return $response->withFragment('settings-buffer-rules');
     }
 
     public function updateServices(Request $request)
@@ -926,6 +1006,7 @@ class SettingsController extends Controller
         $services = Service::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->whereNull('deleted_at')
+            ->withCount('staff')
             ->orderBy('sort_order')
             ->get(['id', 'allowed_roles']);
 
@@ -955,14 +1036,17 @@ class SettingsController extends Controller
             $commission = max(0.0, min(100.0, $commission));
             $role = (string) $row['role'];
             $allServiceIds = $services
+                ->filter(fn (Service $service) => $service->allowsStaffRole($role))
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
+                ->values()
                 ->all();
             $servicesWereSubmitted = array_key_exists('services', $row) || array_key_exists('services_present', $row);
             $requestedServiceIds = array_values(array_unique(array_map('intval', (array) ($row['services'] ?? []))));
             $serviceIds = [];
 
             if ($servicesWereSubmitted) {
+                StaffServiceEligibility::assertEligibleForRole($salon->id, $role, $requestedServiceIds);
                 $serviceIds = $requestedServiceIds;
             } elseif ($assign) {
                 $serviceIds = $allServiceIds;

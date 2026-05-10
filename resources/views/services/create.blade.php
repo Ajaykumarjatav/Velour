@@ -98,26 +98,6 @@
                 @error('service_location')<p class="form-error">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="form-label">Allowed staff roles</label>
-                <p class="form-hint mb-2">The level of service dependency is determined based on the roles and responsibilities of the staff. Service dependency is defined according to each staff member’s role—select which roles may perform this service. If none are selected, any role may be assigned when linking staff to this service.</p>
-                @php
-                    $allowedRoles = old('allowed_roles', $service?->allowed_roles ?? []);
-                    $roleOptions = ['owner', 'manager', 'stylist', 'therapist', 'receptionist', 'junior'];
-                @endphp
-                <div class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800">
-                    @foreach($roleOptions as $roleOption)
-                        <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
-                            <input type="checkbox" name="allowed_roles[]" value="{{ $roleOption }}"
-                                   {{ in_array($roleOption, $allowedRoles, true) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                            <span class="text-sm text-body">{{ ucfirst($roleOption) }}</span>
-                        </label>
-                    @endforeach
-                </div>
-                @error('allowed_roles')<p class="form-error">{{ $message }}</p>@enderror
-                @error('allowed_roles.*')<p class="form-error">{{ $message }}</p>@enderror
-            </div>
-            <div>
                 <label class="form-label">Calendar colour</label>
                 <input type="color" name="color" value="{{ old('color', $service?->color ?? '#7C3AED') }}"
                        class="h-10 w-20 px-2 py-1 rounded-xl border border-gray-300 dark:border-gray-700 cursor-pointer bg-white dark:bg-gray-800">

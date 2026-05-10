@@ -61,21 +61,25 @@
         <p class="text-sm font-semibold text-gray-800 dark:text-white">Online Booking</p>
         <p class="text-xs text-gray-400 dark:text-gray-500" x-text="salon.online_booking_enabled ? 'Clients can book right now' : 'Booking page is hidden'"></p>
       </div>
-      <button
-        type="button"
-        @click="toggleBooking()"
-        :class="salon.online_booking_enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
-        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50"
-        :aria-checked="salon.online_booking_enabled"
-        role="switch"
-        aria-label="Toggle online booking"
-        :disabled="saving"
-      >
-        <span
-          :class="salon.online_booking_enabled ? 'translate-x-6' : 'translate-x-1'"
-          class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform"
-        ></span>
-      </button>
+      <div class="flex flex-col items-end gap-1">
+        <button
+          type="button"
+          @click="toggleBooking()"
+          :class="salon.online_booking_enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
+          class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50"
+          :aria-checked="salon.online_booking_enabled"
+          role="switch"
+          aria-label="Toggle online booking"
+          :disabled="saving"
+        >
+          <span
+            :class="salon.online_booking_enabled ? 'translate-x-6' : 'translate-x-1'"
+            class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform"
+          ></span>
+        </button>
+        <span x-show="saving" class="text-[10px] text-amber-600 font-medium">Saving…</span>
+        <span x-show="saveOk" x-cloak class="text-[10px] text-green-600 font-medium">Saved</span>
+      </div>
     </div>
   </div>
 
@@ -497,52 +501,16 @@
         </div>
       </div>
 
-      {{-- ── BOOKING SETTINGS ──────────────────────────────────────────── --}}
       <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">⚙️</span>
-            <h2 class="font-semibold text-gray-800 dark:text-white">Booking Settings</h2>
+        <div class="px-5 py-4 flex items-start gap-2">
+          <span class="text-lg" aria-hidden="true">⚙️</span>
+          <div>
+            <h2 class="font-semibold text-gray-800 dark:text-white text-sm">Booking options</h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+              Deposits, advance booking window, cancellation rules, and related toggles are on
+              <a href="{{ route('settings.index', ['tab' => 'booking']) }}" class="text-amber-600 dark:text-amber-400 font-medium hover:underline">Settings → Booking</a>.
+            </p>
           </div>
-          <span x-show="saving" class="text-xs text-amber-600 font-medium animate-pulse">Saving…</span>
-          <span x-show="saveOk" x-cloak class="text-xs text-green-600 font-medium">✅ Saved</span>
-        </div>
-        <div class="divide-y divide-gray-50 dark:divide-gray-700">
-          <template x-for="setting in bookingSettings" :key="setting.key">
-            <div class="flex items-center justify-between gap-3 px-5 py-3.5">
-              <div class="flex-1 min-w-0 pr-2">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-200" x-text="setting.label"></p>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5" x-text="setting.description"></p>
-              </div>
-              <template x-if="setting.type === 'toggle'">
-                <button
-                  type="button"
-                  @click="saveSetting(setting.key, !salon[setting.key])"
-                  :class="salon[setting.key] ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
-                  class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800"
-                  :aria-checked="!!salon[setting.key]"
-                  role="switch"
-                  :aria-label="setting.label"
-                  :disabled="saving"
-                >
-                  <span
-                    :class="salon[setting.key] ? 'translate-x-6' : 'translate-x-1'"
-                    class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform"
-                  ></span>
-                </button>
-              </template>
-              <template x-if="setting.type === 'number'">
-                <input
-                  type="number"
-                  :value="salon[setting.key]"
-                  @change="saveSetting(setting.key, $event.target.valueAsNumber)"
-                  :min="setting.min"
-                  :max="setting.max"
-                  class="w-20 flex-shrink-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-right text-sm text-gray-800 outline-none focus:ring-2 focus:ring-amber-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                >
-              </template>
-            </div>
-          </template>
         </div>
       </div>
 
@@ -728,17 +696,6 @@ function goLivePage() {
           return profile || 'https://pinterest.com/';
         }
       },
-    ],
-
-    // Booking settings definition (drives the settings panel)
-    bookingSettings: [
-      { key: 'online_booking_enabled',     type: 'toggle', label: 'Online booking',          description: 'Allow clients to book via your link & widget' },
-      { key: 'new_client_booking_enabled', type: 'toggle', label: 'New client bookings',      description: 'Accept bookings from first-time clients' },
-      { key: 'deposit_required',           type: 'toggle', label: 'Require deposit',          description: 'Charge deposit to reduce no-shows' },
-      { key: 'deposit_percentage',         type: 'number', label: 'Deposit %',               description: 'Percentage of service cost charged upfront', min: 1, max: 100 },
-      { key: 'instant_confirmation',       type: 'toggle', label: 'Instant confirmation',     description: 'Confirm bookings automatically (no approval needed)' },
-      { key: 'booking_advance_days',       type: 'number', label: 'Book up to (days)',        description: 'How far ahead clients can schedule', min: 1, max: 365 },
-      { key: 'cancellation_hours',         type: 'number', label: 'Cancel notice (hours)',    description: 'Minimum notice for free cancellation', min: 0, max: 168 },
     ],
 
     // ── Lifecycle ────────────────────────────────────────────────────────

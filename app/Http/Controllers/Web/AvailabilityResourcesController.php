@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
-use App\Models\SalonBufferRule;
 use App\Models\SalonResource;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
@@ -35,11 +34,16 @@ class AvailabilityResourcesController extends Controller
         abort_unless($leave->salon_id === $this->salon()->id, 403);
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $salon = $this->salon();
         $tab   = $request->query('tab', 'availability');
-        if (! in_array($tab, ['availability', 'resources', 'leave', 'buffer'], true)) {
+        if ($tab === 'buffer') {
+            return redirect()
+                ->route('settings.index', ['tab' => 'booking'])
+                ->withFragment('settings-buffer-rules');
+        }
+        if (! in_array($tab, ['availability', 'resources', 'leave'], true)) {
             $tab = 'availability';
         }
 
@@ -58,11 +62,6 @@ class AvailabilityResourcesController extends Controller
             ->latest()
             ->get();
 
-        $bufferRule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(
-            ['salon_id' => $salon->id],
-            []
-        );
-
         $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
 
         return view('availability.index', compact(
@@ -71,7 +70,6 @@ class AvailabilityResourcesController extends Controller
             'staff',
             'resources',
             'leaveRequests',
-            'bufferRule',
             'staffQuickCreateServicesByRole'
         ));
     }
@@ -235,27 +233,6 @@ class AvailabilityResourcesController extends Controller
         return redirect()
             ->route('availability.index', ['tab' => 'leave'])
             ->with('success', 'Leave rejected.');
-    }
-
-    public function updateBufferRules(Request $request): RedirectResponse
-    {
-        $salon = $this->salon();
-
-        $data = $request->validate([
-            'buffer_before_minutes'            => ['required', 'integer', 'min:0', 'max:240'],
-            'buffer_after_minutes'             => ['required', 'integer', 'min:0', 'max:240'],
-            'max_daily_bookings_per_staff'     => ['required', 'integer', 'min:1', 'max:100'],
-            'advance_booking_days'             => ['required', 'integer', 'min:1', 'max:730'],
-            'last_minute_cutoff_hours'         => ['required', 'integer', 'min:0', 'max:168'],
-            'overbooking_percent'              => ['required', 'integer', 'min:0', 'max:100'],
-        ]);
-
-        $rule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(['salon_id' => $salon->id], []);
-        $rule->update($data);
-
-        return redirect()
-            ->route('availability.index', ['tab' => 'buffer'])
-            ->with('success', 'Buffer and booking rules saved.');
     }
 
     /** @return list<string>|null */

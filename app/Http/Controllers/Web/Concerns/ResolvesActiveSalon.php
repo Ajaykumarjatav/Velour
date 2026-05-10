@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Concerns;
 use App\Models\Salon;
 use App\Models\Staff;
 use App\Models\Tenant;
+use App\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -43,9 +44,20 @@ trait ResolvesActiveSalon
             return Salon::query()->withoutGlobalScopes()->findOrFail(Tenant::current()->getKey());
         }
 
-        $staffSalonId = Staff::withoutGlobalScopes()
+        $activeSalonId = (int) session('active_salon_id', 0);
+        if ($activeSalonId > 0) {
+            $staffAt = Staff::withoutGlobalScope(TenantScope::class)
+                ->where('user_id', $user->id)
+                ->where('salon_id', $activeSalonId)
+                ->first();
+            if ($staffAt) {
+                return Salon::query()->withoutGlobalScopes()->findOrFail($staffAt->salon_id);
+            }
+        }
+
+        $staffSalonId = Staff::withoutGlobalScope(TenantScope::class)
             ->where('user_id', $user->id)
-            ->whereNull('deleted_at')
+            ->orderBy('id')
             ->value('salon_id');
 
         abort_if(! $staffSalonId, 403, 'No salon associated with this account.');

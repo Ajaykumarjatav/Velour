@@ -44,6 +44,26 @@ class InventoryItem extends Model
     public function scopeLowStock($q) { return $q->whereColumn('stock_quantity','<','min_stock_level'); }
     public function scopeRetail($q)   { return $q->whereIn('type',['retail','both']); }
 
+    /** Matches {@see stockStatusLevel()} === low (not critical). */
+    public function scopeWhereStockTierLow($query)
+    {
+        return $query->where('min_stock_level', '>', 0)
+            ->whereColumn('stock_quantity', '<', 'min_stock_level')
+            ->where('stock_quantity', '>', 0)
+            ->whereRaw('stock_quantity > FLOOR(min_stock_level / 2)');
+    }
+
+    /** Matches {@see stockStatusLevel()} === critical. */
+    public function scopeWhereStockTierCritical($query)
+    {
+        return $query->where('min_stock_level', '>', 0)
+            ->whereColumn('stock_quantity', '<', 'min_stock_level')
+            ->where(function ($q) {
+                $q->where('stock_quantity', '=', 0)
+                    ->orWhereRaw('stock_quantity <= FLOOR(min_stock_level / 2)');
+            });
+    }
+
     public function getQuantityAttribute(): ?int
     {
         // Support partial selects that alias stock_quantity → quantity (avoid strict missing-attribute errors).

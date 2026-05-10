@@ -13,13 +13,6 @@
 @section('content')
 
 @php
-    $svcGradients = [
-        'linear-gradient(145deg, #5b21b6 0%, #7c3aed 45%, #a78bfa 100%)',
-        'linear-gradient(145deg, #4c1d95 0%, #6d28d9 50%, #818cf8 100%)',
-        'linear-gradient(145deg, #6d28d9 0%, #8b5cf6 40%, #c4b5fd 100%)',
-        'linear-gradient(145deg, #2e1065 0%, #5b21b6 55%, #a78bfa 100%)',
-    ];
-
     $hasFilters = $search || $filterCategoryId || ($statusFilter ?? '') !== ''
         || request()->filled('price_min') || request()->filled('price_max')
         || request()->filled('duration_min') || request()->filled('duration_max');
@@ -206,19 +199,13 @@
                             $aList = $svc->normalizedAddons();
                             $vCount = count($vList);
                             $aCount = count($aList);
-                            $gi = abs(crc32((string) $svc->id)) % count($svcGradients);
                         @endphp
                         <div class="svc-row">
                             <div class="flex items-center gap-4 min-w-0">
                                 @if($svc->image_url)
                                     <img src="{{ $svc->image_url }}" alt="" width="48" height="48" class="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0 shadow-sm">
                                 @else
-                                    <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-white shadow-md ring-1 ring-black/10 dark:ring-white/10"
-                                         style="background: {{ $svcGradients[$gi] }}">
-                                        <svg class="w-6 h-6 opacity-95" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                        </svg>
-                                    </div>
+                                    @include('services.partials.service-placeholder-thumb', ['service' => $svc, 'category' => $cat])
                                 @endif
                                 <div class="min-w-0 flex-1 space-y-1">
                                     <div class="flex flex-wrap items-center gap-2">
@@ -297,15 +284,12 @@
                 </div>
                 <div class="divide-y divide-gray-100 dark:divide-gray-800/90">
                     @foreach($uncategorised as $svc)
-                        @php $gi = abs(crc32((string) $svc->id)) % count($svcGradients); @endphp
                         <div class="svc-row">
                             <div class="flex items-center gap-4 min-w-0">
                                 @if($svc->image_url)
                                     <img src="{{ $svc->image_url }}" alt="" class="w-12 h-12 rounded-xl object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0">
                                 @else
-                                    <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center text-white shadow-md" style="background: {{ $svcGradients[$gi] }}">
-                                        <svg class="w-6 h-6 opacity-95" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                                    </div>
+                                    @include('services.partials.service-placeholder-thumb', ['service' => $svc, 'category' => null])
                                 @endif
                                 <div class="min-w-0">
                                     <h3 class="font-normal text-base text-heading">{{ $svc->name }}</h3>

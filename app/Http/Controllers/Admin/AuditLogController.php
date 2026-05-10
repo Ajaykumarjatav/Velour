@@ -18,16 +18,6 @@ use Illuminate\Support\Facades\DB;
  */
 class AuditLogController extends Controller
 {
-    /**
-     * Stub authorization check.
-     * Spatie\Permission not compatible with L11 + PHP 8.3.
-     * For now, super_admin middleware guards access.
-     */
-    protected function authorize($ability, $arguments = null)
-    {
-        return true;
-    }
-
     public function index(Request $request)
     {
         $this->authorize('view-audit-logs');

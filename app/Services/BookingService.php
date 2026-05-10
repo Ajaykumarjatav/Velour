@@ -416,7 +416,7 @@ class BookingService
             if (! $service instanceof Service) {
                 continue;
             }
-            if (! $service->allowsStaffRole((string) $staff->role)) {
+            if (! $service->allowsStaffMember($staff)) {
                 return false;
             }
         }
