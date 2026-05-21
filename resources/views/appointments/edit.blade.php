@@ -8,7 +8,9 @@
     $editOccupiedServiceIds = $appointment->services->pluck('service_id')->map(fn ($id) => (int) $id)->values()->all();
 @endphp
 
-<div class="max-w-2xl">
+@include('partials.appointment-scheduler-alpine')
+
+<div class="max-w-4xl">
     <div class="card p-6">
         <form action="{{ route('appointments.update', $appointment->id) }}" method="POST" class="space-y-5">
             @csrf @method('PUT')
@@ -45,54 +47,12 @@
                     <x-relation-quick-create-trigger type="staff" select-id="appt-edit-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
                 </div>
 
-                <div class="mb-4 mt-5">
-                    <label class="form-label uppercase tracking-wide text-xs font-bold text-velour-600 dark:text-velour-400">Date <span class="text-red-500">*</span></label>
-                    <input type="date"
-                           x-model="selectedDate"
-                           @change="onDateChange()"
-                           @keydown.prevent
-                           @paste.prevent
-                           @drop.prevent
-                           :min="today"
-                           required
-                           class="form-input">
-                </div>
-
-                <div x-show="selectedDate && staffId" x-cloak>
-                    <div class="flex items-center justify-between gap-2 mb-3">
-                        <label class="form-label uppercase tracking-wide text-xs font-bold text-velour-600 dark:text-velour-400 mb-0">Time slot <span class="text-red-500">*</span></label>
-                        <span x-show="loadingSlots" class="text-xs text-muted">Checking availability…</span>
-                    </div>
-                    <p class="text-xs text-muted mb-2">
-                        Same rules as new bookings: slot must fit
-                        <a href="{{ route('settings.index') }}?tab=hours" class="text-link">opening hours</a>,
-                        the staff shift, and working days (see
-                        <a href="{{ route('availability.index') }}" class="text-link">Availability</a>).
-                        This appointment is ignored when checking overlaps. Unavailable times may still be blocked for other reasons (e.g. outside shift).
+                <div class="mt-5">
+                    <label class="form-label mb-2">Date &amp; time <span class="text-red-500">*</span></label>
+                    <p class="text-xs text-muted mb-3">
+                        Same rules as new bookings. This appointment is excluded from overlap checks.
                     </p>
-                    <ul x-show="!loadingSlots && blockedReasonMessages.length"
-                        class="text-xs text-amber-700 dark:text-amber-400 mb-2 list-disc pl-4 space-y-0.5"
-                        role="status">
-                        <template x-for="msg in blockedReasonMessages" :key="msg">
-                            <li x-text="msg"></li>
-                        </template>
-                    </ul>
-                    <div class="grid grid-cols-4 gap-2">
-                        <template x-for="slot in timeSlots" :key="slot">
-                            <button type="button"
-                                    @click="pickSlot(slot)"
-                                    :disabled="isBlocked(slot) || loadingSlots"
-                                    :title="slotBlockTitle(slot)"
-                                    :class="isBlocked(slot)
-                                        ? 'bg-gray-100 dark:bg-gray-800/80 text-muted border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60 line-through'
-                                        : (selectedTime === slot
-                                            ? 'bg-velour-600 text-white border-velour-600 font-bold shadow-sm'
-                                            : 'bg-white dark:bg-gray-800 text-body border-gray-200 dark:border-gray-700 hover:border-velour-400 hover:text-velour-600 dark:hover:text-velour-400')"
-                                    class="py-2.5 rounded-xl border text-sm font-medium transition-all disabled:pointer-events-none">
-                                <span x-text="slot"></span>
-                            </button>
-                        </template>
-                    </div>
+                    @include('partials.appointment-scheduler')
                 </div>
 
                 <input type="hidden" name="starts_at" :value="selectedDate && selectedTime ? selectedDate + ' ' + selectedTime + ':00' : ''">
@@ -149,6 +109,7 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId, serviceIds) {
         timeInit = oldStarts.substring(11, 16);
     }
     return {
+        ...appointmentSchedulerMixin(),
         occupiedUrl,
         excludeAppointmentId,
         serviceIds: Array.isArray(serviceIds) ? serviceIds : [],
@@ -160,17 +121,13 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId, serviceIds) {
         blockedDetails: {},
         blockedReasonMessages: [],
         loadingSlots: false,
-        timeSlots: [
-            '09:00','09:30','10:00','10:30',
-            '11:00','11:30','12:00','12:30',
-            '13:00','14:00','14:30','15:00',
-            '15:30','16:00','16:30','17:00',
-            '17:30','18:00','18:30','19:00',
-        ],
         init() {
+            this.initScheduler();
             if (this.selectedDate < this.today) {
                 this.selectedDate = this.today;
             }
+            this.syncViewMonthFromDate();
+            this.buildWeekDays();
             this.$watch('staffId', () => {
                 this.selectedTime = '';
                 this.fetchBlocked();
@@ -184,6 +141,8 @@ function timeslotPickerEdit(occupiedUrl, excludeAppointmentId, serviceIds) {
             if (this.selectedDate < this.today) {
                 this.selectedDate = this.today;
             }
+            this.syncViewMonthFromDate();
+            this.buildWeekDays();
             this.selectedTime = '';
             this.fetchBlocked();
         },
