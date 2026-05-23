@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\SalonWebsiteController;
 use App\Http\Controllers\Api\ShareController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\GdprController;
@@ -47,6 +48,10 @@ Route::prefix('v1')->middleware(['sanitize'])->group(function () {
         Route::get('verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
              ->name('verification.verify');
     });
+
+    // Public salon marketing website (React storefront)
+    Route::get('salon/{salonSlug}/website', [SalonWebsiteController::class, 'show'])
+        ->middleware('throttle:60,1');
 
     // Public booking widget — moderate rate limit
     Route::prefix('book/{salonSlug}')->middleware(['throttle:30,1'])->group(function () {

@@ -13,7 +13,7 @@
                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Builder, booking widget &amp; reviews</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ $bookingUrl }}" target="_blank" rel="noopener" class="btn-outline btn-sm">Preview Site</a>
+                <a href="{{ $websiteUrl }}" target="_blank" rel="noopener" class="btn-outline btn-sm">Preview Site</a>
                 <form method="POST" action="{{ route('website-seo.publish') }}">
                     @csrf
                     <input type="hidden" name="published" value="{{ $stats['published'] ? 0 : 1 }}">
@@ -37,7 +37,7 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-green-400"></span>
-                <span class="text-[11px] text-gray-300 ml-2 truncate">{{ parse_url($bookingUrl, PHP_URL_HOST) }}/your-salon</span>
+                <span class="text-[11px] text-gray-300 ml-2 truncate">{{ parse_url($websiteUrl, PHP_URL_HOST) }}/s/{{ $salon->slug }}</span>
             </div>
             <div class="p-4 sm:p-5 bg-white dark:bg-gray-900">
                 <div class="rounded-xl bg-[#F7F2F4] dark:bg-gray-800/50 p-6 text-center mb-4">
@@ -50,7 +50,8 @@
                     </div>
                     @endif
                     <div class="mt-4 flex items-center justify-center gap-2">
-                        <a href="{{ $bookingUrl }}" target="_blank" class="btn-primary btn-sm">Book Now</a>
+                        <a href="{{ $websiteUrl }}" target="_blank" class="btn-primary btn-sm">View Site</a>
+                        <a href="{{ $bookingUrl }}" target="_blank" class="btn-outline btn-sm">Book Now</a>
                         <a href="{{ route('services.index') }}" class="btn-outline btn-sm">Our Services</a>
                     </div>
                 </div>

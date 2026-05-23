@@ -25,9 +25,21 @@ use Illuminate\Support\Str;
 
 class InventorySeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ResolvesDemoSalon;
+
     public function run(): void
     {
-        $salon = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
+
+        if (InventoryItem::withoutGlobalScopes()->where('salon_id', $salon->id)->count() >= 40) {
+            $this->command->info('   ↷ Demo inventory already present — skipping InventorySeeder.');
+
+            return;
+        }
+
         $cats  = InventoryCategory::where('salon_id', $salon->id)->get()->keyBy('slug');
 
         $products = [

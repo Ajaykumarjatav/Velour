@@ -9,6 +9,7 @@ use App\Models\LinkVisit;
 use App\Models\PosTransaction;
 use App\Models\Salon;
 use App\Models\SalonPhoto;
+use App\Support\StorefrontUrl;
 use App\Models\Service;
 use App\Models\Staff;
 use Illuminate\Http\Request;
@@ -49,7 +50,8 @@ class GoLiveController extends Controller
         ]);
 
         $salonId    = $salon->id;
-        $bookingUrl = rtrim(config('app.url'), '/') . '/book/' . $salon->slug;
+        $websiteUrl = StorefrontUrl::website($salon);
+        $bookingUrl = StorefrontUrl::booking($salon);
 
         // ── Checklist ──────────────────────────────────────────────────────
         $checklist = $this->buildChecklist($salon);
@@ -96,6 +98,7 @@ class GoLiveController extends Controller
 
         return view('dashboard.go-live', compact(
             'salon',
+            'websiteUrl',
             'bookingUrl',
             'qrUrl',
             'checklist',

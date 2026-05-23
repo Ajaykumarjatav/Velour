@@ -92,7 +92,8 @@ class RelationQuickCreateController extends Controller
             'avatar'          => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
-        StaffServiceEligibility::assertEligibleForRole($salon->id, (string) $data['role'], $data['services'] ?? []);
+        // Role ↔ service eligibility disabled for now — see StaffServiceEligibility::assertEligibleForRole.
+        // StaffServiceEligibility::assertEligibleForRole($salon->id, (string) $data['role'], $data['services'] ?? []);
 
         $nameParts = explode(' ', trim($data['name']), 2);
         $avatarFile = $request->file('avatar');

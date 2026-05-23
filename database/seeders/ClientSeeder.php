@@ -12,6 +12,8 @@ use Illuminate\Support\Carbon;
 
 class ClientSeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ResolvesDemoSalon;
+
     // Realistic client data pool
     private array $firstNames = [
         'Sophie', 'Charlotte', 'Amelia', 'Olivia', 'Isabella', 'Evelyn', 'Scarlett',
@@ -75,7 +77,17 @@ class ClientSeeder extends Seeder
 
     public function run(): void
     {
-        $salon     = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
+
+        if (Client::withoutGlobalScopes()->where('salon_id', $salon->id)->count() >= 120) {
+            $this->command->info('   ↷ Demo clients already present — skipping ClientSeeder.');
+
+            return;
+        }
+
         $staffList = Staff::where('salon_id', $salon->id)->get();
         $count     = 0;
 

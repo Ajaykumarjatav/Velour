@@ -6,7 +6,6 @@ namespace App\Support;
 
 use App\Models\Service;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Shared rules for which services a staff role may be assigned (matches Staff & HR create/edit).
@@ -44,26 +43,33 @@ final class StaffServiceEligibility
             ->values();
     }
 
-    /** @param  array<int, mixed>  $serviceIds */
+    /**
+     * @param  array<int, mixed>  $serviceIds
+     *
+     * Temporarily disabled: role ↔ service assignment is not enforced while salons
+     * configure allowed_roles per service. Re-enable the block below when ready.
+     */
     public static function assertEligibleForRole(int $salonId, string $role, array $serviceIds): void
     {
-        $ids = array_values(array_unique(array_map('intval', $serviceIds)));
-        if ($ids === []) {
-            return;
-        }
+        return;
 
-        $services = Service::withoutGlobalScopes()
-            ->where('salon_id', $salonId)
-            ->whereIn('id', $ids)
-            ->withCount('staff')
-            ->get(['id', 'name', 'allowed_roles']);
-        $blocked = $services->filter(fn (Service $service) => ! $service->allowsStaffRole($role))->pluck('name')->values();
-        if ($blocked->isEmpty()) {
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            'services' => ['Selected role cannot be assigned these services: '.$blocked->implode(', ').'.'],
-        ]);
+        // $ids = array_values(array_unique(array_map('intval', $serviceIds)));
+        // if ($ids === []) {
+        //     return;
+        // }
+        //
+        // $services = Service::withoutGlobalScopes()
+        //     ->where('salon_id', $salonId)
+        //     ->whereIn('id', $ids)
+        //     ->withCount('staff')
+        //     ->get(['id', 'name', 'allowed_roles']);
+        // $blocked = $services->filter(fn (Service $service) => ! $service->allowsStaffRole($role))->pluck('name')->values();
+        // if ($blocked->isEmpty()) {
+        //     return;
+        // }
+        //
+        // throw ValidationException::withMessages([
+        //     'services' => ['Selected role cannot be assigned these services: '.$blocked->implode(', ').'.'],
+        // ]);
     }
 }

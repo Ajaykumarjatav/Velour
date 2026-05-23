@@ -28,10 +28,27 @@ use Illuminate\Support\Str;
 // ════════════════════════════════════════════════════════════════════════════
 class MarketingSeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ResolvesDemoSalon;
+
     public function run(): void
     {
-        $salon = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
+
+        if (MarketingCampaign::withoutGlobalScopes()->where('salon_id', $salon->id)->count() >= 5) {
+            $this->command->info('   ↷ Demo marketing campaigns already present — skipping MarketingSeeder.');
+
+            return;
+        }
+
         $staff = Staff::where('salon_id', $salon->id)->first();
+        if (! $staff) {
+            $this->command->warn('   ↷ No staff for demo salon — skipping MarketingSeeder.');
+
+            return;
+        }
 
         $campaigns = [
             [
@@ -155,10 +172,13 @@ class MarketingSeeder extends Seeder
         ];
 
         foreach ($campaigns as $c) {
-            MarketingCampaign::create(array_merge($c, [
-                'salon_id'   => $salon->id,
-                'created_by' => $staff->id,
-            ]));
+            MarketingCampaign::withoutGlobalScopes()->updateOrCreate(
+                ['salon_id' => $salon->id, 'name' => $c['name']],
+                array_merge($c, [
+                    'salon_id'   => $salon->id,
+                    'created_by' => $staff->id,
+                ])
+            );
         }
 
         $this->command->info('   ✓  ' . count($campaigns) . ' marketing campaigns created.');

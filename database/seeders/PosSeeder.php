@@ -28,11 +28,23 @@ use Illuminate\Support\Str;
 // ════════════════════════════════════════════════════════════════════════════
 class PosSeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ResolvesDemoSalon;
+
     private array $paymentMethods = ['card','card','card','card','cash','split'];
 
     public function run(): void
     {
-        $salon   = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
+
+        if (PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->count() >= 50) {
+            $this->command->info('   ↷ Demo POS transactions already present — skipping PosSeeder.');
+
+            return;
+        }
+
         $count   = 0;
 
         $completedAppts = Appointment::with(['services','client','staff'])

@@ -1035,8 +1035,8 @@ class SettingsController extends Controller
             $commission = isset($row['commission_rate']) ? (float) $row['commission_rate'] : 0.0;
             $commission = max(0.0, min(100.0, $commission));
             $role = (string) $row['role'];
+            // Role ↔ service filter disabled for now (see StaffServiceEligibility::assertEligibleForRole).
             $allServiceIds = $services
-                ->filter(fn (Service $service) => $service->allowsStaffRole($role))
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->values()
@@ -1046,7 +1046,7 @@ class SettingsController extends Controller
             $serviceIds = [];
 
             if ($servicesWereSubmitted) {
-                StaffServiceEligibility::assertEligibleForRole($salon->id, $role, $requestedServiceIds);
+                // StaffServiceEligibility::assertEligibleForRole($salon->id, $role, $requestedServiceIds);
                 $serviceIds = $requestedServiceIds;
             } elseif ($assign) {
                 $serviceIds = $allServiceIds;

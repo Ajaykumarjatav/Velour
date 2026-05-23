@@ -3,14 +3,19 @@
 namespace Database\Seeders;
 
 use App\Models\Staff;
-use App\Models\Salon;
+use Database\Seeders\Concerns\ResolvesDemoSalon;
 use Illuminate\Database\Seeder;
 
 class StaffSeeder extends Seeder
 {
+    use ResolvesDemoSalon;
+
     public function run(): void
     {
-        $salon = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
 
         $members = [
             [
@@ -130,9 +135,12 @@ class StaffSeeder extends Seeder
         ];
 
         foreach ($members as $member) {
-            Staff::create(array_merge($member, ['salon_id' => $salon->id]));
+            Staff::withoutGlobalScopes()->updateOrCreate(
+                ['salon_id' => $salon->id, 'email' => $member['email']],
+                $member
+            );
         }
 
-        $this->command->info('   ✓  6 staff members created.');
+        $this->command->info('   ✓  Demo staff ensured (6 members).');
     }
 }

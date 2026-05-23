@@ -28,6 +28,8 @@ use Illuminate\Support\Str;
 // ════════════════════════════════════════════════════════════════════════════
 class ReviewSeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ResolvesDemoSalon;
+
     private array $comments = [
         5 => [
             "Absolutely exceptional service. Isabelle is a true artist — my balayage looks incredible and lasted beautifully. Won't go anywhere else.",
@@ -52,7 +54,17 @@ class ReviewSeeder extends Seeder
 
     public function run(): void
     {
-        $salon   = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
+
+        if (Review::withoutGlobalScopes()->where('salon_id', $salon->id)->count() >= 40) {
+            $this->command->info('   ↷ Demo reviews already present — skipping ReviewSeeder.');
+
+            return;
+        }
+
         $clients = Client::where('salon_id', $salon->id)->where('status','active')->take(60)->get();
         $staff   = Staff::where('salon_id', $salon->id)->get();
         $count   = 0;

@@ -8,12 +8,18 @@ use App\Models\Salon;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Support\SalonTime;
+use App\Support\StorefrontUrl;
+use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
-    public function show(string $slug)
+    public function show(Request $request, string $slug)
     {
         $salon = Salon::where('slug', $slug)->firstOrFail();
+
+        if (! $request->boolean('legacy')) {
+            return redirect(StorefrontUrl::website($salon) . '#book');
+        }
 
         $hasBookableServices = Service::query()
             ->where('salon_id', $salon->id)

@@ -455,6 +455,12 @@ Route::middleware(['auth', 'verified'])->prefix('onboarding')->name('onboarding.
     Route::get('/skip',                [\App\Http\Controllers\Web\OnboardingController::class, 'skip'])->name('skip');
 });
 
+// ── Public salon website (React build in public/website) ───────────────────────
+Route::get('s/{slug}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])->name('storefront.show');
+Route::get('s/{slug}/{path}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])
+    ->where('path', '.*')
+    ->name('storefront.show.path');
+
 // ── Public Booking Page ───────────────────────────────────────────────────────
 Route::get('book/{slug}', [\App\Http\Controllers\Web\BookingController::class, 'show'])->name('booking.show');
 Route::get('reviews/share/{token}', [\App\Http\Controllers\Web\ReviewController::class, 'publicForm'])

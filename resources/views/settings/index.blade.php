@@ -1,6 +1,52 @@
 @extends('layouts.app')
 @section('title', 'Settings')
 @section('page-title', 'Settings')
+
+@push('styles')
+<style>
+    @media (min-width: 1280px) {
+        .settings-sidebar-panel {
+            position: sticky;
+            top: 0.75rem;
+            max-height: calc(100vh - 6.5rem);
+            overflow-y: auto;
+        }
+    }
+    .settings-main-panel .card {
+        border-radius: 1rem;
+        border-color: rgb(226 232 240 / 0.95);
+        background: #fff;
+        box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+        padding: 1rem;
+    }
+    @media (min-width: 640px) {
+        .settings-main-panel .card {
+            padding: 1.5rem;
+        }
+    }
+    .dark .settings-main-panel .card {
+        border-color: rgb(51 65 85 / 0.7);
+        background: rgb(15 23 42 / 0.45);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+    }
+    .settings-main-panel .card h2 {
+        letter-spacing: -0.01em;
+    }
+    .settings-mobile-tabs {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+    .settings-mobile-tabs::-webkit-scrollbar {
+        height: 4px;
+    }
+    .settings-staff-member-row .form-input,
+    .settings-staff-member-row .form-select,
+    .settings-staff-member-row .form-textarea {
+        min-width: 0;
+    }
+</style>
+@endpush
+
 @section('content')
 
 @php
@@ -11,44 +57,157 @@
         'notifications' => 'Notifications', 'profile' => 'Profile', 'team' => 'Team', 'security' => 'Security',
     ];
     $settingsInitialTab = $settingsInitialTab ?? session('tab', request()->get('tab', $settingsPersonalOnly ? 'profile' : 'salon'));
+
+    $settingsTabMeta = [
+        'salon' => ['phase' => 'Salon setup', 'title' => 'Salon Profile', 'description' => 'Your business identity, contact details, timezone, and how clients experience your brand online.'],
+        'booking' => ['phase' => 'Salon setup', 'title' => 'Booking Settings', 'description' => 'Control online booking, deposits, confirmation rules, buffer times, and scheduling limits.'],
+        'services' => ['phase' => 'Salon setup', 'title' => 'Services & Catalog', 'description' => 'Business types, categories, and which services appear on your public booking experience.'],
+        'hours' => ['phase' => 'Salon setup', 'title' => 'Opening Hours', 'description' => 'Set when your salon is open so availability and booking slots stay accurate.'],
+        'social' => ['phase' => 'Presence', 'title' => 'Social Links', 'description' => 'Connect Instagram, Facebook, and other profiles shown on your public site.'],
+        'notifications' => ['phase' => 'Account', 'title' => 'Notifications', 'description' => 'Choose how you and your clients receive booking and marketing messages.'],
+        'profile' => ['phase' => 'Account', 'title' => 'Your Profile', 'description' => 'Personal details, display preferences, and services you perform.'],
+        'team' => ['phase' => 'Account', 'title' => 'Team Members', 'description' => 'Add stylists, assign services, and manage who appears on your booking page.'],
+        'security' => ['phase' => 'Account', 'title' => 'Security', 'description' => 'Two-factor authentication, login activity, and sensitive account actions.'],
+    ];
+
+    $settingsNavGroupsAll = $settingsPersonalOnly
+        ? [['label' => 'Your account', 'tabs' => ['profile', 'team', 'security']]]
+        : [
+            ['label' => 'Salon setup', 'tabs' => ['salon', 'booking', 'services', 'hours']],
+            ['label' => 'Presence', 'tabs' => ['social']],
+            ['label' => 'Account', 'tabs' => ['notifications', 'profile', 'team', 'security']],
+        ];
+    $settingsNavGroups = [];
+    foreach ($settingsNavGroupsAll as $group) {
+        $tabs = array_values(array_filter($group['tabs'], fn ($k) => isset($settingsTabLabels[$k])));
+        if ($tabs !== []) {
+            $settingsNavGroups[] = ['label' => $group['label'], 'tabs' => $tabs];
+        }
+    }
+
+    $settingsProfilePct = null;
+    if (isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar)) {
+        $settingsProfilePct = max(0, min(100, (int) ($headerProfileCompletion['percentage'] ?? 0)));
+    }
+
     // One JSON object for Alpine: must use single-quoted HTML attribute (see x-data below) — double-quoted x-data breaks when @json emits "quotes".
     $settingsAlpineData = [
         'tab' => (string) $settingsInitialTab,
+        'tabMeta' => $settingsTabMeta,
         'showPasswordModal' => $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation'),
         'open' => [],
         'profileCardOpen' => true,
     ];
 @endphp
-<div class="max-w-3xl w-full min-w-0" x-data='@json($settingsAlpineData)'>
 
-    @if($settingsPersonalOnly)
-    <div class="mb-6 rounded-xl border border-velour-200 dark:border-velour-800 bg-velour-50 dark:bg-velour-950/40 px-4 py-3 text-sm text-velour-900 dark:text-velour-100">
-        <p class="font-medium">Your account settings</p>
-        <p class="mt-1 text-velour-800/90 dark:text-velour-200/90">You can update your profile and security. Salon business, services, and team setup are managed by your admin.</p>
-    </div>
-    @endif
+<div class="settings-shell max-w-7xl w-full min-w-0 mx-auto" x-data='@json($settingsAlpineData)'>
 
-    {{-- Tab bar: single row, no horizontal scroll — equal-width cells; hover for full label --}}
-    <div class="mb-6 min-w-0 rounded-2xl">
-        <div class="flex w-full min-w-0 flex-nowrap gap-0.5 sm:gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl">
-            @foreach($settingsTabLabels as $key => $label)
-            <button type="button" @click="tab='{{ $key }}'" role="tab" title="{{ $label }}"
-                    :class="tab==='{{ $key }}' ? 'bg-white dark:bg-gray-700 text-velour-700 dark:text-velour-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
-                    class="min-w-0 flex-1 basis-0 truncate px-1 sm:px-2 py-2 text-center text-[10px] font-medium leading-tight rounded-lg sm:rounded-xl sm:text-xs md:text-sm transition-all">
-                {{ $label }}
-            </button>
-            @endforeach
-        </div>
-    </div>
+    <div class="flex flex-col xl:flex-row gap-4 sm:gap-5 xl:gap-8 items-stretch xl:items-start">
+
+        {{-- Sidebar navigation (setup-progress style) --}}
+        <aside class="settings-sidebar-panel w-full xl:w-[17.5rem] shrink-0 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-slate-100 via-slate-50 to-white dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 dark:border-slate-700/80 shadow-sm shadow-slate-200/30 dark:shadow-none p-3 sm:p-4 xl:p-5">
+            <div class="mb-3 sm:mb-4 xl:mb-5">
+                <h2 class="text-sm sm:text-base font-semibold text-teal-950 dark:text-teal-50 tracking-tight">Settings</h2>
+                @if($settingsProfilePct !== null)
+                <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">Profile {{ $settingsProfilePct }}% complete</p>
+                <div class="mt-2 h-1.5 w-full rounded-full bg-teal-100 dark:bg-teal-950/60 overflow-hidden">
+                    <div class="h-full rounded-full bg-teal-600 dark:bg-teal-400 transition-all duration-300" style="width: {{ $settingsProfilePct }}%"></div>
+                </div>
+                @else
+                <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ count($settingsTabLabels) }} sections</p>
+                @endif
+            </div>
+
+            {{-- Mobile / tablet: horizontal section picker --}}
+            <div class="xl:hidden settings-mobile-tabs flex gap-2 overflow-x-auto overscroll-x-contain pb-2 mb-1 snap-x snap-mandatory" aria-label="Settings sections (mobile)">
+                @foreach($settingsTabLabels as $tabKey => $tabLabel)
+                <button type="button"
+                        @click="tab='{{ $tabKey }}'"
+                        role="tab"
+                        :aria-selected="tab==='{{ $tabKey }}'"
+                        :class="tab==='{{ $tabKey }}'
+                            ? 'bg-teal-700 text-white border-teal-700 dark:bg-teal-600 dark:border-teal-500'
+                            : 'bg-white/90 text-slate-700 border-slate-200 dark:bg-slate-800/90 dark:text-slate-200 dark:border-slate-600'"
+                        class="snap-start shrink-0 rounded-full border px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-colors">
+                    {{ $tabLabel }}
+                </button>
+                @endforeach
+            </div>
+
+            <nav class="hidden xl:block space-y-5" aria-label="Settings sections">
+                @foreach($settingsNavGroups as $navGroup)
+                <div>
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2 px-1">
+                        {{ $navGroup['label'] }}
+                    </p>
+                    <ul class="space-y-1">
+                        @foreach($navGroup['tabs'] as $tabKey)
+                        @php $tabLabel = $settingsTabLabels[$tabKey]; @endphp
+                        <li>
+                            <button type="button"
+                                    @click="tab='{{ $tabKey }}'"
+                                    role="tab"
+                                    :aria-selected="tab==='{{ $tabKey }}'"
+                                    title="{{ $tabLabel }}"
+                                    :class="tab==='{{ $tabKey }}'
+                                        ? 'bg-teal-50 border-teal-200/90 text-teal-950 shadow-sm dark:bg-teal-950/50 dark:border-teal-800/60 dark:text-teal-50'
+                                        : 'border-transparent text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100'"
+                                    class="w-full flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-all duration-150">
+                                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px]"
+                                      :class="tab==='{{ $tabKey }}'
+                                          ? 'border-teal-600 bg-teal-600 text-white dark:border-teal-400 dark:bg-teal-500'
+                                          : 'border-slate-300 bg-white text-slate-400 dark:border-slate-600 dark:bg-slate-800'">
+                                    <svg x-show="tab==='{{ $tabKey }}'" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span x-show="tab!=='{{ $tabKey }}'" class="h-1.5 w-1.5 rounded-full bg-current opacity-40"></span>
+                                </span>
+                                <span class="truncate">{{ $tabLabel }}</span>
+                            </button>
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endforeach
+            </nav>
+
+            @if(!$settingsPersonalOnly && $settingsProfilePct !== null && $settingsProfilePct < 100)
+            <div class="mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-700/80">
+                <a href="{{ route('setup-progress') }}" class="text-xs font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100 hover:underline">
+                    View setup progress →
+                </a>
+            </div>
+            @endif
+        </aside>
+
+        {{-- Main panel --}}
+        <div class="settings-main-panel flex-1 min-w-0 w-full">
+
+            @if($settingsPersonalOnly)
+            <div class="mb-6 rounded-2xl border border-teal-200/80 bg-teal-50/70 dark:border-teal-900/50 dark:bg-teal-950/30 px-4 py-3.5 text-sm text-teal-950 dark:text-teal-100">
+                <p class="font-medium">Your account settings</p>
+                <p class="mt-1 text-teal-900/80 dark:text-teal-200/90">You can update your profile and security. Salon business, services, and team setup are managed by your admin.</p>
+            </div>
+            @endif
+
+            {{-- Section header (changes with active tab) --}}
+            <header class="mb-4 sm:mb-6 xl:mb-8" x-show="tabMeta[tab]" x-cloak>
+                <span class="inline-flex items-center rounded-full bg-teal-700 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-white dark:bg-teal-600"
+                      x-text="tabMeta[tab]?.phase"></span>
+                <h1 class="mt-2 sm:mt-3 text-xl sm:text-2xl xl:text-[1.75rem] font-semibold text-teal-950 dark:text-teal-50 tracking-tight leading-tight"
+                    x-text="tabMeta[tab]?.title"></h1>
+                <p class="mt-1.5 sm:mt-2 max-w-2xl text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed"
+                   x-text="tabMeta[tab]?.description"></p>
+            </header>
 
     {{-- ── Salon Settings ── --}}
     <div x-show="tab==='salon'" x-cloak>
-        <div class="card p-6">
-            <h2 class="font-semibold text-heading mb-5">Salon Profile</h2>
+        <div class="card">
+            <h2 class="font-semibold text-heading mb-4 sm:mb-5">Salon Profile</h2>
             <form id="settings-salon-form" action="{{ route('settings.salon') }}" method="POST" class="space-y-4 scroll-mt-24">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div class="col-span-2">
                         <label class="form-label">Salon name <span class="text-red-500">*</span></label>
                         <input type="text" name="name" value="{{ old('name', $salon->name) }}" required class="form-input">
@@ -165,7 +324,7 @@
 
     {{-- ── Online booking & widget ── --}}
     <div x-show="tab==='booking'" x-cloak>
-        <div class="card p-6 min-w-0">
+        <div class="card min-w-0">
             <div class="flex items-start gap-2 mb-5">
                 <span class="text-lg" aria-hidden="true">⚙️</span>
                 <div>
@@ -242,7 +401,7 @@
         </div>
 
         @if(!($settingsPersonalOnly ?? false))
-        <div id="settings-buffer-rules" class="card p-6 min-w-0 mt-6 scroll-mt-24">
+        <div id="settings-buffer-rules" class="card min-w-0 mt-6 scroll-mt-24">
             <div class="flex items-start gap-2 mb-5">
                 <span class="text-lg" aria-hidden="true">⏱️</span>
                 <div>
@@ -297,7 +456,7 @@
 
     {{-- ── Service Setup ── --}}
     <div x-show="tab==='services'" x-cloak>
-        <div class="card p-6">
+        <div class="card">
             <h2 class="font-semibold text-heading mb-5">Service Setup</h2>
             <form action="{{ route('settings.services') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
@@ -432,7 +591,7 @@
                                                             <span class="leading-snug">{{ $item['name'] }}</span>
                                                         </span>
                                                         @if($isUnisex)
-                                                            <span class="settings-service-meta-grid grid grid-cols-2 gap-2 w-full sm:max-w-xl {{ $checked ? '' : 'hidden' }}">
+                                                            <span class="settings-service-meta-grid grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:max-w-xl {{ $checked ? '' : 'hidden' }}">
                                                                 <input type="number"
                                                                        min="1"
                                                                        step="1"
@@ -467,7 +626,7 @@
                                                                        {{ $checked ? 'required' : 'disabled' }}>
                                                             </span>
                                                         @else
-                                                            <span class="settings-service-meta-grid grid grid-cols-2 gap-2 w-full sm:max-w-md {{ $checked ? '' : 'hidden' }}">
+                                                            <span class="settings-service-meta-grid grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:max-w-md {{ $checked ? '' : 'hidden' }}">
                                                                 <input type="number"
                                                                        min="1"
                                                                        step="1"
@@ -508,7 +667,7 @@
 
     {{-- ── Opening Hours ── --}}
     <div x-show="tab==='hours'" x-cloak>
-        <div class="card p-6">
+        <div class="card">
             <h2 class="font-semibold text-heading mb-5">Opening Hours</h2>
             <form action="{{ route('settings.hours') }}" method="POST" class="space-y-3">
                 @csrf @method('PUT')
@@ -542,7 +701,7 @@
 
     {{-- ── Social Links ── --}}
     <div x-show="tab==='social'" x-cloak>
-        <div class="card p-6">
+        <div class="card">
             <h2 class="font-semibold text-heading mb-1">Social Links</h2>
             <p class="text-xs text-muted mb-5">Add your profile URLs. Each link redirects clients to your profile and tracks inbound clicks.</p>
 
@@ -613,7 +772,7 @@
         @endphp
 
         @if($clickStats->isNotEmpty())
-        <div class="card p-6 mt-4">
+        <div class="card mt-4">
             <h3 class="font-semibold text-heading mb-4">Click Stats — {{ now()->format('F Y') }}</h3>
             <div class="space-y-3">
                 @foreach($clickStats as $stat)
@@ -633,7 +792,7 @@
 
     {{-- ── Notifications (rules, timing, templates, quiet hours) ── --}}
     <div x-show="tab==='notifications'" x-cloak>
-        <div class="card p-6">
+        <div class="card">
             <h2 class="font-semibold text-heading mb-1">Notification settings</h2>
             <p class="text-sm text-muted mb-6">Turn channels on or off, set when scheduled reminders go out, and customise message text. Use placeholders in curly braces in your templates.</p>
 
@@ -766,7 +925,7 @@
 
     {{-- ── My Profile ── --}}
     <div x-show="tab==='profile'" x-cloak class="space-y-5">
-        <div class="card p-6">
+        <div class="card">
             <div class="mb-5 flex items-center justify-between border-b border-gray-200/60 dark:border-gray-800 pb-3">
                 <h2 class="font-semibold text-heading">My Profile</h2>
                 <div class="flex items-center gap-2">
@@ -885,7 +1044,7 @@
                 @if(($profileStaffServices ?? collect())->count())
                 <div>
                     <label class="form-label">Services offered</label>
-                    <div class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-48 sm:max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
                         @php
                             $selectedStaffServices = old('staff_services');
                             if (! is_array($selectedStaffServices)) {
@@ -949,12 +1108,12 @@
     {{-- ── Team Members ── --}}
     <div x-show="tab==='team'" x-cloak class="space-y-5">
         @if($settingsPersonalOnly)
-        <div class="card p-6">
+        <div class="card">
             <h2 class="font-semibold text-heading mb-2">Team</h2>
             <p class="text-sm text-muted">Team members are managed by your salon admin.</p>
         </div>
         @else
-        <div class="card p-6">
+        <div class="card">
             @php
                 $mapMemberToRow = function ($member) {
                     $hasServices = \Illuminate\Support\Facades\DB::table('service_staff')
@@ -999,21 +1158,21 @@
                 $staffRoles = ['stylist', 'therapist', 'manager', 'receptionist', 'junior', 'owner'];
             @endphp
             <div class="mb-4 border-b border-gray-200/60 dark:border-gray-800 pb-3">
-                <h2 class="font-semibold text-heading mb-1">
-                    Team members <span class="text-gray-400 font-normal">(optional)</span>
-                    <span class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                <h2 class="font-semibold text-heading mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span>Team members <span class="text-gray-400 font-normal">(optional)</span></span>
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                         Total: {{ count($staffRows) }}
                     </span>
                 </h2>
-                <p class="form-hint">Add or update team members from your profile settings. The level of service dependency is determined based on the roles and responsibilities of each person; when you offer all services, each member receives only those their role is allowed to perform (configured per service under Services). Each row has its own arrow to show or hide that person’s fields, and its own Save this team member button so you only submit one person at a time.</p>
+                <p class="form-hint text-xs sm:text-sm leading-relaxed">Add or update team members from your profile settings. Each row has its own arrow to show or hide that person’s fields, and its own Save button so you only submit one person at a time.</p>
             </div>
-            <div id="settings-staff-rows" class="space-y-4">
+            <div id="settings-staff-rows" class="space-y-3 sm:space-y-4">
                 @foreach($staffRows as $idx => $st)
                     @php $st = is_array($st) ? $st : []; @endphp
-                    <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-4">
-                        <div class="flex justify-between items-center gap-2 mb-3">
-                            <span class="settings-staff-row-title text-sm font-medium text-body">Team member {{ $loop->iteration }}</span>
-                            <div class="flex items-center gap-1">
+                    <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-3 sm:p-4 min-w-0 overflow-hidden">
+                        <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+                            <span class="settings-staff-row-title text-sm font-medium text-body min-w-0">Team member {{ $loop->iteration }}</span>
+                            <div class="flex items-center gap-1 shrink-0 ml-auto">
                                 <button type="button"
                                         class="settings-staff-row-toggle inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
                                         aria-expanded="true"
@@ -1045,7 +1204,7 @@
                             @endphp
                             <div>
                                 <label class="block text-xs font-medium text-body mb-1">Photo @if(!$avatarUrl)<span class="text-red-500">*</span>@endif</label>
-                                <div class="flex items-start gap-3">
+                                <div class="flex flex-col sm:flex-row sm:items-start gap-3">
                                     @if($avatarUrl)
                                         <img src="{{ $avatarUrl }}" alt="" width="44" height="44" class="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0">
                                     @else
@@ -1058,7 +1217,7 @@
                                     <div class="flex-1 min-w-0 space-y-2">
                                         <input type="file" name="staff_member_avatar" accept="image/jpeg,image/png,image/webp"
                                                @if(!$avatarUrl) required @endif
-                                               class="form-input text-xs file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
+                                               class="form-input text-xs w-full max-w-full file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200 file:max-w-[calc(100%-0.5rem)]">
                                         <p class="text-[11px] text-muted">JPG, PNG or WebP · max 2 MB</p>
                                         @if($avatarUrl)
                                             <label class="inline-flex items-center gap-2 text-xs text-body cursor-pointer">
@@ -1070,8 +1229,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                <div class="md:col-span-2">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div class="sm:col-span-2">
                                     <label class="block text-xs font-medium text-body mb-1">Full name <span class="text-red-500">*</span></label>
                                     <input type="text" name="staff_members[0][name]" value="{{ $st['name'] ?? '' }}"
                                            required
@@ -1108,7 +1267,7 @@
                                     <input type="text" name="staff_members[0][experience]" value="{{ $st['experience'] ?? '' }}"
                                            class="form-input" placeholder="e.g. 5 years">
                                 </div>
-                                <div class="md:col-span-2">
+                                <div class="sm:col-span-2">
                                     @php
                                         $staffLangSelected = old('staff_members.0.language_proficiency');
                                         if (! is_array($staffLangSelected)) {
@@ -1126,12 +1285,12 @@
                                     <input type="color" name="staff_members[0][color]" value="{{ $st['color'] ?? '#7C3AED' }}"
                                            class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 cursor-pointer bg-white">
                                 </div>
-                                <div class="md:col-span-2">
+                                <div class="sm:col-span-2">
                                     <label class="block text-xs font-medium text-body mb-1">Bio</label>
                                     <textarea name="staff_members[0][bio]" rows="2" placeholder="Optional"
                                               class="form-textarea">{{ $st['bio'] ?? '' }}</textarea>
                                 </div>
-                                <div class="md:col-span-2">
+                                <div class="sm:col-span-2">
                                     <label class="block text-xs font-medium text-body mb-1">Awards &amp; accolades</label>
                                     <textarea name="staff_members[0][awards_accolades]" rows="2" placeholder="Optional — certifications, press, awards…"
                                               class="form-textarea">{{ $st['awards_accolades'] ?? '' }}</textarea>
@@ -1142,12 +1301,11 @@
                                 $as = $st['assign_services'] ?? null;
                                 $assignChecked = (string) $as === '1' || $as === true || $as === 1;
                             @endphp
-                            <label class="inline-flex items-start gap-2 text-sm text-body cursor-pointer">
-                                <input type="checkbox" name="staff_members[0][assign_services]" value="1" class="mt-0.5 rounded border-gray-300 text-velour-600"
+                            <label class="flex items-start gap-2.5 text-sm text-body cursor-pointer">
+                                <input type="checkbox" name="staff_members[0][assign_services]" value="1" class="mt-0.5 shrink-0 rounded border-gray-300 text-velour-600"
                                        {{ $assignChecked ? 'checked' : '' }}>
-                                <span>Offer all services on this menu to this team member <span class="text-muted font-normal">(filtered by this member’s role)</span></span>
+                                <span class="min-w-0 break-words">Offer all services on this menu to this team member</span>
                             </label>
-                            <p class="text-xs text-muted pl-7 -mt-1">Service dependency is defined according to each staff member’s role; “all services” means every service that role may perform.</p>
                             @php
                                 $rowServiceOptions = (array) ($teamServices ?? []);
                                 $selectedRowServices = old('staff_members.0.services');
@@ -1161,14 +1319,14 @@
                                 <label class="block text-xs font-medium text-body mb-1">Services offered</label>
                                 <p class="text-xs text-muted mb-2">Only services with both time and price configured are shown.</p>
                                 @if(count($rowServiceOptions))
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-52 sm:max-h-44 overflow-y-auto bg-white dark:bg-gray-800">
                                         @foreach($rowServiceOptions as $svc)
                                             @php $svcId = (int) ($svc['id'] ?? 0); @endphp
-                                            <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
+                                            <label class="flex items-start sm:items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20 min-w-0">
                                                 <input type="checkbox" name="staff_members[0][services][]" value="{{ $svcId }}"
                                                        {{ in_array($svcId, $selectedRowServices, true) ? 'checked' : '' }}
                                                        class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                                                <span class="text-sm text-body truncate">{{ (string) ($svc['name'] ?? '') }}</span>
+                                                <span class="text-sm text-body break-words sm:truncate min-w-0">{{ (string) ($svc['name'] ?? '') }}</span>
                                             </label>
                                         @endforeach
                                     </div>
@@ -1198,9 +1356,9 @@
 
     {{-- ── Security / 2FA ── --}}
     <div x-show="tab==='security'" x-cloak class="space-y-5">
-        <div class="card p-6">
-            <div class="flex items-start justify-between">
-                <div>
+        <div class="card">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div class="min-w-0">
                     <h2 class="font-semibold text-heading">Two-Factor Authentication</h2>
                     <p class="text-xs text-muted mt-1">Add an extra layer of security to your account with 2FA.</p>
                 </div>
@@ -1220,7 +1378,7 @@
             </div>
         </div>
 
-        <div class="card p-6">
+        <div class="card">
             <h2 class="font-semibold text-heading mb-1">Login history</h2>
             <p class="text-xs text-muted mb-4">Your last recorded sign-in.</p>
             <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl px-4 py-3 text-sm">
@@ -1245,6 +1403,9 @@
         </div>
         @endif
     </div>
+
+        </div>{{-- /.settings-main-panel --}}
+    </div>{{-- /flex layout --}}
 
 {{-- Password Modal (opened from Profile gear icon) --}}
 <div x-show="showPasswordModal"

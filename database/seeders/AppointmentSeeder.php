@@ -28,12 +28,24 @@ use Illuminate\Support\Str;
 // ════════════════════════════════════════════════════════════════════════════
 class AppointmentSeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ResolvesDemoSalon;
+
     private array $statuses  = ['completed','completed','completed','completed','completed','no_show','cancelled'];
     private array $sources   = ['online','instagram','google','phone','walk_in','website_embed'];
 
     public function run(): void
     {
-        $salon    = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
+
+        if (Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)->count() >= 200) {
+            $this->command->info('   ↷ Demo appointments already present — skipping AppointmentSeeder.');
+
+            return;
+        }
+
         $clients  = Client::where('salon_id', $salon->id)->where('status','active')->get();
         $staff    = Staff::where('salon_id', $salon->id)->where('is_active', true)->get();
         $services = Service::where('salon_id', $salon->id)->where('status','active')->get();

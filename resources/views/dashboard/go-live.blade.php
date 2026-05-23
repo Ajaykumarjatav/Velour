@@ -346,31 +346,41 @@
     {{-- LEFT COL (3/5) — Booking link + social sharing + embed --}}
     <div class="lg:col-span-3 space-y-6">
 
-      {{-- ── YOUR BOOKING LINK ─────────────────────────────────────────── --}}
+      {{-- ── SALON WEBSITE + BOOKING ───────────────────────────────────── --}}
       <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center gap-2">
-          <span class="text-lg">🔗</span>
-          <h2 class="font-semibold text-gray-800 dark:text-white">Your Booking Link</h2>
+          <span class="text-lg">🌐</span>
+          <h2 class="font-semibold text-gray-800 dark:text-white">Your Salon Website</h2>
         </div>
         <div class="p-6 space-y-4">
-          {{-- URL bar --}}
+          <p class="text-xs text-muted">Public marketing site (React). Clients can browse services and book from the site.</p>
           <div class="flex gap-2">
             <div class="flex-1 flex items-center bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 gap-2 min-w-0">
               <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
               </svg>
-              <a :href="bookingUrl" target="_blank" rel="noopener"
+              <a :href="websiteUrl" target="_blank" rel="noopener"
                  class="text-sm text-amber-700 dark:text-amber-400 font-medium truncate hover:underline"
-                 x-text="bookingUrl"></a>
+                 x-text="websiteUrl"></a>
             </div>
-            <button @click="copyUrl(bookingUrl, 'main')"
+            <button @click="copyUrl(websiteUrl, 'main')"
               class="copy-btn border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-amber-300 hover:text-amber-600 flex-shrink-0">
               <span x-text="copied.main ? '✅ Copied' : '📋 Copy'"></span>
             </button>
-            <a :href="bookingUrl" target="_blank" rel="noopener"
+            <a :href="websiteUrl" target="_blank" rel="noopener"
               class="copy-btn border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-amber-300 hover:text-amber-600 flex-shrink-0">
               ↗ Preview
             </a>
+          </div>
+          <div class="flex gap-2 items-center pt-1 border-t border-gray-100 dark:border-gray-700">
+            <span class="text-xs text-muted flex-shrink-0">Booking only:</span>
+            <a :href="bookingUrl" target="_blank" rel="noopener"
+               class="text-xs text-link font-medium truncate hover:underline min-w-0"
+               x-text="bookingUrl"></a>
+            <button type="button" @click="copyUrl(bookingUrl, 'booking')"
+              class="text-xs text-muted hover:text-amber-600 flex-shrink-0">
+              <span x-text="copied.booking ? 'Copied' : 'Copy'"></span>
+            </button>
           </div>
 
           {{-- UTM link builder --}}
@@ -524,7 +534,8 @@
 <script>
 // ── Pre-loaded server data ─────────────────────────────────────────────────
 const _serverData = {
-  bookingUrl:  "{{ $bookingUrl }}",
+  websiteUrl:  @json($websiteUrl),
+  bookingUrl:  @json($bookingUrl),
   qrUrl:       "{{ $qrUrl }}",
   embedCodes:  @json($embedCodes),
   shareClicks: @json($shareclicks),
@@ -564,10 +575,11 @@ function goLivePage() {
     checklist:   { ..._serverData.checklist },
     shareClicks: { ..._serverData.shareClicks },
     embedCodes:  { ..._serverData.embedCodes },
+    websiteUrl:  _serverData.websiteUrl,
     bookingUrl:  _serverData.bookingUrl,
     qrUrl:       _serverData.qrUrl,
     embedTab:    'iframe',
-    copied:      { main: false, utm: false, social: false, embed: false },
+    copied:      { main: false, booking: false, utm: false, social: false, embed: false },
 
     // Share channels config
     shareChannels: [

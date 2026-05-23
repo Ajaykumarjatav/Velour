@@ -12,6 +12,8 @@ class DatabaseSeeder extends Seeder
      * Run:  php artisan db:seed
      * Or:   php artisan migrate:fresh --seed
      *
+     * Safe to re-run without migrate:fresh — seeders skip or update existing demo rows.
+     *
      * Demo login: demo@velour.app / password
      */
     public function run(): void

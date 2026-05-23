@@ -25,9 +25,21 @@ use Illuminate\Support\Str;
 
 class ServiceSeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ResolvesDemoSalon;
+
     public function run(): void
     {
-        $salon = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
+
+        if (Service::withoutGlobalScopes()->where('salon_id', $salon->id)->count() >= 80) {
+            $this->command->info('   ↷ Demo services already present — skipping ServiceSeeder.');
+
+            return;
+        }
+
         $staff = Staff::where('salon_id', $salon->id)->get()->keyBy('initials');
 
         $cats = ServiceCategory::where('salon_id', $salon->id)->get()->keyBy('slug');
@@ -145,23 +157,24 @@ class ServiceSeeder extends Seeder
             $cat = $cats[$svc['category']] ?? null;
             if (! $cat) continue;
 
-            Service::create([
-                'salon_id'              => $salon->id,
-                'business_type_id'      => (int) $salon->business_type_id,
-                'category_id'           => $cat->id,
-                'name'                  => $svc['name'],
-                'duration_minutes'      => $svc['duration'],
-                'buffer_minutes'        => $svc['buffer'] ?? 10,
-                'price'                 => $svc['price'],
-                'price_from'            => $svc['price_from'] ?? null,
-                'price_on_consultation' => $svc['price_on_consultation'] ?? false,
-                'deposit_type'          => $svc['deposit_type'] ?? 'none',
-                'deposit_value'         => $svc['deposit_value'] ?? 0,
-                'online_bookable'       => true,
-                'show_in_menu'          => true,
-                'status'                => 'active',
-                'sort_order'            => ++$sortOrders[$svc['category']],
-            ]);
+            Service::withoutGlobalScopes()->updateOrCreate(
+                ['salon_id' => $salon->id, 'name' => $svc['name']],
+                [
+                    'business_type_id'      => (int) $salon->business_type_id,
+                    'category_id'           => $cat->id,
+                    'duration_minutes'      => $svc['duration'],
+                    'buffer_minutes'        => $svc['buffer'] ?? 10,
+                    'price'                 => $svc['price'],
+                    'price_from'            => $svc['price_from'] ?? null,
+                    'price_on_consultation' => $svc['price_on_consultation'] ?? false,
+                    'deposit_type'          => $svc['deposit_type'] ?? 'none',
+                    'deposit_value'         => $svc['deposit_value'] ?? 0,
+                    'online_bookable'       => true,
+                    'show_in_menu'          => true,
+                    'status'                => 'active',
+                    'sort_order'            => ++$sortOrders[$svc['category']],
+                ]
+            );
         }
 
         $this->command->info('   ✓  ' . count($services) . ' services created across 8 categories.');

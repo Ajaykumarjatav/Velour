@@ -25,9 +25,14 @@ use Illuminate\Support\Str;
 
 class ServiceCategorySeeder extends Seeder
 {
+    use \Database\Seeders\Concerns\ResolvesDemoSalon;
+
     public function run(): void
     {
-        $salon = Salon::first();
+        $salon = $this->requireDemoSalon();
+        if (! $salon) {
+            return;
+        }
 
         $categories = [
             ['name' => 'Hair Colour',    'slug' => 'hair-colour',   'icon' => '🎨', 'color' => 'rgba(184,148,58,0.15)',  'text_color' => '#B8943A', 'sort_order' => 1],
@@ -41,12 +46,15 @@ class ServiceCategorySeeder extends Seeder
         ];
 
         foreach ($categories as $cat) {
-            ServiceCategory::create(array_merge($cat, [
-                'salon_id'         => $salon->id,
-                'business_type_id' => $salon->business_type_id,
-            ]));
+            ServiceCategory::withoutGlobalScopes()->updateOrCreate(
+                ['salon_id' => $salon->id, 'slug' => $cat['slug']],
+                array_merge($cat, [
+                    'salon_id'           => $salon->id,
+                    'business_type_id'   => $salon->business_type_id,
+                ])
+            );
         }
 
-        $this->command->info('   ✓  8 service categories created.');
+        $this->command->info('   ✓  Demo service categories ensured (8).');
     }
 }

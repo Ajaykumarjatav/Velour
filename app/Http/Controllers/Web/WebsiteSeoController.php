@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Review;
 use App\Models\Salon;
 use App\Models\SalonSetting;
+use App\Support\StorefrontUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -23,7 +24,8 @@ class WebsiteSeoController extends Controller
     public function index(Request $request): View
     {
         $salon = $this->salon();
-        $bookingUrl = rtrim(config('app.url'), '/') . '/book/' . $salon->slug;
+        $websiteUrl = StorefrontUrl::website($salon);
+        $bookingUrl = StorefrontUrl::booking($salon);
         $widgetUrl = rtrim(config('app.url'), '/') . '/widget/' . $salon->slug;
 
         $published = (bool) SalonSetting::withoutGlobalScopes()->where('salon_id', $salon->id)
@@ -44,7 +46,7 @@ class WebsiteSeoController extends Controller
             'avg_rating' => $avgRating > 0 ? round($avgRating, 1) : null,
         ];
 
-        return view('website-seo.index', compact('salon', 'bookingUrl', 'widgetUrl', 'stats'));
+        return view('website-seo.index', compact('salon', 'websiteUrl', 'bookingUrl', 'widgetUrl', 'stats'));
     }
 
     public function publish(Request $request): RedirectResponse
