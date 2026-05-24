@@ -1,11 +1,12 @@
 import { useSalon } from '../context/SalonContext'
+import { assetUrl } from '../lib/assetUrl'
 import BookButton from './BookButton'
 
 export default function HeroSection() {
   const { salon } = useSalon()
   if (!salon) return null
 
-  const heroImage = salon.cover_image_url || '/assets/26254 1.png'
+  const heroImage = salon.cover_image_url || assetUrl('assets/26254 1.png')
   const ratingLabel =
     salon.avg_rating && salon.review_count
       ? `Rated ${salon.avg_rating} Stars · ${salon.review_count} reviews`

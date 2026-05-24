@@ -1,3 +1,5 @@
+import { assetUrl } from '../lib/assetUrl'
+
 export default function SpecialOfferBanner() {
   return (
     <section className="w-full bg-white py-16 lg:py-20 overflow-hidden">
@@ -8,7 +10,7 @@ export default function SpecialOfferBanner() {
 
           {/* Background image */}
           <div className="absolute right-0 top-0 w-full md:w-[70%] h-full">
-            <img src="/assets/image 2.png" alt="Salon special offer" className="w-full h-full object-cover opacity-30" />
+            <img src={assetUrl('assets/image 2.png')} alt="Salon special offer" className="w-full h-full object-cover opacity-30" />
           </div>
 
           {/* Content */}

@@ -1,10 +1,11 @@
 import { useSalon } from '../context/SalonContext'
+import { assetUrl } from '../lib/assetUrl'
 import BookButton from './BookButton'
 
 const packageImages = [
-  '/assets/Rectangle 46.png',
-  '/assets/Rectangle 46 (1).png',
-  '/assets/Rectangle 27 (1).png',
+  assetUrl('assets/Rectangle 46.png'),
+  assetUrl('assets/Rectangle 46 (1).png'),
+  assetUrl('assets/Rectangle 27 (1).png'),
 ]
 
 export default function PackagesSection() {

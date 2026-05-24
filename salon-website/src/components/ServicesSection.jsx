@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useSalon } from '../context/SalonContext'
+import { assetUrl } from '../lib/assetUrl'
 
 export default function ServicesSection() {
   const { salon, serviceCategories } = useSalon()
@@ -62,7 +63,7 @@ export default function ServicesSection() {
             >
               <div className="flex items-center gap-4">
                 <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] flex-shrink-0 flex items-center justify-center bg-gray-50 rounded-lg p-1.5 transition-transform duration-300 group-hover/item:scale-105">
-                  <img src="/assets/noun-hair-cut-6384205 1.png" alt="Haircut icon" className="w-full h-full object-contain" />
+                  <img src={assetUrl('assets/noun-hair-cut-6384205 1.png')} alt="Haircut icon" className="w-full h-full object-contain" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="font-manrope font-bold text-base md:text-lg text-black transition-colors duration-300 group-hover/item:text-primary">{service.name}</span>

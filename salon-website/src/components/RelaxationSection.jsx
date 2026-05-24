@@ -1,21 +1,23 @@
+import { assetUrl } from '../lib/assetUrl'
+
 const amenitiesRow1 = [
   {
-    icon: '/assets/noun-spa-8374759 1.png',
+    icon: assetUrl('assets/noun-spa-8374759 1.png'),
     title: 'Aromatic Steam',
     desc: 'Open your pores and relax your senses with herbal steam.',
   },
   {
-    icon: '/assets/Vector.png',
+    icon: assetUrl('assets/Vector.png'),
     title: 'Ergonomic Wash',
     desc: 'Lie back in fully reclining chairs designed for neck comfort.',
   },
   {
-    icon: '/assets/Vector (1).png',
+    icon: assetUrl('assets/Vector (1).png'),
     title: 'Scalp Acupressure',
     desc: 'A soothing massage to improve blood flow and relieve stress.',
   },
   {
-    icon: '/assets/Vector (2).png',
+    icon: assetUrl('assets/Vector (2).png'),
     title: 'Organic Brew Bar',
     desc: 'Freshly brewed artisan coffee or herbal teas while you wait.',
   },
@@ -23,22 +25,22 @@ const amenitiesRow1 = [
 
 const amenitiesRow2 = [
   {
-    icon: '/assets/Group 65.png',
+    icon: assetUrl('assets/Group 65.png'),
     title: 'Ultra-Sanitized Tools',
     desc: 'Hospital-grade sterilization for every comb, clip, and brush.',
   },
   {
-    icon: '/assets/Vector (3).png',
+    icon: assetUrl('assets/Vector (3).png'),
     title: 'High-Speed Wi-Fi',
     desc: 'Stay connected or work comfortably during treatment.',
   },
   {
-    icon: '/assets/Vector (4).png',
+    icon: assetUrl('assets/Vector (4).png'),
     title: 'Charging Stations',
     desc: 'Individual charging ports at every station for your devices.',
   },
   {
-    icon: '/assets/noun-face-mask-3511333 1.png',
+    icon: assetUrl('assets/noun-face-mask-3511333 1.png'),
     title: 'Premium Silk Wraps',
     desc: 'We use only 100% pure silk and cotton for hair drying.',
   },

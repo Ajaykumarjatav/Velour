@@ -1,12 +1,13 @@
 import { useSalon } from '../context/SalonContext'
+import { assetUrl } from '../lib/assetUrl'
 
 const fallbackGallery = [
-  { src: '/assets/Rectangle 31.png', alt: 'Salon interior 1' },
-  { src: '/assets/Rectangle 27.png', alt: 'Salon service 2' },
-  { src: '/assets/Rectangle 28.png', alt: 'Hair styling 3' },
-  { src: '/assets/Rectangle 29.png', alt: 'Grooming 4' },
-  { src: '/assets/Rectangle 30.png', alt: 'Salon ambience 5' },
-  { src: '/assets/Rectangle 32.png', alt: 'Professional care 6' },
+  { src: assetUrl('assets/Rectangle 31.png'), alt: 'Salon interior 1' },
+  { src: assetUrl('assets/Rectangle 27.png'), alt: 'Salon service 2' },
+  { src: assetUrl('assets/Rectangle 28.png'), alt: 'Hair styling 3' },
+  { src: assetUrl('assets/Rectangle 29.png'), alt: 'Grooming 4' },
+  { src: assetUrl('assets/Rectangle 30.png'), alt: 'Salon ambience 5' },
+  { src: assetUrl('assets/Rectangle 32.png'), alt: 'Professional care 6' },
 ]
 
 export default function AboutSection() {
@@ -74,7 +75,7 @@ export default function AboutSection() {
         {/* Left Decorative Image */}
         <div className="absolute -left-24 top-10 w-[380px] h-[680px] pointer-events-none opacity-30 lg:opacity-100 transition-opacity">
           <img
-            src="/assets/Group 23.png"
+            src={assetUrl('assets/Group 23.png')}
             alt="Decoration Left"
             className="w-full h-full object-contain"
           />
@@ -83,7 +84,7 @@ export default function AboutSection() {
         {/* Right Decorative Image */}
         <div className="absolute -right-24 top-10 w-[380px] h-[680px] pointer-events-none opacity-30 lg:opacity-100 transition-opacity">
           <img
-            src="/assets/Group 25.png"
+            src={assetUrl('assets/Group 25.png')}
             alt="Decoration Right"
             className="w-full h-full object-contain"
           />

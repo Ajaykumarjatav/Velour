@@ -1,3 +1,5 @@
+import { assetUrl } from '../lib/assetUrl'
+
 export default function PremiumBanner() {
   return (
     <section className="w-full bg-white py-16 lg:py-20">
@@ -6,7 +8,7 @@ export default function PremiumBanner() {
           {/* Background gradient + image */}
           <div className="absolute inset-0 z-[1] bg-gradient-to-r from-deep-maroon via-deep-maroon/95 to-deep-maroon/40 lg:to-transparent"></div>
           <div className="absolute right-0 top-0 w-full md:w-[65%] h-full">
-            <img src="/assets/image 2.png" alt="Premium grooming" className="w-full h-full object-cover opacity-30 lg:opacity-40" />
+            <img src={assetUrl('assets/image 2.png')} alt="Premium grooming" className="w-full h-full object-cover opacity-30 lg:opacity-40" />
           </div>
 
           {/* Content */}
