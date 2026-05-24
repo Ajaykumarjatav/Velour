@@ -1,7 +1,7 @@
-const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
+import { getApiBase } from './apiBase'
 
 export async function fetchSalonWebsite(slug) {
-  const res = await fetch(`${API_BASE}/api/v1/salon/${encodeURIComponent(slug)}/website`, {
+  const res = await fetch(`${getApiBase()}/api/v1/salon/${encodeURIComponent(slug)}/website`, {
     headers: { Accept: 'application/json' },
   })
   if (!res.ok) {

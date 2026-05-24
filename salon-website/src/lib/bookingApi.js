@@ -1,7 +1,7 @@
-const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
+import { getApiBase } from './apiBase'
 
 function bookBase(slug) {
-  return `${API_BASE}/api/v1/book/${encodeURIComponent(slug)}`
+  return `${getApiBase()}/api/v1/book/${encodeURIComponent(slug)}`
 }
 
 export async function fetchBookServices(slug) {
