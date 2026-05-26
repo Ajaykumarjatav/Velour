@@ -590,16 +590,22 @@ class AppointmentController extends Controller
             return back()->withErrors(['status' => 'Only confirmed or in-progress appointments can be marked as completed.']);
         }
 
+        // Payment must be collected before completing — redirect to POS
+        if ($appointment->payment_status !== Appointment::PAYMENT_PAID) {
+            return redirect()
+                ->route('pos.create', ['appointment' => $appointment->id])
+                ->with('info', __('Please collect payment to complete this appointment.'));
+        }
+
         $appointment->update(['status' => 'completed']);
 
-        // Update client visit stats
         $client = $appointment->client;
         $client->increment('visit_count');
         $client->update(['last_visit_at' => $appointment->starts_at]);
 
         return redirect()
-            ->route('pos.create', ['appointment' => $appointment->id])
-            ->with('success', __('Appointment marked complete. Review the bill and take payment.'));
+            ->route('appointments.show', $appointment->id)
+            ->with('success', __('Appointment completed successfully.'));
     }
 
     public function destroy(Appointment $appointment)

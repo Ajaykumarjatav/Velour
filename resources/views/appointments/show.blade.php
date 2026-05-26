@@ -153,10 +153,27 @@
     @endif
 
     {{-- ── Context-aware action buttons ── --}}
-    <div class="card p-6 space-y-4" x-data="{ showCancel: false, showReschedule: false }">
+    <div class="card p-6 space-y-4" x-data="{ showCancel: false, showReschedule: false, showRebook: false }">
         <h3 class="font-semibold text-heading">Actions</h3>
 
+        {{-- Payment required warning --}}
+        @if($appointment->status === 'completed' && $appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID)
+        <div class="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
+            <p class="font-semibold">Payment pending</p>
+            <p class="text-xs mt-0.5 text-amber-700 dark:text-amber-400">This appointment is marked complete but payment has not been collected yet.</p>
+        </div>
+        @endif
+
         <div class="flex flex-wrap gap-2">
+
+            {{-- Collect Payment (unpaid appointments) --}}
+            @if($appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID && in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress', 'completed']))
+            <a href="{{ route('pos.create', ['appointment' => $appointment->id]) }}"
+               class="px-4 py-2 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors inline-flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                Collect Payment
+            </a>
+            @endif
 
             {{-- Confirm (pending only) --}}
             @if($appointment->status === 'pending')
@@ -170,21 +187,40 @@
             </form>
             @endif
 
-            {{-- Complete (confirmed / checked_in / in_progress) --}}
+            {{-- Complete (confirmed / checked_in / in_progress) — only if paid --}}
             @if(in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress']))
-            <form action="{{ route('appointments.complete', $appointment->id) }}" method="POST">
-                @csrf @method('PATCH')
-                <button type="submit"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl bg-green-600 hover:bg-green-700 text-white transition-colors"
-                        onclick="return confirm('Mark this appointment as completed?')">
-                    ✓ Mark Complete
-                </button>
-            </form>
+                @if($appointment->payment_status === \App\Models\Appointment::PAYMENT_PAID)
+                <form action="{{ route('appointments.complete', $appointment->id) }}" method="POST">
+                    @csrf @method('PATCH')
+                    <button type="submit"
+                            class="px-4 py-2 text-sm font-semibold rounded-xl bg-green-600 hover:bg-green-700 text-white transition-colors"
+                            onclick="return confirm('Mark this appointment as completed?')">
+                        ✓ Mark Complete
+                    </button>
+                </form>
+                @else
+                <form action="{{ route('appointments.complete', $appointment->id) }}" method="POST">
+                    @csrf @method('PATCH')
+                    <button type="submit"
+                            class="px-4 py-2 text-sm font-semibold rounded-xl bg-green-600 hover:bg-green-700 text-white transition-colors">
+                        ✓ Complete &amp; Pay
+                    </button>
+                </form>
+                @endif
+            @endif
+
+            {{-- Rebook (completed or cancelled) --}}
+            @if(in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
+            <button @click="showRebook = !showRebook; showCancel = false; showReschedule = false"
+                    class="px-4 py-2 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors inline-flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Rebook
+            </button>
             @endif
 
             {{-- Reschedule toggle (not terminal) --}}
             @if(! in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
-            <button @click="showReschedule = !showReschedule; showCancel = false"
+            <button @click="showReschedule = !showReschedule; showCancel = false; showRebook = false"
                     class="px-4 py-2 text-sm font-semibold rounded-xl border border-amber-400 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
                 🔄 Reschedule
             </button>
@@ -192,7 +228,7 @@
 
             {{-- Cancel toggle (not terminal) --}}
             @if(!$isScopedStaffPanel && ! in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
-            <button @click="showCancel = !showCancel; showReschedule = false"
+            <button @click="showCancel = !showCancel; showReschedule = false; showRebook = false"
                     class="px-4 py-2 text-sm font-semibold rounded-xl border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                 ✕ Cancel
             </button>
@@ -271,6 +307,30 @@
                     </button>
                 </div>
             </form>
+        </div>
+        @endif
+
+        {{-- Rebook panel --}}
+        @if(in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
+        <div x-show="showRebook" x-cloak
+             class="border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 bg-indigo-50 dark:bg-indigo-900/10 space-y-3">
+            <p class="text-sm font-semibold text-indigo-700 dark:text-indigo-400">Rebook this client</p>
+            <p class="text-xs text-indigo-600/80 dark:text-indigo-400/80">Choose what to book for <strong>{{ $appointment->client?->first_name }} {{ $appointment->client?->last_name }}</strong>:</p>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id, 'services' => $appointment->services->pluck('service_id')->join(','), 'staff_id' => $appointment->staff_id]) }}"
+                   class="px-4 py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
+                    Same services
+                </a>
+                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id, 'services' => $appointment->services->pluck('service_id')->join(','), 'staff_id' => $appointment->staff_id, 'addons' => 1]) }}"
+                   class="px-4 py-2.5 text-sm font-semibold rounded-xl border border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
+                    Same + add-ons
+                </a>
+                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id]) }}"
+                   class="px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-body hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    Different services
+                </a>
+            </div>
+            <button type="button" @click="showRebook = false" class="text-xs text-muted hover:text-body mt-1">Cancel</button>
         </div>
         @endif
 

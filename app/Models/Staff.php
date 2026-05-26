@@ -12,8 +12,11 @@ use Illuminate\Support\Str;
 
 class Staff extends Model
 {
-    use AuditLog, BelongsToTenant;
+    use \App\Traits\HasSupportId, AuditLog, BelongsToTenant;
     use HasFactory, SoftDeletes;
+
+    protected static function supportIdPrefix(): string { return 'STF'; }
+    protected static function supportIdOffset(): int { return 30001; }
 
     // Expose a virtual `name` attribute (first_name + last_name) for convenience.
     // This is especially useful when the UI expects `name` but the DB stores

@@ -130,7 +130,6 @@
                 </div>
             </div>
             <a href="{{ $calRoute($view, $salonTodayYmd, ['from' => null, 'to' => null]) }}" class="btn-outline btn-sm whitespace-nowrap">Today</a>
-            <a href="{{ route('appointments.create') }}" class="btn-primary btn-sm whitespace-nowrap">+ New</a>
         </div>
     </div>
 </div>
@@ -151,15 +150,17 @@
         <div class="grid grid-cols-7">
             @while($current->lte($lastDay))
             @php $dayStr = $current->toDateString(); $isToday = ($dayStr === $salonTodayYmd); $isCurrentMonth = $current->month === $date->month; @endphp
-            <div class="min-h-[104px] border-r border-b border-gray-100 dark:border-gray-800/90 p-2.5 {{ !$isCurrentMonth ? 'bg-gray-50/80 dark:bg-gray-800/25' : '' }}">
+            <div class="min-h-[104px] border-r border-b border-gray-100 dark:border-gray-800/90 p-2.5 cursor-pointer hover:bg-velour-50/50 dark:hover:bg-velour-950/20 transition-colors {{ !$isCurrentMonth ? 'bg-gray-50/80 dark:bg-gray-800/25' : '' }}"
+                 onclick="window.location='{{ $calRoute('day', $dayStr) }}'">
                 <span class="inline-flex items-center justify-center w-7 h-7 text-sm mb-1.5
                     {{ $isToday ? 'bg-velour-600 text-white rounded-full font-bold shadow-sm ring-2 ring-velour-500/30' : ($isCurrentMonth ? 'text-heading' : 'text-muted') }}">
                     {{ $current->day }}
                 </span>
                 @foreach($apptsByDay->get($dayStr, []) as $apt)
                 <a href="{{ $apt['url'] }}"
-                   class="block truncate text-xs px-2 py-1 rounded-lg text-white mb-1 font-medium shadow-sm ring-1 ring-black/10 dark:ring-white/10"
-                   style="background-color: {{ $apt['color'] }}">
+                   class="block truncate text-xs px-2 py-1 rounded-lg text-white mb-1 font-medium shadow-sm ring-1 ring-black/10 dark:ring-white/10 relative z-10"
+                   style="background-color: {{ $apt['color'] }}"
+                   onclick="event.stopPropagation()">
                     {{ \Carbon\Carbon::parse($apt['start'])->timezone($salonTz)->format('H:i') }} {{ $apt['title'] }}
                 </a>
                 @endforeach
@@ -205,13 +206,15 @@
                             ? 'bg-gray-100/80 dark:bg-gray-800/45'
                             : ($isColToday ? 'bg-velour-50/40 dark:bg-velour-950/15' : '');
                     @endphp
-                    <div class="border-l border-gray-100 dark:border-gray-800/80 relative p-1 {{ $cellTint }}">
+                    <div class="border-l border-gray-100 dark:border-gray-800/80 relative p-1 {{ $cellTint }} {{ !$blocked ? 'cursor-pointer hover:bg-velour-50/60 dark:hover:bg-velour-950/20 transition-colors' : '' }}"
+                         @if(!$blocked) onclick="window.location='{{ route('appointments.create', ['date' => $day->toDateString(), 'time' => sprintf('%02d:00', $hour)]) }}'" @endif>
                         @foreach($appointments as $apt)
                         @php $aptStart = \Carbon\Carbon::parse($apt['start'])->timezone($salonTz); @endphp
                         @if($aptStart->toDateString() === $day->toDateString() && (int) $aptStart->format('G') === $hour)
                         <a href="{{ $apt['url'] }}"
-                           class="block text-xs text-white rounded-xl px-2.5 py-1.5 mb-0.5 truncate font-medium shadow-sm ring-1 ring-black/10 dark:ring-white/10 hover:brightness-110 transition-[filter]"
-                           style="background-color: {{ $apt['color'] }}">
+                           class="block text-xs text-white rounded-xl px-2.5 py-1.5 mb-0.5 truncate font-medium shadow-sm ring-1 ring-black/10 dark:ring-white/10 hover:brightness-110 transition-[filter] relative z-10"
+                           style="background-color: {{ $apt['color'] }}"
+                           onclick="event.stopPropagation()">
                             {{ $aptStart->format('H:i') }} {{ $apt['title'] }}
                         </a>
                         @endif
@@ -247,12 +250,14 @@
                     );
                     $blocked = $blockedBySalon || $blockedByStaff;
                 @endphp
-                <div class="flex-1 border-l border-gray-100 dark:border-gray-800 p-2 sm:p-2.5 {{ $blocked ? 'bg-gray-100/75 dark:bg-gray-800/40' : '' }}">
+                <div class="flex-1 border-l border-gray-100 dark:border-gray-800 p-2 sm:p-2.5 {{ $blocked ? 'bg-gray-100/75 dark:bg-gray-800/40' : 'cursor-pointer hover:bg-velour-50/60 dark:hover:bg-velour-950/20 transition-colors' }}"
+                     @if(!$blocked) onclick="window.location='{{ route('appointments.create', ['date' => $date->toDateString(), 'time' => sprintf('%02d:00', $hour)]) }}'" @endif>
                     @foreach($dayAppointments as $apt)
                     @if((int) \Carbon\Carbon::parse($apt['start'])->timezone($salonTz)->format('G') === $hour)
                     <a href="{{ $apt['url'] }}"
-                       class="inline-block text-sm text-white rounded-xl px-3 py-2 mr-2 mb-1 font-medium shadow-sm ring-1 ring-black/10 dark:ring-white/10 hover:brightness-110 transition-[filter]"
-                       style="background-color: {{ $apt['color'] }}">
+                       class="inline-block text-sm text-white rounded-xl px-3 py-2 mr-2 mb-1 font-medium shadow-sm ring-1 ring-black/10 dark:ring-white/10 hover:brightness-110 transition-[filter] relative z-10"
+                       style="background-color: {{ $apt['color'] }}"
+                       onclick="event.stopPropagation()">
                         {{ \Carbon\Carbon::parse($apt['start'])->timezone($salonTz)->format('H:i') }} — {{ $apt['title'] }}
                         <span class="opacity-75 text-xs ml-1">{{ $apt['staff'] }}</span>
                     </a>

@@ -290,6 +290,9 @@
                 <input type="hidden" name="payment_method" x-bind:value="paymentMethod">
                 <input type="hidden" name="client_id" x-bind:value="clientId">
                 <input type="hidden" name="discount_amount" value="0">
+                @if(request('appointment'))
+                <input type="hidden" name="appointment_id" value="{{ (int) request('appointment') }}">
+                @endif
                 <template x-for="(item, idx) in cart" :key="lineSignature(item)">
                     <span>
                         <input type="hidden" :name="'items['+idx+'][type]'"  :value="item.type">
@@ -449,14 +452,11 @@ function posApp() {
             });
 
             this.$nextTick(() => {
-                if (POS_PREFILL && Array.isArray(POS_PREFILL.lines) && POS_PREFILL.lines.length) {
+                if (POS_PREFILL && Array.isArray(POS_PREFILL.lines) && POS_PREFILL.lines.length && this.cart.length === 0) {
                     for (const line of POS_PREFILL.lines) {
                         const cat = POS_ITEMS.find((i) => i.type === line.type && i.id === line.id);
                         if (!cat) continue;
-                        const times = Math.max(1, parseInt(line.qty, 10) || 1);
-                        for (let n = 0; n < times; n++) {
-                            this.addToCart({ ...cat });
-                        }
+                        this.addToCart({ ...cat });
                     }
                 }
                 if (POS_PREFILL && POS_PREFILL.client_id) {

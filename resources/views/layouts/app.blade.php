@@ -106,8 +106,80 @@
                    hover:bg-velour-100/80 dark:bg-velour-950/40 dark:text-velour-300 dark:border-velour-500
                    dark:hover:bg-velour-950/55;
         }
-        .nav-icon { @apply w-4 h-4 flex-shrink-0 opacity-90; }
+        .nav-icon { @apply w-5 h-5 flex-shrink-0 opacity-90; }
         [x-cloak] { display: none !important; }
+
+        /* ── Collapsed sidebar ── */
+        .sidebar-collapsed .sidebar-wrapper {
+            align-items: center;
+        }
+        .sidebar-collapsed .sidebar-wrapper .sidebar-link {
+            position: relative;
+            justify-content: center;
+            padding: 0.625rem;
+            border-left: 0;
+            border-radius: 0.75rem;
+            width: 2.75rem;
+            overflow: visible;
+            font-size: 0;
+            gap: 0;
+        }
+        .sidebar-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            flex-shrink: 0;
+        }
+        .sidebar-collapsed .sidebar-wrapper .sidebar-link::after {
+            content: attr(data-title);
+            position: absolute;
+            left: calc(100% + 0.5rem);
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.5rem;
+            background: rgb(17 24 39 / 0.95);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+            z-index: 100;
+        }
+        .dark .sidebar-collapsed .sidebar-wrapper .sidebar-link::after {
+            background: rgb(255 255 255 / 0.95);
+            color: #111;
+        }
+        .sidebar-collapsed .sidebar-wrapper .sidebar-link:hover::after {
+            opacity: 1;
+        }
+        .sidebar-collapsed .sidebar-wrapper nav {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            align-items: center;
+            overflow: visible;
+        }
+        .sidebar-collapsed .sidebar-wrapper {
+            overflow: visible;
+        }
+        .sidebar-collapsed .sidebar-wrapper .nav-section-title {
+            display: none;
+        }
+        .sidebar-collapsed .sidebar-text {
+            display: none;
+        }
+        .sidebar-collapsed .sidebar-wrapper > div:first-child {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .sidebar-collapsed .sidebar-logo-icon {
+            display: flex;
+        }
+        .sidebar-logo-icon {
+            display: none;
+        }
 
         /* ══════════════════════════════════════════════════════════════════
            GLOBAL DARK MODE TOKENS
@@ -344,12 +416,14 @@
 </head>
 
 <body class="h-full bg-gray-50 dark:bg-gray-950 transition-colors duration-200"
-      x-data="{ sidebarOpen: false }">
+      x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === '1' }"
+      x-init="$watch('sidebarCollapsed', v => localStorage.setItem('sidebar-collapsed', v ? '1' : '0'))">
 <div class="flex h-full min-h-0">
 
     {{-- Desktop sidebar --}}
-    <aside class="hidden lg:flex lg:flex-col lg:w-56 lg:min-h-0 lg:fixed lg:inset-y-0 z-30
-                  bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-colors duration-200">
+    <aside class="hidden lg:flex lg:flex-col lg:min-h-0 lg:fixed lg:inset-y-0 z-30
+                  bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-200 overflow-visible"
+           :class="[sidebarCollapsed ? 'lg:w-[4.5rem] sidebar-collapsed' : 'lg:w-56']">
         @include('partials.sidebar')
     </aside>
 
@@ -370,17 +444,27 @@
     </aside>
 
     {{-- Main — min-w-0 so wide children (tables, POS grids) shrink instead of overflowing under the fixed sidebar --}}
-    <div class="flex-1 flex flex-col min-h-screen min-w-0 lg:pl-56">
+    <div class="flex-1 flex flex-col min-h-screen min-w-0 transition-all duration-200"
+         :class="sidebarCollapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-56'">
 
         {{-- Top bar --}}
         <header class="sticky top-0 z-20 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
                        bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800
                        transition-colors duration-200 py-2 sm:py-0">
             <div class="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
+                {{-- Mobile: open sidebar --}}
                 <button @click="sidebarOpen=true"
                         class="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                {{-- Desktop: toggle sidebar --}}
+                <button @click="sidebarCollapsed = !sidebarCollapsed"
+                        class="hidden lg:flex p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0 transition-colors"
+                        title="Toggle sidebar">
+                    <svg class="w-5 h-5 transition-transform duration-200" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
                     </svg>
                 </button>
                 <h1 class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 dark:text-white truncate">
@@ -473,29 +557,53 @@
                 {{-- User menu --}}
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open=!open"
-                            class="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                        <div class="w-7 h-7 rounded-full bg-velour-600 flex items-center justify-center text-white text-xs font-bold">
+                            class="flex items-center p-1 rounded-full hover:ring-2 hover:ring-gray-200 dark:hover:ring-gray-700 transition-all">
+                        <div class="w-8 h-8 rounded-full bg-velour-600 flex items-center justify-center text-white text-sm font-bold">
                             {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                         </div>
-                        <span class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300 max-w-[120px] truncate">
-                            {{ auth()->user()->name }}
-                        </span>
-                        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
                     </button>
                     <div x-show="open" x-cloak @click.outside="open=false"
-                         class="absolute right-0 mt-2 w-48 rounded-xl shadow-lg border py-1 z-50
-                                bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
-                        <a href="{{ route('settings.index') }}"
-                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Settings</a>
-                        <hr class="my-1 border-gray-100 dark:border-gray-800">
-                        <form action="{{ route('logout') }}" method="POST">
-                            @csrf
-                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                                Sign out
-                            </button>
-                        </form>
+                         class="absolute right-0 mt-2 w-64 rounded-2xl shadow-xl border z-50
+                                bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 overflow-hidden">
+                        {{-- Profile header --}}
+                        <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-velour-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ auth()->user()->name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ auth()->user()->email }}</p>
+                                    @if(auth()->user()->support_id)
+                                    <p class="text-[10px] font-mono text-velour-600 dark:text-velour-400 mt-0.5">{{ auth()->user()->support_id }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                            @if(($currentSalon ?? null) && $currentSalon->support_id)
+                            <div class="mt-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/60 flex items-center justify-between">
+                                <span class="text-xs text-gray-600 dark:text-gray-400">Store ID</span>
+                                <span class="text-xs font-mono font-semibold text-gray-900 dark:text-white">{{ $currentSalon->support_id }}</span>
+                            </div>
+                            @endif
+                        </div>
+                        {{-- Menu items --}}
+                        <div class="py-1">
+                            <a href="{{ route('settings.index') }}"
+                               class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                                Settings
+                            </a>
+                        </div>
+                        <hr class="border-gray-100 dark:border-gray-800">
+                        <div class="py-1">
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                    Sign out
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

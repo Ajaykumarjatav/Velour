@@ -32,7 +32,10 @@ use App\Notifications\ResetPasswordNotification;
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use Billable, HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use \App\Traits\HasSupportId, Billable, HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
+
+    protected static function supportIdPrefix(): string { return 'ADM'; }
+    protected static function supportIdOffset(): int { return 20001; }
 
     protected $fillable = [
         'name', 'email', 'email_verified_at', 'password', 'force_password_change', 'avatar', 'phone', 'experience', 'language_proficiency', 'timezone', 'locale', 'plan',

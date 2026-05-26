@@ -27,31 +27,188 @@
     <p>Figures use your salon timezone (<abbr title="{{ $salon->timezone ?? 'UTC' }}">{{ $tzAbbr }}</abbr>). Revenue is counted when a POS sale is completed (see <a href="{{ route('reports.show', ['type' => 'revenue', 'from' => \App\Support\SalonTime::monthStartDateString($salon), 'to' => \App\Support\SalonTime::todayDateString($salon)]) }}" class="underline font-semibold">Revenue report</a>).</p>
 </div>
 
-{{-- KPI cards (today's POS total + list: see "Today's sales" in the right column only) --}}
-<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-7">
-    <div class="stat-card">
-        <p class="stat-label">Month Revenue</p>
-        <p class="stat-value">@money($monthRevenue)</p>
-        @if($revenueChange !== null && $lastMonthRevenue > 0)
-            <p class="text-xs mt-1 {{ $revenueChange >= 0 ? 'text-green-500' : 'text-red-500' }}">
-                {{ $revenueChange >= 0 ? '▲' : '▼' }} {{ abs($revenueChange) }}% vs last month
-            </p>
-            <p class="stat-sub">Last month total @money($lastMonthRevenue)</p>
-        @elseif($lastMonthRevenue > 0)
-            <p class="text-xs mt-1 text-muted">Last month @money($lastMonthRevenue)</p>
-        @else
-            <p class="text-xs mt-1 text-muted">No prior month to compare</p>
-        @endif
+{{-- ══ Analytics slider ══ --}}
+@php
+    $analyticsWidgetsJson = json_encode($analyticsWidgets ?? []);
+    $detailListsJson = json_encode($detailLists ?? []);
+    $periodBoundsJson = json_encode($periodBounds ?? []);
+@endphp
+<div x-data="analyticsSlider({{ $analyticsWidgetsJson }}, {{ $detailListsJson }}, {{ $periodBoundsJson }})" class="mb-7">
+    {{-- Period tabs --}}
+    <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <template x-for="p in periods" :key="p.key">
+            <button type="button"
+                    @click="period = p.key; active = null"
+                    :class="period === p.key
+                        ? 'bg-velour-600 text-white border-velour-600 shadow-sm'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-velour-300'"
+                    class="px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all duration-150"
+                    x-text="p.label">
+            </button>
+        </template>
     </div>
-    <div class="stat-card">
-        <p class="stat-label">Today's Appointments</p>
-        <p class="stat-value">{{ $todayAppointments }}</p>
-        <p class="stat-sub">Scheduled today (excl. cancelled / no-show)</p>
+
+    {{-- Slider --}}
+    <div class="relative group/slider">
+        <button type="button" @click="scrollLeft()" aria-label="Scroll left"
+                class="analytics-slider-arrow left-0 rounded-r-xl opacity-0 group-hover/slider:opacity-100 transition-opacity">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div x-ref="slider" class="analytics-slider flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 px-1">
+            <template x-for="w in widgets" :key="w.key">
+                <button type="button"
+                        @click="active = active === w.key ? null : w.key"
+                        :class="active === w.key
+                            ? 'border-velour-500 bg-velour-50/80 dark:bg-velour-950/40 dark:border-velour-400 ring-1 ring-velour-200 dark:ring-velour-800'
+                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 hover:border-velour-200 dark:hover:border-velour-700'"
+                        class="analytics-widget-card snap-start shrink-0 w-[195px] sm:w-[210px] rounded-2xl border p-4 text-left transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+                              :class="w.iconBg" x-html="w.icon"></span>
+                        <span class="text-[11px] font-semibold uppercase tracking-wide text-muted truncate" x-text="w.label"></span>
+                    </div>
+                    <p class="text-xl font-bold text-heading tabular-nums" x-text="w.format(data[period]?.[w.dataKey] ?? 0)"></p>
+                    <p class="text-[11px] text-muted mt-1 truncate" x-text="w.sub(data[period])"></p>
+                </button>
+            </template>
+        </div>
+        <button type="button" @click="scrollRight()" aria-label="Scroll right"
+                class="analytics-slider-arrow right-0 rounded-l-xl opacity-0 group-hover/slider:opacity-100 transition-opacity">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </button>
     </div>
-    <div class="stat-card">
-        <p class="stat-label">Total Clients</p>
-        <p class="stat-value">{{ number_format($totalClients) }}</p>
-        <p class="text-xs text-green-500 mt-1">+{{ $newClientsThisMonth }} this month</p>
+
+    {{-- Detail panel (expands below) --}}
+    <div x-show="active !== null" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0 -translate-y-2"
+         class="mt-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/90 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+            <h3 class="text-sm font-semibold text-heading" x-text="activeLabel()"></h3>
+            <a :href="activeLink()" class="text-xs font-medium text-velour-600 dark:text-velour-400 hover:underline">View all &rarr;</a>
+        </div>
+        <div class="max-h-[250px] overflow-y-auto p-4 sm:p-5">
+            {{-- Appointments --}}
+            <div x-show="active === 'appointments'">
+                <template x-if="filteredList('appointments').length === 0">
+                    <p class="text-sm text-muted text-center py-4">No appointments for this period.</p>
+                </template>
+                <div class="space-y-2">
+                    <template x-for="(item, idx) in filteredList('appointments')" :key="idx">
+                        <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0" :style="'background-color:' + item.color" x-text="item.initial"></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-heading truncate" x-text="item.name"></p>
+                                <p class="text-xs text-muted truncate" x-text="item.services"></p>
+                            </div>
+                            <span class="text-xs font-semibold text-body shrink-0" x-text="item.time"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            {{-- Pending tasks --}}
+            <div x-show="active === 'pending_tasks'">
+                <template x-if="filteredList('tasks').length === 0">
+                    <p class="text-sm text-muted text-center py-4">No pending tasks for this period.</p>
+                </template>
+                <div class="space-y-2">
+                    <template x-for="(item, idx) in filteredList('tasks')" :key="idx">
+                        <div class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <span class="mt-0.5 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+                                  :class="item.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'"
+                                  x-text="item.priority"></span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-heading truncate" x-text="item.title"></p>
+                                <p class="text-xs text-muted" x-text="item.ago"></p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            {{-- New customers --}}
+            <div x-show="active === 'new_customers'">
+                <template x-if="filteredList('clients').length === 0">
+                    <p class="text-sm text-muted text-center py-4">No new customers for this period.</p>
+                </template>
+                <div class="space-y-2">
+                    <template x-for="(item, idx) in filteredList('clients')" :key="idx">
+                        <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <div class="w-8 h-8 rounded-full bg-velour-100 dark:bg-velour-900/40 flex items-center justify-center text-xs font-bold text-velour-700 dark:text-velour-300 shrink-0" x-text="item.initial"></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-heading truncate" x-text="item.name"></p>
+                                <p class="text-xs text-muted" x-text="item.email"></p>
+                            </div>
+                            <span class="text-xs text-muted shrink-0" x-text="item.ago"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            {{-- Staff status (not period-filtered) --}}
+            <div x-show="active === 'staff_status'">
+                <template x-if="lists.staff.length === 0">
+                    <p class="text-sm text-muted text-center py-4">No staff members.</p>
+                </template>
+                <div class="space-y-2">
+                    <template x-for="(item, idx) in lists.staff" :key="idx">
+                        <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" :style="'background-color:' + item.color" x-text="item.initials"></div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-heading" x-text="item.name"></p>
+                            </div>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">Active</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            {{-- Website traffic --}}
+            <div x-show="active === 'website_traffic'" class="py-6 text-center">
+                <p class="text-sm text-muted">Website traffic tracking is not yet connected.</p>
+                <p class="text-xs text-muted mt-2">Connect Google Analytics or integrate a tracking pixel to see real visitor data here.</p>
+            </div>
+
+            {{-- Reviews --}}
+            <div x-show="active === 'reviews'">
+                <template x-if="filteredList('reviews').length === 0">
+                    <p class="text-sm text-muted text-center py-4">No reviews for this period.</p>
+                </template>
+                <div class="space-y-2">
+                    <template x-for="(item, idx) in filteredList('reviews')" :key="idx">
+                        <div class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <div class="flex gap-0.5 shrink-0 mt-0.5">
+                                <template x-for="star in 5">
+                                    <svg class="w-3.5 h-3.5" :class="star <= item.rating ? 'text-amber-400' : 'text-gray-200 dark:text-gray-600'" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                </template>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-heading" x-text="item.name"></p>
+                                <p class="text-xs text-muted truncate" x-text="item.comment"></p>
+                            </div>
+                            <span class="text-xs text-muted shrink-0" x-text="item.ago"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            {{-- Revenue --}}
+            <div x-show="active === 'revenue'">
+                <template x-if="filteredList('sales').length === 0">
+                    <p class="text-sm text-muted text-center py-4">No sales for this period.</p>
+                </template>
+                <div class="space-y-2">
+                    <template x-for="(item, idx) in filteredList('sales')" :key="idx">
+                        <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-body" x-text="item.name"></p>
+                                <p class="text-xs text-muted" x-text="item.ago"></p>
+                            </div>
+                            <span class="text-sm font-bold text-heading shrink-0" x-text="'₹' + item.total"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -384,3 +541,156 @@
 </div>
 
 @endsection
+
+@push('styles')
+<style>
+    .analytics-slider {
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+    .analytics-slider::-webkit-scrollbar {
+        height: 4px;
+    }
+    .analytics-slider::-webkit-scrollbar-thumb {
+        background: rgb(156 163 175 / 0.4);
+        border-radius: 2px;
+    }
+    .analytics-slider-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 48px;
+        background: rgb(255 255 255 / 0.92);
+        border: 1px solid rgb(229 231 235);
+        color: rgb(107 114 128);
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+    .dark .analytics-slider-arrow {
+        background: rgb(31 41 55 / 0.92);
+        border-color: rgb(55 65 81);
+        color: rgb(209 213 219);
+    }
+    .analytics-slider-arrow:hover {
+        color: rgb(124 58 237);
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+function analyticsSlider(serverData, detailLists, periodBounds) {
+    return {
+        period: 'today',
+        active: null,
+        data: serverData,
+        lists: detailLists,
+        bounds: periodBounds,
+        periods: [
+            { key: 'today', label: 'Today' },
+            { key: 'weekly', label: 'Weekly' },
+            { key: 'monthly', label: 'Monthly' },
+            { key: 'yearly', label: 'Yearly' },
+        ],
+        widgets: [
+            {
+                key: 'appointments',
+                label: 'Appointments',
+                dataKey: 'appointments',
+                icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+                iconBg: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300',
+                format: (v) => String(v),
+                sub: (d) => 'Excl. cancelled & no-show',
+                link: @json(route('appointments.index')),
+            },
+            {
+                key: 'pending_tasks',
+                label: 'Pending Tasks',
+                dataKey: 'pending_tasks',
+                icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>',
+                iconBg: 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300',
+                format: (v) => String(v),
+                sub: () => 'Open & in-progress',
+                link: @json(route('tasks.index')),
+            },
+            {
+                key: 'new_customers',
+                label: 'New Customers',
+                dataKey: 'new_customers',
+                icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>',
+                iconBg: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300',
+                format: (v) => String(v),
+                sub: (d) => d ? (d.new_bookings || 0) + ' new bookings' : '',
+                link: @json(route('clients.index')),
+            },
+            {
+                key: 'staff_status',
+                label: 'Staff Status',
+                dataKey: 'staff_active',
+                icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><circle cx="20" cy="7" r="4"/></svg>',
+                iconBg: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300',
+                format: (v) => v + ' active',
+                sub: (d) => (d?.staff_on_leave || 0) + ' on leave',
+                link: @json(route('settings.index', ['tab' => 'team'])),
+            },
+            {
+                key: 'website_traffic',
+                label: 'Website Traffic',
+                dataKey: 'website_visits',
+                icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>',
+                iconBg: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-300',
+                format: (v) => v > 0 ? String(v) : '—',
+                sub: () => 'Not connected yet',
+                link: @json(route('go-live')),
+            },
+            {
+                key: 'reviews',
+                label: 'Reviews',
+                dataKey: 'reviews_count',
+                icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+                iconBg: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-300',
+                format: (v) => String(v),
+                sub: (d) => d?.reviews_avg ? '★ ' + d.reviews_avg + ' avg' : 'No ratings yet',
+                link: @json(route('reviews.index')),
+            },
+            {
+                key: 'revenue',
+                label: 'Revenue',
+                dataKey: 'revenue',
+                icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
+                iconBg: 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300',
+                format: (v) => '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+                sub: () => 'Total for period',
+                link: @json(route('revenue.index')),
+            },
+        ],
+        filteredList(listKey) {
+            const items = this.lists[listKey] || [];
+            const startDate = this.bounds[this.period] || '';
+            if (!startDate) return items;
+            return items.filter(item => item.date >= startDate);
+        },
+        scrollLeft() {
+            this.$refs.slider.scrollBy({ left: -220, behavior: 'smooth' });
+        },
+        scrollRight() {
+            this.$refs.slider.scrollBy({ left: 220, behavior: 'smooth' });
+        },
+        activeLabel() {
+            const w = this.widgets.find(x => x.key === this.active);
+            return w ? w.label : '';
+        },
+        activeLink() {
+            const w = this.widgets.find(x => x.key === this.active);
+            return w ? w.link : '#';
+        },
+    };
+}
+</script>
+@endpush

@@ -1,12 +1,16 @@
-<div class="flex flex-col h-full min-h-0">
+<div class="flex flex-col h-full min-h-0 sidebar-wrapper">
 
     {{-- Logo --}}
-    <div class="px-5 py-5 border-b border-gray-100 dark:border-gray-800">
-        <p class="text-base font-semibold text-gray-900 dark:text-white tracking-tight font-sans">
-            velour<span class="text-velour-500 font-semibold">.</span>
+    <div class="px-5 py-5 border-b border-gray-100 dark:border-gray-800 min-h-[4.25rem]">
+        <p class="text-base font-semibold text-gray-900 dark:text-white tracking-tight font-sans whitespace-nowrap">
+            <span class="sidebar-text">velour</span><span class="text-velour-500 font-semibold">.</span>
         </p>
+        {{-- Store icon shown when collapsed --}}
+        <div class="sidebar-logo-icon w-9 h-9 rounded-xl bg-velour-600 items-center justify-center text-white shrink-0">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        </div>
         @if(Auth::check() && ($currentSalon ?? null))
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{{ $currentSalon->name }}</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate sidebar-text">{{ $currentSalon->name }}</p>
         @endif
     </div>
 
@@ -27,15 +31,7 @@
         </a>
         @endif
 
-        @if($navShow('action_center'))
-        <a href="{{ route('dashboard', ['desk' => 1]) }}#action-center"
-           class="sidebar-link {{ request()->routeIs('dashboard') && request()->boolean('desk') ? 'active' : '' }}">
-            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-            Todos &amp; requests
-        </a>
-        @endif
+        {{-- Todos & requests removed --}}
 
         @if($navShow('tasks'))
         <a href="{{ route('tasks.index') }}"
@@ -89,7 +85,7 @@
 
         {{-- MANAGE --}}
         @if(\App\Support\SidebarNav::showManageHeading(auth()->user()))
-        <p class="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Manage</p>
+        <p class="nav-section-title px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Manage</p>
         @endif
 
         @if($navShow('staff'))
@@ -164,7 +160,7 @@
 
         {{-- GROW --}}
         @if(\App\Support\SidebarNav::showGrowHeading(auth()->user()))
-        <p class="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Grow</p>
+        <p class="nav-section-title px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Grow</p>
         @endif
 
         @if($navShow('go_live'))
@@ -283,7 +279,7 @@
 
         {{-- ACCOUNT --}}
         @if($navShow('billing') || $navShow('settings') || $navShow('security_support') || $navShow('notifications') || $navShow('growth_tips'))
-        <p class="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Account</p>
+        <p class="nav-section-title px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Account</p>
         @endif
 
         @if(config('billing.subscriptions_enabled') && $navShow('billing'))
@@ -392,7 +388,7 @@
         @endif
 
         @if(auth()->user()->hasRole('tenant_admin') || auth()->user()->isSuperAdmin())
-        <p class="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Admin</p>
+        <p class="nav-section-title px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Admin</p>
         <a href="{{ route('salon-admin.team') }}"
            class="sidebar-link {{ request()->routeIs('salon-admin.team*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -415,23 +411,18 @@
 
     {{-- Footer --}}
     <div class="p-3 border-t border-gray-100 dark:border-gray-800">
-        <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-500">
-            <p class="font-medium text-gray-700 dark:text-gray-300 truncate">{{ Auth::user()->name }}</p>
-            <p class="truncate">{{ Auth::user()->email }}</p>
-        </div>
         @if(Auth::user()->isSuperAdmin())
         <a href="{{ route('admin.dashboard') }}"
            class="flex items-center gap-2 px-3 py-2 text-xs text-gray-400 dark:text-gray-500 hover:text-velour-600 dark:hover:text-velour-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             ⚡ Admin Panel
         </a>
         @endif
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit"
-                    class="flex items-center gap-2 px-3 py-2 text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors w-full">
-                Sign out
-            </button>
-        </form>
     </div>
 
 </div>
+<script>
+document.querySelectorAll('.sidebar-link').forEach(function(el) {
+    var text = el.textContent.trim();
+    if (text) el.setAttribute('data-title', text);
+});
+</script>

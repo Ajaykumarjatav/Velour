@@ -32,6 +32,9 @@
             'client_notes' => $apt->client_notes,
             'internal_notes' => $isScopedStaffPanel ? null : $apt->internal_notes,
             'show_url' => route('appointments.show', $apt->id),
+            'pos_url' => route('pos.create', ['appointment' => $apt->id]),
+            'rebook_url' => route('appointments.create', ['client_id' => $apt->client_id]),
+            'rebook_same_url' => route('appointments.create', ['client_id' => $apt->client_id, 'services' => $apt->services->pluck('service_id')->join(','), 'staff_id' => $apt->staff_id]),
             'services' => $apt->services->map(fn ($svc) => [
                 'name' => $svc->service_name,
                 'price' => \App\Helpers\CurrencyHelper::format((float) $svc->price, $currency),
@@ -197,6 +200,12 @@
                     </div>
                     <div class="flex flex-col gap-2 shrink-0 items-end">
                         <a :href="selectedAppointment().show_url" class="btn-outline btn-sm whitespace-nowrap">View</a>
+                        <a x-show="selectedAppointment().payment_status === 'unpaid' && ['confirmed','checked_in','in_progress','completed'].includes(selectedAppointment().status)"
+                           :href="selectedAppointment().pos_url"
+                           class="btn-primary btn-sm whitespace-nowrap text-xs">Collect Payment</a>
+                        <a x-show="['completed','cancelled','no_show'].includes(selectedAppointment().status)"
+                           :href="selectedAppointment().rebook_same_url"
+                           class="btn-sm whitespace-nowrap text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-3 py-1.5 font-semibold">Rebook</a>
                     </div>
                 </div>
 

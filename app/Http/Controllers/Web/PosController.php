@@ -82,23 +82,29 @@ class PosController extends Controller
             $appt = Appointment::withoutGlobalScopes()
                 ->where('salon_id', $salon->id)
                 ->whereKey((int) $request->query('appointment'))
-                ->where('status', 'completed')
+                ->whereNotIn('status', ['cancelled', 'no_show'])
                 ->with(['services' => fn ($q) => $q->orderBy('sort_order')->orderBy('id')])
                 ->first();
 
             if ($appt !== null) {
                 $lines = [];
+                $seenServiceIds = [];
                 foreach ($appt->services as $row) {
                     if (! $row->service_id) {
                         continue;
                     }
-                    $svc = $services->firstWhere('id', (int) $row->service_id);
+                    $svcId = (int) $row->service_id;
+                    if (in_array($svcId, $seenServiceIds, true)) {
+                        continue;
+                    }
+                    $svc = $services->firstWhere('id', $svcId);
                     if ($svc === null) {
                         continue;
                     }
+                    $seenServiceIds[] = $svcId;
                     $lines[] = [
                         'type' => 'service',
-                        'id' => (int) $svc->id,
+                        'id' => $svcId,
                         'qty' => 1,
                     ];
                 }
@@ -169,6 +175,7 @@ class PosController extends Controller
             'tax_rate'          => ['nullable', 'numeric', 'min:0', 'max:100'],
             'tax_mode'          => ['nullable', 'in:excluded,included'],
             'notes'             => ['nullable', 'string', 'max:500'],
+            'appointment_id'    => ['nullable', 'integer'],
         ]);
         unset($data['payment_received']);
 
@@ -323,6 +330,30 @@ class PosController extends Controller
 
             return $tx;
         });
+
+        // Update linked appointment payment status
+        if (! empty($data['appointment_id'])) {
+            $linkedAppointment = Appointment::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->whereKey((int) $data['appointment_id'])
+                ->first();
+
+            if ($linkedAppointment) {
+                $linkedAppointment->update([
+                    'payment_status' => Appointment::PAYMENT_PAID,
+                    'amount_paid' => (float) $transaction->total,
+                ]);
+
+                // Auto-complete if still in an active state
+                if (in_array($linkedAppointment->status, ['confirmed', 'checked_in', 'in_progress'])) {
+                    $linkedAppointment->update(['status' => 'completed']);
+                    if ($linkedAppointment->client) {
+                        $linkedAppointment->client->increment('visit_count');
+                        $linkedAppointment->client->update(['last_visit_at' => $linkedAppointment->starts_at]);
+                    }
+                }
+            }
+        }
 
         return redirect()
             ->route('pos.show', $transaction)

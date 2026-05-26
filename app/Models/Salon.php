@@ -10,7 +10,11 @@ use Illuminate\Validation\ValidationException;
 
 class Salon extends Model
 {
-    use HasFactory, SoftDeletes;
+    use \App\Traits\HasSupportId, HasFactory, SoftDeletes;
+
+    protected static function supportIdPrefix(): string { return 'STR'; }
+    protected static function supportIdOffset(): int { return 10001; }
+
     protected $fillable = [
         'owner_id','business_type_id','name','slug','subdomain','description','awards_accolades','phone','email','website',
         'address_line1','address_line2','city','county','postcode','country',
