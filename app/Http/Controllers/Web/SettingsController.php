@@ -1036,7 +1036,13 @@ class SettingsController extends Controller
             $commission = max(0.0, min(100.0, $commission));
             $role = (string) $row['role'];
             // Role ↔ service filter disabled for now (see StaffServiceEligibility::assertEligibleForRole).
-            $allServiceIds = $services
+            $menuServiceIds = Service::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->whereNull('deleted_at')
+                ->whereNotNull('duration_minutes')
+                ->where('duration_minutes', '>', 0)
+                ->whereNotNull('price')
+                ->where('price', '>', 0)
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->values()
@@ -1045,11 +1051,11 @@ class SettingsController extends Controller
             $requestedServiceIds = array_values(array_unique(array_map('intval', (array) ($row['services'] ?? []))));
             $serviceIds = [];
 
-            if ($servicesWereSubmitted) {
+            if ($assign) {
+                $serviceIds = $menuServiceIds;
+            } elseif ($servicesWereSubmitted) {
                 // StaffServiceEligibility::assertEligibleForRole($salon->id, $role, $requestedServiceIds);
                 $serviceIds = $requestedServiceIds;
-            } elseif ($assign) {
-                $serviceIds = $allServiceIds;
             }
 
             $staff = null;

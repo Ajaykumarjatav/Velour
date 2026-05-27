@@ -6,8 +6,8 @@
             <span class="sidebar-text">velour</span><span class="text-velour-500 font-semibold">.</span>
         </p>
         {{-- Store icon shown when collapsed --}}
-        <div class="sidebar-logo-icon w-9 h-9 rounded-xl bg-velour-600 items-center justify-center text-white shrink-0">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <div class="sidebar-logo-icon flex w-8 h-8 rounded-lg bg-velour-600 items-center justify-center text-white shrink-0 mx-auto">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         </div>
         @if(Auth::check() && ($currentSalon ?? null))
         <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate sidebar-text">{{ $currentSalon->name }}</p>
@@ -73,16 +73,6 @@
         </a>
         @endif
 
-        @if($navShow('facilities'))
-        <a href="{{ route('facilities.index') }}"
-           class="sidebar-link {{ request()->routeIs('facilities.*') ? 'active' : '' }}">
-            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-            </svg>
-            Facilities
-        </a>
-        @endif
-
         {{-- MANAGE --}}
         @if(\App\Support\SidebarNav::showManageHeading(auth()->user()))
         <p class="nav-section-title px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Manage</p>
@@ -114,7 +104,7 @@
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
-            Service packages
+            Plans/Packages
         </a>
         @endif
 

@@ -110,11 +110,13 @@
 </div>
 
 <script>
+const categoryUpdateUrlTemplate = @json(route('service-categories.update', ['serviceCategory' => 0]));
+
 function openEdit(id, name, color, businessTypeId) {
     document.getElementById('edit-cat-name').value  = name;
     document.getElementById('edit-cat-color').value = color;
     document.getElementById('edit-cat-business-type').value = String(businessTypeId);
-    document.getElementById('edit-cat-form').action = '/service-categories/' + id;
+    document.getElementById('edit-cat-form').action = categoryUpdateUrlTemplate.replace(/\/0$/, '/' + id);
     document.getElementById('edit-cat-modal').classList.remove('hidden');
 }
 </script>

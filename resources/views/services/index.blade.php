@@ -73,28 +73,28 @@
     </p>
 
     {{-- Search & filters --}}
-    <div class="rounded-2xl border border-gray-200/90 dark:border-gray-700/80 bg-white/85 dark:bg-gray-900/45 backdrop-blur-sm p-5 sm:p-5 shadow-sm dark:shadow-none space-y-5">
-        <form method="GET" action="{{ route('services.index') }}" class="space-y-4">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
-                <div class="lg:col-span-4 space-y-1.5">
-                    <label for="svc-search" class="text-xs font-medium text-muted uppercase tracking-wide">Search</label>
+    <div class="rounded-2xl border border-gray-200/90 dark:border-gray-700/80 bg-white/85 dark:bg-gray-900/45 backdrop-blur-sm p-4 sm:p-5 shadow-sm dark:shadow-none space-y-4">
+        <form method="GET" action="{{ route('services.index') }}">
+            <div class="flex flex-wrap xl:flex-nowrap items-end gap-x-2.5 gap-y-3">
+                <div class="w-full sm:flex-1 sm:min-w-[9rem] xl:max-w-[11rem] space-y-1 min-w-0">
+                    <label for="svc-search" class="text-[10px] font-medium text-muted uppercase tracking-wide">Search</label>
                     <div class="relative">
-                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none z-[1]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                         <input id="svc-search" type="search" name="search" value="{{ $search }}" placeholder="Name or description…"
-                               class="form-input pl-10 rounded-xl border-gray-200 dark:border-gray-600 w-full">
+                               class="form-input w-full py-2 !pl-11 pr-3 text-sm rounded-lg border-gray-200 dark:border-gray-600 min-w-0">
                     </div>
                 </div>
-                <div class="lg:col-span-3 space-y-1.5">
-                    <label for="svc-category-trigger" class="text-xs font-medium text-muted uppercase tracking-wide">Category</label>
+                <div class="w-full sm:w-36 lg:w-40 space-y-1 min-w-0">
+                    <label for="svc-category-trigger" class="text-[10px] font-medium text-muted uppercase tracking-wide">Category</label>
                     <x-searchable-select
                         id="svc-category"
                         name="category_id"
                         wrapper-class="w-full min-w-0"
                         :search-url="null"
-                        search-placeholder="Search category…"
-                        trigger-class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full">
+                        search-placeholder="Search…"
+                        trigger-class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
                         <option value="">All categories</option>
                         @foreach($categoryChips as $chip)
                             <option value="{{ $chip->id }}" @selected((string) $filterCategoryId === (string) $chip->id)>
@@ -103,48 +103,44 @@
                         @endforeach
                     </x-searchable-select>
                 </div>
-                <div class="lg:col-span-2 space-y-1.5">
-                    <label for="svc-status-trigger" class="text-xs font-medium text-muted uppercase tracking-wide">Status</label>
+                <div class="w-28 sm:w-32 space-y-1 shrink-0">
+                    <label for="svc-status-trigger" class="text-[10px] font-medium text-muted uppercase tracking-wide">Status</label>
                     <x-searchable-select
                         id="svc-status"
                         name="status"
                         wrapper-class="w-full min-w-0"
                         :search-url="null"
                         search-placeholder="Status…"
-                        trigger-class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full">
+                        trigger-class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
                         <option value="" @selected(($statusFilter ?? '') === '')>All</option>
                         <option value="active" @selected(($statusFilter ?? '') === 'active')>Active</option>
                         <option value="inactive" @selected(($statusFilter ?? '') === 'inactive')>Inactive</option>
                     </x-searchable-select>
                 </div>
-                <div class="lg:col-span-3 grid grid-cols-2 gap-3">
-                    <div class="space-y-1.5">
-                        <label class="text-xs font-medium text-muted uppercase tracking-wide">Price min</label>
-                        <input type="number" name="price_min" value="{{ request('price_min') }}" step="0.01" min="0" placeholder="0"
-                               class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full text-sm">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-xs font-medium text-muted uppercase tracking-wide">Price max</label>
-                        <input type="number" name="price_max" value="{{ request('price_max') }}" step="0.01" min="0" placeholder="∞"
-                               class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full text-sm">
-                    </div>
+                <div class="w-[4.75rem] space-y-1 shrink-0">
+                    <label class="text-[10px] font-medium text-muted uppercase tracking-wide">Price min</label>
+                    <input type="number" name="price_min" value="{{ request('price_min') }}" step="0.01" min="0" placeholder="0"
+                           class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
                 </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                <div class="space-y-1.5">
-                    <label class="text-xs font-medium text-muted uppercase tracking-wide">Duration min (min)</label>
+                <div class="w-[4.75rem] space-y-1 shrink-0">
+                    <label class="text-[10px] font-medium text-muted uppercase tracking-wide">Price max</label>
+                    <input type="number" name="price_max" value="{{ request('price_max') }}" step="0.01" min="0" placeholder="∞"
+                           class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
+                </div>
+                <div class="w-[4.75rem] space-y-1 shrink-0">
+                    <label class="text-[10px] font-medium text-muted uppercase tracking-wide" title="Duration minimum (minutes)">Dur. min</label>
                     <input type="number" name="duration_min" value="{{ request('duration_min') }}" min="0" step="1" placeholder="0"
-                           class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full text-sm">
+                           class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
                 </div>
-                <div class="space-y-1.5">
-                    <label class="text-xs font-medium text-muted uppercase tracking-wide">Duration max (min)</label>
+                <div class="w-[4.75rem] space-y-1 shrink-0">
+                    <label class="text-[10px] font-medium text-muted uppercase tracking-wide" title="Duration maximum (minutes)">Dur. max</label>
                     <input type="number" name="duration_max" value="{{ request('duration_max') }}" min="0" step="1" placeholder="∞"
-                           class="form-input rounded-xl border-gray-200 dark:border-gray-600 w-full text-sm">
+                           class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
                 </div>
-                <div class="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-2 lg:justify-end lg:pb-0.5">
-                    <button type="submit" class="btn-primary rounded-xl px-5">Apply filters</button>
+                <div class="flex flex-wrap items-center gap-2 shrink-0 pb-0.5 w-full sm:w-auto xl:ml-0 sm:ml-auto">
+                    <button type="submit" class="btn-primary rounded-lg px-4 py-2 text-sm whitespace-nowrap">Apply filters</button>
                     @if($hasFilters)
-                        <a href="{{ route('services.index') }}" class="btn-outline rounded-xl px-5">Reset</a>
+                        <a href="{{ route('services.index') }}" class="btn-outline rounded-lg px-4 py-2 text-sm whitespace-nowrap">Reset</a>
                     @endif
                 </div>
             </div>

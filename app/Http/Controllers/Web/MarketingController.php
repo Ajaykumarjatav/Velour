@@ -323,7 +323,7 @@ class MarketingController extends Controller
         $data['sort_order']             = (int) LoyaltyTier::where('salon_id', $salon->id)->max('sort_order') + 1;
         LoyaltyTier::create($data);
 
-        return redirect()->route('marketing.growth', ['tab' => 'loyalty'])->with('success', 'Plan added.');
+        return redirect()->route('service-packages.index', ['section' => 'loyalty'])->with('success', 'Loyalty plan added.');
     }
 
     public function updateLoyaltyTier(Request $request, LoyaltyTier $loyaltyTier)
@@ -341,7 +341,7 @@ class MarketingController extends Controller
         $data['service_discount_percent'] = $data['service_discount_percent'] ?? 0;
         $loyaltyTier->update($data);
 
-        return redirect()->route('marketing.growth', ['tab' => 'loyalty'])->with('success', 'Plan updated.');
+        return redirect()->route('service-packages.index', ['section' => 'loyalty'])->with('success', 'Loyalty plan updated.');
     }
 
     public function destroyLoyaltyTier(LoyaltyTier $loyaltyTier)
@@ -349,7 +349,7 @@ class MarketingController extends Controller
         $this->authoriseTier($loyaltyTier);
         $loyaltyTier->delete();
 
-        return redirect()->route('marketing.growth', ['tab' => 'loyalty'])->with('success', 'Plan removed.');
+        return redirect()->route('service-packages.index', ['section' => 'loyalty'])->with('success', 'Loyalty plan removed.');
     }
 
     public function loyaltyTierMembers(LoyaltyTier $loyaltyTier)

@@ -55,7 +55,7 @@
                         <option value="{{ $tier->id }}" {{ (string) old('loyalty_tier_id', $client->loyalty_tier_id) === (string) $tier->id ? 'selected' : '' }}>{{ $tier->name }}</option>
                     @endforeach
                 </x-searchable-select>
-                <p class="form-hint">Used for marketing member counts and optional checkout discounts.</p>
+                <p class="form-hint">Manage plans under <a href="{{ route('service-packages.index', ['section' => 'loyalty']) }}" class="text-velour-600 dark:text-velour-400 font-medium hover:underline">Plans/Packages → Loyalty plans</a>.</p>
             </div>
             @endif
             <div>

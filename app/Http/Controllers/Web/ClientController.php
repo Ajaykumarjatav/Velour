@@ -12,6 +12,7 @@ use App\Models\Review;
 use App\Models\ReviewLink;
 use App\Mail\ClientReviewRequestMail;
 use App\Services\NotificationService;
+use App\Support\ClientEngagement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -58,8 +59,26 @@ class ClientController extends Controller
             });
         }
 
+        $engagementFilter = $request->get('engagement');
+        if ($engagementFilter === 'active') {
+            ClientEngagement::scopeActive($query);
+        } elseif ($engagementFilter === 'inactive') {
+            ClientEngagement::scopeInactive($query);
+        }
+
         $clients = $query->orderBy($sort, $dir)->paginate(25)->withQueryString();
         $clientIds = $clients->getCollection()->pluck('id')->all();
+        $engagementCutoff = ClientEngagement::cutoff();
+        $clientsWithUpcoming = $clientIds === []
+            ? collect()
+            : Appointment::query()
+                ->where('salon_id', $salon->id)
+                ->whereIn('client_id', $clientIds)
+                ->where('starts_at', '>=', now())
+                ->whereNotIn('status', ['cancelled', 'no_show'])
+                ->pluck('client_id')
+                ->map(fn ($id) => (int) $id)
+                ->flip();
         $appointmentsByClient = collect();
         if ($clientIds !== []) {
             $aptMini = Appointment::query()
@@ -88,6 +107,9 @@ class ClientController extends Controller
             );
         }
         $clientTotal = $clientTotalQuery->count();
+        $engagementActiveCount = (clone $clientTotalQuery)->engagementActive()->count();
+        $engagementInactiveCount = (clone $clientTotalQuery)->engagementInactive()->count();
+        $engagementWindowDays = ClientEngagement::activeWindowDays();
         $loyaltyTiers = LoyaltyTier::query()
             ->where('salon_id', $salon->id)
             ->orderByDesc('is_active')
@@ -136,11 +158,17 @@ class ClientController extends Controller
             'sort',
             'dir',
             'clientTotal',
+            'engagementActiveCount',
+            'engagementInactiveCount',
+            'engagementWindowDays',
+            'engagementFilter',
             'loyaltyFilterTier',
             'appointmentsByClient',
             'loyaltyTiers',
             'reviewRequestClients',
-            'isScopedStaffPanel'
+            'isScopedStaffPanel',
+            'engagementCutoff',
+            'clientsWithUpcoming'
         ));
     }
 

@@ -235,9 +235,12 @@
                     @if($tier->service_discount_percent > 0)
                         <p class="text-xs font-semibold text-velour-700 dark:text-velour-300 mt-1">{{ $tier->service_discount_percent }}% off services (at checkout)</p>
                     @endif
-                    <ul class="mt-4 space-y-2 text-sm flex-1">
+                    <ul class="mt-4 space-y-2 text-sm text-body flex-1">
                         @foreach($tier->benefits ?? [] as $line)
-                            <li class="flex gap-2"><span class="text-emerald-600 dark:text-emerald-400">✓</span> {{ $line }}</li>
+                            <li class="flex gap-2 text-gray-700 dark:text-gray-200">
+                                <span class="text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true">✓</span>
+                                <span>{{ $line }}</span>
+                            </li>
                         @endforeach
                     </ul>
                     <div class="flex flex-wrap gap-2 mt-6">

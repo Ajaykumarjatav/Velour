@@ -4,7 +4,7 @@
 @section('content')
 
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-    <a href="{{ route('marketing.growth', ['tab' => 'loyalty']) }}" class="text-sm text-link font-medium">← Back to Marketing</a>
+    <a href="{{ route('service-packages.index', ['section' => 'loyalty']) }}" class="text-sm text-link font-medium">← Back to Loyalty plans</a>
     <a href="{{ route('clients.index', ['loyalty_tier_id' => $loyaltyTier->id]) }}" class="btn-outline btn-sm">Open in Clients list</a>
 </div>
 

@@ -155,7 +155,17 @@ class StaffController extends Controller
         $monthEnd   = $monthStart->copy()->endOfMonth();
         $taxRate    = 0.10;
 
-        $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name')->get();
+        $staffQuery = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name');
+
+        if ($request->filled('staff_id')) {
+            $staffQuery->where('id', (int) $request->query('staff_id'));
+        }
+
+        $staff = $staffQuery->get();
+
+        if ($request->filled('staff_id') && $staff->isEmpty()) {
+            abort(404);
+        }
 
         $revenueByStaff = Appointment::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
@@ -165,7 +175,10 @@ class StaffController extends Controller
             ->groupBy('staff_id')
             ->pluck('rev', 'staff_id');
 
-        $filename = 'payroll-' . $month . '.csv';
+        $staffSlug = $staff->count() === 1
+            ? '-' . \Illuminate\Support\Str::slug($staff->first()->name)
+            : '';
+        $filename = 'payroll-' . $month . $staffSlug . '.csv';
 
         return response()->streamDownload(function () use ($staff, $revenueByStaff, $taxRate) {
             $out = fopen('php://output', 'w');

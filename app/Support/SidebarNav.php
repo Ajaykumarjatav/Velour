@@ -17,7 +17,6 @@ final class SidebarNav
         'calendar',
         'appointments',
         'clients',
-        'facilities',
         'pos',
         'reviews',
         'notifications',
@@ -46,9 +45,7 @@ final class SidebarNav
             'multi_location' => $user->hasAnyRole(['tenant_admin', 'manager']),
             'availability' => $user->hasAnyRole(['tenant_admin', 'manager', 'receptionist']),
             'inventory' => $user->can('inventory.view'),
-            'facilities' => $user->can('facilities.view')
-                || $user->can('facilities.manage')
-                || $user->salons()->exists(),
+            'facilities' => false,
             'pos' => $user->can('pos.view'),
             'revenue' => $user->can('reports.view'),
             'go_live' => $user->hasAnyRole(['tenant_admin', 'manager']),

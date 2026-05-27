@@ -37,6 +37,22 @@ class Client extends Model
     public function scopeVip($q)     { return $q->where('is_vip',true); }
     public function scopeLapsed($q)  { return $q->where('last_visit_at','<',now()->subDays(90)); }
     public function scopeNew($q)     { return $q->where('visit_count',0); }
+
+    /** Visited within engagement window or has an upcoming appointment. */
+    public function scopeEngagementActive($q)  { return \App\Support\ClientEngagement::scopeActive($q); }
+
+    /** No recent visit and no upcoming appointment. */
+    public function scopeEngagementInactive($q) { return \App\Support\ClientEngagement::scopeInactive($q); }
+
+    public function isEngagementActive(): bool
+    {
+        return \App\Support\ClientEngagement::isActive($this);
+    }
+
+    public function engagementStatusLabel(): string
+    {
+        return \App\Support\ClientEngagement::label($this);
+    }
     protected static function newFactory()
     {
         return \Database\Factories\ClientFactory::new();

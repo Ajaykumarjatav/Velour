@@ -25,29 +25,74 @@
 
 @section('content')
 
+<script>
+document.addEventListener('alpine:init', function () {
+    Alpine.data('staffHub', function () {
+        return {
+            payrollOpen: false,
+            payrollStaffId: null,
+            payrollStaffName: '',
+            scheduleOpen: false,
+            menuOpenId: null,
+            scheduleStaff: { id: 0, name: '', working_days: [], start_time: '09:00', end_time: '18:00' },
+            payrollExportUrl: @json(route('staff.payroll.export', ['month' => $monthStart->format('Y-m')])),
+            staffNames: @json($staff->pluck('name', 'id')),
+            openPayroll: function (staffId) {
+                if (staffId == null || staffId === '') {
+                    this.payrollStaffId = null;
+                    this.payrollStaffName = '';
+                } else {
+                    staffId = Number(staffId);
+                    this.payrollStaffId = staffId;
+                    this.payrollStaffName = this.staffNames[staffId] || this.staffNames[String(staffId)] || '';
+                }
+                this.payrollOpen = true;
+                this.menuOpenId = null;
+            },
+            closePayroll: function () {
+                this.payrollOpen = false;
+                this.payrollStaffId = null;
+                this.payrollStaffName = '';
+            },
+            payrollExportHref: function () {
+                if (!this.payrollStaffId) {
+                    return this.payrollExportUrl;
+                }
+                return this.payrollExportUrl + '\u0026staff_id=' + this.payrollStaffId;
+            },
+            openSchedule: function (payload) {
+                var days = payload.working_days && payload.working_days.length
+                    ? payload.working_days.slice()
+                    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+                this.scheduleStaff = {
+                    id: payload.id,
+                    name: payload.name,
+                    working_days: days,
+                    start_time: payload.start_time || '09:00',
+                    end_time: payload.end_time || '18:00',
+                };
+                this.scheduleOpen = true;
+                this.menuOpenId = null;
+            },
+            closeSchedule: function () {
+                this.scheduleOpen = false;
+            },
+            toggleMenu: function (id) {
+                this.menuOpenId = this.menuOpenId === id ? null : id;
+            },
+            escapeClose: function () {
+                this.closePayroll();
+                this.closeSchedule();
+                this.menuOpenId = null;
+            },
+        };
+    });
+});
+</script>
+
 <div class="max-w-7xl mx-auto space-y-6"
-     x-data="{
-        payrollOpen: false,
-        scheduleOpen: false,
-        menuOpenId: null,
-        scheduleStaff: { id: 0, name: '', working_days: [], start_time: '09:00', end_time: '18:00' },
-        openPayroll() { this.payrollOpen = true; this.menuOpenId = null; },
-        closePayroll() { this.payrollOpen = false; },
-        openSchedule(payload) {
-            this.scheduleStaff = {
-                id: payload.id,
-                name: payload.name,
-                working_days: payload.working_days && payload.working_days.length ? [...payload.working_days] : ['Mon','Tue','Wed','Thu','Fri'],
-                start_time: payload.start_time || '09:00',
-                end_time: payload.end_time || '18:00',
-            };
-            this.scheduleOpen = true;
-            this.menuOpenId = null;
-        },
-        closeSchedule() { this.scheduleOpen = false; },
-        toggleMenu(id) { this.menuOpenId = this.menuOpenId === id ? null : id; },
-     }"
-     @keydown.escape.window="payrollOpen = false; scheduleOpen = false; menuOpenId = null">
+     x-data="staffHub()"
+     @keydown.escape.window="escapeClose()">
 
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
@@ -140,7 +185,7 @@
                                 <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View schedule</a>
                                 <a href="{{ route('staff.edit', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Edit</a>
                                 <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Leave &amp; blocks</a>
-                                <button type="button" @click="openPayroll(); menuOpenId = null" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Payroll</button>
+                                <button type="button" @click="openPayroll({{ $member->id }})" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Payroll</button>
                             </div>
                         </div>
                     </div>
@@ -208,7 +253,7 @@
         <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" @click.outside="closePayroll()">
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
                 <div>
-                    <h3 class="text-lg font-serif font-bold text-heading">Payroll summary</h3>
+                    <h3 class="text-lg font-serif font-bold text-heading" x-text="payrollStaffId ? ('Payroll — ' + payrollStaffName) : 'Payroll summary'"></h3>
                     <p class="text-xs text-muted">{{ $monthStart->format('F Y') }} · Est. tax {{ (int) ($taxRate * 100) }}% on base + commission</p>
                 </div>
                 <button type="button" class="text-muted hover:text-heading text-2xl leading-none" @click="closePayroll()">&times;</button>
@@ -227,7 +272,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach($payrollRows as $row)
-                                <tr>
+                                <tr x-show="!payrollStaffId || payrollStaffId === {{ $row['staff']->id }}" x-cloak>
                                     <td class="px-3 py-2 font-medium text-body">{{ $row['staff']->name }}</td>
                                     <td class="px-3 py-2">
                                         <form method="POST" action="{{ route('staff.base-salary', $row['staff']) }}" class="flex flex-wrap items-center gap-1">
@@ -250,7 +295,7 @@
             </div>
             <div class="px-5 py-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap justify-end gap-2 bg-gray-50/80 dark:bg-gray-900/50">
                 <button type="button" class="btn-outline text-sm" @click="closePayroll()">Close</button>
-                <a href="{{ route('staff.payroll.export', ['month' => $monthStart->format('Y-m')]) }}" class="btn-primary text-sm inline-flex items-center gap-2">
+                <a x-bind:href="payrollExportHref()" class="btn-primary text-sm inline-flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     Export payroll
                 </a>

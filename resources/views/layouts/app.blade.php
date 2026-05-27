@@ -22,6 +22,9 @@
             } else {
                 document.documentElement.classList.remove('dark');
             }
+            if (localStorage.getItem('sidebar-collapsed') === '1') {
+                document.documentElement.classList.add('sidebar-is-collapsed');
+            }
         })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -109,11 +112,19 @@
         .nav-icon { @apply w-5 h-5 flex-shrink-0 opacity-90; }
         [x-cloak] { display: none !important; }
 
+        /* ── App shell layout (no transition on load) ── */
+        @media (min-width: 1024px) {
+            .app-shell-main { padding-left: 14rem; }
+            html.sidebar-is-collapsed .app-shell-main { padding-left: 4.5rem; }
+            .app-shell-sidebar { width: 14rem; }
+            html.sidebar-is-collapsed .app-shell-sidebar { width: 4.5rem; }
+        }
+
         /* ── Collapsed sidebar ── */
-        .sidebar-collapsed .sidebar-wrapper {
+        html.sidebar-is-collapsed .sidebar-wrapper {
             align-items: center;
         }
-        .sidebar-collapsed .sidebar-wrapper .sidebar-link {
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link {
             position: relative;
             justify-content: center;
             padding: 0.625rem;
@@ -124,12 +135,12 @@
             font-size: 0;
             gap: 0;
         }
-        .sidebar-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
             width: 1.25rem;
             height: 1.25rem;
             flex-shrink: 0;
         }
-        .sidebar-collapsed .sidebar-wrapper .sidebar-link::after {
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link::after {
             content: attr(data-title);
             position: absolute;
             left: calc(100% + 0.5rem);
@@ -147,34 +158,37 @@
             transition: opacity 0.15s;
             z-index: 100;
         }
-        .dark .sidebar-collapsed .sidebar-wrapper .sidebar-link::after {
+        .dark html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link::after {
             background: rgb(255 255 255 / 0.95);
             color: #111;
         }
-        .sidebar-collapsed .sidebar-wrapper .sidebar-link:hover::after {
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link:hover::after {
             opacity: 1;
         }
-        .sidebar-collapsed .sidebar-wrapper nav {
+        html.sidebar-is-collapsed .sidebar-wrapper nav {
             padding-left: 0.75rem;
             padding-right: 0.75rem;
             align-items: center;
             overflow: visible;
         }
-        .sidebar-collapsed .sidebar-wrapper {
+        html.sidebar-is-collapsed .sidebar-wrapper {
             overflow: visible;
         }
-        .sidebar-collapsed .sidebar-wrapper .nav-section-title {
+        html.sidebar-is-collapsed .sidebar-wrapper .nav-section-title {
             display: none;
         }
-        .sidebar-collapsed .sidebar-text {
+        html.sidebar-is-collapsed .sidebar-text {
             display: none;
         }
-        .sidebar-collapsed .sidebar-wrapper > div:first-child {
+        html.sidebar-is-collapsed .sidebar-wrapper > div:first-child {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
             padding-left: 0;
             padding-right: 0;
         }
-        .sidebar-collapsed .sidebar-logo-icon {
+        html.sidebar-is-collapsed .sidebar-logo-icon {
             display: flex;
         }
         .sidebar-logo-icon {
@@ -191,7 +205,8 @@
         .card {
             @apply bg-white dark:bg-gray-900
                    border border-gray-200 dark:border-gray-800/90
-                   rounded-2xl shadow-sm dark:shadow-none;
+                   rounded-2xl shadow-sm dark:shadow-none
+                   text-gray-700 dark:text-gray-300;
         }
         .card-header {
             @apply px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-800;
@@ -417,13 +432,18 @@
 
 <body class="h-full bg-gray-50 dark:bg-gray-950 transition-colors duration-200"
       x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === '1' }"
-      x-init="$watch('sidebarCollapsed', v => localStorage.setItem('sidebar-collapsed', v ? '1' : '0'))">
+      x-init="
+        document.documentElement.classList.toggle('sidebar-is-collapsed', sidebarCollapsed);
+        $watch('sidebarCollapsed', v => {
+            localStorage.setItem('sidebar-collapsed', v ? '1' : '0');
+            document.documentElement.classList.toggle('sidebar-is-collapsed', v);
+        });
+      ">
 <div class="flex h-full min-h-0">
 
     {{-- Desktop sidebar --}}
-    <aside class="hidden lg:flex lg:flex-col lg:min-h-0 lg:fixed lg:inset-y-0 z-30
-                  bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-200 overflow-visible"
-           :class="[sidebarCollapsed ? 'lg:w-[4.5rem] sidebar-collapsed' : 'lg:w-56']">
+    <aside class="app-shell-sidebar hidden lg:flex lg:flex-col lg:min-h-0 lg:fixed lg:inset-y-0 z-30
+                  bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-visible">
         @include('partials.sidebar')
     </aside>
 
@@ -433,19 +453,13 @@
 
     {{-- Mobile sidebar --}}
     <aside x-show="sidebarOpen" x-cloak
-           x-transition:enter="transition ease-out duration-200"
-           x-transition:enter-start="-translate-x-full"
-           x-transition:enter-end="translate-x-0"
-           x-transition:leave="transition ease-in duration-150"
-           x-transition:leave-end="-translate-x-full"
            class="fixed inset-y-0 left-0 w-56 z-50 lg:hidden flex flex-col min-h-0
                   bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
         @include('partials.sidebar')
     </aside>
 
     {{-- Main — min-w-0 so wide children (tables, POS grids) shrink instead of overflowing under the fixed sidebar --}}
-    <div class="flex-1 flex flex-col min-h-screen min-w-0 transition-all duration-200"
-         :class="sidebarCollapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-56'">
+    <div class="app-shell-main flex-1 flex flex-col min-h-screen min-w-0">
 
         {{-- Top bar --}}
         <header class="sticky top-0 z-20 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
@@ -460,10 +474,12 @@
                     </svg>
                 </button>
                 {{-- Desktop: toggle sidebar --}}
-                <button @click="sidebarCollapsed = !sidebarCollapsed"
-                        class="hidden lg:flex p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0 transition-colors"
-                        title="Toggle sidebar">
-                    <svg class="w-5 h-5 transition-transform duration-200" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <button type="button"
+                        @click="sidebarCollapsed = !sidebarCollapsed"
+                        class="hidden lg:flex p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0 transition-colors"
+                        title="Toggle sidebar"
+                        aria-label="Toggle sidebar">
+                    <svg class="w-4 h-4 transition-transform duration-200" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
                     </svg>
                 </button>
@@ -609,16 +625,14 @@
             </div>
         </header>
 
-        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar) && !session('hide_profile_bar'))
+        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar) && !session('hide_profile_bar') && request()->routeIs('dashboard', 'settings.*'))
         @php
             $profilePct = (int) ($headerProfileCompletion['percentage'] ?? 0);
             $profilePct = max(0, min(100, $profilePct));
-            if ($profilePct >= 100) {
-                $profileToneWrap = 'border-green-200/70 dark:border-green-800/40 bg-green-50/80 dark:bg-green-900/10';
-                $profileToneText = 'text-green-800 dark:text-green-300';
-                $profileTrack = 'bg-green-100 dark:bg-green-900/30';
-                $profileFill = 'bg-green-500 dark:bg-green-400';
-            } elseif ($profilePct >= 75) {
+        @endphp
+        @if($profilePct < 100)
+        @php
+            if ($profilePct >= 75) {
                 $profileToneWrap = 'border-emerald-200/70 dark:border-emerald-800/40 bg-emerald-50/80 dark:bg-emerald-900/10';
                 $profileToneText = 'text-emerald-800 dark:text-emerald-300';
                 $profileTrack = 'bg-emerald-100 dark:bg-emerald-900/30';
@@ -665,6 +679,7 @@
                 </button>
             </div>
         </div>
+        @endif
         @endif
 
         {{-- Page content — extra bottom padding clears fixed chat FAB + toasts --}}

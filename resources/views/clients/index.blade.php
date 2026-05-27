@@ -6,7 +6,34 @@
     $isScopedStaffPanel = auth()->user()?->dashboardScopedStaffId() !== null;
 @endphp
 
-<p class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-3">{{ number_format($clientTotal) }} total clients</p>
+@php
+    $engagementFilter = $engagementFilter ?? null;
+    $engagementWindowDays = $engagementWindowDays ?? 90;
+    $engagementQuery = fn (array $extra = []) => route('clients.index', array_filter(array_merge(
+        request()->only(['search', 'sort', 'dir', 'loyalty_tier_id']),
+        $extra
+    )));
+@endphp
+
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+    <a href="{{ $engagementQuery() }}"
+       class="rounded-2xl border p-4 transition-all {{ ! $engagementFilter ? 'border-velour-400 bg-velour-50/80 dark:bg-velour-950/30 ring-1 ring-velour-200 dark:ring-velour-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-velour-300' }}">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">All clients</p>
+        <p class="mt-1.5 text-2xl font-bold text-heading tabular-nums">{{ number_format($clientTotal) }}</p>
+    </a>
+    <a href="{{ $engagementQuery(['engagement' => 'active']) }}"
+       class="rounded-2xl border p-4 transition-all {{ $engagementFilter === 'active' ? 'border-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/25 ring-1 ring-emerald-200 dark:ring-emerald-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-emerald-300' }}">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Active</p>
+        <p class="mt-1.5 text-2xl font-bold text-heading tabular-nums">{{ number_format($engagementActiveCount ?? 0) }}</p>
+        <p class="mt-1 text-[11px] text-muted leading-snug">Visited in last {{ $engagementWindowDays }} days or has upcoming booking</p>
+    </a>
+    <a href="{{ $engagementQuery(['engagement' => 'inactive']) }}"
+       class="col-span-2 sm:col-span-1 rounded-2xl border p-4 transition-all {{ $engagementFilter === 'inactive' ? 'border-amber-400 bg-amber-50/80 dark:bg-amber-950/25 ring-1 ring-amber-200 dark:ring-amber-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-amber-300' }}">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">Inactive</p>
+        <p class="mt-1.5 text-2xl font-bold text-heading tabular-nums">{{ number_format($engagementInactiveCount ?? 0) }}</p>
+        <p class="mt-1 text-[11px] text-muted leading-snug">No visit in {{ $engagementWindowDays }} days and no upcoming booking</p>
+    </a>
+</div>
 
 @if(!($isScopedStaffPanel ?? false))
 <div class="card p-5 sm:p-6 mb-6 shadow-sm dark:shadow-none" x-data="{ openReviewRequest: false }">
@@ -80,6 +107,9 @@
             @if(request('loyalty_tier_id'))
                 <input type="hidden" name="loyalty_tier_id" value="{{ request('loyalty_tier_id') }}">
             @endif
+            @if($engagementFilter)
+                <input type="hidden" name="engagement" value="{{ $engagementFilter }}">
+            @endif
             <input type="text" name="search" value="{{ $search }}" placeholder="Search name, email or phone…" class="form-input w-full min-w-0 sm:flex-1 sm:min-w-[12rem] xl:max-w-xl">
             <div class="flex w-full sm:w-auto gap-2 shrink-0">
                 <button type="submit" class="btn-secondary flex-1 sm:flex-initial min-w-0">Search</button>
@@ -108,7 +138,20 @@
 
 @php
     $appointmentsMap = isset($appointmentsByClient) ? $appointmentsByClient : collect();
-    $clientRows = $clients->map(function ($c) use ($salon, $appointmentsMap, $isScopedStaffPanel) {
+    $clientRows = $clients->map(function ($c) use ($salon, $appointmentsMap, $isScopedStaffPanel, $engagementCutoff, $clientsWithUpcoming, $engagementWindowDays) {
+        $hasRecentVisit = $c->last_visit_at !== null && $c->last_visit_at->gte($engagementCutoff);
+        $hasUpcoming = ($clientsWithUpcoming ?? collect())->has((int) $c->id);
+        $isEngagementActive = $hasRecentVisit || $hasUpcoming;
+        if ($isEngagementActive) {
+            $statusHint = $hasRecentVisit
+                ? 'Visited within the last '.$engagementWindowDays.' days'
+                : 'Has an upcoming appointment';
+        } elseif ($c->last_visit_at === null) {
+            $statusHint = 'No completed visit yet (outside '.$engagementWindowDays.'-day window)';
+        } else {
+            $statusHint = 'Last visit more than '.$engagementWindowDays.' days ago';
+        }
+
         return [
             'id' => (int) $c->id,
             'name' => trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')),
@@ -125,7 +168,10 @@
             'dob' => $isScopedStaffPanel ? '—' : ($c->date_of_birth ? $c->date_of_birth->format('d M Y') : '—'),
             'gender' => $isScopedStaffPanel ? '—' : ($c->gender ? str_replace('_', ' ', (string) $c->gender) : '—'),
             'address' => $isScopedStaffPanel ? null : $c->address,
-            'status' => $c->status ?: 'active',
+            'status' => $isEngagementActive ? 'Active' : 'Inactive',
+            'status_key' => $isEngagementActive ? 'active' : 'inactive',
+            'status_hint' => $statusHint,
+            'account_status' => $c->status ?: 'active',
             'source' => $c->source ?: '—',
             'is_vip' => (bool) ($c->is_vip ?? false),
             'notes' => $isScopedStaffPanel ? null : $c->notes,
@@ -289,7 +335,7 @@
                             <option :value="tier.id" x-text="tier.name"></option>
                         </template>
                     </select>
-                    <p class="form-hint">Used for marketing member counts and optional checkout discounts.</p>
+                    <p class="form-hint">Manage plans under <a href="{{ route('service-packages.index', ['section' => 'loyalty']) }}" class="text-velour-600 dark:text-velour-400 font-medium hover:underline">Plans/Packages → Loyalty plans</a>.</p>
                 </div>
 
                 <div>
@@ -364,8 +410,15 @@
                         <p class="mt-1 text-body capitalize" x-text="selectedClient().gender"></p>
                     </div>
                     <div>
-                        <p class="text-[11px] uppercase tracking-wide text-muted">Status</p>
-                        <p class="mt-1 text-body capitalize" x-text="selectedClient().status"></p>
+                        <p class="text-[11px] uppercase tracking-wide text-muted">Client activity</p>
+                        <p class="mt-1">
+                            <span class="inline-flex text-xs font-semibold px-2 py-0.5 rounded-full"
+                                  :class="selectedClient().status_key === 'active'
+                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
+                                      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'"
+                                  x-text="selectedClient().status"></span>
+                        </p>
+                        <p class="mt-1 text-[11px] text-muted" x-text="selectedClient().status_hint"></p>
                     </div>
                     <div>
                         <p class="text-[11px] uppercase tracking-wide text-muted">Source</p>

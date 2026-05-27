@@ -85,6 +85,12 @@
                         <option value="{{ $tier->id }}" {{ (string) old('loyalty_tier_id') === (string) $tier->id ? 'selected' : '' }}>{{ $tier->name }}</option>
                     @endforeach
                 </x-searchable-select>
+                <p class="form-hint">Manage plans under <a href="{{ route('service-packages.index', ['section' => 'loyalty']) }}" class="text-velour-600 dark:text-velour-400 font-medium hover:underline">Plans/Packages → Loyalty plans</a>.</p>
+            </div>
+            @else
+            <div class="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 px-4 py-3 text-sm text-muted">
+                No loyalty plans yet.
+                <a href="{{ route('service-packages.index', ['section' => 'loyalty']) }}" class="text-velour-600 dark:text-velour-400 font-medium hover:underline">Create one in Plans/Packages</a>.
             </div>
             @endif
             <div>

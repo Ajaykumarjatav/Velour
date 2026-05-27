@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Web;
 use App\Helpers\CurrencyHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
+use App\Models\Client;
+use App\Models\LoyaltyTier;
 use App\Models\Service;
 use App\Models\ServicePackage;
 use Illuminate\Http\Request;
@@ -21,7 +23,7 @@ class ServicePackageController extends Controller
         return $this->activeSalon();
     }
 
-    public function index()
+    public function index(Request $request)
     {
         Gate::authorize('viewAny', ServicePackage::class);
 
@@ -41,7 +43,21 @@ class ServicePackageController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('service-packages.index', compact('salon', 'packages'));
+        $section = $request->get('section') === 'loyalty' ? 'loyalty' : 'packages';
+
+        $loyaltyTiers = LoyaltyTier::where('salon_id', $salon->id)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        foreach ($loyaltyTiers as $tier) {
+            $tier->member_count = Client::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('loyalty_tier_id', $tier->id)
+                ->count();
+        }
+
+        return view('service-packages.index', compact('salon', 'packages', 'section', 'loyaltyTiers'));
     }
 
     public function create()

@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Edit service package')
-@section('page-title', 'Edit service package')
+@section('title', 'Edit package')
+@section('page-title', 'Plans/Packages — Edit')
 @section('content')
 
 <div class="max-w-4xl">
