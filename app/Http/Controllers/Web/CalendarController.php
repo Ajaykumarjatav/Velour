@@ -94,6 +94,10 @@ class CalendarController extends Controller
                     'staff_id'         => $a->staff_id,
                     'staff_color'      => $a->staff?->color ?: '#7C3AED',
                     'reference'        => $a->reference,
+                    'source'           => $a->source ?? 'manual',
+                    'source_label'     => Appointment::sourceLabel($a->source),
+                    'source_icon'      => $this->appointmentSourceIcon($a),
+                    'is_referral'      => (bool) $a->client?->referred_by_client_id,
                     'url'              => route('appointments.show', $a->id),
                     'color'            => $this->statusColor($a->status),
                     'services_label'   => $a->services->pluck('service_name')->filter()->implode(', ') ?: 'Appointment',
@@ -121,7 +125,9 @@ class CalendarController extends Controller
         [$hourStart, $hourEnd] = $this->resolveHourBounds($salon, $selectedStaff);
         $availabilityByDate = $this->buildAvailabilityByDate($start, $end, $salon, $selectedStaff, $tz);
 
-        $staffSidebarGrid = in_array($view, ['week', 'day', 'month'], true)
+        $staffPage = max(1, (int) $request->get('staff_page', 1));
+
+        $staffSidebarGrid = in_array($view, ['week', 'month'], true)
             ? $this->buildStaffSidebarGrid(
                 $staff,
                 $appointments,
@@ -132,6 +138,21 @@ class CalendarController extends Controller
                 $availabilityByDate,
                 $view,
                 $view === 'month' ? $date : null
+            )
+            : null;
+
+        $dayScheduleGrid = $view === 'day'
+            ? $this->buildDayScheduleGrid(
+                $staff,
+                $appointments,
+                $start,
+                $tz,
+                $filterStaffId,
+                $availabilityByDate,
+                $hourStart,
+                $hourEnd,
+                $staffPage,
+                $salon
             )
             : null;
 
@@ -147,8 +168,221 @@ class CalendarController extends Controller
             'appointments', 'start', 'end', 'filterStaffId', 'staff',
             'salonTz', 'salonTodayYmd', 'tzAbbrev', 'hourStart', 'hourEnd',
             'availabilityByDate', 'selectedStaff', 'customRangeActive',
-            'rangeFromYmd', 'rangeToYmd', 'rangeSpanDays', 'staffSidebarGrid'
+            'rangeFromYmd', 'rangeToYmd', 'rangeSpanDays', 'staffSidebarGrid',
+            'dayScheduleGrid', 'staffPage'
         ));
+    }
+
+    /**
+     * Day view: staff as columns with a vertical time axis (Fresha-style schedule).
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection<int, Staff>  $staff
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $appointments
+     */
+    private function buildDayScheduleGrid(
+        $staff,
+        $appointments,
+        Carbon $date,
+        string $tz,
+        ?int $filterStaffId,
+        array $availabilityByDate,
+        int $hourStart,
+        int $hourEnd,
+        int $staffPage,
+        $salon
+    ): array {
+        $sidebar = $this->buildStaffSidebarGrid(
+            $staff,
+            $appointments,
+            $date,
+            $date->copy()->endOfDay(),
+            $tz,
+            $filterStaffId,
+            $availabilityByDate,
+            'day',
+            null
+        );
+
+        $ymd = $date->toDateString();
+        $dayMeta = $sidebar['days'][0] ?? null;
+        $slotMinutes = 30;
+        $slotHeightPx = 52;
+        $pxPerMinute = $slotHeightPx / $slotMinutes;
+
+        $gridHourStart = $hourStart;
+        $gridHourEnd = $hourEnd;
+
+        foreach ($appointments as $a) {
+            $startsLocal = Carbon::parse($a['start'])->timezone($tz);
+            $endsLocal = Carbon::parse($a['end'])->timezone($tz);
+            if ($startsLocal->toDateString() !== $ymd) {
+                continue;
+            }
+            $gridHourStart = min($gridHourStart, (int) $startsLocal->format('G'));
+            $gridHourEnd = max($gridHourEnd, (int) $endsLocal->format('G') + ($endsLocal->minute > 0 ? 1 : 0));
+        }
+
+        $gridHourStart = max(0, min(22, $gridHourStart));
+        $gridHourEnd = max($gridHourStart + 1, min(23, $gridHourEnd));
+
+        $dayStartMinutes = $gridHourStart * 60;
+        $totalMinutes = ($gridHourEnd - $gridHourStart) * 60;
+        $gridHeightPx = (int) round($totalMinutes * $pxPerMinute);
+
+        $timeSlots = [];
+        for ($offset = 0; $offset < $totalMinutes; $offset += $slotMinutes) {
+            $absolute = $dayStartMinutes + $offset;
+            $hour = intdiv($absolute, 60);
+            $minute = $absolute % 60;
+            $at = Carbon::createFromTime($hour, $minute, 0, $tz);
+            $timeSlots[] = [
+                'top_px'  => (int) round($offset * $pxPerMinute),
+                'label'   => strtolower($at->format('g:ia')),
+                'is_minor' => false,
+            ];
+            for ($minor = 10; $minor < $slotMinutes; $minor += 10) {
+                $timeSlots[] = [
+                    'top_px'   => (int) round(($offset + $minor) * $pxPerMinute),
+                    'label'    => (string) $minor,
+                    'is_minor' => true,
+                ];
+            }
+        }
+        $timeSlots[] = [
+            'top_px'  => (int) round($totalMinutes * $pxPerMinute),
+            'label'   => strtolower(Carbon::createFromTime($gridHourEnd, 0, 0, $tz)->format('g:ia')),
+            'is_minor' => false,
+        ];
+
+        $perPage = 7;
+        $allRows = $sidebar['rows'];
+        $staffTotal = count($allRows);
+        $lastPage = max(1, (int) ceil($staffTotal / $perPage));
+        $staffPage = min($staffPage, $lastPage);
+        $pageRows = array_slice($allRows, ($staffPage - 1) * $perPage, $perPage);
+
+        $dayAvail = $availabilityByDate[$ymd] ?? [];
+        $columns = [];
+        foreach ($pageRows as $row) {
+            $cell = $row['cells'][$ymd] ?? ['blocks' => [], 'blocked' => false, 'create_url' => '#'];
+            $positioned = [];
+            $bookedSlots = 0;
+            $staffMember = $row['id'] ? $staff->firstWhere('id', $row['id']) : null;
+            $totalSlots = $this->daySlotCountForStaff($staffMember, $date, $dayAvail, $slotMinutes, $salon);
+
+            foreach ($cell['blocks'] as $block) {
+                $startsLocal = Carbon::parse($block['start'])->timezone($tz);
+                $endsLocal = Carbon::parse($block['end'])->timezone($tz);
+                $startMin = ($startsLocal->hour * 60 + $startsLocal->minute) - $dayStartMinutes;
+                $durMin = max(15, (int) ($block['duration_minutes'] ?? 60));
+                $clientName = trim((string) ($block['title'] ?? ''));
+                if ($clientName === '') {
+                    $clientName = 'Walk-in';
+                }
+
+                $bookedSlots += max(1, (int) ceil($durMin / $slotMinutes));
+
+                $positioned[] = array_merge($block, [
+                    'top_px'           => max(0, (int) round($startMin * $pxPerMinute)),
+                    'height_px'        => max(32, (int) round($durMin * $pxPerMinute) - 4),
+                    'client_name'      => $clientName,
+                    'time_range_label' => strtolower($startsLocal->format('g:ia')) . ' - ' . strtolower($endsLocal->format('g:ia')),
+                    'status_color'     => $block['color'] ?? '#6B7280',
+                    'source_icon'      => $block['source_icon'] ?? 'desk',
+                    'source_label'     => $block['source_label'] ?? 'Manual',
+                ]);
+            }
+
+            $columns[] = [
+                'id'          => $row['id'],
+                'name'        => $row['name'],
+                'initials'    => $row['initials'],
+                'avatar_url'  => $row['avatar_url'],
+                'color'       => $row['color'],
+                'role'        => $row['role'],
+                'date_label'  => $dayMeta ? ($dayMeta['label'] . ' ' . $dayMeta['day_num']) : $date->format('D j'),
+                'booked_slots' => $bookedSlots,
+                'total_slots'  => $totalSlots,
+                'slots_label'  => $totalSlots > 0 ? "{$bookedSlots}/{$totalSlots}" : (string) $bookedSlots,
+                'blocks'      => $positioned,
+                'blocked'     => (bool) ($cell['blocked'] ?? false),
+                'create_url'  => $cell['create_url'] ?? '#',
+            ];
+        }
+
+        return [
+            'ymd'            => $ymd,
+            'date_label'     => $date->format('l, j F Y'),
+            'is_today'       => ($dayMeta['is_today'] ?? false),
+            'hour_start'     => $gridHourStart,
+            'hour_end'       => $gridHourEnd,
+            'slot_height_px' => $slotHeightPx,
+            'grid_height_px' => $gridHeightPx,
+            'time_slots'     => $timeSlots,
+            'staff_columns'  => $columns,
+            'staff_page'     => $staffPage,
+            'staff_per_page' => $perPage,
+            'staff_total'    => $staffTotal,
+            'staff_last_page' => $lastPage,
+            'staff_range_label' => $this->dayStaffRangeLabel($staffPage, $perPage, $staffTotal),
+        ];
+    }
+
+    private function dayStaffRangeLabel(int $page, int $perPage, int $total): string
+    {
+        if ($total === 0) {
+            return '0';
+        }
+        $from = (($page - 1) * $perPage) + 1;
+        $to = min($total, $page * $perPage);
+
+        return "{$from} - {$to}";
+    }
+
+    private function appointmentSourceIcon(Appointment $appointment): string
+    {
+        if ($appointment->client?->referred_by_client_id) {
+            return 'reference';
+        }
+
+        return match ($appointment->source) {
+            'walk_in' => 'walk_in',
+            'phone' => 'phone',
+            'online', 'website_embed', 'qr_code', 'google', 'instagram', 'facebook', 'whatsapp' => 'online',
+            default => 'desk',
+        };
+    }
+
+    private function daySlotCountForStaff(?Staff $staff, Carbon $date, array $dayMeta, int $slotMinutes, $salon): int
+    {
+        if (! ($dayMeta['salon_open'] ?? true)) {
+            return 0;
+        }
+
+        if ($staff) {
+            $workingDays = is_array($staff->working_days) ? $staff->working_days : [];
+            if ($workingDays !== [] && ! in_array($date->format('D'), $workingDays, true)) {
+                return 0;
+            }
+            $startHour = (int) substr((string) ($staff->start_time ?? '09:00'), 0, 2);
+            $endHour = (int) substr((string) ($staff->end_time ?? '18:00'), 0, 2);
+        } else {
+            $startHour = (int) ($dayMeta['shop_start'] ?? 9);
+            $endHour = (int) ($dayMeta['shop_end'] ?? 18);
+        }
+
+        $weekdayKey = strtolower($date->format('l'));
+        $dayCfg = $salon->openingHoursForWeekdayKey($weekdayKey);
+        if (is_array($dayCfg) && ! empty($dayCfg['open'])) {
+            $shopStart = (int) substr((string) ($dayCfg['from'] ?? $dayCfg['start'] ?? '09:00'), 0, 2);
+            $shopEnd = (int) substr((string) ($dayCfg['to'] ?? $dayCfg['end'] ?? '18:00'), 0, 2);
+            $startHour = max($startHour, $shopStart);
+            $endHour = min($endHour, $shopEnd);
+        }
+
+        $minutes = max(0, ($endHour - $startHour) * 60);
+
+        return (int) max(0, floor($minutes / max(1, $slotMinutes)));
     }
 
     /**

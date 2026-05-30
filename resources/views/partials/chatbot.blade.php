@@ -201,23 +201,6 @@
             </p>
         </div>
     </div>
-
-    {{-- FAB --}}
-    <button @click="open=!open"
-            class="w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all bg-velour-600 hover:bg-velour-700 text-white relative">
-        <svg x-show="!open" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-        </svg>
-        <svg x-show="open" x-cloak class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-        <span x-show="unread&&!open"
-              class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-950"></span>
-        {{-- Mic active indicator on FAB --}}
-        <span x-show="listening"
-              class="absolute inset-0 rounded-full border-2 border-red-400 animate-ping pointer-events-none"></span>
-    </button>
 </div>
 
 @push('scripts')
@@ -247,6 +230,11 @@ function chatbot() {
                 if (v) { this.unread = false; this.$nextTick(() => this.scrollBottom()); }
                 else   { this.stopListening(); this.stopSpeaking(); }
             });
+            this.$watch('unread', u => {
+                window.dispatchEvent(new CustomEvent('velour-chat-unread', { detail: !!u }));
+            });
+            this._onVelourChatOpen = () => { this.open = true; };
+            window.addEventListener('velour-chat-open', this._onVelourChatOpen);
         },
 
         // ── text send ──────────────────────────────────────────────────────────

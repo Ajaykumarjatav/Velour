@@ -148,7 +148,9 @@
 </div>
 
 <div class="card overflow-hidden">
-    @if(in_array($view, ['week', 'day', 'month'], true))
+    @if($view === 'day' && !empty($dayScheduleGrid))
+        @include('calendar.partials.day-schedule-grid')
+    @elseif(in_array($view, ['week', 'month'], true))
         @include('calendar.partials.staff-sidebar-grid')
     @endif
 </div>

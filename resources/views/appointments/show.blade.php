@@ -4,6 +4,10 @@
 @section('content')
 @php
     $isScopedStaffPanel = auth()->user()?->dashboardScopedStaffId() !== null;
+    $balanceDue = $appointment->balance_due;
+    $isCompleted = $appointment->status === 'completed';
+    $isPartialPayment = $appointment->payment_status === \App\Models\Appointment::PAYMENT_PARTIAL
+        || ($balanceDue > 0 && (float) $appointment->amount_paid > 0);
 @endphp
 
 <div class="max-w-2xl space-y-5">
@@ -68,6 +72,16 @@
                 <p class="font-bold text-heading text-base">@money($appointment->total_price)</p>
             </div>
             <div>
+                <p class="stat-label mb-1">{{ $isPartialPayment ? 'Partial paid' : 'Amount paid' }}</p>
+                <p class="font-semibold text-heading">@money($appointment->amount_paid)</p>
+            </div>
+            <div>
+                <p class="stat-label mb-1">Balance due</p>
+                <p class="font-semibold {{ $balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-heading' }}">
+                    @if($balanceDue > 0)@money($balanceDue)@else—@endif
+                </p>
+            </div>
+            <div>
                 <p class="stat-label mb-1">Source of booking</p>
                 <p class="font-semibold text-heading">{{ \App\Models\Appointment::sourceLabel($appointment->source) }}</p>
             </div>
@@ -101,26 +115,54 @@
             </div>
             @endif
         </div>
+
+        @if($isCompleted)
+        <div class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
+            <a href="{{ route('appointments.invoice.pdf', $appointment) }}" target="_blank" rel="noopener" class="btn-primary text-sm">
+                Generate invoice (PDF)
+            </a>
+            <a href="{{ route('appointments.invoice.show', $appointment) }}" class="btn-outline text-sm">
+                Email / WhatsApp invoice
+            </a>
+        </div>
+        @elseif($appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID && in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress'], true))
+        <div class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800">
+            <a href="{{ route('pos.create', ['appointment' => $appointment->id]) }}" class="btn-primary text-sm inline-flex items-center gap-1.5">
+                Collect payment &amp; invoice
+            </a>
+        </div>
+        @endif
     </div>
 
     {{-- Services --}}
     <div class="table-wrap">
         <h3 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Services</h3>
         <div class="divide-y divide-gray-100 dark:divide-gray-800">
-            @foreach($appointment->services as $svc)
+            @foreach($displayServiceLines as $line)
             <div class="flex items-center justify-between px-6 py-3.5 gap-3">
                 <div class="min-w-0">
-                    <p class="font-medium text-heading">{{ $svc->service_name }}</p>
-                    <p class="text-xs text-muted">{{ $svc->duration_minutes }} min</p>
-                    @if(! empty($svc->line_meta['variant']) || ! empty($svc->line_meta['addons']))
+                    <p class="font-medium text-heading">
+                        {{ $line['name'] }}
+                        @if($line['source'] === 'pos')
+                            <span class="ml-1.5 text-[10px] font-semibold uppercase text-velour-600 dark:text-velour-400">Added at POS</span>
+                        @endif
+                    </p>
+                    <p class="text-xs text-muted">
+                        @if($line['duration'])
+                            {{ $line['duration'] }} min
+                        @else
+                            —
+                        @endif
+                    </p>
+                    @if(! empty($line['line_meta']['variant']) || ! empty($line['line_meta']['addons']))
                         <p class="text-[11px] text-muted mt-1">
-                            @if(! empty($svc->line_meta['variant']))
-                                <span>Variant: {{ $svc->line_meta['variant'] }}</span>
+                            @if(! empty($line['line_meta']['variant']))
+                                <span>Variant: {{ $line['line_meta']['variant'] }}</span>
                             @endif
-                            @if(! empty($svc->line_meta['addons']))
-                                @if(! empty($svc->line_meta['variant'])) · @endif
+                            @if(! empty($line['line_meta']['addons']))
+                                @if(! empty($line['line_meta']['variant'])) · @endif
                                 <span>Add-ons:
-                                    @foreach($svc->line_meta['addons'] as $ad)
+                                    @foreach($line['line_meta']['addons'] as $ad)
                                         {{ $ad['name'] ?? '' }}@if(!$loop->last), @endif
                                     @endforeach
                                 </span>
@@ -128,7 +170,7 @@
                         </p>
                     @endif
                 </div>
-                <p class="font-semibold text-heading shrink-0">@money($svc->price)</p>
+                <p class="font-semibold text-heading shrink-0">@money($line['price'])</p>
             </div>
             @endforeach
         </div>

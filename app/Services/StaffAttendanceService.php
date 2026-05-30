@@ -17,27 +17,84 @@ class StaffAttendanceService
 
     /**
      * @param  Collection<int, Staff>  $staff
-     * @return array{week_start: string, week_end: string, days: list<array{ymd: string, label: string, dow: string, is_today: bool}>, rows: list<array<string, mixed>>}
+     * @return array{
+     *     period: string,
+     *     range_start: string,
+     *     range_end: string,
+     *     days: list<array<string, mixed>>,
+     *     rows: list<array{staff: Staff, cells: array<string, mixed>}>
+     * }
      */
+    public function buildAttendanceGrid(
+        Salon $salon,
+        string $period,
+        Carbon $anchor,
+        Collection $staff,
+        ?int $filterStaffId = null
+    ): array {
+        if ($filterStaffId) {
+            $staff = $staff->where('id', $filterStaffId)->values();
+        }
+
+        return match ($period) {
+            'month' => $this->buildDailyRangeGrid(
+                $salon,
+                $anchor->copy()->startOfMonth()->startOfDay(),
+                $anchor->copy()->endOfMonth()->startOfDay(),
+                $staff,
+                'month'
+            ),
+            'year' => $this->buildYearGrid($salon, $anchor->copy()->startOfYear(), $staff),
+            default => $this->buildDailyRangeGrid(
+                $salon,
+                $anchor->copy()->startOfWeek(Carbon::MONDAY)->startOfDay(),
+                $anchor->copy()->startOfWeek(Carbon::MONDAY)->addDays(6)->startOfDay(),
+                $staff,
+                'week'
+            ),
+        };
+    }
+
+    /** @deprecated Use buildAttendanceGrid() */
     public function buildWeekGrid(Salon $salon, Carbon $weekAnchor, Collection $staff): array
     {
-        $weekStart = $weekAnchor->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
-        $weekEnd = $weekStart->copy()->addDays(6)->endOfDay();
+        $grid = $this->buildAttendanceGrid($salon, 'week', $weekAnchor, $staff);
 
+        return [
+            'week_start' => $grid['range_start'],
+            'week_end'   => $grid['range_end'],
+            'days'       => $grid['days'],
+            'rows'       => $grid['rows'],
+        ];
+    }
+
+    /**
+     * @param  Collection<int, Staff>  $staff
+     * @return array{period: string, range_start: string, range_end: string, days: list<array<string, mixed>>, rows: list<array{staff: Staff, cells: array<string, mixed>}>}
+     */
+    private function buildDailyRangeGrid(
+        Salon $salon,
+        Carbon $rangeStart,
+        Carbon $rangeEnd,
+        Collection $staff,
+        string $period
+    ): array {
         $days = [];
-        for ($i = 0; $i < 7; $i++) {
-            $d = $weekStart->copy()->addDays($i);
+        $d = $rangeStart->copy();
+        while ($d->lte($rangeEnd)) {
             $days[] = [
                 'ymd'      => $d->toDateString(),
-                'label'    => $d->format('D j'),
+                'label'    => $period === 'month' ? $d->format('j') : $d->format('D j'),
                 'dow'      => $d->format('D'),
                 'is_today' => $d->isToday(),
+                'compact'  => $period === 'month',
             ];
+            $d->addDay();
         }
 
         $records = StaffAttendanceRecord::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
-            ->whereBetween('attendance_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->whereBetween('attendance_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
             ->get()
             ->keyBy(fn (StaffAttendanceRecord $r) => $r->staff_id . '|' . $r->attendance_date->toDateString());
 
@@ -47,18 +104,216 @@ class StaffAttendanceService
                 $cells[$day['ymd']] = $this->resolveCell($salon, $member, $day['ymd'], $records);
             }
 
-            return [
-                'staff' => $member,
-                'cells' => $cells,
-            ];
+            return ['staff' => $member, 'cells' => $cells];
         })->values()->all();
 
         return [
-            'week_start' => $weekStart->toDateString(),
-            'week_end'   => $weekEnd->toDateString(),
-            'days'       => $days,
-            'rows'       => $rows,
+            'period'      => $period,
+            'range_start' => $rangeStart->toDateString(),
+            'range_end'   => $rangeEnd->toDateString(),
+            'days'        => $days,
+            'rows'        => $rows,
         ];
+    }
+
+    /**
+     * @param  Collection<int, Staff>  $staff
+     * @return array{period: string, range_start: string, range_end: string, days: list<array<string, mixed>>, rows: list<array{staff: Staff, cells: array<string, mixed>}>}
+     */
+    private function buildYearGrid(Salon $salon, Carbon $yearStart, Collection $staff): array
+    {
+        $year = (int) $yearStart->format('Y');
+        $rangeStart = $yearStart->copy()->startOfYear();
+        $rangeEnd = $yearStart->copy()->endOfYear();
+
+        $days = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $monthStart = Carbon::create($year, $m, 1)->startOfMonth();
+            $days[] = [
+                'ymd'         => $monthStart->toDateString(),
+                'month_key'   => $monthStart->format('Y-m'),
+                'label'       => $monthStart->format('M'),
+                'is_today'    => now()->format('Y-m') === $monthStart->format('Y-m'),
+                'is_summary'  => true,
+            ];
+        }
+
+        $records = StaffAttendanceRecord::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereBetween('attendance_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+            ->get();
+
+        $rows = $staff->map(function (Staff $member) use ($salon, $days, $records, $year) {
+            $cells = [];
+            foreach ($days as $day) {
+                $cells[$day['month_key']] = $this->resolveYearMonthCell(
+                    $salon,
+                    $member,
+                    $year,
+                    (int) Carbon::parse($day['ymd'])->format('n'),
+                    $records->where('staff_id', $member->id)
+                );
+            }
+
+            return ['staff' => $member, 'cells' => $cells];
+        })->values()->all();
+
+        return [
+            'period'      => 'year',
+            'range_start' => $rangeStart->toDateString(),
+            'range_end'   => $rangeEnd->toDateString(),
+            'days'        => $days,
+            'rows'        => $rows,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, StaffAttendanceRecord>  $staffRecords
+     * @return array<string, mixed>
+     */
+    private function resolveYearMonthCell(
+        Salon $salon,
+        Staff $staff,
+        int $year,
+        int $month,
+        Collection $staffRecords
+    ): array {
+        $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $counts = [
+            'present'  => 0,
+            'absent'   => 0,
+            'late'     => 0,
+            'half_day' => 0,
+            'on_leave' => 0,
+            'day_off'  => 0,
+            'unset'    => 0,
+        ];
+
+        $d = $monthStart->copy();
+        while ($d->lte($monthEnd)) {
+            $ymd = $d->toDateString();
+            $subset = $staffRecords->filter(
+                fn (StaffAttendanceRecord $r) => $r->attendance_date->toDateString() === $ymd
+            )->keyBy(fn (StaffAttendanceRecord $r) => $r->staff_id . '|' . $r->attendance_date->toDateString());
+
+            $cell = $this->resolveCell($salon, $staff, $ymd, $subset);
+            $status = $cell['status'] ?? 'unset';
+            if ($status === null) {
+                $counts['unset']++;
+            } elseif (isset($counts[$status])) {
+                $counts[$status]++;
+            }
+            $d->addDay();
+        }
+
+        $parts = [];
+        foreach (['present' => 'P', 'absent' => 'A', 'late' => 'L', 'half_day' => '½', 'on_leave' => 'Lv'] as $key => $short) {
+            if ($counts[$key] > 0) {
+                $parts[] = "{$short}:{$counts[$key]}";
+            }
+        }
+
+        return [
+            'status'    => 'summary',
+            'label'     => $parts !== [] ? implode(' ', $parts) : '—',
+            'readonly'  => true,
+            'scheduled' => true,
+            'on_leave'  => false,
+            'counts'    => $counts,
+            'clock_in'  => null,
+            'clock_out' => null,
+        ];
+    }
+
+    /**
+     * Daily rows for CSV export.
+     *
+     * @return list<array{staff_name: string, date: string, day: string, status: string, clock_in: string, clock_out: string, notes: string}>
+     */
+    public function buildAttendanceExportRows(
+        Salon $salon,
+        Carbon $rangeStart,
+        Carbon $rangeEnd,
+        Collection $staff,
+        ?int $filterStaffId = null
+    ): array {
+        if ($filterStaffId) {
+            $staff = $staff->where('id', $filterStaffId)->values();
+        }
+
+        $records = StaffAttendanceRecord::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereBetween('attendance_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+            ->when($filterStaffId, fn ($q) => $q->where('staff_id', $filterStaffId))
+            ->get()
+            ->keyBy(fn (StaffAttendanceRecord $r) => $r->staff_id . '|' . $r->attendance_date->toDateString());
+
+        $out = [];
+        $d = $rangeStart->copy();
+        while ($d->lte($rangeEnd)) {
+            $ymd = $d->toDateString();
+            foreach ($staff as $member) {
+                $cell = $this->resolveCell($salon, $member, $ymd, $records);
+                $record = $records->get($member->id . '|' . $ymd);
+                $out[] = [
+                    'staff_name' => $member->name ?? trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                    'date'       => $ymd,
+                    'day'        => $d->format('l'),
+                    'status'     => $this->exportStatusLabel($cell, $record),
+                    'clock_in'   => $cell['clock_in'] ?? '',
+                    'clock_out'  => $cell['clock_out'] ?? '',
+                    'notes'      => $record?->notes ?? '',
+                ];
+            }
+            $d->addDay();
+        }
+
+        return $out;
+    }
+
+    /**
+     * Plain ASCII status text for CSV (avoids em-dash mojibake in Excel).
+     *
+     * @param  array<string, mixed>  $cell
+     */
+    public function exportStatusLabel(array $cell, ?StaffAttendanceRecord $record): string
+    {
+        if ($record && in_array($record->status, StaffAttendanceRecord::STATUSES, true)) {
+            return StaffAttendanceRecord::statusLabel($record->status);
+        }
+
+        $status = $cell['status'] ?? null;
+
+        return match ($status) {
+            'day_off' => 'Day off',
+            'on_leave' => 'On leave',
+            'present' => 'Present',
+            'absent' => 'Absent',
+            'late' => 'Late',
+            'half_day' => 'Half day',
+            null => ($cell['scheduled'] ?? true) ? 'Not marked' : 'Day off',
+            default => StaffAttendanceRecord::statusLabel((string) $status),
+        };
+    }
+
+    public function resolveExportDateRange(string $period, Carbon $anchor): array
+    {
+        return match ($period) {
+            'month' => [
+                $anchor->copy()->startOfMonth()->startOfDay(),
+                $anchor->copy()->endOfMonth()->startOfDay(),
+            ],
+            'year' => [
+                $anchor->copy()->startOfYear()->startOfDay(),
+                $anchor->copy()->endOfYear()->startOfDay(),
+            ],
+            default => [
+                $anchor->copy()->startOfWeek(Carbon::MONDAY)->startOfDay(),
+                $anchor->copy()->startOfWeek(Carbon::MONDAY)->addDays(6)->startOfDay(),
+            ],
+        };
     }
 
     /**

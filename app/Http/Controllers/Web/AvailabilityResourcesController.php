@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AvailabilityResourcesController extends Controller
 {
@@ -76,20 +77,50 @@ class AvailabilityResourcesController extends Controller
         $attendanceGrid = null;
         $attendanceWeek = null;
         $attendanceState = null;
+        $attendancePeriod = 'week';
+        $attendanceStaffId = $request->filled('staff_id') ? (int) $request->query('staff_id') : null;
+        $attendanceAnchor = now();
         if ($tab === 'attendance') {
-            $weekInput = $request->query('week', now()->toDateString());
-            try {
-                $attendanceWeek = Carbon::parse($weekInput)->startOfWeek(Carbon::MONDAY);
-            } catch (\Throwable) {
-                $attendanceWeek = now()->startOfWeek(Carbon::MONDAY);
+            $attendancePeriod = in_array($request->query('period'), ['week', 'month', 'year'], true)
+                ? $request->query('period')
+                : 'week';
+
+            if ($attendanceStaffId && ! $staff->contains('id', $attendanceStaffId)) {
+                $attendanceStaffId = null;
             }
-            $attendanceGrid = $this->attendanceService->buildWeekGrid($salon, $attendanceWeek, $staff);
+
+            try {
+                $attendanceAnchor = match ($attendancePeriod) {
+                    'month' => Carbon::parse($request->query('month', now()->format('Y-m')) . '-01'),
+                    'year' => Carbon::parse($request->query('year', now()->format('Y')) . '-01-01'),
+                    default => Carbon::parse($request->query('week', now()->toDateString())),
+                };
+            } catch (\Throwable) {
+                $attendanceAnchor = now();
+            }
+
+            if ($attendancePeriod === 'week') {
+                $attendanceAnchor = $attendanceAnchor->copy()->startOfWeek(Carbon::MONDAY);
+                $attendanceWeek = $attendanceAnchor->copy();
+            }
+
+            $attendanceGrid = $this->attendanceService->buildAttendanceGrid(
+                $salon,
+                $attendancePeriod,
+                $attendanceAnchor,
+                $staff,
+                $attendanceStaffId
+            );
+
             $attendanceState = [
-                'days'       => $attendanceGrid['days'],
-                'week_start' => $attendanceGrid['week_start'],
-                'week_end'   => $attendanceGrid['week_end'],
-                'today'      => now()->toDateString(),
-                'rows'       => collect($attendanceGrid['rows'])->map(fn (array $row) => [
+                'period'      => $attendanceGrid['period'],
+                'days'        => $attendanceGrid['days'],
+                'week_start'  => $attendanceGrid['range_start'],
+                'week_end'    => $attendanceGrid['range_end'],
+                'range_start' => $attendanceGrid['range_start'],
+                'range_end'   => $attendanceGrid['range_end'],
+                'today'       => now()->toDateString(),
+                'rows'        => collect($attendanceGrid['rows'])->map(fn (array $row) => [
                     'staff_id'   => $row['staff']->id,
                     'staff_name' => $row['staff']->name,
                     'avatar_url' => $row['staff']->avatar_url,
@@ -109,8 +140,78 @@ class AvailabilityResourcesController extends Controller
             'staffQuickCreateServicesByRole',
             'attendanceGrid',
             'attendanceWeek',
-            'attendanceState'
+            'attendanceState',
+            'attendancePeriod',
+            'attendanceStaffId',
+            'attendanceAnchor'
         ));
+    }
+
+    public function exportAttendance(Request $request): StreamedResponse
+    {
+        $salon = $this->salon();
+        $period = in_array($request->query('period'), ['week', 'month', 'year'], true)
+            ? $request->query('period')
+            : 'week';
+
+        $filterStaffId = $request->filled('staff_id') ? (int) $request->query('staff_id') : null;
+
+        try {
+            $anchor = match ($period) {
+                'month' => Carbon::parse($request->query('month', now()->format('Y-m')) . '-01'),
+                'year' => Carbon::parse($request->query('year', now()->format('Y')) . '-01-01'),
+                default => Carbon::parse($request->query('week', now()->toDateString())),
+            };
+        } catch (\Throwable) {
+            $anchor = now();
+        }
+
+        [$rangeStart, $rangeEnd] = $this->attendanceService->resolveExportDateRange($period, $anchor);
+
+        $staffQuery = $this->salonScoped(Staff::class)
+            ->orderBy('sort_order')
+            ->orderBy('first_name');
+
+        if ($filterStaffId) {
+            $staffQuery->whereKey($filterStaffId);
+        }
+
+        $staff = $staffQuery->get();
+        abort_if($filterStaffId && $staff->isEmpty(), 404);
+
+        $rows = $this->attendanceService->buildAttendanceExportRows(
+            $salon,
+            $rangeStart,
+            $rangeEnd,
+            $staff,
+            $filterStaffId
+        );
+
+        $staffSlug = $staff->count() === 1
+            ? '-' . \Illuminate\Support\Str::slug($staff->first()->name)
+            : '';
+
+        $filename = 'attendance-' . $period . '-' . $rangeStart->format('Y-m-d') . '-' . $rangeEnd->format('Y-m-d') . $staffSlug . '.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, ['Staff', 'Date', 'Day', 'Status', 'Clock in', 'Clock out', 'Notes']);
+            foreach ($rows as $row) {
+                fputcsv($out, [
+                    $row['staff_name'],
+                    $row['date'],
+                    $row['day'],
+                    $row['status'],
+                    $row['clock_in'],
+                    $row['clock_out'],
+                    $row['notes'],
+                ]);
+            }
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function toggleStaffDay(Request $request, Staff $staff): RedirectResponse
@@ -357,7 +458,7 @@ class AvailabilityResourcesController extends Controller
         }
 
         return redirect()
-            ->route('availability.index', ['tab' => 'attendance', 'week' => $weekDate])
+            ->route('availability.index', $this->attendanceRedirectParams($request, $weekDate))
             ->with('success', $message);
     }
 
@@ -368,8 +469,34 @@ class AvailabilityResourcesController extends Controller
         }
 
         return redirect()
-            ->route('availability.index', ['tab' => 'attendance', 'week' => $weekDate])
+            ->route('availability.index', $this->attendanceRedirectParams($request, $weekDate))
             ->with('error', $message);
+    }
+
+    /** @return array<string, mixed> */
+    private function attendanceRedirectParams(Request $request, string $anchorDate): array
+    {
+        $period = in_array($request->query('period'), ['week', 'month', 'year'], true)
+            ? $request->query('period')
+            : 'week';
+
+        $anchor = Carbon::parse($anchorDate);
+
+        $params = [
+            'tab'      => 'attendance',
+            'period'   => $period,
+            'staff_id' => $request->query('staff_id'),
+        ];
+
+        if ($period === 'month') {
+            $params['month'] = $anchor->format('Y-m');
+        } elseif ($period === 'year') {
+            $params['year'] = $anchor->format('Y');
+        } else {
+            $params['week'] = $anchor->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+        }
+
+        return array_filter($params, fn ($v) => $v !== null && $v !== '');
     }
 
     private function canManageAttendanceFor(Staff $staff): bool

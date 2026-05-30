@@ -156,6 +156,8 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::patch('appointments/{appointment}/cancel',     [AppointmentController::class, 'cancel'])->name('appointments.cancel');
         Route::patch('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
         Route::patch('appointments/{appointment}/complete',   [AppointmentController::class, 'complete'])->name('appointments.complete');
+        Route::get('appointments/{appointment}/invoice.pdf', [AppointmentController::class, 'invoicePdf'])->name('appointments.invoice.pdf');
+        Route::get('appointments/{appointment}/invoice', [AppointmentController::class, 'invoiceShow'])->name('appointments.invoice.show');
 
         Route::get('clients/export', [ClientController::class, 'export'])->name('clients.export');
         Route::post('clients/import', [ClientController::class, 'import'])->name('clients.import');
@@ -194,6 +196,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::patch('availability/leave/{leave}/approve', [AvailabilityResourcesController::class, 'approveLeave'])->name('availability.leave.approve');
         Route::patch('availability/leave/{leave}/reject', [AvailabilityResourcesController::class, 'rejectLeave'])->name('availability.leave.reject');
         Route::post('availability/staff/{staff}/toggle-day', [AvailabilityResourcesController::class, 'toggleStaffDay'])->name('availability.staff.toggle-day');
+        Route::get('availability/attendance/export', [AvailabilityResourcesController::class, 'exportAttendance'])->name('availability.attendance.export');
         Route::post('availability/attendance', [AvailabilityResourcesController::class, 'storeAttendance'])->name('availability.attendance.store');
         Route::post('availability/attendance/{staff}/clock-in', [AvailabilityResourcesController::class, 'clockInAttendance'])->name('availability.attendance.clock-in');
         Route::post('availability/attendance/{staff}/clock-out', [AvailabilityResourcesController::class, 'clockOutAttendance'])->name('availability.attendance.clock-out');

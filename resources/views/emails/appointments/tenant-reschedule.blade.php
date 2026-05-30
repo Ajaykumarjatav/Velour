@@ -11,7 +11,7 @@
   <tr style="border-bottom:1px solid #f1f5f9;">
     <td style="padding:10px 0;font-size:13px;color:#6b7280;">Service</td>
     <td style="padding:10px 0;font-size:14px;font-weight:600;color:#111827;">
-      {{ $appointment->services->map(fn($s) => $s->service?->name)->filter()->implode(', ') ?: '—' }}
+      {{ $appointment->services->map(fn($s) => $s->service_name)->filter()->implode(', ') ?: '—' }}
     </td>
   </tr>
   <tr style="border-bottom:1px solid #f1f5f9;">

@@ -11,10 +11,14 @@ use App\Models\LoyaltyTier;
 use App\Models\Staff;
 use App\Models\Service;
 use App\Models\StaffLeaveRequest;
+use App\Services\AppointmentInvoiceService;
 use App\Services\AppointmentService as AppointmentBookingService;
 use App\Services\AvailabilityService;
 use App\Services\NotificationService;
+use App\Models\PosTransaction;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\Scheduling\AvailabilityRejectedException;
+use App\Support\AppointmentDisplayLines;
 use App\Support\SalonTime;
 use App\Support\StaffServiceEligibility;
 use Illuminate\Http\RedirectResponse;
@@ -49,7 +53,7 @@ class AppointmentController extends Controller
         }
 
         $query = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
-            ->with(['client', 'staff', 'services.service'])
+            ->with(['client', 'staff', 'services', 'transaction.items'])
             ->latest('starts_at');
 
         if ($search) {
@@ -384,12 +388,48 @@ class AppointmentController extends Controller
     public function show(Appointment $appointment)
     {
         $this->authorise($appointment);
-        $appointment->load(['client', 'staff', 'services.service', 'transaction', 'review']);
+        $appointment->load(['client', 'staff', 'services', 'transaction.items', 'review']);
+        $displayServiceLines = AppointmentDisplayLines::serviceLines($appointment);
         $salon = $this->salon();
         $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
         $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
 
-        return view('appointments.show', compact('appointment', 'staff', 'salon', 'staffQuickCreateServicesByRole'));
+        return view('appointments.show', compact('appointment', 'staff', 'salon', 'staffQuickCreateServicesByRole', 'displayServiceLines'));
+    }
+
+    public function invoicePdf(Appointment $appointment)
+    {
+        $this->authorise($appointment);
+
+        $transaction = AppointmentInvoiceService::ensurePosTransaction($appointment);
+        if (! $transaction) {
+            abort(422, __('Invoice is only available for completed appointments with an assigned staff member.'));
+        }
+
+        $this->authorize('view', $transaction);
+
+        $transaction->loadMissing(['client', 'items', 'salon', 'staff']);
+
+        $pdf = Pdf::loadView('pos.invoice-pdf', ['transaction' => $transaction])
+            ->setPaper('a4', 'portrait');
+
+        $safeRef = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string) $transaction->reference) ?: 'invoice';
+
+        return $pdf->download('invoice-'.$safeRef.'.pdf');
+    }
+
+    public function invoiceShow(Appointment $appointment): RedirectResponse
+    {
+        $this->authorise($appointment);
+
+        $transaction = AppointmentInvoiceService::ensurePosTransaction($appointment);
+        if (! $transaction) {
+            abort(422, __('Invoice is only available for completed appointments with an assigned staff member.'));
+        }
+
+        $this->authorize('view', $transaction);
+
+        return redirect()->route('pos.show', $transaction);
     }
 
     public function edit(Appointment $appointment)

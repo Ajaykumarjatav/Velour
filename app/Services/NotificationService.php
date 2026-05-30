@@ -392,7 +392,7 @@ class NotificationService
             }
 
             // SMS body — Twilio/Vonage integration goes here
-            $serviceName = $appointment->services->first()?->service?->name ?? 'appointment';
+            $serviceName = $appointment->services->first()?->service_name ?? 'appointment';
             $message = "New booking: {$appointment->client->first_name} {$appointment->client->last_name}"
                 . " — {$serviceName}"
                 . " on {$appointment->starts_at->format('D j M \a\t g:ia')}";

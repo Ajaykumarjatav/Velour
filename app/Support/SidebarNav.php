@@ -22,6 +22,7 @@ final class SidebarNav
         'notifications',
         'settings',
         'security_support',
+        'support',
     ];
 
     public static function show(User $user, string $item): bool
@@ -56,7 +57,7 @@ final class SidebarNav
             'analytics', 'reports_menu', 'growth_tips' => $user->can('reports.view'),
             'billing' => $user->can('billing.view'),
             'settings' => $user->can('settings.view'),
-            'security_support', 'notifications' => true,
+            'security_support', 'notifications', 'support' => true,
             default => false,
         };
     }

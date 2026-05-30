@@ -289,7 +289,7 @@
         @endif
 
         {{-- ACCOUNT --}}
-        @if($navShow('billing') || $navShow('settings') || $navShow('security_support') || $navShow('notifications') || $navShow('growth_tips'))
+        @if($navShow('billing') || $navShow('settings') || $navShow('security_support') || $navShow('notifications') || $navShow('growth_tips') || $navShow('support'))
         <p class="nav-section-title px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Account</p>
         @endif
 
@@ -386,6 +386,27 @@
             </svg>
             Growth Tips
         </a>
+        @endif
+
+        @if($navShow('support'))
+        <button type="button"
+                x-data="{ chatUnread: false }"
+                x-init="window.addEventListener('velour-chat-unread', e => chatUnread = e.detail)"
+                class="sidebar-link w-full text-left"
+                @click="window.dispatchEvent(new CustomEvent('velour-chat-open'))"
+                aria-label="Open Velour Assistant">
+            <span class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-velour-600 text-white shadow-sm"
+                  aria-hidden="true">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                <span x-show="chatUnread"
+                      class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"
+                      aria-hidden="true"></span>
+            </span>
+            <span class="flex-1">Support</span>
+        </button>
         @endif
 
         @if($navShow('guide'))

@@ -39,6 +39,7 @@
     *::-webkit-scrollbar-thumb { background: rgb(55 65 81); border-radius: 4px; }
     *::-webkit-scrollbar-thumb:hover { background: rgb(75 85 99); }
   </style>
+  @stack('styles')
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="h-full min-h-screen flex min-h-0" x-data="{ sidebarOpen: false }">

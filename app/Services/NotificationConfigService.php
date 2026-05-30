@@ -245,7 +245,7 @@ class NotificationConfigService
         $salon = $appointment->salon;
         $client = $appointment->client;
         $staff = $appointment->staff;
-        $names = $appointment->services->map(fn ($as) => $as->service?->name)->filter()->implode(', ');
+        $names = $appointment->services->map(fn ($as) => $as->service_name)->filter()->implode(', ');
 
         $tz = $salon?->timezone ?: config('app.timezone');
         $starts = $appointment->starts_at?->copy()->timezone($tz);
