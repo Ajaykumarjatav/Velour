@@ -116,14 +116,7 @@
 
             @foreach($rows as $row)
             <div class="staff-cal__sidebar border-b border-r border-gray-100 dark:border-gray-800 px-3 py-3 flex items-center gap-2.5 min-h-[3.5rem]">
-                @if($row['avatar_url'])
-                    <img src="{{ $row['avatar_url'] }}" alt="" class="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-white dark:ring-gray-900">
-                @else
-                    <span class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ring-2 ring-white dark:ring-gray-900"
-                          style="background-color: {{ $row['color'] }}">
-                        {{ $row['initials'] }}
-                    </span>
-                @endif
+                <x-staff-avatar size="xs" :url="$row['avatar_url']" :initials="$row['initials']" :color="$row['color']" />
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-semibold text-heading truncate leading-tight">{{ $row['name'] }}</p>
                     <p class="text-[11px] text-muted tabular-nums mt-0.5">{{ $row['week_hours_label'] }}</p>

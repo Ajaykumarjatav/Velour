@@ -955,14 +955,7 @@
                 <div>
                     <label class="form-label">Photo</label>
                     <div class="flex flex-col sm:flex-row sm:items-start gap-4">
-                        @if($profileStaff->avatar_url)
-                            <img src="{{ $profileStaff->avatar_url }}" alt="" width="64" height="64" class="w-16 h-16 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0">
-                        @else
-                            <div class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0"
-                                 style="background-color: {{ $profileStaff->color ?? '#7C3AED' }}">
-                                {{ strtoupper(mb_substr($profileStaff->first_name, 0, 1).mb_substr($profileStaff->last_name, 0, 1)) }}
-                            </div>
-                        @endif
+                        <x-staff-avatar :staff="$profileStaff" size="lg" />
                         <div class="flex-1 min-w-0 space-y-2">
                             <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"
                                    class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
@@ -1229,15 +1222,7 @@
                             <div>
                                 <label class="block text-xs font-medium text-body mb-1">Photo @if(!$avatarUrl)<span class="text-red-500">*</span>@endif</label>
                                 <div class="flex flex-col sm:flex-row sm:items-start gap-3">
-                                    @if($avatarUrl)
-                                        <img src="{{ $avatarUrl }}" alt="" width="44" height="44" class="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0">
-                                    @else
-                                        <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-[10px] leading-tight shrink-0 ring-1 ring-gray-200/80 dark:ring-gray-600"
-                                             style="background-color: {{ $st['color'] ?? '#7C3AED' }}"
-                                             aria-hidden="true">
-                                            {{ $nameInitials }}
-                                        </div>
-                                    @endif
+                                    <x-staff-avatar size="sm" :url="$avatarUrl" :initials="$nameInitials" :color="$st['color'] ?? '#7C3AED'" />
                                     <div class="flex-1 min-w-0 space-y-2">
                                         <input type="file" name="staff_member_avatar" accept="image/jpeg,image/png,image/webp"
                                                @if(!$avatarUrl) required @endif

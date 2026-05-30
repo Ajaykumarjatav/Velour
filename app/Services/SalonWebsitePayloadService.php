@@ -118,7 +118,7 @@ class SalonWebsitePayloadService
                 'specialisms'  => is_array($s->specialisms)
                     ? implode(' | ', $s->specialisms)
                     : (is_string($s->specialisms) ? $s->specialisms : null),
-                'avatar_url'   => $s->avatar ? asset('storage/' . $s->avatar) : null,
+                'avatar_url'   => \App\Models\Staff::resolvePublicAvatarUrl($s->avatar),
                 'initials'     => $this->staffInitials($s),
                 'color'        => $s->color ?? '#7c3aed',
             ])->values()->all(),

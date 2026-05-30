@@ -19,7 +19,7 @@ class StaffResource extends JsonResource
             'role'           => $this->role,
             'specialisms'    => $this->specialisms ?? [],
             'bio'            => $this->bio,
-            'avatar'         => $this->avatar ? asset('storage/' . $this->avatar) : null,
+            'avatar'         => \App\Models\Staff::resolvePublicAvatarUrl($this->avatar),
             'is_active'      => (bool) $this->is_active,
             'bookable_online'=> (bool) $this->bookable_online,
             'access_level'   => $this->access_level,

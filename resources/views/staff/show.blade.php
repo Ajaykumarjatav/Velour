@@ -5,14 +5,7 @@
 
 <div class="max-w-3xl space-y-6">
     <div class="card p-6 flex items-start gap-5">
-        @if($staff->avatar_url)
-            <img src="{{ $staff->avatar_url }}" alt="" width="64" height="64" class="w-16 h-16 rounded-2xl object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0">
-        @else
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl flex-shrink-0"
-                 style="background-color: {{ $staff->color ?? '#7C3AED' }}">
-                {{ strtoupper(substr($staff->name, 0, 1)) }}
-            </div>
-        @endif
+        <x-staff-avatar :staff="$staff" size="lg" rounded="2xl" />
         <div class="flex-1">
             <h2 class="text-xl font-bold text-heading">{{ $staff->name }}</h2>
             <p class="text-sm text-muted capitalize mt-0.5">{{ str_replace('_',' ',$staff->role) }}</p>

@@ -11,6 +11,7 @@ use App\Models\StaffLeaveRequest;
 use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Support\PublicStorage;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -399,9 +400,7 @@ class StaffController extends Controller
     private function syncStaffAvatarFromRequest(Request $request, Staff $staff): void
     {
         if ($request->hasFile('avatar')) {
-            if ($staff->avatar) {
-                Storage::disk('public')->delete($staff->avatar);
-            }
+            PublicStorage::delete($staff->avatar);
             $path = $request->file('avatar')->store('salons/'.$staff->salon_id.'/staff', 'public');
             $staff->update(['avatar' => $path]);
 
@@ -409,9 +408,7 @@ class StaffController extends Controller
         }
 
         if ($request->boolean('remove_avatar')) {
-            if ($staff->avatar) {
-                Storage::disk('public')->delete($staff->avatar);
-            }
+            PublicStorage::delete($staff->avatar);
             $staff->update(['avatar' => null]);
         }
     }

@@ -6,8 +6,8 @@ use App\Traits\AuditLog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Support\PublicStorage;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Staff extends Model
@@ -66,6 +66,30 @@ class Staff extends Model
 
     public function getFullNameAttribute(): string { return $this->name; }
 
+    public function getDisplayInitialsAttribute(): string
+    {
+        $initials = trim((string) ($this->initials ?? ''));
+        if ($initials !== '') {
+            return strtoupper(mb_substr($initials, 0, 2));
+        }
+
+        $first = mb_substr(trim((string) ($this->first_name ?? '')), 0, 1);
+        $last = mb_substr(trim((string) ($this->last_name ?? '')), 0, 1);
+
+        return strtoupper($first . $last) ?: '?';
+    }
+
+    public function setAvatarAttribute($value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['avatar'] = null;
+
+            return;
+        }
+
+        $this->attributes['avatar'] = PublicStorage::normalizePath((string) $value) ?? (string) $value;
+    }
+
     /**
      * Map a staff job role (Staff & HR) to the Spatie app role used for invitations / permissions.
      */
@@ -81,39 +105,18 @@ class Staff extends Model
     }
 
     /**
-     * Public URL for a stored avatar path, or null when empty, remote-only, or file missing on disk.
-     * Avoids showing broken/wrong images when the DB path is stale or mis-normalized.
+     * Public URL for a stored avatar, or null when missing / not on disk.
+     * Uses asset() so URLs match subdirectory deployments (e.g. /vellor/public).
      */
     public static function resolvePublicAvatarUrl(?string $avatar): ?string
     {
-        $avatar = trim((string) $avatar);
-        if ($avatar === '') {
-            return null;
-        }
-
-        if (Str::startsWith($avatar, ['http://', 'https://'])) {
-            return $avatar;
-        }
-
-        $relative = ltrim($avatar, '/');
-        if (Str::startsWith($relative, 'storage/')) {
-            $relative = (string) Str::after($relative, 'storage/');
-        }
-        if (Str::startsWith($relative, 'public/')) {
-            $relative = (string) Str::after($relative, 'public/');
-        }
-
-        if (! Storage::disk('public')->exists($relative)) {
-            return null;
-        }
-
-        return Storage::disk('public')->url($relative);
+        return PublicStorage::url($avatar);
     }
 
     /** Public URL for uploaded profile photo (stored path is relative to the public disk). */
     public function getAvatarUrlAttribute(): ?string
     {
-        return static::resolvePublicAvatarUrl($this->avatar);
+        return static::resolvePublicAvatarUrl($this->attributes['avatar'] ?? null);
     }
     public function salon()        { return $this->belongsTo(Salon::class); }
     public function user()         { return $this->belongsTo(User::class); }

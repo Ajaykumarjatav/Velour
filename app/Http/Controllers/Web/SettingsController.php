@@ -620,14 +620,14 @@ class SettingsController extends Controller
             }
             if ($request->hasFile('avatar')) {
                 if ($profileStaff->avatar) {
-                    Storage::disk('public')->delete($profileStaff->avatar);
+                    \App\Support\PublicStorage::delete($profileStaff->avatar);
                 }
                 $profileStaff->update([
                     'avatar' => $request->file('avatar')->store('salons/' . $salon->id . '/staff', 'public'),
                 ]);
             } elseif ($request->boolean('remove_avatar')) {
                 if ($profileStaff->avatar) {
-                    Storage::disk('public')->delete($profileStaff->avatar);
+                    \App\Support\PublicStorage::delete($profileStaff->avatar);
                 }
                 $profileStaff->update(['avatar' => null]);
             }
@@ -749,14 +749,14 @@ class SettingsController extends Controller
             if ($targetStaff) {
                 if ($request->hasFile('staff_member_avatar')) {
                     if ($targetStaff->avatar) {
-                        Storage::disk('public')->delete($targetStaff->avatar);
+                        \App\Support\PublicStorage::delete($targetStaff->avatar);
                     }
                     $targetStaff->update([
                         'avatar' => $request->file('staff_member_avatar')->store('salons/' . $salon->id . '/staff', 'public'),
                     ]);
                 } elseif ($request->boolean('staff_member_remove_avatar')) {
                     if ($targetStaff->avatar) {
-                        Storage::disk('public')->delete($targetStaff->avatar);
+                        \App\Support\PublicStorage::delete($targetStaff->avatar);
                     }
                     $targetStaff->update(['avatar' => null]);
                 }
