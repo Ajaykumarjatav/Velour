@@ -24,7 +24,7 @@
 
 @section('content')
 <div class="alert-info mb-2 text-sm max-w-6xl mx-auto w-full">
-    <p class="font-medium">Staff templates and leave here feed online booking and the <a href="{{ route('calendar') }}" class="underline font-semibold">calendar</a>. For one-off bookings, use <a href="{{ route('appointments.create') }}" class="underline font-semibold">Appointments</a>.</p>
+    <p class="font-medium">Weekly availability, <strong>leave</strong>, and <strong>attendance</strong> here control which times appear when you book or reschedule appointments and on the <a href="{{ route('calendar') }}" class="underline font-semibold">calendar</a>. For one-off bookings, use <a href="{{ route('appointments.create') }}" class="underline font-semibold">Appointments</a>.</p>
 </div>
 <div class="space-y-5 max-w-6xl mx-auto w-full"
      x-data="{
@@ -95,6 +95,8 @@
                    class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'resources' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Resources</a>
                 <a href="{{ route('availability.index', ['tab' => 'leave']) }}"
                    class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'leave' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Leave</a>
+                <a href="{{ route('availability.index', ['tab' => 'attendance']) }}"
+                   class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'attendance' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Attendance</a>
             </nav>
         </div>
     </div>
@@ -224,6 +226,10 @@
                 <span class="text-sm font-semibold">Add Resource</span>
             </button>
         </div>
+    @endif
+
+    @if($tab === 'attendance')
+        @include('availability.partials.attendance')
     @endif
 
     {{-- Leave --}}

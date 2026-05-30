@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\Staff;
 use App\Models\Client;
 use App\Models\StaffLeaveRequest;
+use App\Services\StaffAttendanceService;
 use App\Services\NotificationService;
 use App\Services\Scheduling\AvailabilityRejectedException;
 use App\Scopes\TenantScope;
@@ -143,7 +144,7 @@ class BookingService
             $availableStaff = [];
 
             foreach ($staffList as $staff) {
-                if (StaffLeaveRequest::approvedBlockingLeaveExists($salonId, $staff->id, $ymd)) {
+                if (app(StaffAttendanceService::class)->daySchedulingBlockReason($salon, $staff, $ymd) !== null) {
                     continue;
                 }
 

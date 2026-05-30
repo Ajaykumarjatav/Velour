@@ -9,6 +9,7 @@ use App\Support\LanguageProficiency;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
 use App\Models\Service;
+use App\Services\StaffAttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Support\PublicStorage;
@@ -19,6 +20,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class StaffController extends Controller
 {
     use ResolvesActiveSalon;
+
+    public function __construct(
+        private readonly StaffAttendanceService $attendanceService,
+    ) {}
 
     private function salon()
     {
@@ -70,7 +75,9 @@ class StaffController extends Controller
         foreach ($staff as $m) {
             $rev   = (float) ($revenueByStaff[$m->id] ?? 0);
             $apptM = (int) ($apptsMonthByStaff[$m->id] ?? 0);
-            $onLeave = StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $m->id, $todayStr);
+            $todayAttendance = $this->attendanceService->todayStatus($salon, $m);
+            $onLeave = StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $m->id, $todayStr)
+                || $todayAttendance === \App\Models\StaffAttendanceRecord::STATUS_ON_LEAVE;
 
             $base          = (float) ($m->base_salary ?? 0);
             $commPct       = (float) ($m->commission_rate ?? 0);
@@ -91,11 +98,12 @@ class StaffController extends Controller
             $m->setAttribute('hub_revenue_month', $rev);
             $m->setAttribute('hub_appts_month', $apptM);
             $m->setAttribute('hub_on_leave_today', $onLeave);
+            $m->setAttribute('hub_attendance_today', $todayAttendance);
         }
 
         $maxRev    = $chart === [] ? 1 : max(1, ...array_column($chart, 'revenue'));
         $totalTeam = $staff->count();
-        $onDuty    = $staff->filter(fn ($m) => $m->is_active && ! $m->hub_on_leave_today)->count();
+        $onDuty    = $staff->filter(fn ($m) => $m->is_active && $this->attendanceService->isOnDutyToday($salon, $m))->count();
 
         return view('staff.index', compact(
             'salon',

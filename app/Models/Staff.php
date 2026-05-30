@@ -153,6 +153,7 @@ class Staff extends Model
     public function services()     { return $this->belongsToMany(Service::class,'service_staff')->withPivot('price_override')->withTimestamps(); }
     public function appointments() { return $this->hasMany(Appointment::class); }
     public function leaveRequests() { return $this->hasMany(StaffLeaveRequest::class); }
+    public function attendanceRecords() { return $this->hasMany(StaffAttendanceRecord::class); }
     public function reviews()        { return $this->hasMany(Review::class); }
     public function adjustments()  { return $this->hasMany(InventoryAdjustment::class); }
     protected static function newFactory()

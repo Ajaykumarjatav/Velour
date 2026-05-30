@@ -194,6 +194,9 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::patch('availability/leave/{leave}/approve', [AvailabilityResourcesController::class, 'approveLeave'])->name('availability.leave.approve');
         Route::patch('availability/leave/{leave}/reject', [AvailabilityResourcesController::class, 'rejectLeave'])->name('availability.leave.reject');
         Route::post('availability/staff/{staff}/toggle-day', [AvailabilityResourcesController::class, 'toggleStaffDay'])->name('availability.staff.toggle-day');
+        Route::post('availability/attendance', [AvailabilityResourcesController::class, 'storeAttendance'])->name('availability.attendance.store');
+        Route::post('availability/attendance/{staff}/clock-in', [AvailabilityResourcesController::class, 'clockInAttendance'])->name('availability.attendance.clock-in');
+        Route::post('availability/attendance/{staff}/clock-out', [AvailabilityResourcesController::class, 'clockOutAttendance'])->name('availability.attendance.clock-out');
         Route::get('service-categories', [ServiceCategoryController::class, 'index'])->name('service-categories.index');
         Route::post('service-categories', [ServiceCategoryController::class, 'store'])->name('service-categories.store');
         Route::put('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'update'])->name('service-categories.update');

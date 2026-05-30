@@ -73,6 +73,11 @@ class AvailabilityService
             return ScheduleValidationResult::failure($reasons);
         }
 
+        $this->pushAttendanceReasons($salon->id, $staff->id, $localStart, $reasons);
+        if ($reasons !== []) {
+            return ScheduleValidationResult::failure($reasons);
+        }
+
         $this->pushSalonHoursReasons($salon, $localStart, $localEnd, $reasons);
         if ($reasons !== []) {
             return ScheduleValidationResult::failure($reasons);
@@ -89,6 +94,25 @@ class AvailabilityService
         }
 
         return ScheduleValidationResult::success();
+    }
+
+    /**
+     * @param  list<array{code: string, message: string}>  $reasons
+     */
+    private function pushAttendanceReasons(int $salonId, int $staffId, Carbon $localStart, array &$reasons): void
+    {
+        $message = app(StaffAttendanceService::class)->attendanceBookingBlockReason(
+            $salonId,
+            $staffId,
+            $localStart->toDateString()
+        );
+
+        if ($message !== null) {
+            $reasons[] = [
+                'code'    => 'staff_attendance_blocked',
+                'message' => $message,
+            ];
+        }
     }
 
     /**

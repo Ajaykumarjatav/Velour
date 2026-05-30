@@ -158,6 +158,10 @@ document.addEventListener('alpine:init', function () {
                     <div class="flex flex-col items-end gap-1 shrink-0">
                         @if($member->hub_on_leave_today)
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">On leave</span>
+                        @elseif(($member->hub_attendance_today ?? null) === 'absent')
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200">Absent</span>
+                        @elseif(in_array($member->hub_attendance_today ?? null, ['present', 'late', 'half_day'], true))
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">On duty</span>
                         @endif
                         <span class="{{ $member->is_active ? 'badge-green' : 'badge-gray' }} text-[10px]">
                             {{ $member->is_active ? 'Active' : 'Inactive' }}
@@ -219,15 +223,16 @@ document.addEventListener('alpine:init', function () {
                     <a href="{{ route('staff.show', $member) }}" class="btn-outline text-center text-sm py-2">View</a>
                     <a href="{{ route('staff.edit', $member) }}" class="btn-secondary text-center text-sm py-2">Edit</a>
                 </div>
-                <div class="grid grid-cols-3 gap-2 mt-2">
+                <div class="grid grid-cols-2 gap-2 mt-2">
                     <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}"
-                       class="btn-primary text-center text-xs py-2 col-span-1">Appointments</a>
+                       class="btn-primary text-center text-xs py-2">Appointments</a>
                     <button type="button"
                             class="btn-outline text-center text-xs py-2"
                             data-staff='@json($schedulePayload)'
                             @click="openSchedule(JSON.parse($event.currentTarget.dataset.staff))">
-                        Weekly schedule
+                        Schedule
                     </button>
+                    <a href="{{ route('availability.index', ['tab' => 'attendance', 'week' => now()->toDateString()]) }}" class="btn-outline text-center text-xs py-2">Attendance</a>
                     <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="btn-outline text-center text-xs py-2">Leave</a>
                 </div>
             </div>

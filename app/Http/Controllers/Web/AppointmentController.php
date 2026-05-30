@@ -275,19 +275,19 @@ class AppointmentController extends Controller
         $isTodayInSalon = $dateStr === SalonTime::todayDateString($salon);
         $nowInSalon = SalonTime::now($salon);
 
-        if (StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $staffId, $dateStr)) {
-            $blockedDetails = collect($slotTimes)->mapWithKeys(fn ($t) => [
-                $t => 'Approved leave or time off — adjust under Availability or Staff.',
-            ])->all();
+        $staffMember = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($staffId)->firstOrFail();
+
+        $dayBlock = app(\App\Services\StaffAttendanceService::class)->daySchedulingBlockReason($salon, $staffMember, $dateStr);
+        if ($dayBlock !== null) {
+            $blockedDetails = collect($slotTimes)->mapWithKeys(fn ($t) => [$t => $dayBlock])->all();
 
             return response()->json([
-                'blocked'                  => $slotTimes,
-                'blocked_details'          => $blockedDetails,
-                'assumed_duration_minutes' => $maxMinutes,
+                'blocked'                    => $slotTimes,
+                'blocked_details'            => $blockedDetails,
+                'assumed_duration_minutes'   => $maxMinutes,
+                'day_blocked'                => true,
             ]);
         }
-
-        $staffMember = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($staffId)->firstOrFail();
         $tz          = SalonTime::timezone($salon);
         $availability = app(AvailabilityService::class);
 

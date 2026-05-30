@@ -6,8 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonResource;
 use App\Models\Staff;
+use App\Models\StaffAttendanceRecord;
 use App\Models\StaffLeaveRequest;
+use App\Models\User;
+use App\Services\StaffAttendanceService;
 use App\Support\StaffServiceEligibility;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,6 +20,10 @@ use Illuminate\View\View;
 class AvailabilityResourcesController extends Controller
 {
     use ResolvesActiveSalon;
+
+    public function __construct(
+        private readonly StaffAttendanceService $attendanceService,
+    ) {}
 
     /** @var list<string> */
     public const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -43,7 +52,7 @@ class AvailabilityResourcesController extends Controller
                 ->route('settings.index', ['tab' => 'booking'])
                 ->withFragment('settings-buffer-rules');
         }
-        if (! in_array($tab, ['availability', 'resources', 'leave'], true)) {
+        if (! in_array($tab, ['availability', 'resources', 'leave', 'attendance'], true)) {
             $tab = 'availability';
         }
 
@@ -64,13 +73,43 @@ class AvailabilityResourcesController extends Controller
 
         $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
 
+        $attendanceGrid = null;
+        $attendanceWeek = null;
+        $attendanceState = null;
+        if ($tab === 'attendance') {
+            $weekInput = $request->query('week', now()->toDateString());
+            try {
+                $attendanceWeek = Carbon::parse($weekInput)->startOfWeek(Carbon::MONDAY);
+            } catch (\Throwable) {
+                $attendanceWeek = now()->startOfWeek(Carbon::MONDAY);
+            }
+            $attendanceGrid = $this->attendanceService->buildWeekGrid($salon, $attendanceWeek, $staff);
+            $attendanceState = [
+                'days'       => $attendanceGrid['days'],
+                'week_start' => $attendanceGrid['week_start'],
+                'week_end'   => $attendanceGrid['week_end'],
+                'today'      => now()->toDateString(),
+                'rows'       => collect($attendanceGrid['rows'])->map(fn (array $row) => [
+                    'staff_id'   => $row['staff']->id,
+                    'staff_name' => $row['staff']->name,
+                    'avatar_url' => $row['staff']->avatar_url,
+                    'initials'   => $row['staff']->display_initials,
+                    'color'      => $row['staff']->color ?: '#7C3AED',
+                    'cells'      => $row['cells'],
+                ])->values()->all(),
+            ];
+        }
+
         return view('availability.index', compact(
             'salon',
             'tab',
             'staff',
             'resources',
             'leaveRequests',
-            'staffQuickCreateServicesByRole'
+            'staffQuickCreateServicesByRole',
+            'attendanceGrid',
+            'attendanceWeek',
+            'attendanceState'
         ));
     }
 
@@ -217,10 +256,137 @@ class AvailabilityResourcesController extends Controller
         abort_unless($leave->isPending(), 403);
 
         $leave->update(['status' => 'approved']);
+        $leave->load(['staff', 'salon']);
+        $this->attendanceService->syncLeaveToAttendance($leave);
 
         return redirect()
             ->route('availability.index', ['tab' => 'leave'])
             ->with('success', 'Leave approved.');
+    }
+
+    public function storeAttendance(Request $request): RedirectResponse|JsonResponse
+    {
+        $salon = $this->salon();
+
+        $data = $request->validate([
+            'staff_id' => ['required', 'integer', 'exists:staff,id'],
+            'date'     => ['required', 'date'],
+            'status'   => ['required', 'string', 'in:' . implode(',', StaffAttendanceRecord::STATUSES)],
+            'notes'    => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $staff = $this->salonScoped(Staff::class)->whereKey($data['staff_id'])->firstOrFail();
+        abort_unless($this->canManageAttendanceFor($staff), 403);
+
+        try {
+            $this->attendanceService->upsert(
+                $salon,
+                $staff,
+                $data['date'],
+                $data['status'],
+                auth()->user(),
+                $data['notes'] ?? null
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->attendanceErrorResponse($request, $e->getMessage(), $data['date']);
+        }
+
+        $cell = $this->attendanceService->freshCell($salon, $staff, $data['date']);
+
+        return $this->attendanceSuccessResponse(
+            $request,
+            $cell,
+            'Attendance updated.',
+            $data['date']
+        );
+    }
+
+    public function clockInAttendance(Request $request, Staff $staff): RedirectResponse|JsonResponse
+    {
+        $salon = $this->salon();
+        abort_unless($staff->salon_id === $salon->id, 403);
+        abort_unless($this->canManageAttendanceFor($staff), 403);
+
+        $this->attendanceService->clockIn($salon, $staff, auth()->user());
+        $today = now()->toDateString();
+        $cell = $this->attendanceService->freshCell($salon, $staff, $today);
+
+        return $this->attendanceSuccessResponse(
+            $request,
+            $cell,
+            $staff->name . ' clocked in.',
+            $today,
+            $staff->id
+        );
+    }
+
+    public function clockOutAttendance(Request $request, Staff $staff): RedirectResponse|JsonResponse
+    {
+        $salon = $this->salon();
+        abort_unless($staff->salon_id === $salon->id, 403);
+        abort_unless($this->canManageAttendanceFor($staff), 403);
+
+        $this->attendanceService->clockOut($salon, $staff, auth()->user());
+        $today = now()->toDateString();
+        $cell = $this->attendanceService->freshCell($salon, $staff, $today);
+
+        return $this->attendanceSuccessResponse(
+            $request,
+            $cell,
+            $staff->name . ' clocked out.',
+            $today,
+            $staff->id
+        );
+    }
+
+    private function attendanceSuccessResponse(
+        Request $request,
+        array $cell,
+        string $message,
+        string $weekDate,
+        ?int $staffId = null
+    ): RedirectResponse|JsonResponse {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok'       => true,
+                'message'  => $message,
+                'cell'     => $cell,
+                'staff_id' => $staffId,
+                'date'     => $weekDate,
+            ]);
+        }
+
+        return redirect()
+            ->route('availability.index', ['tab' => 'attendance', 'week' => $weekDate])
+            ->with('success', $message);
+    }
+
+    private function attendanceErrorResponse(Request $request, string $message, string $weekDate): RedirectResponse|JsonResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => false, 'message' => $message], 422);
+        }
+
+        return redirect()
+            ->route('availability.index', ['tab' => 'attendance', 'week' => $weekDate])
+            ->with('error', $message);
+    }
+
+    private function canManageAttendanceFor(Staff $staff): bool
+    {
+        /** @var User|null $user */
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasAnyRole(['tenant_admin', 'manager', 'receptionist'])) {
+            return true;
+        }
+
+        $scopedId = $user->dashboardScopedStaffId();
+
+        return $scopedId !== null && (int) $scopedId === (int) $staff->id;
     }
 
     public function rejectLeave(StaffLeaveRequest $leave): RedirectResponse

@@ -135,8 +135,11 @@
                     <p class="text-xs text-muted mb-3">
                         Based on
                         <a href="{{ route('settings.index') }}?tab=hours" class="text-link">salon hours</a>,
-                        staff shifts, and
-                        <a href="{{ route('availability.index') }}" class="text-link">availability</a>.
+                        staff shifts,
+                        <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="text-link">leave</a>,
+                        <a href="{{ route('availability.index', ['tab' => 'attendance']) }}" class="text-link">attendance</a>,
+                        and
+                        <a href="{{ route('availability.index') }}" class="text-link">weekly availability</a>.
                     </p>
                     @include('partials.appointment-scheduler')
                 </div>
