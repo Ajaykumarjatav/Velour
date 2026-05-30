@@ -43,7 +43,7 @@ class Appointment extends Model
     public function salon()    { return $this->belongsTo(Salon::class); }
     public function client()   { return $this->belongsTo(Client::class); }
     public function staff()    { return $this->belongsTo(Staff::class); }
-    public function services() { return $this->hasMany(AppointmentService::class)->with('service'); }
+    public function services() { return $this->hasMany(AppointmentService::class); }
     public function transaction() { return $this->hasOne(PosTransaction::class); }
     public function review()   { return $this->hasOne(Review::class); }
     public function scopeUpcoming($q) { return $q->where('starts_at','>=',now())->where('status','confirmed'); }

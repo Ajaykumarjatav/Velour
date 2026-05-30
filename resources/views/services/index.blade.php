@@ -75,26 +75,26 @@
     {{-- Search & filters --}}
     <div class="rounded-2xl border border-gray-200/90 dark:border-gray-700/80 bg-white/85 dark:bg-gray-900/45 backdrop-blur-sm p-4 sm:p-5 shadow-sm dark:shadow-none space-y-4">
         <form method="GET" action="{{ route('services.index') }}">
-            <div class="flex flex-wrap xl:flex-nowrap items-end gap-x-2.5 gap-y-3">
-                <div class="w-full sm:flex-1 sm:min-w-[9rem] xl:max-w-[11rem] space-y-1 min-w-0">
-                    <label for="svc-search" class="text-[10px] font-medium text-muted uppercase tracking-wide">Search</label>
+            <div class="svc-filters-row flex flex-nowrap items-end gap-3 overflow-x-auto pb-1 -mx-0.5 px-0.5">
+                <div class="flex-[2] min-w-[11rem] space-y-1.5 shrink-0">
+                    <label for="svc-search" class="form-label text-xs mb-0 uppercase tracking-wide text-muted">Search</label>
                     <div class="relative">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none z-[1]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                         <input id="svc-search" type="search" name="search" value="{{ $search }}" placeholder="Name or description…"
-                               class="form-input w-full py-2 !pl-11 pr-3 text-sm rounded-lg border-gray-200 dark:border-gray-600 min-w-0">
+                               class="form-input w-full min-h-[2.5rem] !pl-10 pr-3 text-sm">
                     </div>
                 </div>
-                <div class="w-full sm:w-36 lg:w-40 space-y-1 min-w-0">
-                    <label for="svc-category-trigger" class="text-[10px] font-medium text-muted uppercase tracking-wide">Category</label>
+                <div class="flex-[1.35] min-w-[10.5rem] space-y-1.5 shrink-0">
+                    <label for="svc-category-trigger" class="form-label text-xs mb-0 uppercase tracking-wide text-muted">Category</label>
                     <x-searchable-select
                         id="svc-category"
                         name="category_id"
                         wrapper-class="w-full min-w-0"
                         :search-url="null"
                         search-placeholder="Search…"
-                        trigger-class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
+                        trigger-class="form-select w-full min-h-[2.5rem] text-sm">
                         <option value="">All categories</option>
                         @foreach($categoryChips as $chip)
                             <option value="{{ $chip->id }}" @selected((string) $filterCategoryId === (string) $chip->id)>
@@ -103,44 +103,44 @@
                         @endforeach
                     </x-searchable-select>
                 </div>
-                <div class="w-28 sm:w-32 space-y-1 shrink-0">
-                    <label for="svc-status-trigger" class="text-[10px] font-medium text-muted uppercase tracking-wide">Status</label>
+                <div class="w-[7.5rem] min-w-[7.5rem] space-y-1.5 shrink-0">
+                    <label for="svc-status-trigger" class="form-label text-xs mb-0 uppercase tracking-wide text-muted">Status</label>
                     <x-searchable-select
                         id="svc-status"
                         name="status"
                         wrapper-class="w-full min-w-0"
                         :search-url="null"
                         search-placeholder="Status…"
-                        trigger-class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
+                        trigger-class="form-select w-full min-h-[2.5rem] text-sm">
                         <option value="" @selected(($statusFilter ?? '') === '')>All</option>
                         <option value="active" @selected(($statusFilter ?? '') === 'active')>Active</option>
                         <option value="inactive" @selected(($statusFilter ?? '') === 'inactive')>Inactive</option>
                     </x-searchable-select>
                 </div>
-                <div class="w-[4.75rem] space-y-1 shrink-0">
-                    <label class="text-[10px] font-medium text-muted uppercase tracking-wide">Price min</label>
+                <div class="w-[6.5rem] min-w-[6.5rem] space-y-1.5 shrink-0">
+                    <label class="form-label text-xs mb-0 uppercase tracking-wide text-muted whitespace-nowrap">Price min</label>
                     <input type="number" name="price_min" value="{{ request('price_min') }}" step="0.01" min="0" placeholder="0"
-                           class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
+                           class="form-input w-full min-h-[2.5rem] text-sm tabular-nums">
                 </div>
-                <div class="w-[4.75rem] space-y-1 shrink-0">
-                    <label class="text-[10px] font-medium text-muted uppercase tracking-wide">Price max</label>
+                <div class="w-[6.5rem] min-w-[6.5rem] space-y-1.5 shrink-0">
+                    <label class="form-label text-xs mb-0 uppercase tracking-wide text-muted whitespace-nowrap">Price max</label>
                     <input type="number" name="price_max" value="{{ request('price_max') }}" step="0.01" min="0" placeholder="∞"
-                           class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
+                           class="form-input w-full min-h-[2.5rem] text-sm tabular-nums">
                 </div>
-                <div class="w-[4.75rem] space-y-1 shrink-0">
-                    <label class="text-[10px] font-medium text-muted uppercase tracking-wide" title="Duration minimum (minutes)">Dur. min</label>
+                <div class="w-[6.5rem] min-w-[6.5rem] space-y-1.5 shrink-0">
+                    <label class="form-label text-xs mb-0 uppercase tracking-wide text-muted whitespace-nowrap" title="Duration minimum (minutes)">Dur. min</label>
                     <input type="number" name="duration_min" value="{{ request('duration_min') }}" min="0" step="1" placeholder="0"
-                           class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
+                           class="form-input w-full min-h-[2.5rem] text-sm tabular-nums">
                 </div>
-                <div class="w-[4.75rem] space-y-1 shrink-0">
-                    <label class="text-[10px] font-medium text-muted uppercase tracking-wide" title="Duration maximum (minutes)">Dur. max</label>
+                <div class="w-[6.5rem] min-w-[6.5rem] space-y-1.5 shrink-0">
+                    <label class="form-label text-xs mb-0 uppercase tracking-wide text-muted whitespace-nowrap" title="Duration maximum (minutes)">Dur. max</label>
                     <input type="number" name="duration_max" value="{{ request('duration_max') }}" min="0" step="1" placeholder="∞"
-                           class="form-input py-2 text-sm rounded-lg border-gray-200 dark:border-gray-600 w-full min-w-0">
+                           class="form-input w-full min-h-[2.5rem] text-sm tabular-nums">
                 </div>
-                <div class="flex flex-wrap items-center gap-2 shrink-0 pb-0.5 w-full sm:w-auto xl:ml-0 sm:ml-auto">
-                    <button type="submit" class="btn-primary rounded-lg px-4 py-2 text-sm whitespace-nowrap">Apply filters</button>
+                <div class="flex items-center gap-2 shrink-0 pb-0.5">
+                    <button type="submit" class="btn-primary min-h-[2.5rem] px-5 text-sm whitespace-nowrap">Apply filters</button>
                     @if($hasFilters)
-                        <a href="{{ route('services.index') }}" class="btn-outline rounded-lg px-4 py-2 text-sm whitespace-nowrap">Reset</a>
+                        <a href="{{ route('services.index') }}" class="btn-outline min-h-[2.5rem] px-4 text-sm whitespace-nowrap">Reset</a>
                     @endif
                 </div>
             </div>

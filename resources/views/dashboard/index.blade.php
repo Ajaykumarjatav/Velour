@@ -54,21 +54,21 @@
                 class="analytics-slider-arrow left-0 rounded-r-xl opacity-0 group-hover/slider:opacity-100 transition-opacity">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <div x-ref="slider" class="analytics-slider flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 px-1">
+        <div x-ref="slider" class="analytics-slider flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 px-1">
             <template x-for="w in widgets" :key="w.key">
                 <button type="button"
                         @click="active = active === w.key ? null : w.key"
                         :class="active === w.key
                             ? 'border-velour-500 bg-velour-50/80 dark:bg-velour-950/40 dark:border-velour-400 ring-1 ring-velour-200 dark:ring-velour-800'
                             : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 hover:border-velour-200 dark:hover:border-velour-700'"
-                        class="analytics-widget-card snap-start shrink-0 w-[195px] sm:w-[210px] rounded-2xl border p-4 text-left transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+                        class="analytics-widget-card snap-start shrink-0 w-[230px] sm:w-[250px] min-h-[7.5rem] rounded-2xl border p-5 text-left transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
+                    <div class="flex items-center gap-2.5 mb-3">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
                               :class="w.iconBg" x-html="w.icon"></span>
-                        <span class="text-[11px] font-semibold uppercase tracking-wide text-muted truncate" x-text="w.label"></span>
+                        <span class="text-xs font-semibold uppercase tracking-wide text-muted truncate" x-text="w.label"></span>
                     </div>
-                    <p class="text-xl font-bold text-heading tabular-nums" x-text="w.format(data[period]?.[w.dataKey] ?? 0)"></p>
-                    <p class="text-[11px] text-muted mt-1 truncate" x-text="w.sub(data[period])"></p>
+                    <p class="text-2xl font-bold text-heading tabular-nums leading-tight" x-text="w.format(data[period]?.[w.dataKey] ?? 0)"></p>
+                    <p class="text-xs text-muted mt-1.5 truncate" x-text="w.sub(data[period])"></p>
                 </button>
             </template>
         </div>
@@ -236,7 +236,11 @@
     <div class="p-5 sm:p-6 space-y-6">
 
         @if($canManageDesk && $pendingLeaveRequests->isEmpty() && $openDeskItems->isEmpty())
-        <p class="text-sm text-muted">No pending leave, tasks, or staff messages. Add a reminder below anytime.</p>
+        <p class="text-sm text-muted">No pending leave, tasks, or staff messages.</p>
+        @endif
+
+        @if($stylistDashboardScoped && !$canManageDesk && $myDeskSubmissions->isEmpty())
+        <p class="text-sm text-muted">No open messages to management.</p>
         @endif
 
         @if($canManageDesk && $pendingLeaveRequests->isNotEmpty())
@@ -357,84 +361,6 @@
             </ul>
         </div>
         @endif
-
-        <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
-            @if($canManageDesk)
-            <h3 class="text-xs font-semibold uppercase tracking-wide text-muted mb-3">Add</h3>
-            <form action="{{ route('action-items.store') }}" method="POST" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                @csrf
-                <div class="md:col-span-3">
-                    <label class="form-label text-xs">Type</label>
-                    <select name="kind" class="form-select text-sm">
-                        <option value="{{ \App\Models\SalonActionItem::KIND_ADMIN_TODO }}">{{ $deskKindLabels[\App\Models\SalonActionItem::KIND_ADMIN_TODO] ?? 'To-do' }}</option>
-                        <option value="{{ \App\Models\SalonActionItem::KIND_STAFF_SUGGESTION }}">{{ $deskKindLabels[\App\Models\SalonActionItem::KIND_STAFF_SUGGESTION] ?? 'Suggestion' }}</option>
-                        <option value="{{ \App\Models\SalonActionItem::KIND_INVENTORY_REQUEST }}">{{ $deskKindLabels[\App\Models\SalonActionItem::KIND_INVENTORY_REQUEST] ?? 'Product' }}</option>
-                        <option value="{{ \App\Models\SalonActionItem::KIND_GENERAL }}">{{ $deskKindLabels[\App\Models\SalonActionItem::KIND_GENERAL] ?? 'General' }}</option>
-                    </select>
-                </div>
-                <div class="md:col-span-3">
-                    <label class="form-label text-xs">Priority</label>
-                    <select name="priority" class="form-select text-sm">
-                        <option value="normal">Normal</option>
-                        <option value="high">High</option>
-                        <option value="low">Low</option>
-                    </select>
-                </div>
-                <div class="md:col-span-3">
-                    <label class="form-label text-xs">Assign <span class="text-muted font-normal">(optional)</span></label>
-                    <select name="assigned_staff_id" class="form-select text-sm">
-                        <option value="">—</option>
-                        @foreach($deskStaffForAssign as $st)
-                            <option value="{{ $st->id }}">{{ $st->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="md:col-span-3">
-                    <label class="form-label text-xs">Due <span class="text-muted font-normal">(optional)</span></label>
-                    <input type="date" name="due_at" class="form-input text-sm">
-                </div>
-                <div class="md:col-span-12">
-                    <label class="form-label text-xs">Title</label>
-                    <input type="text" name="title" required maxlength="200" class="form-input text-sm" placeholder="e.g. Order colour tubes, Call supplier…">
-                </div>
-                <div class="md:col-span-12">
-                    <label class="form-label text-xs">Details <span class="text-muted font-normal">(optional)</span></label>
-                    <textarea name="body" rows="2" maxlength="5000" class="form-textarea text-sm" placeholder="Extra context…"></textarea>
-                </div>
-                <div class="md:col-span-12">
-                    <button type="submit" class="btn-primary text-sm">Save to action center</button>
-                </div>
-                @foreach(['kind','title','body','priority','assigned_staff_id','due_at'] as $f)
-                    @error($f)<p class="md:col-span-12 text-xs text-red-600">{{ $message }}</p>@enderror
-                @endforeach
-            </form>
-            @else
-            <h3 class="text-xs font-semibold uppercase tracking-wide text-muted mb-3">Message management</h3>
-            <form action="{{ route('action-items.store') }}" method="POST" class="space-y-3 max-w-xl">
-                @csrf
-                <div>
-                    <label class="form-label text-xs">Type</label>
-                    <select name="kind" class="form-select text-sm">
-                        <option value="{{ \App\Models\SalonActionItem::KIND_STAFF_SUGGESTION }}">Suggestion / feedback</option>
-                        <option value="{{ \App\Models\SalonActionItem::KIND_INVENTORY_REQUEST }}">Product or supplies needed</option>
-                        <option value="{{ \App\Models\SalonActionItem::KIND_GENERAL }}">General message</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label text-xs">Subject</label>
-                    <input type="text" name="title" required maxlength="200" class="form-input text-sm" placeholder="Short summary">
-                </div>
-                <div>
-                    <label class="form-label text-xs">Details</label>
-                    <textarea name="body" rows="3" maxlength="5000" class="form-textarea text-sm" placeholder="What do you need or want to suggest?"></textarea>
-                </div>
-                <button type="submit" class="btn-primary text-sm">Send</button>
-                @foreach(['kind','title','body'] as $f)
-                    @error($f)<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                @endforeach
-            </form>
-            @endif
-        </div>
     </div>
 </div>
 @endif
@@ -462,7 +388,7 @@
                         {{ $apt->client?->first_name }} {{ $apt->client?->last_name }}
                     </p>
                     <p class="text-xs text-muted truncate">
-                        {{ $apt->services->pluck('service.name')->filter()->join(', ') ?: 'Appointment' }}
+                        {{ $apt->services->pluck('service_name')->filter()->join(', ') ?: 'Appointment' }}
                         &middot; {{ $apt->staff?->name }}
                     </p>
                 </div>
@@ -677,10 +603,10 @@ function analyticsSlider(serverData, detailLists, periodBounds) {
             return items.filter(item => item.date >= startDate);
         },
         scrollLeft() {
-            this.$refs.slider.scrollBy({ left: -220, behavior: 'smooth' });
+            this.$refs.slider.scrollBy({ left: -266, behavior: 'smooth' });
         },
         scrollRight() {
-            this.$refs.slider.scrollBy({ left: 220, behavior: 'smooth' });
+            this.$refs.slider.scrollBy({ left: 266, behavior: 'smooth' });
         },
         activeLabel() {
             const w = this.widgets.find(x => x.key === this.active);

@@ -128,7 +128,7 @@
                     <p class="text-xs text-muted">{{ $apt->starts_at->format('H:i') }}</p>
                 </td>
                 <td class="hidden sm:table-cell text-muted text-xs">
-                    {{ $apt->services->pluck('service.name')->filter()->join(', ') ?: '—' }}
+                    {{ $apt->services->pluck('service_name')->filter()->join(', ') ?: '—' }}
                 </td>
                 <td class="text-body">{{ $apt->staff?->name ?? '—' }}</td>
                 <td class="font-semibold text-heading text-right">@money($apt->total_price)</td>

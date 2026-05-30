@@ -41,7 +41,7 @@
     </div>
 @endif
 
-<div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 px-4 py-3.5 sm:px-5 sm:py-4 mb-7 shadow-sm dark:shadow-none">
+<div class="relative z-40 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 px-4 py-3.5 sm:px-5 sm:py-4 mb-7 shadow-sm dark:shadow-none">
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div class="inline-flex p-1 rounded-xl bg-gray-100 dark:bg-gray-800/90 border border-gray-200/90 dark:border-gray-700 gap-0.5">
             @foreach(['day'=>'Day','week'=>'Week','month'=>'Month'] as $v => $label)
@@ -88,46 +88,59 @@
                     $prevFrom = $prevTo = $nextFrom = $nextTo = null;
                 }
             @endphp
-            <div x-data="{ openRangePicker: false }" class="inline-flex items-stretch rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-x divide-gray-200 dark:divide-gray-700 overflow-visible shadow-sm dark:shadow-none relative">
+            <div x-data="{ openRangePicker: false }" class="relative isolate inline-flex items-stretch rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-x divide-gray-200 dark:divide-gray-700 shadow-sm dark:shadow-none">
                 <a href="{{ $calRoute($view, $prevDate->toDateString(), ($view === 'week' && $customRangeActive) ? ['from' => $prevFrom, 'to' => $prevTo] : []) }}"
                    class="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-body transition-colors"
                    title="Previous">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </a>
+                @if($view === 'week')
                 <button type="button"
                         @click="openRangePicker = !openRangePicker"
-                        class="flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm font-semibold text-heading tabular-nums min-w-[10.5rem] sm:min-w-[12.5rem] text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    @if($view === 'day')   {{ $date->format('d F Y') }}
-                    @elseif($view === 'month') {{ $date->format('F Y') }}
-                    @else {{ $start->format('d M') }} – {{ $end->format('d M Y') }}
-                    @endif
+                        @keydown.escape.window="openRangePicker = false"
+                        class="flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm font-semibold text-heading tabular-nums min-w-[10.5rem] sm:min-w-[12.5rem] text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        :aria-expanded="openRangePicker">
+                    {{ $start->format('d M') }} – {{ $end->format('d M Y') }}
                 </button>
+                @else
+                <span class="flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm font-semibold text-heading tabular-nums min-w-[10.5rem] sm:min-w-[12.5rem] text-center">
+                    @if($view === 'day'){{ $date->format('d F Y') }}
+                    @else{{ $date->format('F Y') }}
+                    @endif
+                </span>
+                @endif
                 <a href="{{ $calRoute($view, $nextDate->toDateString(), ($view === 'week' && $customRangeActive) ? ['from' => $nextFrom, 'to' => $nextTo] : []) }}"
                    class="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-body transition-colors"
                    title="Next">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
+                @if($view === 'week')
                 <div x-show="openRangePicker"
                      x-cloak
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
                      @click.outside="openRangePicker = false"
-                     class="absolute top-full right-0 mt-2 w-72 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-xl z-20">
+                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(100vw-2rem,20rem)] sm:w-80 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[60]">
+                    <p class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Custom week range</p>
                     <form method="GET" action="{{ route('calendar') }}" class="space-y-3">
                         <input type="hidden" name="view" value="week">
                         <input type="hidden" name="staff_id" value="{{ $filterStaffId }}">
-                        <div>
-                            <label class="form-label text-xs">From</label>
-                            <input type="date" name="from" class="form-input text-sm" value="{{ $rangeFromYmd ?? $start->toDateString() }}">
+                        <div class="relative z-10">
+                            <label class="form-label text-xs mb-1" for="cal-range-from">From</label>
+                            <input type="date" id="cal-range-from" name="from" class="form-input text-sm w-full" value="{{ $rangeFromYmd ?? $start->toDateString() }}">
                         </div>
-                        <div>
-                            <label class="form-label text-xs">To</label>
-                            <input type="date" name="to" class="form-input text-sm" value="{{ $rangeToYmd ?? $end->toDateString() }}">
+                        <div class="relative z-10">
+                            <label class="form-label text-xs mb-1" for="cal-range-to">To</label>
+                            <input type="date" id="cal-range-to" name="to" class="form-input text-sm w-full" value="{{ $rangeToYmd ?? $end->toDateString() }}">
                         </div>
-                        <div class="flex justify-end gap-2 pt-1">
+                        <div class="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                             <button type="button" class="btn-outline btn-sm" @click="openRangePicker = false">Cancel</button>
                             <button type="submit" class="btn-primary btn-sm">Apply</button>
                         </div>
                     </form>
                 </div>
+                @endif
             </div>
             <a href="{{ $calRoute($view, $salonTodayYmd, ['from' => null, 'to' => null]) }}" class="btn-outline btn-sm whitespace-nowrap">Today</a>
         </div>

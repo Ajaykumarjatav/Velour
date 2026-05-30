@@ -77,7 +77,7 @@
                     </a>
                 </td>
                 <td class="text-muted text-xs hidden sm:table-cell">
-                    {{ $apt->services->pluck('service.name')->filter()->join(', ') ?: '—' }}
+                    {{ $apt->services->pluck('service_name')->filter()->join(', ') ?: '—' }}
                 </td>
                 <td class="text-muted">{{ $apt->starts_at->format('d M Y') }}</td>
                 <td class="font-semibold text-heading text-right">@money($apt->total_price)</td>

@@ -29,7 +29,7 @@ final class ClientHistory
 
         $appointments = Appointment::withoutGlobalScopes()
             ->where('client_id', $client->id)
-            ->with(['staff:id,first_name,last_name', 'services:id,appointment_id,service_name'])
+            ->with(['staff:id,first_name,last_name', 'services:id,appointment_id,service_id,service_name'])
             ->orderByDesc('starts_at')
             ->limit($limit)
             ->get();
@@ -111,7 +111,7 @@ final class ClientHistory
         $appointments = Appointment::withoutGlobalScopes()
             ->where('salon_id', $salonId)
             ->whereIn('client_id', $clientIds)
-            ->with(['staff:id,first_name,last_name', 'services:id,appointment_id,service_name'])
+            ->with(['staff:id,first_name,last_name', 'services:id,appointment_id,service_id,service_name'])
             ->orderByDesc('starts_at')
             ->get()
             ->groupBy('client_id');

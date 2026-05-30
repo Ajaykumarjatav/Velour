@@ -232,7 +232,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn ($a) => [
                 'name' => trim(($a->client?->first_name ?? '') . ' ' . ($a->client?->last_name ?? '')) ?: 'Walk-in',
-                'services' => $a->services->pluck('service.name')->filter()->join(', ') ?: 'Appointment',
+                'services' => $a->services->pluck('service_name')->filter()->join(', ') ?: 'Appointment',
                 'time' => $a->starts_at->format('h:i A'),
                 'date' => $a->starts_at->toDateString(),
                 'color' => $a->staff?->color ?? '#7C3AED',
