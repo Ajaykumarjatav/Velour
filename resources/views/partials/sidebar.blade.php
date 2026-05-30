@@ -1,16 +1,52 @@
 <div class="flex flex-col h-full min-h-0 sidebar-wrapper">
 
-    {{-- Logo --}}
-    <div class="px-5 py-5 border-b border-gray-100 dark:border-gray-800 min-h-[4.25rem]">
-        <p class="text-base font-semibold text-gray-900 dark:text-white tracking-tight font-sans whitespace-nowrap">
-            <span class="sidebar-text">velour</span><span class="text-velour-500 font-semibold">.</span>
-        </p>
-        {{-- Store icon shown when collapsed --}}
-        <div class="sidebar-logo-icon flex w-8 h-8 rounded-lg bg-velour-600 items-center justify-center text-white shrink-0 mx-auto">
+    {{-- Business status header --}}
+    <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800 min-h-[4.25rem]">
+        {{-- Collapsed: store icon only --}}
+        <div class="sidebar-logo-icon flex w-8 h-8 rounded-lg bg-velour-600 items-center justify-center text-white shrink-0 mx-auto"
+             title="{{ ($salonBusinessStatus ?? null) ? $salonBusinessStatus['name'] : 'Velour' }}">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         </div>
-        @if(Auth::check() && ($currentSalon ?? null))
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate sidebar-text">{{ $currentSalon->name }}</p>
+
+        @if(Auth::check() && ($salonBusinessStatus ?? null))
+        <div class="sidebar-text relative pr-8" x-data="{ copied: false }">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white tracking-tight truncate leading-snug">
+                {{ $salonBusinessStatus['name'] }}
+            </p>
+            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                @if($salonBusinessStatus['is_live'])
+                    <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true"></span>
+                        Live
+                    </span>
+                @else
+                    <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400 font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0" aria-hidden="true"></span>
+                        Offline
+                    </span>
+                @endif
+                <a href="{{ $salonBusinessStatus['setup_url'] }}"
+                   class="text-gray-500 dark:text-gray-400 hover:text-velour-600 dark:hover:text-velour-300 transition-colors tabular-nums">
+                    {{ $salonBusinessStatus['setup_percent'] }}% Setup Complete
+                </a>
+            </div>
+            <button type="button"
+                    class="absolute top-0 right-0 p-1 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    title="Copy booking link"
+                    aria-label="Copy booking link"
+                    @click="navigator.clipboard.writeText(@js($salonBusinessStatus['copy_url'])); copied = true; setTimeout(() => copied = false, 2000)">
+                <svg x-show="!copied" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                <svg x-show="copied" x-cloak class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            </button>
+        </div>
+        @else
+        <p class="sidebar-text text-base font-semibold text-gray-900 dark:text-white tracking-tight font-sans whitespace-nowrap">
+            velour<span class="text-velour-500 font-semibold">.</span>
+        </p>
         @endif
     </div>
 
@@ -234,13 +270,8 @@
                 </svg>
             </button>
             <div x-show="open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="ml-4 mt-0.5 space-y-0.5">
-                @foreach([
-                    ['revenue', 'Revenue'],
-                    ['appointments', 'Appointments'],
-                    ['staff', 'Staff'],
-                    ['clients', 'Clients'],
-                    ['services', 'Services'],
-                ] as [$key, $label])
+                @foreach(\App\Support\ReportCatalog::forUser(auth()->user()) as $report)
+                @php $key = $report['key']; $label = $report['label']; @endphp
                 <a href="{{ route('reports.show', $key) }}"
                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
                           {{ request()->routeIs('reports.show') && request()->route('type') === $key
@@ -248,17 +279,7 @@
                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
                     <svg class="w-3.5 h-3.5 flex-shrink-0 {{ request()->routeIs('reports.show') && request()->route('type') === $key ? 'text-velour-600 dark:text-velour-300' : 'text-gray-400 dark:text-gray-500' }}"
                          fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        @if($key === 'revenue')
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        @elseif($key === 'appointments')
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V5m8 2V5m-9 6h10M5 21h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        @elseif($key === 'staff')
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20a5 5 0 0110 0M12 11a3 3 0 100-6 3 3 0 000 6z" />
-                        @elseif($key === 'clients')
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19a3 3 0 100-6 3 3 0 000 6zM9 19a3 3 0 100-6 3 3 0 000 6zM12 7a3 3 0 100-6 3 3 0 000 6z" />
-                        @else
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7.5-3a3.5 3.5 0 110-7 3.5 3.5 0 010 7zM7 7l4 4m0-4l-4 4" />
-                        @endif
+                        @include('reports._nav-icon', ['key' => $key])
                     </svg>
                     {{ $label }}
                 </a>

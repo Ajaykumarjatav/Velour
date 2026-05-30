@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\MarketingAutomationTemplate;
+use App\Support\MarketingAutomationCatalog;
 use App\Models\MarketingSmsMessage;
 use App\Models\MarketingSmsThread;
 use App\Models\LoyaltyTier;
@@ -54,34 +55,44 @@ class MarketingGrowthDefaults
         $templates = [
             [
                 'template_key' => 'appointment_reminder', 'name' => 'Appointment Reminder',
-                'channels_label' => 'SMS + Email', 'trigger_label' => '24h before appointment', 'is_active' => true,
+                'channels_label' => 'Email + SMS', 'trigger_label' => '24h before appointment',
+                'is_active' => true, 'channel_email' => true, 'channel_sms' => true, 'channel_whatsapp' => false,
             ],
             [
                 'template_key' => 'booking_confirmation', 'name' => 'Booking Confirmation',
-                'channels_label' => 'Email', 'trigger_label' => 'On booking', 'is_active' => true,
+                'channels_label' => 'Email + WhatsApp', 'trigger_label' => 'On booking',
+                'is_active' => true, 'channel_email' => true, 'channel_sms' => false, 'channel_whatsapp' => true,
+                'whatsapp_body' => MarketingAutomationCatalog::forKey('booking_confirmation')['default_whatsapp_body'] ?? null,
             ],
             [
                 'template_key' => 'no_show_followup', 'name' => 'No-Show Follow-up',
-                'channels_label' => 'SMS', 'trigger_label' => '1h after missed appointment', 'is_active' => true,
+                'channels_label' => 'SMS', 'trigger_label' => '1h after missed appointment',
+                'is_active' => true, 'channel_sms' => true,
             ],
             [
                 'template_key' => 'birthday_offer', 'name' => 'Birthday Offer',
-                'channels_label' => 'Email + SMS', 'trigger_label' => 'On birthday', 'is_active' => false,
+                'channels_label' => 'Email + SMS', 'trigger_label' => 'On birthday',
+                'is_active' => false, 'channel_email' => true, 'channel_sms' => true,
             ],
             [
                 'template_key' => 're_engagement', 'name' => 'Re-engagement',
-                'channels_label' => 'SMS', 'trigger_label' => '30 days inactive', 'is_active' => true,
+                'channels_label' => 'SMS', 'trigger_label' => '30 days inactive',
+                'is_active' => true, 'channel_sms' => true,
             ],
             [
                 'template_key' => 'review_request', 'name' => 'Review Request',
-                'channels_label' => 'Email', 'trigger_label' => '2h after checkout', 'is_active' => true,
+                'channels_label' => 'Email', 'trigger_label' => '2h after checkout',
+                'is_active' => true, 'channel_email' => true,
             ],
         ];
         foreach ($templates as $t) {
-            MarketingAutomationTemplate::firstOrCreate(
+            $tpl = MarketingAutomationTemplate::firstOrCreate(
                 ['salon_id' => $salon->id, 'template_key' => $t['template_key']],
                 array_merge($t, ['salon_id' => $salon->id])
             );
+            if ($tpl->wasRecentlyCreated && class_exists(\App\Services\MarketingNotificationBridge::class)) {
+                app(\App\Services\MarketingNotificationBridge::class)->sync($tpl);
+            }
         }
 
         if (MarketingSmsThread::where('salon_id', $salon->id)->doesntExist()) {

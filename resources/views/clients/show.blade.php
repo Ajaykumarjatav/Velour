@@ -61,6 +61,48 @@
     </div>
     @endif
 
+    @if(isset($history) && $history->isNotEmpty())
+    <div class="table-wrap">
+        <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <h3 class="font-semibold text-heading">History</h3>
+            <p class="text-xs text-muted mt-1">Full sale amounts (e.g. extra line quantity) — not partial deltas.</p>
+        </div>
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Details</th>
+                <th class="text-right">Amount</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach($history as $row)
+            <tr>
+                <td>
+                    <p class="font-medium text-heading">{{ $row['at']?->format('d M Y') ?? '—' }}</p>
+                    <p class="text-xs text-muted">{{ $row['at']?->format('H:i') }}</p>
+                </td>
+                <td class="text-body">{{ $row['label'] }}</td>
+                <td class="text-sm text-muted">{{ $row['detail'] }}</td>
+                <td class="text-right font-bold text-heading tabular-nums">
+                    @money($row['amount'])
+                </td>
+                <td class="text-right">
+                    @if($row['url'])
+                    <a href="{{ $row['url'] }}" class="text-xs text-link font-medium">View</a>
+                    @else
+                    <span class="text-xs text-muted">{{ $row['status'] }}</span>
+                    @endif
+                </td>
+            </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+
     <div class="table-wrap">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
             <h3 class="font-semibold text-heading">Appointments</h3>

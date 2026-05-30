@@ -51,7 +51,10 @@ class CalendarController extends Controller
         } else {
             match ($view) {
                 'day' => [$start, $end] = [$date->copy(), $date->copy()->endOfDay()],
-                'month' => [$start, $end] = [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()],
+                'month' => [
+                    $start = $date->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY),
+                    $end = $date->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY)->endOfDay(),
+                ],
                 default => [$start, $end] = [$date->copy()->startOfWeek(Carbon::MONDAY), $date->copy()->endOfWeek(Carbon::SUNDAY)],
             };
         }
@@ -76,25 +79,40 @@ class CalendarController extends Controller
             ->when($filterStaffId, fn ($q) => $q->where('staff_id', $filterStaffId))
             ->with(['client', 'staff', 'services'])
             ->get()
-            ->map(fn ($a) => [
-                'id'        => $a->id,
-                'title'     => $a->client?->first_name . ' ' . $a->client?->last_name,
-                'start'     => $a->starts_at->toIso8601String(),
-                'end'       => $a->ends_at->toIso8601String(),
-                'status'    => $a->status,
-                'staff'     => $a->staff?->name,
-                'staff_id'  => $a->staff_id,
-                'reference' => $a->reference,
-                'url'       => route('appointments.show', $a->id),
-                'color'     => $this->statusColor($a->status),
-            ]);
+            ->map(function ($a) use ($tz) {
+                $durationMinutes = (int) ($a->duration_minutes ?: max(1, $a->starts_at->diffInMinutes($a->ends_at)));
+                $startsLocal = $a->starts_at->copy()->timezone($tz);
+                $endsLocal = $a->ends_at->copy()->timezone($tz);
+
+                return [
+                    'id'               => $a->id,
+                    'title'            => trim(($a->client?->first_name ?? '') . ' ' . ($a->client?->last_name ?? '')),
+                    'start'            => $a->starts_at->toIso8601String(),
+                    'end'              => $a->ends_at->toIso8601String(),
+                    'status'           => $a->status,
+                    'staff'            => $a->staff?->name,
+                    'staff_id'         => $a->staff_id,
+                    'staff_color'      => $a->staff?->color ?: '#7C3AED',
+                    'reference'        => $a->reference,
+                    'url'              => route('appointments.show', $a->id),
+                    'color'            => $this->statusColor($a->status),
+                    'services_label'   => $a->services->pluck('service_name')->filter()->implode(', ') ?: 'Appointment',
+                    'duration_minutes' => $durationMinutes,
+                    'duration_label'   => $this->formatDurationLabel($durationMinutes),
+                    'time_label'       => $startsLocal->format('H:i') . ' – ' . $endsLocal->format('H:i'),
+                ];
+            });
 
         $staffQuery = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->where('is_active', true);
         if ($scopedStaffId !== null) {
             $staffQuery->whereKey($scopedStaffId);
         }
-        $staff = $staffQuery->withName()->get();
+        $staff = $staffQuery
+            ->orderBy('sort_order')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
 
         $selectedStaff = $filterStaffId
             ? Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($filterStaffId)->first()
@@ -102,6 +120,20 @@ class CalendarController extends Controller
 
         [$hourStart, $hourEnd] = $this->resolveHourBounds($salon, $selectedStaff);
         $availabilityByDate = $this->buildAvailabilityByDate($start, $end, $salon, $selectedStaff, $tz);
+
+        $staffSidebarGrid = in_array($view, ['week', 'day', 'month'], true)
+            ? $this->buildStaffSidebarGrid(
+                $staff,
+                $appointments,
+                $start,
+                $end,
+                $tz,
+                $filterStaffId,
+                $availabilityByDate,
+                $view,
+                $view === 'month' ? $date : null
+            )
+            : null;
 
         $calendarData = json_encode($appointments);
         $staffData    = json_encode($staff);
@@ -115,8 +147,197 @@ class CalendarController extends Controller
             'appointments', 'start', 'end', 'filterStaffId', 'staff',
             'salonTz', 'salonTodayYmd', 'tzAbbrev', 'hourStart', 'hourEnd',
             'availabilityByDate', 'selectedStaff', 'customRangeActive',
-            'rangeFromYmd', 'rangeToYmd', 'rangeSpanDays'
+            'rangeFromYmd', 'rangeToYmd', 'rangeSpanDays', 'staffSidebarGrid'
         ));
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $appointments
+     * @param  \Illuminate\Database\Eloquent\Collection<int, Staff>  $staff
+     */
+    private function buildStaffSidebarGrid($staff, $appointments, Carbon $start, Carbon $end, string $tz, ?int $filterStaffId, array $availabilityByDate, string $view, ?Carbon $focusMonth = null): array
+    {
+        $salonTodayYmd = Carbon::now($tz)->toDateString();
+        $days = [];
+        $d = $start->copy()->startOfDay();
+        while ($d->lte($end)) {
+            $ymd = $d->toDateString();
+            $days[] = [
+                'ymd'              => $ymd,
+                'dow'              => $d->format('D'),
+                'day_num'          => (int) $d->format('j'),
+                'label'            => $d->format('D'),
+                'is_today'         => $ymd === $salonTodayYmd,
+                'is_current_month' => $focusMonth
+                    ? ($d->month === $focusMonth->month && $d->year === $focusMonth->year)
+                    : true,
+                'day_url'          => route('calendar', array_filter([
+                    'view'     => 'day',
+                    'date'     => $ymd,
+                    'staff_id' => $filterStaffId,
+                ])),
+            ];
+            $d->addDay();
+        }
+
+        $layout = match ($view) {
+            'month' => 'month',
+            'day'   => 'day',
+            default => 'week',
+        };
+
+        $staffForGrid = $filterStaffId
+            ? $staff->where('id', $filterStaffId)->values()
+            : $staff;
+
+        $rows = [];
+        $unassigned = $appointments->filter(fn ($a) => empty($a['staff_id']));
+        if ($unassigned->isNotEmpty() && $filterStaffId === null) {
+            $rows[] = $this->buildStaffSidebarRow(
+                null,
+                'Unassigned',
+                'NA',
+                null,
+                '#9CA3AF',
+                null,
+                $unassigned,
+                $days,
+                $tz,
+                $availabilityByDate,
+                null,
+                $layout
+            );
+        }
+
+        foreach ($staffForGrid as $member) {
+            $memberAppts = $appointments->filter(fn ($a) => (int) ($a['staff_id'] ?? 0) === (int) $member->id);
+            $rows[] = $this->buildStaffSidebarRow(
+                (int) $member->id,
+                $member->name ?? trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                $this->staffInitials($member),
+                $member->avatar_url,
+                $member->color ?: '#7C3AED',
+                $member->role,
+                $memberAppts,
+                $days,
+                $tz,
+                $availabilityByDate,
+                $member,
+                $layout
+            );
+        }
+
+        return [
+            'days'   => $days,
+            'rows'   => $rows,
+            'layout' => $layout,
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $memberAppts
+     * @param  list<array<string, mixed>>  $days
+     */
+    private function buildStaffSidebarRow(
+        ?int $staffId,
+        string $name,
+        string $initials,
+        ?string $avatarUrl,
+        string $color,
+        ?string $role,
+        $memberAppts,
+        array $days,
+        string $tz,
+        array $availabilityByDate,
+        ?Staff $staffModel = null,
+        string $layout = 'week'
+    ): array {
+        $totalMinutes = 0;
+        $cells = [];
+
+        foreach ($days as $day) {
+            $ymd = $day['ymd'];
+            $dayMeta = $availabilityByDate[$ymd] ?? null;
+            $salonOpen = (bool) ($dayMeta['salon_open'] ?? true);
+            $staffWorks = true;
+            if ($staffModel) {
+                $workingDays = is_array($staffModel->working_days) ? $staffModel->working_days : [];
+                if ($workingDays !== [] && ! in_array($day['dow'], $workingDays, true)) {
+                    $staffWorks = false;
+                }
+            }
+
+            $dayBlocks = $memberAppts
+                ->filter(fn ($a) => Carbon::parse($a['start'])->timezone($tz)->toDateString() === $ymd)
+                ->sortBy(fn ($a) => $a['start'])
+                ->map(function ($a) use ($color, &$totalMinutes, $tz, $layout) {
+                    $totalMinutes += (int) ($a['duration_minutes'] ?? 0);
+                    $startsLocal = Carbon::parse($a['start'])->timezone($tz);
+                    $title = trim((string) ($a['title'] ?? ''));
+
+                    return array_merge($a, [
+                        'block_color' => $color,
+                        'start_short' => $startsLocal->format('H:i'),
+                        'title_short' => $title !== '' ? $title : 'Walk-in',
+                        'compact'     => $layout === 'month',
+                    ]);
+                })
+                ->values()
+                ->all();
+
+            $cells[$ymd] = [
+                'blocks'     => $dayBlocks,
+                'blocked'    => ! $salonOpen || ! $staffWorks,
+                'create_url' => route('appointments.create', array_filter([
+                    'date'     => $ymd,
+                    'staff_id' => $staffId,
+                ])),
+            ];
+        }
+
+        return [
+            'id'               => $staffId,
+            'name'             => $name,
+            'initials'         => $initials,
+            'avatar_url'       => $avatarUrl,
+            'color'            => $color,
+            'role'             => $role,
+            'week_hours_label' => $this->formatDurationLabel($totalMinutes),
+            'cells'            => $cells,
+        ];
+    }
+
+    private function staffInitials(Staff $member): string
+    {
+        $initials = trim((string) ($member->initials ?? ''));
+        if ($initials !== '') {
+            return $initials;
+        }
+        $name = $member->name ?? trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? ''));
+        if ($name === '') {
+            return '?';
+        }
+        $parts = preg_split('/\s+/', $name) ?: [];
+
+        return strtoupper(collect($parts)->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode(''));
+    }
+
+    private function formatDurationLabel(int $minutes): string
+    {
+        $minutes = max(0, $minutes);
+        if ($minutes === 0) {
+            return '0h';
+        }
+        $hours = intdiv($minutes, 60);
+        $mins = $minutes % 60;
+        if ($hours > 0 && $mins > 0) {
+            return "{$hours}h{$mins}m";
+        }
+        if ($hours > 0) {
+            return "{$hours}h";
+        }
+
+        return "{$mins}m";
     }
 
     private function statusColor(string $status): string

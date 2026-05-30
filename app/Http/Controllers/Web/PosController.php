@@ -287,6 +287,7 @@ class PosController extends Controller
             $tx = PosTransaction::create([
                 'salon_id'        => $salon->id,
                 'client_id'       => $data['client_id'] ?? null,
+                'appointment_id'  => $data['appointment_id'] ?? null,
                 'staff_id'        => (int) $staffId,
                 'payment_method'  => $paymentMethod,
                 'subtotal'        => $subtotal,
@@ -323,9 +324,10 @@ class PosController extends Controller
             }
 
             if ($tx->client_id) {
-                Client::withoutGlobalScopes()
-                    ->whereKey($tx->client_id)
-                    ->increment('total_spent', $tx->total);
+                $client = Client::withoutGlobalScopes()->whereKey($tx->client_id)->first();
+                if ($client) {
+                    Client::withoutAuditLog(fn () => $client->recalculateTotalSpent());
+                }
             }
 
             return $tx;
@@ -339,9 +341,12 @@ class PosController extends Controller
                 ->first();
 
             if ($linkedAppointment) {
+                $paidTotal = (float) $transaction->total;
                 $linkedAppointment->update([
                     'payment_status' => Appointment::PAYMENT_PAID,
-                    'amount_paid' => (float) $transaction->total,
+                    'amount_paid'    => $paidTotal,
+                    // Keep appointment amount in sync when POS bill is higher (e.g. extra qty).
+                    'total_price'    => max((float) $linkedAppointment->total_price, $paidTotal),
                 ]);
 
                 // Auto-complete if still in an active state

@@ -138,7 +138,8 @@
 
 @php
     $appointmentsMap = isset($appointmentsByClient) ? $appointmentsByClient : collect();
-    $clientRows = $clients->map(function ($c) use ($salon, $appointmentsMap, $isScopedStaffPanel, $engagementCutoff, $clientsWithUpcoming, $engagementWindowDays) {
+    $historyMap = $historyByClient ?? [];
+    $clientRows = $clients->map(function ($c) use ($salon, $appointmentsMap, $historyMap, $isScopedStaffPanel, $engagementCutoff, $clientsWithUpcoming, $engagementWindowDays) {
         $hasRecentVisit = $c->last_visit_at !== null && $c->last_visit_at->gte($engagementCutoff);
         $hasUpcoming = ($clientsWithUpcoming ?? collect())->has((int) $c->id);
         $isEngagementActive = $hasRecentVisit || $hasUpcoming;
@@ -163,7 +164,7 @@
             'added' => $c->created_at?->format('d M Y'),
             'marketing' => (bool) $c->marketing_consent,
             'visits' => (int) ($c->visit_count ?? 0),
-            'total_spent' => number_format((float) ($c->total_spent ?? 0), 2, '.', ''),
+            'total_spent' => number_format((float) ($c->transactions_total ?? $c->total_spent ?? 0), 2, '.', ''),
             'last_visit' => $c->last_visit_at ? $c->last_visit_at->format('d M Y') : '—',
             'dob' => $isScopedStaffPanel ? '—' : ($c->date_of_birth ? $c->date_of_birth->format('d M Y') : '—'),
             'gender' => $isScopedStaffPanel ? '—' : ($c->gender ? str_replace('_', ' ', (string) $c->gender) : '—'),
@@ -186,8 +187,27 @@
                     'time' => $apt->starts_at ? $apt->starts_at->format('H:i') : '—',
                     'services' => $apt->services->pluck('service_name')->filter()->join(', ') ?: '—',
                     'staff' => $apt->staff?->name ?? '—',
-                    'amount' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP') . number_format((float) ($apt->total_price ?? 0), 2),
+                    'amount' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP') . number_format(
+                        (float) (($apt->payment_status === 'paid' && (float) ($apt->amount_paid ?? 0) > 0)
+                            ? $apt->amount_paid
+                            : ($apt->total_price ?? 0)),
+                        2
+                    ),
                     'status' => ucfirst(str_replace('_', ' ', (string) ($apt->status ?? 'pending'))),
+                ];
+            })->values()->all(),
+            'history' => collect($historyMap[(int) $c->id] ?? [])->map(function ($row) use ($salon) {
+                $at = ! empty($row['at']) ? \Carbon\Carbon::parse($row['at']) : null;
+
+                return [
+                    'kind' => $row['kind'],
+                    'date' => $at ? $at->format('d M Y') : '—',
+                    'time' => $at ? $at->format('H:i') : '',
+                    'label' => $row['label'],
+                    'detail' => $row['detail'],
+                    'amount' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP').number_format((float) ($row['amount'] ?? 0), 2),
+                    'status' => $row['status'],
+                    'url' => $row['url'] ?? null,
                 ];
             })->values()->all(),
         ];
@@ -442,37 +462,39 @@
 
                 <div class="mt-6 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                     <div class="px-5 py-3.5 bg-gray-50/90 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
-                        <h4 class="text-sm font-semibold tracking-tight text-heading">Appointments</h4>
+                        <h4 class="text-sm font-semibold tracking-tight text-heading">History</h4>
+                        <p class="text-[11px] text-muted mt-0.5">Appointments and POS sales show the full amount charged (including extra quantity on the bill).</p>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-sm">
                             <thead class="text-[11px] font-semibold uppercase tracking-wider text-muted bg-gray-50/80 dark:bg-gray-900/45">
                                 <tr>
                                     <th class="px-5 py-2.5 text-left">Date</th>
-                                    <th class="px-5 py-2.5 text-left">Services</th>
-                                    <th class="px-5 py-2.5 text-left">Staff</th>
+                                    <th class="px-5 py-2.5 text-left">Type</th>
+                                    <th class="px-5 py-2.5 text-left">Details</th>
                                     <th class="px-5 py-2.5 text-left">Amount</th>
                                     <th class="px-5 py-2.5 text-left">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <template x-for="apt in (selectedClient().appointments || [])" :key="apt.date + apt.time + apt.staff">
+                                <template x-for="row in (selectedClient().history || [])" :key="row.kind + row.date + row.detail + row.amount">
                                     <tr class="border-t border-gray-100 dark:border-gray-800/80 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
                                         <td class="px-5 py-2.5 text-body">
-                                            <div x-text="apt.date"></div>
-                                            <div class="text-xs text-muted" x-text="apt.time"></div>
+                                            <div x-text="row.date"></div>
+                                            <div class="text-xs text-muted" x-text="row.time"></div>
                                         </td>
-                                        <td class="px-5 py-2.5 text-body" x-text="apt.services"></td>
-                                        <td class="px-5 py-2.5 text-body" x-text="apt.staff"></td>
-                                        <td class="px-5 py-2.5 text-body tabular-nums" x-text="apt.amount"></td>
+                                        <td class="px-5 py-2.5 text-body font-medium" x-text="row.label"></td>
+                                        <td class="px-5 py-2.5 text-body text-xs" x-text="row.detail"></td>
+                                        <td class="px-5 py-2.5 text-body tabular-nums font-semibold" x-text="row.amount"></td>
                                         <td class="px-5 py-2.5">
-                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                                                  x-text="apt.status"></span>
+                                            <a x-show="row.url" :href="row.url" class="text-link text-xs font-medium">View</a>
+                                            <span x-show="!row.url" class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                                                  x-text="row.status"></span>
                                         </td>
                                     </tr>
                                 </template>
-                                <tr x-show="!selectedClient().appointments || selectedClient().appointments.length === 0">
-                                    <td colspan="5" class="px-5 py-6 text-center text-sm text-muted">No appointments yet.</td>
+                                <tr x-show="!selectedClient().history || selectedClient().history.length === 0">
+                                    <td colspan="5" class="px-5 py-6 text-center text-sm text-muted">No history yet.</td>
                                 </tr>
                             </tbody>
                         </table>

@@ -11,6 +11,15 @@ class Client extends Model
 {
     use AuditLog, BelongsToTenant;
     use HasFactory, SoftDeletes;
+
+    /**
+     * @return list<string>
+     */
+    protected function extraAuditExcludeFields(): array
+    {
+        return ['total_spent', 'visit_count', 'last_visit_at'];
+    }
+
     protected $fillable = [
         'salon_id','loyalty_tier_id','referred_by_client_id','first_name','last_name','email','phone',
         'date_of_birth','avatar','color','tags','preferred_staff_id','allergies',
@@ -53,6 +62,15 @@ class Client extends Model
     {
         return \App\Support\ClientEngagement::label($this);
     }
+
+    public function recalculateTotalSpent(): void
+    {
+        $this->total_spent = (float) $this->transactions()
+            ->where('status', 'completed')
+            ->sum('total');
+        $this->save();
+    }
+
     protected static function newFactory()
     {
         return \Database\Factories\ClientFactory::new();

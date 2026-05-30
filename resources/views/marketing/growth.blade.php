@@ -73,7 +73,7 @@
                         'campaigns' => 'Campaigns',
                         'loyalty' => 'Loyalty',
                         'referrals' => 'Referrals',
-                        'communications' => 'SMS & Email',
+                        'communications' => 'Notifications',
                     ] as $tk => $tl)
                         <a href="{{ $tabLinks($tk) }}"
                            class="px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap
@@ -336,15 +336,25 @@
     @if($tab === 'communications')
         <div class="card p-6 border-stone-200/80 dark:border-gray-800">
             <div class="flex flex-wrap justify-between gap-3 mb-4">
-                <h2 class="text-xl text-heading">SMS &amp; Email templates</h2>
+                <h2 class="text-xl text-heading">Notification templates</h2>
             </div>
-            <p class="text-sm text-muted mb-4">Toggles and copy are stored per salon. Connect Twilio/Mailgun to send automatically from booking and POS events.</p>
+            <p class="text-sm text-muted mb-4">Configure email, SMS, and WhatsApp confirmations per trigger. Toggles sync to your salon notification rules. Connect Mailgun for email and Twilio (including <code class="text-xs">TWILIO_WHATSAPP_FROM</code>) for WhatsApp.</p>
             <ul class="divide-y divide-stone-200 dark:divide-gray-700">
                 @foreach($automationTemplates as $tpl)
+                    @php $tplChannels = \App\Support\MarketingAutomationCatalog::channelsForKey($tpl->template_key); @endphp
                     <li class="py-4 flex flex-col sm:flex-row sm:items-center gap-4">
                         <div class="flex-1 min-w-0">
                             <p class="font-semibold text-heading">{{ $tpl->name }}</p>
-                            <p class="text-sm text-muted">{{ $tpl->channels_label }} · Trigger: {{ $tpl->trigger_label }}</p>
+                            <p class="text-sm text-muted">Trigger: {{ $tpl->trigger_label }}</p>
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                @foreach($tplChannels as $ch)
+                                    @php $on = (bool) $tpl->{'channel_'.$ch}; @endphp
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full
+                                        {{ $on && $tpl->is_active ? 'bg-velour-100 text-velour-800 dark:bg-velour-900/40 dark:text-velour-200' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' }}">
+                                        {{ \App\Support\MarketingAutomationCatalog::channelLabel($ch) }}
+                                    </span>
+                                @endforeach
+                            </div>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
                             <form action="{{ route('marketing.automation-templates.toggle', $tpl) }}" method="POST">
@@ -355,7 +365,19 @@
                                 </button>
                             </form>
                             <button type="button" class="p-2 rounded-lg border border-stone-200 dark:border-gray-700 hover:bg-stone-50 dark:hover:bg-gray-800"
-                                    x-on:click="openTemplate({ id: {{ $tpl->id }}, name: @js($tpl->name), sms_body: @js($tpl->sms_body), email_subject: @js($tpl->email_subject), email_body: @js($tpl->email_body) })">
+                                    x-on:click="openTemplate({
+                                        id: {{ $tpl->id }},
+                                        name: @js($tpl->name),
+                                        template_key: @js($tpl->template_key),
+                                        channels: @js($tplChannels),
+                                        channel_email: @json((bool) $tpl->channel_email),
+                                        channel_sms: @json((bool) $tpl->channel_sms),
+                                        channel_whatsapp: @json((bool) $tpl->channel_whatsapp),
+                                        sms_body: @js($tpl->sms_body),
+                                        email_subject: @js($tpl->email_subject),
+                                        email_body: @js($tpl->email_body),
+                                        whatsapp_body: @js($tpl->whatsapp_body)
+                                    })">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                             </button>
                         </div>
@@ -364,72 +386,50 @@
             </ul>
         </div>
 
-        <div class="card p-6 border-stone-200/80 dark:border-gray-800">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-                <h2 class="text-xl text-heading">Two-way SMS inbox</h2>
-                @if($unreadSms > 0)
-                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">{{ $unreadSms }} unread</span>
-                @endif
-            </div>
-            <p class="text-sm text-muted mb-4">Reply is logged for your team (SMS gateway integration can dispatch these in production).</p>
-            @if($smsThreads->isEmpty())
-                <p class="text-sm text-muted">No conversations yet.</p>
-            @else
-                <div class="grid lg:grid-cols-5 gap-4 min-h-[280px]">
-                    <div class="lg:col-span-2 border border-stone-200 dark:border-gray-700 rounded-xl overflow-hidden max-h-[420px] overflow-y-auto">
-                        @foreach($smsThreads as $th)
-                            <a href="{{ route('marketing.growth', ['tab' => 'communications', 'thread' => $th->id]) }}"
-                               class="block px-4 py-3 border-b border-stone-100 dark:border-gray-800 hover:bg-stone-50 dark:hover:bg-gray-800/50 {{ $activeSmsThread && $activeSmsThread->id === $th->id ? 'bg-velour-50 dark:bg-velour-900/20' : '' }}">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-8 h-8 rounded-full bg-velour-100 dark:bg-velour-900/40 flex items-center justify-center text-xs font-bold text-velour-800 dark:text-velour-200">{{ strtoupper(mb_substr($th->display_name, 0, 1)) }}</span>
-                                    <div class="min-w-0 flex-1">
-                                        <p class="font-medium text-heading text-sm truncate">{{ $th->display_name }}</p>
-                                        <p class="text-xs text-muted truncate">{{ $th->last_preview }}</p>
-                                    </div>
-                                    @if($th->unread_inbound > 0)
-                                        <span class="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
-                                    @endif
-                                </div>
-                            </a>
-                        @endforeach
-                    </div>
-                    <div class="lg:col-span-3 border border-stone-200 dark:border-gray-700 rounded-xl p-4 flex flex-col min-h-[320px]">
-                        @if($activeSmsThread)
-                            <div class="mb-3 pb-3 border-b border-stone-200 dark:border-gray-700">
-                                <p class="font-semibold text-heading">{{ $activeSmsThread->display_name }}</p>
-                                @if($activeSmsThread->phone)<p class="text-xs text-muted">{{ $activeSmsThread->phone }}</p>@endif
-                            </div>
-                            <div class="flex-1 overflow-y-auto space-y-3 mb-4 max-h-[240px]">
-                                @foreach($activeSmsThread->messages as $msg)
-                                    <div class="flex {{ $msg->direction === 'out' ? 'justify-end' : 'justify-start' }}">
-                                        <div class="max-w-[85%] rounded-2xl px-3 py-2 text-sm {{ $msg->direction === 'out' ? 'bg-velour-600 text-white' : 'bg-amber-50 dark:bg-amber-900/25 text-heading' }}">
-                                            {{ $msg->body }}
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                            <form action="{{ route('marketing.sms.reply', $activeSmsThread) }}" method="POST" class="flex gap-2 items-end">
-                                @csrf
-                                <input type="text" name="body" class="form-input flex-1" placeholder="Type a reply…" required autocomplete="off">
-                                <button type="submit" class="btn-primary shrink-0" aria-label="Send">
-                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-                                </button>
-                            </form>
-                        @endif
-                    </div>
-                </div>
-            @endif
-        </div>
-
         <div x-show="templateModal !== null" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40" x-on:click.self="templateModal=null">
             <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full p-6 border border-stone-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto" x-show="templateModal !== null">
                 <form x-show="templateModal" x-cloak :action="'{{ url('marketing/automation-templates') }}/' + templateModal.id" method="POST" class="space-y-4">
                     @csrf
                     @method('PUT')
                     <h3 class="font-semibold text-heading text-lg" x-text="templateModal.name"></h3>
-                    <div><label class="form-label">SMS body</label><textarea name="sms_body" rows="3" x-model="templateModal.sms_body" class="form-textarea w-full font-mono text-sm"></textarea></div>
-                    <div><label class="form-label">Email subject</label><input type="text" name="email_subject" x-model="templateModal.email_subject" class="form-input w-full"></div>
-                    <div><label class="form-label">Email body</label><textarea name="email_body" rows="5" x-model="templateModal.email_body" class="form-textarea w-full font-mono text-sm"></textarea></div>
+                    <p class="text-xs text-muted">Enable channels and edit message copy. Use placeholders such as @{{client_first_name}}, @{{appointment_date}}, @{{reference}}.</p>
+
+                    <div class="flex flex-wrap gap-4 py-2 border-y border-stone-200 dark:border-gray-700">
+                        <template x-if="templateModal.channels.includes('email')">
+                            <label class="inline-flex items-center gap-2 text-sm font-medium text-heading cursor-pointer">
+                                <input type="hidden" name="channel_email" value="0">
+                                <input type="checkbox" name="channel_email" value="1" x-model="templateModal.channel_email" class="rounded border-gray-300 text-velour-600">
+                                Email confirmation
+                            </label>
+                        </template>
+                        <template x-if="templateModal.channels.includes('whatsapp')">
+                            <label class="inline-flex items-center gap-2 text-sm font-medium text-heading cursor-pointer">
+                                <input type="hidden" name="channel_whatsapp" value="0">
+                                <input type="checkbox" name="channel_whatsapp" value="1" x-model="templateModal.channel_whatsapp" class="rounded border-gray-300 text-velour-600">
+                                WhatsApp confirmation
+                            </label>
+                        </template>
+                        <template x-if="templateModal.channels.includes('sms')">
+                            <label class="inline-flex items-center gap-2 text-sm font-medium text-heading cursor-pointer">
+                                <input type="hidden" name="channel_sms" value="0">
+                                <input type="checkbox" name="channel_sms" value="1" x-model="templateModal.channel_sms" class="rounded border-gray-300 text-velour-600">
+                                SMS
+                            </label>
+                        </template>
+                    </div>
+
+                    <div x-show="templateModal.channels.includes('email') && templateModal.channel_email">
+                        <div><label class="form-label">Email subject</label><input type="text" name="email_subject" x-model="templateModal.email_subject" class="form-input w-full"></div>
+                        <div class="mt-3"><label class="form-label">Email body</label><textarea name="email_body" rows="5" x-model="templateModal.email_body" class="form-textarea w-full font-mono text-sm"></textarea></div>
+                    </div>
+                    <div x-show="templateModal.channels.includes('whatsapp') && templateModal.channel_whatsapp" class="mt-4">
+                        <label class="form-label">WhatsApp message</label>
+                        <textarea name="whatsapp_body" rows="4" x-model="templateModal.whatsapp_body" class="form-textarea w-full font-mono text-sm" placeholder="Hi @{{client_first_name}}, your appointment is confirmed…"></textarea>
+                    </div>
+                    <div x-show="templateModal.channels.includes('sms') && templateModal.channel_sms" class="mt-4">
+                        <label class="form-label">SMS body</label>
+                        <textarea name="sms_body" rows="3" x-model="templateModal.sms_body" class="form-textarea w-full font-mono text-sm"></textarea>
+                    </div>
                     <div class="flex gap-2 justify-end">
                         <button type="button" class="btn-outline" x-on:click="templateModal=null">Cancel</button>
                         <button type="submit" class="btn-primary">Save</button>

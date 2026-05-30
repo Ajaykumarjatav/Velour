@@ -384,6 +384,8 @@ class MarketingController extends Controller
         $marketingAutomationTemplate->update([
             'is_active' => ! $marketingAutomationTemplate->is_active,
         ]);
+        $marketingAutomationTemplate->refresh();
+        app(\App\Services\MarketingNotificationBridge::class)->sync($marketingAutomationTemplate);
 
         return redirect()->route('marketing.growth', ['tab' => 'communications'])->with('success', 'Template updated.');
     }
@@ -391,12 +393,33 @@ class MarketingController extends Controller
     public function updateAutomationTemplate(Request $request, MarketingAutomationTemplate $marketingAutomationTemplate)
     {
         $this->authoriseTemplate($marketingAutomationTemplate);
-        $data = $request->validate([
-            'sms_body'      => ['nullable', 'string', 'max:5000'],
-            'email_subject' => ['nullable', 'string', 'max:200'],
-            'email_body'    => ['nullable', 'string', 'max:10000'],
-        ]);
-        $marketingAutomationTemplate->update($data);
+        $allowedChannels = \App\Support\MarketingAutomationCatalog::channelsForKey($marketingAutomationTemplate->template_key);
+
+        $rules = [
+            'sms_body'       => ['nullable', 'string', 'max:5000'],
+            'email_subject'  => ['nullable', 'string', 'max:200'],
+            'email_body'     => ['nullable', 'string', 'max:10000'],
+            'whatsapp_body'  => ['nullable', 'string', 'max:5000'],
+            'channel_email'    => ['nullable', 'boolean'],
+            'channel_sms'      => ['nullable', 'boolean'],
+            'channel_whatsapp' => ['nullable', 'boolean'],
+        ];
+        $data = $request->validate($rules);
+
+        $channelPayload = [
+            'channel_email'    => in_array('email', $allowedChannels, true) && $request->boolean('channel_email'),
+            'channel_sms'      => in_array('sms', $allowedChannels, true) && $request->boolean('channel_sms'),
+            'channel_whatsapp' => in_array('whatsapp', $allowedChannels, true) && $request->boolean('channel_whatsapp'),
+        ];
+
+        $marketingAutomationTemplate->fill(array_merge(
+            collect($data)->only(['sms_body', 'email_subject', 'email_body', 'whatsapp_body'])->all(),
+            $channelPayload
+        ));
+        $marketingAutomationTemplate->refreshChannelsLabel();
+        $marketingAutomationTemplate->save();
+
+        app(\App\Services\MarketingNotificationBridge::class)->sync($marketingAutomationTemplate);
 
         return redirect()->route('marketing.growth', ['tab' => 'communications'])->with('success', 'Template saved.');
     }

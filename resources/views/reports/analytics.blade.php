@@ -282,10 +282,9 @@
             <h3 class="text-xl font-semibold text-heading mb-3">Custom Report</h3>
             <p class="text-sm text-muted mb-4">Use existing detailed reports with date ranges:</p>
             <div class="grid grid-cols-2 gap-2">
-                <a href="{{ route('reports.show', 'revenue') }}" class="btn-outline text-center">Revenue</a>
-                <a href="{{ route('reports.show', 'appointments') }}" class="btn-outline text-center">Appointments</a>
-                <a href="{{ route('reports.show', 'staff') }}" class="btn-outline text-center">Staff</a>
-                <a href="{{ route('reports.show', 'clients') }}" class="btn-outline text-center">Clients</a>
+                @foreach(\App\Support\ReportCatalog::forUser(auth()->user()) as $report)
+                <a href="{{ route('reports.show', $report['key']) }}" class="btn-outline text-center">{{ $report['label'] }}</a>
+                @endforeach
             </div>
             <div class="mt-4 flex justify-end">
                 <button type="button" class="btn-primary" @click="customOpen=false">Done</button>

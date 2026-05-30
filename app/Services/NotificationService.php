@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendWhatsAppNotification;
 use App\Mail\ClientBookingConfirmationMail;
 use App\Mail\TenantCancellationMail;
 use App\Mail\TenantNewBookingMail;
@@ -36,6 +37,7 @@ class NotificationService
     {
         $this->notifyTenantNewBooking($appointment);
         $this->sendClientBookingConfirmationIfEnabled($appointment);
+        $this->sendClientBookingConfirmationWhatsAppIfEnabled($appointment);
     }
 
     public function appointmentReminder(Appointment $appointment): void
@@ -98,6 +100,46 @@ class NotificationService
         return '<p style="margin:0;font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111827;">'
             . nl2br(htmlspecialchars($body, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'))
             . '</p>';
+    }
+
+    /**
+     * Instant client WhatsApp after booking (queued; requires Twilio WhatsApp sender).
+     */
+    public function sendClientBookingConfirmationWhatsAppIfEnabled(Appointment $appointment): void
+    {
+        $salon = $appointment->salon ?? $appointment->load('salon')->salon;
+        if (! $salon) {
+            return;
+        }
+
+        $cfg = $this->notificationConfig();
+        $pluck = $this->salonSettingsPluck($salon);
+        if (! $cfg->isRuleEnabled($salon, 'client_booking_confirmation_whatsapp', $pluck)) {
+            return;
+        }
+
+        $appointment->loadMissing(['client', 'staff', 'services.service']);
+        $client = $appointment->client;
+        if (! $client?->phone) {
+            return;
+        }
+
+        $tpl = $cfg->templatesForRule($salon, 'client_booking_confirmation_whatsapp', $pluck);
+        $ctx = $cfg->buildAppointmentContext($appointment);
+        $body = $cfg->render($tpl['whatsapp_body'] ?? '', $ctx);
+        if (trim($body) === '') {
+            return;
+        }
+
+        try {
+            SendWhatsAppNotification::dispatch($client->phone, $body, $client->id);
+        } catch (\Throwable $e) {
+            Log::error('Client booking confirmation WhatsApp failed', [
+                'appointment_id' => $appointment->id,
+                'to'             => $client->phone,
+                'error'          => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

@@ -109,7 +109,10 @@ class PosService
 
             // Update client total spent
             if ($tx->client_id) {
-                Client::find($tx->client_id)?->increment('total_spent', $tx->total);
+                $client = Client::find($tx->client_id);
+                if ($client) {
+                    Client::withoutAuditLog(fn () => $client->recalculateTotalSpent());
+                }
             }
 
             return $tx;

@@ -32,6 +32,18 @@ class NotificationConfigService
                     'email_body'    => "Hi {{client_first_name}},\n\nYou're booked for {{appointment_date}} at {{appointment_time}} with {{staff_name}}.\nServices: {{service_names}}\nReference: {{reference}}\n\n{{salon_name}}\n{{salon_phone}}",
                 ],
             ],
+            'client_booking_confirmation_whatsapp' => [
+                'label'       => 'Client — booking confirmation (WhatsApp)',
+                'description' => 'WhatsApp message to the client immediately after a booking is confirmed.',
+                'timing'      => 'instant',
+                'channels'    => ['whatsapp'],
+                'default_enabled' => true,
+                'default_offset_hours' => null,
+                'variables'   => ['client_first_name', 'client_last_name', 'salon_name', 'appointment_date', 'appointment_time', 'staff_name', 'service_names', 'reference', 'salon_phone'],
+                'default_templates' => [
+                    'whatsapp_body' => "Hi {{client_first_name}}, your appointment at {{salon_name}} is confirmed for {{appointment_date}} at {{appointment_time}}.\nServices: {{service_names}}\nRef: {{reference}}",
+                ],
+            ],
             'client_appointment_reminder_email' => [
                 'label'       => 'Client — reminder (email)',
                 'description' => 'Scheduled email to the client before their appointment.',
@@ -159,6 +171,9 @@ class NotificationConfigService
         }
         if (isset($rules['client_booking_confirmation_email'])) {
             $rules['client_booking_confirmation_email']['enabled'] = (bool) ($settingsPluck['email_appointment_confirmation'] ?? true);
+        }
+        if (isset($rules['client_booking_confirmation_whatsapp'])) {
+            $rules['client_booking_confirmation_whatsapp']['enabled'] = (bool) ($settingsPluck['whatsapp_appointment_confirmation'] ?? true);
         }
         if (isset($rules['tenant_new_client_email'])) {
             $rules['tenant_new_client_email']['enabled'] = (bool) ($settingsPluck['email_new_client'] ?? true);

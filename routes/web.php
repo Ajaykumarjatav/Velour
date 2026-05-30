@@ -252,6 +252,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::get('reports/revenue/export', [ReportController::class, 'exportRevenue'])->name('reports.revenue.export')
              ->middleware('subscription:feature:reports');
         Route::get('reports/{type}', [ReportController::class, 'show'])->name('reports.show')
+             ->where('type', implode('|', \App\Support\ReportCatalog::keys()))
              ->middleware('subscription:feature:reports');
 
         Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');

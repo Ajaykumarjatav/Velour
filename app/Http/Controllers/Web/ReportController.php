@@ -10,7 +10,10 @@ use App\Models\Client;
 use App\Models\LinkVisit;
 use App\Models\Staff;
 use App\Models\Service;
+use App\Models\InventoryAdjustment;
 use App\Helpers\CurrencyHelper;
+use App\Services\ReportService;
+use App\Support\ReportCatalog;
 use App\Support\SalonTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -21,11 +24,14 @@ class ReportController extends Controller
 {
     use ResolvesActiveSalon;
 
+    public function __construct(private ReportService $reportService) {}
+
     public function index()
     {
         $salon = $this->activeSalon();
+        $reports = ReportCatalog::forUser(auth()->user());
 
-        return view('reports.index', compact('salon'));
+        return view('reports.index', compact('salon', 'reports'));
     }
 
     public function analytics(Request $request)
@@ -297,6 +303,11 @@ class ReportController extends Controller
 
     public function show(Request $request, string $type)
     {
+        $definition = ReportCatalog::find($type);
+        if (! $definition || ! ReportCatalog::visibleTo(auth()->user(), $definition)) {
+            abort(404);
+        }
+
         $salon = $this->activeSalon();
         $from = $request->get('from', SalonTime::monthStartDateString($salon));
         // Appointments are scheduled in the future; default "to" to month-end so the report
@@ -312,6 +323,8 @@ class ReportController extends Controller
             'staff' => $this->staffReport($salon, $from, $to),
             'clients' => $this->clientsReport($salon, $from, $to),
             'services' => $this->servicesReport($salon, $from, $to),
+            'inventory' => $this->inventoryReport($salon, $from, $to),
+            'marketing' => $this->marketingReport($salon, $from, $to),
             default => abort(404),
         };
 
@@ -624,5 +637,43 @@ class ReportController extends Controller
             ->get();
 
         return compact('services');
+    }
+
+    private function inventoryReport($salon, string $from, string $to): array
+    {
+        $rangeStart = $from . ' 00:00:00';
+        $rangeEnd = $to . ' 23:59:59';
+
+        $base = $this->reportService->inventory($salon->id);
+
+        $lowStockItems = \App\Models\InventoryItem::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereColumn('stock_quantity', '<', 'min_stock_level')
+            ->where('is_active', true)
+            ->orderBy('stock_quantity')
+            ->limit(25)
+            ->get(['id', 'name', 'stock_quantity', 'min_stock_level']);
+
+        $adjustments = InventoryAdjustment::query()
+            ->whereHas('item', fn ($q) => $q->where('salon_id', $salon->id))
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->select('type', DB::raw('COUNT(*) as count'))
+            ->groupBy('type')
+            ->orderByDesc('count')
+            ->get();
+
+        $recentAdjustments = InventoryAdjustment::with(['item:id,name', 'staff:id,first_name,last_name'])
+            ->whereHas('item', fn ($q) => $q->where('salon_id', $salon->id))
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        return array_merge($base, compact('lowStockItems', 'adjustments', 'recentAdjustments'));
+    }
+
+    private function marketingReport($salon, string $from, string $to): array
+    {
+        return $this->reportService->marketing($salon->id, $from, $to);
     }
 }

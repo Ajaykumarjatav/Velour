@@ -13,6 +13,7 @@ use App\Models\ReviewLink;
 use App\Mail\ClientReviewRequestMail;
 use App\Services\NotificationService;
 use App\Support\ClientEngagement;
+use App\Support\ClientHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -66,7 +67,11 @@ class ClientController extends Controller
             ClientEngagement::scopeInactive($query);
         }
 
-        $clients = $query->orderBy($sort, $dir)->paginate(25)->withQueryString();
+        $clients = $query
+            ->withSum(['transactions as transactions_total' => fn ($q) => $q->where('status', 'completed')], 'total')
+            ->orderBy($sort, $dir)
+            ->paginate(25)
+            ->withQueryString();
         $clientIds = $clients->getCollection()->pluck('id')->all();
         $engagementCutoff = ClientEngagement::cutoff();
         $clientsWithUpcoming = $clientIds === []
@@ -80,6 +85,7 @@ class ClientController extends Controller
                 ->map(fn ($id) => (int) $id)
                 ->flip();
         $appointmentsByClient = collect();
+        $historyByClient = [];
         if ($clientIds !== []) {
             $aptMini = Appointment::query()
                 ->where('salon_id', $salon->id)
@@ -93,9 +99,11 @@ class ClientController extends Controller
                     'services:id,appointment_id,service_id,service_name',
                 ])
                 ->orderByDesc('starts_at')
-                ->get(['id', 'client_id', 'starts_at', 'total_price', 'status', 'staff_id'])
+                ->get(['id', 'client_id', 'starts_at', 'total_price', 'amount_paid', 'payment_status', 'status', 'staff_id'])
                 ->groupBy('client_id')
                 ->map(fn ($rows) => $rows->take(5)->values());
+
+            $historyByClient = ClientHistory::forClientIds($salon->id, $clientIds, 8);
         }
 
 
@@ -164,6 +172,7 @@ class ClientController extends Controller
             'engagementFilter',
             'loyaltyFilterTier',
             'appointmentsByClient',
+            'historyByClient',
             'loyaltyTiers',
             'reviewRequestClients',
             'isScopedStaffPanel',
@@ -491,11 +500,12 @@ class ClientController extends Controller
             ->latest('starts_at')
             ->paginate(10);
 
-        $totalSpent = $client->transactions()->where('status', 'completed')->sum('total');
+        $totalSpent = (float) $client->transactions()->where('status', 'completed')->sum('total');
         $visitCount = $client->appointments()->where('status', 'completed')->count();
         $lastVisit  = $client->appointments()->where('status', 'completed')->latest('starts_at')->first();
+        $history    = ClientHistory::forClient($client, 20);
 
-        return view('clients.show', compact('client', 'appointments', 'totalSpent', 'visitCount', 'lastVisit'));
+        return view('clients.show', compact('client', 'appointments', 'totalSpent', 'visitCount', 'lastVisit', 'history'));
     }
 
     public function edit(Client $client)

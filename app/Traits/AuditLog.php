@@ -130,12 +130,21 @@ trait AuditLog
         }
     }
 
+    /**
+     * @return list<string>
+     */
+    protected function extraAuditExcludeFields(): array
+    {
+        return [];
+    }
+
     private function getAuditableAttributes(array $attrs): array
     {
-        $exclude = array_merge(
+        $exclude = array_values(array_unique(array_merge(
             $this->auditExclude ?? [],
+            $this->extraAuditExcludeFields(),
             ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes']
-        );
+        )));
 
         return array_filter(
             $attrs,

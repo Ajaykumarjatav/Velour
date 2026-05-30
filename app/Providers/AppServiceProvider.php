@@ -103,6 +103,7 @@ class AppServiceProvider extends ServiceProvider
                     }
                     $view->with('currentSalon', $salon);
                     $view->with('headerProfileCompletion', $salon ? ProfileCompletion::forSalon($salon) : null);
+                    $view->with('salonBusinessStatus', $salon ? \App\Support\SalonBusinessStatus::forSalon($salon) : null);
                 } catch (\Throwable) {}
             }
         });
