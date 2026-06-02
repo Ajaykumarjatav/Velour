@@ -91,16 +91,18 @@
     }
 
     // One JSON object for Alpine: must use single-quoted HTML attribute (see x-data below) — double-quoted x-data breaks when @json emits "quotes".
+    $settingsTabCanEdit = $settingsTabCanEdit ?? [];
     $settingsAlpineData = [
         'tab' => (string) $settingsInitialTab,
         'tabMeta' => $settingsTabMeta,
+        'canEdit' => $settingsTabCanEdit,
         'showPasswordModal' => $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation'),
         'open' => [],
         'profileCardOpen' => true,
     ];
 @endphp
 
-<div class="settings-shell max-w-7xl w-full min-w-0 mx-auto" x-data='@json($settingsAlpineData)'>
+<div class="settings-shell max-w-7xl w-full min-w-0 mx-auto" x-data="settingsPage(@js($settingsAlpineData))">
 
     <div class="flex flex-col xl:flex-row gap-4 sm:gap-5 xl:gap-8 items-stretch xl:items-start">
 
@@ -202,11 +204,13 @@
 
     {{-- ── Salon Settings ── --}}
     <div x-show="tab==='salon'" x-cloak>
+        <p x-show="!canEditTab('salon')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Business settings.</p>
         <div class="card">
             <h2 class="font-semibold text-heading mb-4 sm:mb-5">Salon Profile</h2>
             <form id="settings-salon-form" action="{{ route('settings.salon') }}" method="POST" class="space-y-4 scroll-mt-24">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('salon')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div class="col-span-2">
                         <label class="form-label">Salon name <span class="text-red-500">*</span></label>
@@ -317,13 +321,15 @@
                         <input type="text" name="postcode" value="{{ old('postcode', $salon->postcode) }}" class="form-input">
                     </div>
                 </div>
-                <button type="submit" class="btn-primary">Save Changes</button>
+                <button type="submit" class="btn-primary" :disabled="!canEditTab('salon')">Save Changes</button>
+                </fieldset>
             </form>
         </div>
     </div>
 
     {{-- ── Online booking & widget ── --}}
     <div x-show="tab==='booking'" x-cloak>
+        <p x-show="!canEditTab('booking')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Booking settings.</p>
         <div class="card min-w-0">
             <div class="flex items-start gap-2 mb-5">
                 <span class="text-lg" aria-hidden="true">⚙️</span>
@@ -395,7 +401,7 @@
                     @error('cancellation_hours')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
-                    <button type="submit" class="btn-primary shrink-0">Save booking settings</button>
+                    <button type="submit" class="btn-primary shrink-0" :disabled="!canEditTab('booking')">Save booking settings</button>
                 </div>
             </form>
         </div>
@@ -444,7 +450,7 @@
                     @endforeach
                 </ul>
                 <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
-                    <button type="submit" class="btn-primary shrink-0">Save rules</button>
+                    <button type="submit" class="btn-primary shrink-0" :disabled="!canEditTab('booking')">Save rules</button>
                 </div>
             </form>
             <p class="text-xs text-muted mt-4 leading-relaxed">
@@ -456,6 +462,7 @@
 
     {{-- ── Service Setup ── --}}
     <div x-show="tab==='services'" x-cloak>
+        <p x-show="!canEditTab('services')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Service settings.</p>
         <div class="card">
             <h2 class="font-semibold text-heading mb-5">Service Setup</h2>
             <form action="{{ route('settings.services') }}" method="POST" class="space-y-4">
@@ -660,13 +667,14 @@
                 @if(empty($selectedBusinessTypeSlugs))
                     <p class="text-xs text-amber-600">Select at least one business type in the Business tab first.</p>
                 @endif
-                <button type="submit" class="btn-primary">Save Service Setup</button>
+                <button type="submit" class="btn-primary" :disabled="!canEditTab('services')">Save Service Setup</button>
             </form>
         </div>
     </div>
 
     {{-- ── Opening Hours ── --}}
     <div x-show="tab==='hours'" x-cloak>
+        <p x-show="!canEditTab('hours')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Hours.</p>
         <div class="card">
             <h2 class="font-semibold text-heading mb-5">Opening Hours</h2>
             <form action="{{ route('settings.hours') }}" method="POST" class="space-y-3">
@@ -693,7 +701,7 @@
                 </div>
                 @endforeach
                 <div class="pt-2">
-                    <button type="submit" class="btn-primary">Save Hours</button>
+                    <button type="submit" class="btn-primary" :disabled="!canEditTab('hours')">Save Hours</button>
                 </div>
             </form>
         </div>
@@ -701,6 +709,7 @@
 
     {{-- ── Social Links ── --}}
     <div x-show="tab==='social'" x-cloak>
+        <p x-show="!canEditTab('social')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Social Links.</p>
         <div class="card">
             <h2 class="font-semibold text-heading mb-1">Social Links</h2>
             <p class="text-xs text-muted mb-5">Add your profile URLs. Each link redirects clients to your profile and tracks inbound clicks.</p>
@@ -754,7 +763,7 @@
                 @endforeach
 
                 <div class="pt-2 flex items-center gap-3">
-                    <button type="submit" class="btn-primary">Save Social Links</button>
+                    <button type="submit" class="btn-primary" :disabled="!canEditTab('social')">Save Social Links</button>
                     <p class="text-xs text-muted">Links appear on your booking page and Go Live &amp; Share panel.</p>
                 </div>
             </form>
@@ -792,6 +801,7 @@
 
     {{-- ── Notifications (rules, timing, templates, quiet hours) ── --}}
     <div x-show="tab==='notifications'" x-cloak>
+        <p x-show="!canEditTab('notifications')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Notification settings.</p>
         <div class="card">
             <h2 class="font-semibold text-heading mb-1">Notification settings</h2>
             <p class="text-sm text-muted mb-6">Turn channels on or off, set when scheduled reminders go out, and customise message text. Use placeholders in curly braces in your templates.</p>
@@ -918,13 +928,14 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary">Save notification settings</button>
+                <button type="submit" class="btn-primary" :disabled="!canEditTab('notifications')">Save notification settings</button>
             </form>
         </div>
     </div>
 
     {{-- ── My Profile ── --}}
     <div x-show="tab==='profile'" x-cloak class="space-y-5">
+        <p x-show="!canEditTab('profile')" x-cloak class="text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to update your profile.</p>
         <div class="card">
             <div class="mb-5 flex items-center justify-between border-b border-gray-200/60 dark:border-gray-800 pb-3">
                 <h2 class="font-semibold text-heading">My Profile</h2>
@@ -991,8 +1002,8 @@
                 <div>
                     <label class="form-label">Role</label>
                     <select name="staff_role" class="form-select">
-                        @foreach(['stylist','therapist','manager','receptionist','junior','owner'] as $r)
-                            <option value="{{ $r }}" {{ old('staff_role', $profileStaff->role ?? 'stylist') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
+                        @foreach(\App\Support\StaffJobRoles::options() as $slug => $label)
+                            <option value="{{ $slug }}" {{ old('staff_role', $profileStaff->role ?? 'hair_stylist') === $slug ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -1117,13 +1128,14 @@
                     </select>
                     <p class="form-hint">Month and day names in dates follow this setting where supported.</p>
                 </div>
-                <button type="submit" class="btn-primary">Update Profile</button>
+                <button type="submit" class="btn-primary" :disabled="!canEditTab('profile')">Update Profile</button>
             </form>
         </div>
     </div>
 
     {{-- ── Team Members ── --}}
     <div x-show="tab==='team'" x-cloak class="space-y-5">
+        <p x-show="!canEditTab('team')" x-cloak class="text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to manage team members here.</p>
         @if($settingsPersonalOnly)
         <div class="card">
             <h2 class="font-semibold text-heading mb-2">Team</h2>
@@ -1172,7 +1184,7 @@
                 if (count($staffRows) === 0) {
                     $staffRows = [[]];
                 }
-                $staffRoles = ['stylist', 'therapist', 'manager', 'receptionist', 'junior', 'owner'];
+                $staffRoles = \App\Support\StaffJobRoles::options();
             @endphp
             <div class="mb-4 border-b border-gray-200/60 dark:border-gray-800 pb-3">
                 <h2 class="font-semibold text-heading mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -1260,8 +1272,8 @@
                                     <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span></label>
                                     <select name="staff_members[0][role]" required class="form-select">
                                         <option value="">-</option>
-                                        @foreach($staffRoles as $r)
-                                            <option value="{{ $r }}" {{ ($st['role'] ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
+                                        @foreach($staffRoles as $slug => $label)
+                                            <option value="{{ $slug }}" {{ ($st['role'] ?? '') === $slug ? 'selected' : '' }}>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -1352,7 +1364,7 @@
                             @error('staff_members.0.id')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.language_proficiency')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.services')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                            <button type="submit" class="btn-primary w-full sm:w-auto">Save this team member</button>
+                            <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="!canEditTab('team')">Save this team member</button>
                         </form>
                         </div>
                     </div>
@@ -1366,6 +1378,7 @@
 
     {{-- ── Security / 2FA ── --}}
     <div x-show="tab==='security'" x-cloak class="space-y-5">
+        <p x-show="!canEditTab('security')" x-cloak class="text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to change security settings.</p>
         <div class="card">
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div class="min-w-0">
@@ -1418,13 +1431,10 @@
     </div>{{-- /flex layout --}}
 
 {{-- Password Modal (opened from Profile gear icon) --}}
-<div x-show="showPasswordModal"
-     x-cloak
+<x-modal-overlay show="showPasswordModal"
      x-transition.opacity
-     @keydown.escape.window="showPasswordModal = false"
-     class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/60" @click="showPasswordModal = false"></div>
-    <div class="relative w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-2xl">
+     @keydown.escape.window="showPasswordModal = false">
+    <div class="w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-2xl" @click.stop>
         <div class="mb-5 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-heading">Change Password</h3>
             <button type="button"
@@ -1454,12 +1464,12 @@
                 <input type="password" name="password_confirmation" required class="form-input">
             </div>
             <div class="pt-1 flex items-center gap-2">
-                <button type="submit" class="btn-primary">Change Password</button>
+                <button type="submit" class="btn-primary" :disabled="!canEditTab('security')">Change Password</button>
                 <button type="button" @click="showPasswordModal = false" class="btn-outline">Cancel</button>
             </div>
         </form>
     </div>
-</div>
+</x-modal-overlay>
 
 </div>
 
@@ -1899,5 +1909,18 @@
     renumberStaffRows();
 })();
 </script>
+
+@push('scripts')
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('settingsPage', (cfg) => ({
+    ...cfg,
+    canEditTab(tab) {
+      return this.canEdit[tab] !== false;
+    },
+  }));
+});
+</script>
+@endpush
 
 @endsection

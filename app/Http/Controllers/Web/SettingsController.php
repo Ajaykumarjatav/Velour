@@ -15,6 +15,8 @@ use App\Services\NotificationConfigService;
 use App\Support\LanguageProficiency;
 use App\Support\ProfileCompletion;
 use App\Support\RegistrationStarterServices;
+use App\Support\SettingsTabPermissions;
+use App\Support\StaffJobRoles;
 use App\Support\StaffServiceEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,13 +51,12 @@ class SettingsController extends Controller
         return ServiceCategory::withoutGlobalScopes()->where('salon_id', $salon->id);
     }
 
-    /**
-     * Invited stylists may only change their own profile & security, not salon-wide settings.
-     */
-    private function abortUnlessCanEditSalonWideSettings(): void
+    private function abortUnlessCanEditSettingsTab(string $tab): void
     {
-        if (Auth::user()->dashboardScopedStaffId() !== null) {
-            abort(403, 'You can only update your profile and security here. Contact a salon admin to change business or service settings.');
+        $user = Auth::user();
+        if (! SettingsTabPermissions::userCanEditTab($user, $tab)) {
+            $label = SettingsTabPermissions::TABS[$tab]['label'] ?? $tab;
+            abort(403, "You do not have permission to change {$label} settings.");
         }
     }
 
@@ -85,28 +86,33 @@ class SettingsController extends Controller
         $settings = $salon->settings()->pluck('value', 'key');
         $user     = Auth::user();
 
-        $settingsPersonalOnly = $user->dashboardScopedStaffId() !== null;
-        $tabLabelsOrder       = [
-            'salon' => 'Business',
-            'booking' => 'Booking',
-            'services' => 'Service',
-            'hours' => 'Hours',
-            'social' => 'Social Links',
-            'notifications' => 'Notifications',
-            'profile' => 'Profile',
-            'team' => 'Team',
-            'security' => 'Security',
-        ];
-        $allowedTabKeys = $settingsPersonalOnly
-            ? ['profile', 'team', 'security']
-            : array_keys($tabLabelsOrder);
+        $tabLabelsOrder = collect(SettingsTabPermissions::TABS)
+            ->mapWithKeys(fn (array $meta, string $key) => [$key => $meta['label']])
+            ->all();
+        $allowedTabKeys = SettingsTabPermissions::visibleTabsForUser($user);
         $settingsTabLabels = [];
         foreach ($tabLabelsOrder as $key => $label) {
             if (in_array($key, $allowedTabKeys, true)) {
                 $settingsTabLabels[$key] = $label;
             }
         }
+        if (! SettingsTabPermissions::canOpenSettings($user)) {
+            abort(403, 'You do not have permission to access settings.');
+        }
+
+        if ($settingsTabLabels === []) {
+            abort(403, 'You do not have permission to view any settings section. Ask an admin to grant tab access (e.g. Business → View).');
+        }
+        $settingsTabCanEdit = [];
+        foreach (array_keys($settingsTabLabels) as $tabKey) {
+            $settingsTabCanEdit[$tabKey] = SettingsTabPermissions::userCanEditTab($user, $tabKey);
+        }
+        $salonSetupTabs = ['salon', 'booking', 'services', 'hours', 'social'];
+        $settingsPersonalOnly = count(array_intersect($allowedTabKeys, $salonSetupTabs)) === 0;
         $defaultTab = $settingsPersonalOnly ? 'profile' : 'salon';
+        if (! in_array($defaultTab, $allowedTabKeys, true)) {
+            $defaultTab = $allowedTabKeys[0];
+        }
         $requestedTab = trim((string) session('tab', request()->get('tab', $defaultTab)));
         if (! in_array($requestedTab, $allowedTabKeys, true)) {
             $requestedTab = $defaultTab;
@@ -225,6 +231,7 @@ class SettingsController extends Controller
             'teamServices',
             'bufferRule',
             'settingsTabLabels',
+            'settingsTabCanEdit',
             'settingsPersonalOnly',
             'settingsInitialTab',
             'hideSalonProfileBar'
@@ -233,7 +240,7 @@ class SettingsController extends Controller
 
     public function updateSalon(Request $request)
     {
-        $this->abortUnlessCanEditSalonWideSettings();
+        $this->abortUnlessCanEditSettingsTab('salon');
         $salon = $this->salon();
 
         $data = $request->validate([
@@ -274,7 +281,7 @@ class SettingsController extends Controller
 
     public function updateBooking(Request $request)
     {
-        $this->abortUnlessCanEditSalonWideSettings();
+        $this->abortUnlessCanEditSettingsTab('booking');
         $salon = $this->salon();
 
         $request->validate([
@@ -300,7 +307,7 @@ class SettingsController extends Controller
 
     public function updateBufferRules(Request $request)
     {
-        $this->abortUnlessCanEditSalonWideSettings();
+        $this->abortUnlessCanEditSettingsTab('booking');
         $salon = $this->salon();
 
         $data = $request->validate([
@@ -324,7 +331,7 @@ class SettingsController extends Controller
 
     public function updateServices(Request $request)
     {
-        $this->abortUnlessCanEditSalonWideSettings();
+        $this->abortUnlessCanEditSettingsTab('services');
         $salon = $this->salon();
         $data = $request->validate([
             'business_type_ids'    => ['nullable', 'array'],
@@ -452,7 +459,7 @@ class SettingsController extends Controller
 
     public function updateHours(Request $request)
     {
-        $this->abortUnlessCanEditSalonWideSettings();
+        $this->abortUnlessCanEditSettingsTab('hours');
         $salon = $this->salon();
 
         $data = $request->validate([
@@ -466,7 +473,7 @@ class SettingsController extends Controller
 
     public function updateNotifications(Request $request)
     {
-        $this->abortUnlessCanEditSalonWideSettings();
+        $this->abortUnlessCanEditSettingsTab('notifications');
         $salon = $this->salon();
         $definitions = NotificationConfigService::definitions();
 
@@ -537,6 +544,7 @@ class SettingsController extends Controller
 
     public function updateProfile(Request $request)
     {
+        $this->abortUnlessCanEditSettingsTab('profile');
         $user = Auth::user();
 
         $request->merge([
@@ -556,7 +564,7 @@ class SettingsController extends Controller
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
             'language_proficiency.*' => ['string', Rule::in($langCodes)],
             'staff_commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'staff_role' => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'staff_role' => StaffJobRoles::validationRules(required: false),
             'staff_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'staff_bio' => ['nullable', 'string', 'max:1000'],
             'staff_awards_accolades' => ['nullable', 'string', 'max:5000'],
@@ -638,7 +646,7 @@ class SettingsController extends Controller
 
     public function updateTeamMembers(Request $request)
     {
-        $this->abortUnlessCanEditSalonWideSettings();
+        $this->abortUnlessCanEditSettingsTab('team');
         $salon = $this->salon();
 
         $langCodes = LanguageProficiency::allowedCodes();
@@ -650,7 +658,7 @@ class SettingsController extends Controller
             'staff_members.*.name'   => ['nullable', 'string', 'max:100'],
             'staff_members.*.email'  => ['nullable', 'email', 'max:150'],
             'staff_members.*.phone'  => ['nullable', 'string', 'max:20'],
-            'staff_members.*.role'   => ['nullable', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'staff_members.*.role'   => StaffJobRoles::validationRules(required: false),
             'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
             'staff_members.*.awards_accolades' => ['nullable', 'string', 'max:5000'],
@@ -770,6 +778,7 @@ class SettingsController extends Controller
 
     public function updatePassword(Request $request)
     {
+        $this->abortUnlessCanEditSettingsTab('security');
         $user = Auth::user();
 
         $data = $request->validate([
@@ -788,7 +797,7 @@ class SettingsController extends Controller
 
     public function updateSocialLinks(Request $request)
     {
-        $this->abortUnlessCanEditSalonWideSettings();
+        $this->abortUnlessCanEditSettingsTab('social');
         $salon = $this->salon();
 
         $platforms = ['instagram', 'facebook', 'tiktok', 'whatsapp', 'google', 'twitter', 'youtube', 'linkedin', 'pinterest'];
@@ -1304,12 +1313,7 @@ class SettingsController extends Controller
 
     private function mapStaffRoleToLoginRole(string $staffRole): string
     {
-        return match (strtolower(trim($staffRole))) {
-            'owner' => 'tenant_admin',
-            'manager' => 'manager',
-            'receptionist' => 'receptionist',
-            default => 'stylist',
-        };
+        return \App\Support\StaffJobRoles::spatieRoleForJob($staffRole);
     }
 
     /**

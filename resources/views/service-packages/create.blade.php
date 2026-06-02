@@ -57,7 +57,7 @@
                             <input type="checkbox" name="allowed_roles[]" value="{{ $roleOption }}"
                                    {{ in_array($roleOption, $allowedRoles, true) ? 'checked' : '' }}
                                    class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                            <span class="text-sm text-body">{{ ucfirst($roleOption) }}</span>
+                            <span class="text-sm text-body">{{ \App\Support\StaffJobRoles::label($roleOption) }}</span>
                         </label>
                     @endforeach
                 </div>

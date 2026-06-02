@@ -6,7 +6,9 @@ use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
-use App\Models\User;
+use App\Support\RolePermissionDefaults;
+use App\Support\SettingsTabPermissions;
+use App\Support\StaffJobRoles;
 
 /**
  * RolesAndPermissionsSeeder
@@ -98,9 +100,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'reviews.reply',
             'reviews.delete',
 
-            // Settings
-            'settings.view',
-            'settings.edit',
+            // Settings (general + per-tab)
+            ...SettingsTabPermissions::allPermissionKeys(),
 
             // Users (user management within a salon)
             'users.view',
@@ -125,81 +126,20 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Tenant Admin — full access within their own salon
         $tenantAdmin = Role::firstOrCreate(['name' => 'tenant_admin', 'guard_name' => 'web']);
-        $tenantAdmin->syncPermissions([
-            'appointments.view', 'appointments.view-all', 'appointments.create',
-            'appointments.edit', 'appointments.delete', 'appointments.update-status',
-            'clients.view', 'clients.create', 'clients.edit', 'clients.delete',
-            'clients.view-notes', 'clients.manage-notes',
-            'staff.view', 'staff.create', 'staff.edit', 'staff.delete',
-            'services.view', 'services.create', 'services.edit', 'services.delete',
-            'inventory.view', 'inventory.create', 'inventory.edit',
-            'inventory.delete', 'inventory.adjust-stock',
-            'facilities.view', 'facilities.manage',
-            'pos.view', 'pos.create', 'pos.refund',
-            'marketing.view', 'marketing.create', 'marketing.edit',
-            'marketing.delete', 'marketing.send',
-            'reports.view', 'reports.export',
-            'reviews.view', 'reviews.reply', 'reviews.delete',
-            'settings.view', 'settings.edit',
-            'users.view', 'users.invite', 'users.edit', 'users.delete',
-            'billing.view', 'billing.manage',
-        ]);
+        $tenantAdmin->syncPermissions(RolePermissionDefaults::admin());
 
-        // Manager — full operations but no billing/user management
-        $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
-        $manager->syncPermissions([
-            'appointments.view', 'appointments.view-all', 'appointments.create',
-            'appointments.edit', 'appointments.delete', 'appointments.update-status',
-            'clients.view', 'clients.create', 'clients.edit',
-            'clients.view-notes', 'clients.manage-notes',
-            'staff.view', 'staff.edit',
-            'services.view', 'services.create', 'services.edit',
-            'inventory.view', 'inventory.create', 'inventory.edit', 'inventory.adjust-stock',
-            'facilities.view', 'facilities.manage',
-            'pos.view', 'pos.create',
-            'marketing.view', 'marketing.create', 'marketing.edit', 'marketing.send',
-            'reports.view', 'reports.export',
-            'reviews.view', 'reviews.reply',
-            'settings.view',
-        ]);
+        $rows = [['super_admin', Permission::count()], ['tenant_admin', $tenantAdmin->permissions()->count()]];
 
-        // Stylist — own appointments and clients only
-        $stylist = Role::firstOrCreate(['name' => 'stylist', 'guard_name' => 'web']);
-        $stylist->syncPermissions([
-            'appointments.view', 'appointments.create',
-            'appointments.edit', 'appointments.update-status',
-            'clients.view', 'clients.create', 'clients.edit',
-            'clients.view-notes', 'clients.manage-notes',
-            'services.view',
-            'facilities.view',
-            'pos.view', 'pos.create',
-            'reviews.view',
-        ]);
+        foreach (StaffJobRoles::permissionRoleSlugs() as $slug) {
+            if ($slug === 'tenant_admin') {
+                continue;
+            }
+            $role = Role::firstOrCreate(['name' => $slug, 'guard_name' => 'web']);
+            $role->syncPermissions(RolePermissionDefaults::forStoreRole($slug));
+            $rows[] = [StaffJobRoles::label($slug), $role->permissions()->count()];
+        }
 
-        // Receptionist — front-desk focus
-        $receptionist = Role::firstOrCreate(['name' => 'receptionist', 'guard_name' => 'web']);
-        $receptionist->syncPermissions([
-            'appointments.view', 'appointments.view-all', 'appointments.create',
-            'appointments.edit', 'appointments.update-status',
-            'clients.view', 'clients.create', 'clients.edit', 'clients.view-notes',
-            'services.view',
-            'inventory.view',
-            'facilities.view',
-            'pos.view', 'pos.create',
-            'reports.view',
-            'reviews.view',
-        ]);
-
-        $this->command->info('✓ Roles and permissions seeded.');
-        $this->command->table(
-            ['Role', 'Permissions'],
-            [
-                ['super_admin',   Permission::count()],
-                ['tenant_admin',  $tenantAdmin->permissions()->count()],
-                ['manager',       $manager->permissions()->count()],
-                ['stylist',        $stylist->permissions()->count()],
-                ['receptionist',  $receptionist->permissions()->count()],
-            ]
-        );
+        $this->command->info('✓ Roles and permissions seeded (all store job titles).');
+        $this->command->table(['Role', 'Permissions'], $rows);
     }
 }

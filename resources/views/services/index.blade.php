@@ -329,8 +329,7 @@
     </div>
 
     {{-- Variants / add-ons modal --}}
-    <div x-show="variantOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-         @keydown.escape.window="closeVariants()">
+    <x-modal-overlay show="variantOpen" @keydown.escape.window="closeVariants()">
         <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
              @click.outside="closeVariants()">
             <div class="flex items-center justify-between gap-2">
@@ -372,7 +371,7 @@
                 </div>
             </form>
         </div>
-    </div>
+    </x-modal-overlay>
 </div>
 
 @endsection

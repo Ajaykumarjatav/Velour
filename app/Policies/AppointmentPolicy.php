@@ -27,13 +27,12 @@ class AppointmentPolicy
 
     public function viewAny(User $user): bool
     {
-        return true; // All authenticated salon users can view the calendar
+        return $user->salons()->exists() || $user->can('appointments.view');
     }
 
     public function view(User $user, Appointment $appointment): bool
     {
-        // Stylists can only see their own appointments
-        if ($user->hasRole('stylist')) {
+        if (! $user->can('appointments.view-all')) {
             return $appointment->staff_id === $user->staffProfile?->id
                 && $appointment->salon_id === $this->salonId($user);
         }
@@ -50,8 +49,7 @@ class AppointmentPolicy
     {
         if ($appointment->salon_id !== $this->salonId($user)) return false;
 
-        // Stylists can update their own appointments only
-        if ($user->hasRole('stylist')) {
+        if (! $user->can('appointments.view-all')) {
             return $appointment->staff_id === $user->staffProfile?->id;
         }
 

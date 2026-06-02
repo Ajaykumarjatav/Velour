@@ -252,7 +252,7 @@
             @endforeach
         </div>
 
-        <div x-show="tierModal !== null" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40" x-on:click.self="tierModal=null">
+        <x-modal-overlay show="tierModal !== null" x-on:click.self="tierModal=null">
             <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-stone-200 dark:border-gray-700" x-show="tierModal !== null">
                 <form x-show="tierModal && tierModal.id != null" x-cloak :action="'{{ url('marketing/loyalty/tiers') }}/' + tierModal.id" method="POST" class="space-y-4">
                     @csrf
@@ -280,7 +280,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </x-modal-overlay>
     @endif
 
     {{-- Referrals tab --}}
@@ -313,7 +313,7 @@
             </dl>
         </div>
 
-        <div x-show="referralOpen" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40" x-on:click.self="referralOpen=false">
+        <x-modal-overlay show="referralOpen" x-on:click.self="referralOpen=false">
             <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-stone-200 dark:border-gray-700">
                 <form action="{{ route('marketing.referral-settings.update') }}" method="POST" class="space-y-4">
                     @csrf
@@ -329,7 +329,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </x-modal-overlay>
     @endif
 
     {{-- Communications tab --}}
@@ -386,7 +386,7 @@
             </ul>
         </div>
 
-        <div x-show="templateModal !== null" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40" x-on:click.self="templateModal=null">
+        <x-modal-overlay show="templateModal !== null" x-on:click.self="templateModal=null">
             <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full p-6 border border-stone-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto" x-show="templateModal !== null">
                 <form x-show="templateModal" x-cloak :action="'{{ url('marketing/automation-templates') }}/' + templateModal.id" method="POST" class="space-y-4">
                     @csrf
@@ -436,7 +436,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </x-modal-overlay>
     @endif
 </div>
 @endsection

@@ -62,7 +62,7 @@ class MultiLocationController extends Controller
             ->pluck('value', 'salon_id');
         $managerNamesBySalon = Staff::withoutGlobalScopes()
             ->whereIn('salon_id', $locationIds)
-            ->whereIn('role', ['manager', 'owner'])
+            ->whereIn('role', ['salon_manager', 'manager', 'owner'])
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get(['salon_id', 'first_name', 'last_name'])

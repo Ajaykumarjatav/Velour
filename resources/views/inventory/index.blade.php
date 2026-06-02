@@ -235,7 +235,7 @@
     <div class="mt-4">{{ $items->links() }}</div>
 
     {{-- Barcode lookup --}}
-    <div x-show="scanOpen" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" @click.self="scanOpen = false">
+    <x-modal-overlay show="scanOpen" @click.self="scanOpen = false">
         <div class="card max-w-md w-full p-6 shadow-xl" @click.stop>
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-lg font-semibold text-heading">Barcode scanner</h2>
@@ -257,10 +257,10 @@
                 </div>
             </form>
         </div>
-    </div>
+    </x-modal-overlay>
 
     {{-- Add product (same validation as full create page) --}}
-    <div x-show="addOpen" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 overflow-y-auto" @click.self="addOpen = false">
+    <x-modal-overlay show="addOpen" class="overflow-y-auto" @click.self="addOpen = false">
         <div class="card max-w-lg w-full p-6 shadow-xl my-8" @click.stop>
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-lg font-semibold text-heading">Add new product</h2>
@@ -324,10 +324,10 @@
                 </div>
             </form>
         </div>
-    </div>
+    </x-modal-overlay>
 
     {{-- Reorder --}}
-    <div x-show="reorderOpen" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" @click.self="reorderOpen = false">
+    <x-modal-overlay show="reorderOpen" @click.self="reorderOpen = false">
         <div class="card max-w-md w-full p-6 shadow-xl" @click.stop>
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-lg font-semibold text-heading">Reorder stock</h2>
@@ -357,10 +357,10 @@
                 </div>
             </form>
         </div>
-    </div>
+    </x-modal-overlay>
 
     {{-- Add stock --}}
-    <div x-show="addStockOpen" x-cloak class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50" @click.self="addStockOpen = false">
+    <x-modal-overlay show="addStockOpen" @click.self="addStockOpen = false">
         <div class="card max-w-md w-full p-6 shadow-xl" @click.stop>
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-lg font-semibold text-heading">Add stock</h2>
@@ -385,6 +385,6 @@
                 </div>
             </form>
         </div>
-    </div>
+    </x-modal-overlay>
 </div>
 @endsection

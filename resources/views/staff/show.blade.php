@@ -8,7 +8,7 @@
         <x-staff-avatar :staff="$staff" size="lg" rounded="2xl" />
         <div class="flex-1">
             <h2 class="text-xl font-bold text-heading">{{ $staff->name }}</h2>
-            <p class="text-sm text-muted capitalize mt-0.5">{{ str_replace('_',' ',$staff->role) }}</p>
+            <p class="text-sm text-muted mt-0.5">{{ \App\Support\StaffJobRoles::label($staff->role) }}</p>
             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
                 @if($staff->email)
                     <a href="mailto:{{ $staff->email }}" class="text-link inline-flex items-center gap-1.5 hover:underline">

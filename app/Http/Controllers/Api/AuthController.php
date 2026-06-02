@@ -37,7 +37,7 @@ class AuthController extends Controller
             'staff_members.*.name'   => 'nullable|string|max:100',
             'staff_members.*.email'  => 'nullable|email|max:150',
             'staff_members.*.phone'  => 'nullable|string|max:20',
-            'staff_members.*.role'   => 'nullable|in:owner,manager,stylist,therapist,receptionist,junior',
+            'staff_members.*.role'   => 'nullable|in:'.implode(',', \App\Support\StaffJobRoles::slugs()),
             'staff_members.*.commission_rate' => 'nullable|numeric|min:0|max:100',
             'staff_members.*.bio'    => 'nullable|string|max:1000',
             'staff_members.*.color'  => 'nullable|string|max:7',

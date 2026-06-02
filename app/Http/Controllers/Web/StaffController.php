@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Support\LanguageProficiency;
+use App\Support\StaffJobRoles;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
 use App\Models\Service;
@@ -241,7 +242,7 @@ class StaffController extends Controller
             'name'              => ['required', 'string', 'max:100'],
             'email'             => ['nullable', 'email', 'max:150'],
             'phone'             => ['nullable', 'string', 'max:20'],
-            'role'              => ['required', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'role'              => StaffJobRoles::validationRules(),
             'experience'        => ['nullable', 'string', 'max:120'],
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
             'language_proficiency.*' => ['string', Rule::in(LanguageProficiency::allowedCodes())],
@@ -350,7 +351,7 @@ class StaffController extends Controller
             'name'            => ['required', 'string', 'max:100'],
             'email'           => ['nullable', 'email', 'max:150'],
             'phone'           => ['nullable', 'string', 'max:20'],
-            'role'            => ['required', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'role'            => StaffJobRoles::validationRules(),
             'experience'      => ['nullable', 'string', 'max:120'],
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
             'language_proficiency.*' => ['string', Rule::in(LanguageProficiency::allowedCodes())],

@@ -290,7 +290,7 @@
     @endif
 
     {{-- Modal: Leave --}}
-    <div x-show="leaveOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @keydown.escape.window="leaveOpen = false">
+    <x-modal-overlay show="leaveOpen" @keydown.escape.window="leaveOpen = false">
         <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4" @click.outside="leaveOpen = false">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-bold text-heading font-serif">Apply Leave / Block Time</h3>
@@ -349,10 +349,10 @@
                 </div>
             </form>
         </div>
-    </div>
+    </x-modal-overlay>
 
     {{-- Modal: Resource --}}
-    <div x-show="resourceOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @keydown.escape.window="resourceOpen = false">
+    <x-modal-overlay show="resourceOpen" @keydown.escape.window="resourceOpen = false">
         <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto" @click.outside="closeResource()">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-bold text-heading font-serif" x-text="resourceEditId ? 'Edit Resource' : 'Add Resource'"></h3>
@@ -414,6 +414,6 @@
                 <button type="submit" class="btn-outline text-sm text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20">Delete resource</button>
             </form>
         </div>
-    </div>
+    </x-modal-overlay>
 </div>
 @endsection

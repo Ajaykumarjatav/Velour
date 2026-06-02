@@ -95,13 +95,13 @@ class Staff extends Model
      */
     public static function defaultSpatieRoleForStaffJob(?string $jobRole): string
     {
-        return match ((string) $jobRole) {
-            'owner' => 'tenant_admin',
-            'manager' => 'manager',
-            'receptionist' => 'receptionist',
-            'stylist', 'therapist', 'junior' => 'stylist',
-            default => 'stylist',
-        };
+        return \App\Support\StaffJobRoles::spatieRoleForJob($jobRole);
+    }
+
+    /** Same as spatie role — job slug is the permission role. */
+    public static function permissionRoleForStaffJob(?string $jobRole): string
+    {
+        return self::defaultSpatieRoleForStaffJob($jobRole);
     }
 
     /**

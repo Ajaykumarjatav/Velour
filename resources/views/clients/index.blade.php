@@ -45,9 +45,8 @@
         <button type="button" class="btn-primary shrink-0 w-full sm:w-auto whitespace-nowrap" @click="openReviewRequest = true">Request Reviews</button>
     </div>
 
-    <div x-show="openReviewRequest" x-cloak class="fixed inset-0 z-50">
-        <div class="absolute inset-0 bg-black/40" @click="openReviewRequest = false"></div>
-        <div class="absolute inset-x-0 top-10 mx-auto max-w-3xl px-4">
+    <x-modal-overlay show="openReviewRequest" @click.self="openReviewRequest = false">
+        <div class="w-full max-w-3xl" @click.stop>
             <div class="card p-6 max-h-[80vh] overflow-y-auto">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-semibold text-heading">Select clients for review request</h3>
@@ -90,7 +89,7 @@
                 </form>
             </div>
         </div>
-    </div>
+    </x-modal-overlay>
 </div>
 @endif
 

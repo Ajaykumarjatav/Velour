@@ -419,7 +419,7 @@
         </a>
         @endif
 
-        @if(auth()->user()->hasRole('tenant_admin') || auth()->user()->isSuperAdmin())
+        @if(\App\Support\SidebarNav::showAccountTeam(auth()->user()) || auth()->user()->isSuperAdmin())
         <p class="nav-section-title px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Admin</p>
         <a href="{{ route('salon-admin.team') }}"
            class="sidebar-link {{ request()->routeIs('salon-admin.team*') ? 'active' : '' }}">
@@ -428,7 +428,7 @@
             </svg>
             Team
         </a>
-        @if(config('billing.subscriptions_enabled'))
+        @if(config('billing.subscriptions_enabled') && ($navShow('billing') || auth()->user()->salons()->exists()))
         <a href="{{ route('salon-admin.subscription') }}"
            class="sidebar-link {{ request()->routeIs('salon-admin.subscription*') ? 'active' : '' }}">
             <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">

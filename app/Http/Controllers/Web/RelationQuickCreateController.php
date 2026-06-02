@@ -83,7 +83,7 @@ class RelationQuickCreateController extends Controller
             'name'            => ['required', 'string', 'max:100'],
             'email'           => ['nullable', 'email', 'max:150'],
             'phone'           => ['nullable', 'string', 'max:20'],
-            'role'            => ['required', 'in:owner,manager,stylist,therapist,receptionist,junior'],
+            'role'            => \App\Support\StaffJobRoles::validationRules(),
             'bio'             => ['nullable', 'string', 'max:1000'],
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],

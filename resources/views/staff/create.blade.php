@@ -50,8 +50,8 @@
                         :search-url="null"
                         search-placeholder="Search role…"
                         trigger-class="form-select w-full @error('role') form-input-error @enderror">
-                        @foreach(['stylist','therapist','manager','receptionist','junior','owner'] as $r)
-                        <option value="{{ $r }}" {{ old('role', $staff->role ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
+                        @foreach(\App\Support\StaffJobRoles::options() as $slug => $label)
+                        <option value="{{ $slug }}" {{ old('role', $staff->role ?? 'hair_stylist') === $slug ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </x-searchable-select>
                 </div>

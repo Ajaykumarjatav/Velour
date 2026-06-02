@@ -277,7 +277,7 @@
         </div>
     </div>
 
-    <div x-show="customOpen" x-cloak class="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4" @click.self="customOpen=false">
+    <x-modal-overlay show="customOpen" @click.self="customOpen=false">
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full p-6">
             <h3 class="text-xl font-semibold text-heading mb-3">Custom Report</h3>
             <p class="text-sm text-muted mb-4">Use existing detailed reports with date ranges:</p>
@@ -290,9 +290,9 @@
                 <button type="button" class="btn-primary" @click="customOpen=false">Done</button>
             </div>
         </div>
-    </div>
+    </x-modal-overlay>
 
-    <div x-show="staffReportOpen" x-cloak class="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4" @click.self="staffReportOpen=false">
+    <x-modal-overlay show="staffReportOpen" @click.self="staffReportOpen=false">
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 max-w-lg w-full p-0 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
                 <h3 class="text-xl font-semibold text-heading">Performance Report — <span x-text="selectedStaff ? selectedStaff.name : ''"></span></h3>
@@ -327,7 +327,7 @@
                 <button type="button" class="btn-primary" onclick="window.print()">Export PDF</button>
             </div>
         </div>
-    </div>
+    </x-modal-overlay>
 </div>
 @endsection
 

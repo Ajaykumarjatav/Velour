@@ -122,7 +122,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
     // ── Tenant-scoped App Routes ─────────────────────────────────────────────
 
-    Route::middleware([InitializeTenancyFromDomain::class, 'tenant', 'profile.complete'])->group(function () {
+    Route::middleware([InitializeTenancyFromDomain::class, 'tenant', 'profile.complete', 'sync.staff.role', 'route.permission'])->group(function () {
 
         Route::get('/', fn() => redirect()->route('dashboard'));
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -321,6 +321,8 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
             Route::get('team',                         [TenantAdminController::class, 'team'])->name('team');
             Route::post('team/invite',                 [TenantAdminController::class, 'invite'])->name('team.invite');
             Route::patch('team/{user}/role',           [TenantAdminController::class, 'updateMemberRole'])->name('team.role');
+            Route::put('team/role-permissions',        [TenantAdminController::class, 'updateRolePermissions'])->name('team.role-permissions');
+            Route::patch('team/role-permissions/toggle', [TenantAdminController::class, 'toggleRolePermission'])->name('team.role-permission-toggle');
             Route::delete('team/{user}',               [TenantAdminController::class, 'removeMember'])->name('team.remove');
             Route::get('subscription',                 [TenantAdminController::class, 'subscription'])
                 ->middleware('subscriptions.enabled')

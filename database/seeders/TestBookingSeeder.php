@@ -119,8 +119,8 @@ class TestBookingSeeder extends Seeder
         // Add demo staff if fewer than 2 bookable staff exist
         if ($existingStaff->count() < 2) {
             $newStaff = [
-                ['first_name' => 'Priya', 'last_name' => 'Sharma', 'role' => 'stylist',   'color' => '#EC4899', 'end_time' => '18:00:00'],
-                ['first_name' => 'Anika', 'last_name' => 'Reddy',  'role' => 'therapist', 'color' => '#8B5CF6', 'end_time' => '17:00:00'],
+                ['first_name' => 'Priya', 'last_name' => 'Sharma', 'role' => 'hair_stylist', 'color' => '#EC4899', 'end_time' => '18:00:00'],
+                ['first_name' => 'Anika', 'last_name' => 'Reddy',  'role' => 'spa_therapist', 'color' => '#8B5CF6', 'end_time' => '17:00:00'],
             ];
 
             foreach ($newStaff as $i => $member) {

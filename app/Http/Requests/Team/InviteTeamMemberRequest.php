@@ -5,6 +5,7 @@ namespace App\Http\Requests\Team;
 use App\Models\Staff;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\StaffJobRoles;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,10 @@ class InviteTeamMemberRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->hasRole(['tenant_admin', 'manager']) || $this->user()->isSuperAdmin();
+        return $this->user()->can('users.invite')
+            || $this->user()->hasRole('tenant_admin')
+            || $this->user()->salons()->exists()
+            || $this->user()->isSuperAdmin();
     }
 
     public function rules(): array
@@ -30,7 +34,10 @@ class InviteTeamMemberRequest extends FormRequest
                     fn ($q) => $q->where('salon_id', $salonId)->whereNull('user_id')->whereNull('deleted_at')
                 ),
             ],
-            'role' => ['required', Rule::in(['tenant_admin', 'manager', 'stylist', 'receptionist'])],
+            'role' => [
+                'required',
+                Rule::in(StaffJobRoles::permissionRoleSlugsForSalon($salonId)),
+            ],
         ];
     }
 

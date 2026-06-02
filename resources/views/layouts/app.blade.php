@@ -364,8 +364,9 @@
         .alert-danger  { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300; }
 
         /* ── Modal / dialog ── */
+        /* Modals: use the modal / modal-overlay Blade components (teleport to body) for full-screen overlay. */
         .modal-backdrop {
-            @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+            @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4;
         }
         .modal-box {
             @apply bg-white dark:bg-gray-900 rounded-2xl shadow-2xl
@@ -604,11 +605,13 @@
                         </div>
                         {{-- Menu items --}}
                         <div class="py-1">
+                            @if(\App\Support\SettingsTabPermissions::canOpenSettings(auth()->user(), $currentSalon ?? null))
                             <a href="{{ route('settings.index') }}"
                                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                                 <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
                                 Settings
                             </a>
+                            @endif
                         </div>
                         <hr class="border-gray-100 dark:border-gray-800">
                         <div class="py-1">
@@ -747,6 +750,8 @@
         </main>
     </div>
 </div>
+
+@stack('modals')
 
 <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <script>

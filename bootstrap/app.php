@@ -69,6 +69,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'password.changed'=> \App\Http\Middleware\EnsurePasswordChange::class,
             'super_admin'     => \App\Http\Middleware\SuperAdminMiddleware::class,
             'tenant_admin'    => \App\Http\Middleware\TenantAdminMiddleware::class,
+            'route.permission'=> \App\Http\Middleware\EnsureRoutePermission::class,
+            'sync.staff.role' => \App\Http\Middleware\SyncStaffSpatieRole::class,
             // ── Billing & Subscriptions ────────────────────────────────────
             'subscription'    => \App\Http\Middleware\CheckSubscription::class,
             'plan.limit'      => \App\Http\Middleware\CheckPlanLimits::class,

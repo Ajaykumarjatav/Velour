@@ -12,7 +12,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Support\PermissionCatalog;
+use App\Support\StaffJobRoles;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * TenantAdminController
@@ -35,6 +39,8 @@ class TenantAdminController extends Controller
 
     public function team(Request $request)
     {
+        PermissionCatalog::ensurePermissionsRegistered();
+
         $salon = $this->currentSalon();
 
         $members = User::whereHas('staffProfile', function ($q) use ($salon) {
@@ -54,9 +60,117 @@ class TenantAdminController extends Controller
 
         $invitableStaff = $unlinkedStaff->filter(fn (Staff $s) => filled($s->email))->values();
 
-        $availableRoles = Role::whereIn('name', ['tenant_admin','manager','stylist','receptionist'])->get();
+        $permissionRoles = StaffJobRoles::permissionRolesForSalon((int) $salon->id);
+        $availableRoles = Role::whereIn('name', array_keys($permissionRoles))->get();
+        $permissionGroups = PermissionCatalog::permissionGroups();
+        $rolePermissions = [];
+        foreach (array_keys($permissionRoles) as $roleName) {
+            $rolePermissions[$roleName] = PermissionCatalog::permissionKeysForRole($roleName);
+        }
+        $canEditPermissions = Auth::user()->salons()->exists()
+            || Auth::user()->hasRole('tenant_admin');
 
-        return view('admin.tenant.team', compact('salon', 'members', 'unlinkedStaff', 'invitableStaff', 'availableRoles'));
+        return view('admin.tenant.team', compact(
+            'salon',
+            'members',
+            'unlinkedStaff',
+            'invitableStaff',
+            'permissionRoles',
+            'availableRoles',
+            'permissionGroups',
+            'rolePermissions',
+            'canEditPermissions',
+        ));
+    }
+
+    public function toggleRolePermission(Request $request)
+    {
+        abort_unless(
+            Auth::user()->salons()->exists() || Auth::user()->hasRole('tenant_admin'),
+            403
+        );
+
+        PermissionCatalog::ensurePermissionsRegistered();
+
+        $salon = $this->currentSalon();
+        $salonRoleSlugs = StaffJobRoles::permissionRoleSlugsForSalon((int) $salon->id);
+        $validKeys = PermissionCatalog::allPermissionKeys();
+
+        $data = $request->validate([
+            'role' => ['required', 'in:'.implode(',', $salonRoleSlugs)],
+            'permission' => ['required', 'string', 'in:'.implode(',', $validKeys)],
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        $role = Role::findByName($data['role'], 'web');
+        $permission = Permission::firstOrCreate(
+            ['name' => $data['permission'], 'guard_name' => 'web']
+        );
+
+        if ($data['enabled']) {
+            $role->givePermissionTo($permission);
+        } else {
+            $role->revokePermissionTo($permission);
+        }
+
+        // Settings toggles on another role tab also apply to the editor's own login role
+        // (e.g. Salon Manager editing Hair Stylist still needs Settings on their account).
+        if (str_starts_with($data['permission'], 'settings.') && $data['enabled']) {
+            $actor = Auth::user();
+            $actorRoleName = $actor?->roles->first()?->name;
+            if ($actorRoleName && $actorRoleName !== $data['role']) {
+                Role::findByName($actorRoleName, 'web')->givePermissionTo($permission);
+            }
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $label = StaffJobRoles::permissionRolesForSalon((int) $salon->id)[$data['role']]
+            ?? StaffJobRoles::label($data['role'])
+            ?? $data['role'];
+
+        return response()->json([
+            'permissions' => $role->permissions()->pluck('name')->sort()->values()->all(),
+            'message' => "Permission updated for {$label}.",
+        ]);
+    }
+
+    public function updateRolePermissions(Request $request)
+    {
+        abort_unless(
+            Auth::user()->salons()->exists() || Auth::user()->hasRole('tenant_admin'),
+            403
+        );
+
+        PermissionCatalog::ensurePermissionsRegistered();
+
+        $salon = $this->currentSalon();
+        $salonRoleSlugs = StaffJobRoles::permissionRoleSlugsForSalon((int) $salon->id);
+        $validKeys = PermissionCatalog::allPermissionKeys();
+
+        $data = $request->validate([
+            'role' => ['required', 'in:'.implode(',', $salonRoleSlugs)],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'in:'.implode(',', $validKeys)],
+        ]);
+
+        $role = Role::findByName($data['role'], 'web');
+        $role->syncPermissions($data['permissions'] ?? []);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $label = StaffJobRoles::permissionRolesForSalon((int) $salon->id)[$data['role']]
+            ?? StaffJobRoles::label($data['role'])
+            ?? $data['role'];
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'permissions' => $role->permissions()->pluck('name')->sort()->values()->all(),
+                'message' => "Permissions updated for {$label}.",
+            ]);
+        }
+
+        return back()->with('success', "Permissions updated for {$label}. Team members with this role will see changes on their next page load.");
     }
 
     public function invite(InviteTeamMemberRequest $request)
@@ -103,10 +217,14 @@ class TenantAdminController extends Controller
 
         $user->syncRoles([$data['role']]);
 
-        $staff->update([
+        $staffUpdate = [
             'user_id'   => $user->id,
             'is_active' => true,
-        ]);
+        ];
+        if ($data['role'] !== 'tenant_admin' && isset(StaffJobRoles::LABELS[$data['role']])) {
+            $staffUpdate['role'] = $data['role'];
+        }
+        $staff->update($staffUpdate);
         if ($staff->deleted_at !== null) {
             $staff->restore();
         }
@@ -122,9 +240,8 @@ class TenantAdminController extends Controller
 
     public function updateMemberRole(Request $request, int $userId)
     {
-        $request->validate(['role' => 'required|in:tenant_admin,manager,stylist,receptionist']);
-
-        $salon  = $this->currentSalon();
+        $salon = $this->currentSalon();
+        $request->validate(['role' => 'required|in:'.implode(',', StaffJobRoles::permissionRoleSlugsForSalon((int) $salon->id))]);
         $user   = User::findOrFail($userId);
 
         // Cannot demote the owner
@@ -135,7 +252,15 @@ class TenantAdminController extends Controller
         // Replace all tenant roles with the new one
         $user->syncRoles([$request->role]);
 
-        return back()->with('success', "{$user->name}'s role updated to " . ucfirst($request->role) . '.');
+        if ($request->role !== 'tenant_admin' && $user->staffProfile && isset(StaffJobRoles::LABELS[$request->role])) {
+            $user->staffProfile->update(['role' => $request->role]);
+        }
+
+        $label = StaffJobRoles::permissionRolesForSalon((int) $salon->id)[$request->role]
+            ?? StaffJobRoles::label($request->role)
+            ?? $request->role;
+
+        return back()->with('success', "{$user->name}'s role updated to {$label}.");
     }
 
     public function removeMember(Request $request, int $userId)

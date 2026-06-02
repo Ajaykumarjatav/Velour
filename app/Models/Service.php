@@ -367,7 +367,7 @@ class Service extends Model
     /** @return list<string> */
     public static function supportedStaffRoles(): array
     {
-        return ['owner', 'manager', 'stylist', 'therapist', 'receptionist', 'junior'];
+        return \App\Support\StaffJobRoles::slugs();
     }
 
     /** @return list<string> */
@@ -414,7 +414,7 @@ class Service extends Model
             return true;
         }
 
-        $role = strtolower(trim((string) $role));
+        $role = \App\Support\StaffJobRoles::normalize($role) ?? '';
 
         return $role !== '' && in_array($role, $allowed, true);
     }

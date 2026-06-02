@@ -148,8 +148,7 @@
     </div>
 
     {{-- Add modal --}}
-    <div x-show="addOpen" x-cloak class="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4" x-on:click.self="addOpen=false">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-xl p-6">
+    <x-modal show="addOpen" max-width="max-w-xl" class="p-6">
             <div class="flex items-start justify-between mb-5">
                 <h3 class="font-semibold text-xl text-heading">Add New Location</h3>
                 <button class="text-muted" @click="addOpen=false">✕</button>
@@ -186,12 +185,10 @@
                     <button type="submit" class="btn-primary">Add Location</button>
                 </div>
             </form>
-        </div>
-    </div>
+    </x-modal>
 
     {{-- Edit modal --}}
-    <div x-show="editOpen" x-cloak class="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4" x-on:click.self="editOpen=false">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-xl p-6">
+    <x-modal show="editOpen" max-width="max-w-xl" class="p-6">
             <div class="flex items-start justify-between mb-5">
                 <h3 class="font-semibold text-xl text-heading">Edit Location</h3>
                 <button class="text-muted" @click="editOpen=false">✕</button>
@@ -224,12 +221,10 @@
                     <button type="submit" class="btn-primary">Save</button>
                 </div>
             </form>
-        </div>
-    </div>
+    </x-modal>
 
     {{-- Branch report modal --}}
-    <div x-show="reportOpen" x-cloak class="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4" x-on:click.self="reportOpen=false">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-xl p-6">
+    <x-modal show="reportOpen" max-width="max-w-xl" class="p-6">
             <div class="flex items-start justify-between mb-4">
                 <h3 class="font-semibold text-xl text-heading">Branch Report — <span x-text="selectedReport?.name || ''"></span></h3>
                 <button class="text-muted" @click="reportOpen=false">✕</button>
@@ -262,12 +257,10 @@
                 <button type="button" class="btn-outline" @click="reportOpen=false">Close</button>
                 <button type="button" class="btn-primary" @click="window.print()">Export PDF</button>
             </div>
-        </div>
-    </div>
+    </x-modal>
 
     {{-- Consolidated report modal --}}
-    <div x-show="consolidatedOpen" x-cloak class="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4" x-on:click.self="consolidatedOpen=false">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg p-6">
+    <x-modal show="consolidatedOpen" max-width="max-w-lg" class="p-6">
             <div class="flex items-start justify-between mb-4">
                 <h3 class="font-semibold text-xl text-heading">Consolidated Report</h3>
                 <button class="text-muted" @click="consolidatedOpen=false">✕</button>
@@ -282,13 +275,14 @@
                 <button type="button" class="btn-outline" @click="consolidatedOpen=false">Close</button>
                 <button type="button" class="btn-primary" @click="window.print()">Export PDF</button>
             </div>
-        </div>
-    </div>
+    </x-modal>
 
     {{-- success toast --}}
-    <div x-show="toast" x-cloak x-transition class="fixed bottom-6 right-6 z-[210] rounded-xl bg-emerald-600 text-white px-4 py-3 shadow-xl text-sm">
+    <template x-teleport="body">
+    <div x-show="toast" x-cloak x-transition class="fixed bottom-6 right-6 z-[260] rounded-xl bg-emerald-600 text-white px-4 py-3 shadow-xl text-sm">
         <span x-text="toast"></span>
     </div>
+    </template>
 </div>
 @endsection
 

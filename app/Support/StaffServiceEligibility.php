@@ -13,7 +13,11 @@ use Illuminate\Support\Collection;
 final class StaffServiceEligibility
 {
     /** @var list<string> */
-    private const ROLES = ['stylist', 'therapist', 'manager', 'receptionist', 'junior', 'owner'];
+    private const ROLES = [
+        'receptionist', 'hair_stylist', 'hair_colorist', 'barber', 'beautician', 'esthetician',
+        'nail_technician', 'makeup_artist', 'spa_therapist', 'massage_therapist', 'grooming_specialist',
+        'tattoo_artist', 'salon_manager',
+    ];
 
     /**
      * @return array<string, list<array{id: int, name: string}>>

@@ -15,7 +15,7 @@ class StaffFactory extends Factory
             'last_name'       => $last,
             'email'           => $this->faker->unique()->safeEmail(),
             'phone'           => $this->faker->phoneNumber(),
-            'role'            => $this->faker->randomElement(['Colourist','Hair Stylist','Nail Technician','Therapist']),
+            'role'            => $this->faker->randomElement(\App\Support\StaffJobRoles::slugs()),
             'initials'        => substr($first, 0, 1) . substr($last, 0, 1),
             'color'           => '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT),
             'commission_rate' => $this->faker->randomFloat(2, 30, 50),

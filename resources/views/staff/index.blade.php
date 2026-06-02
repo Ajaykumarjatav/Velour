@@ -153,7 +153,7 @@ document.addEventListener('alpine:init', function () {
                     <x-staff-avatar :staff="$member" />
                     <div class="flex-1 min-w-0">
                         <h3 class="font-semibold text-heading truncate">{{ $member->name }}</h3>
-                        <p class="text-xs text-muted capitalize">{{ str_replace('_', ' ', $member->role) }}</p>
+                        <p class="text-xs text-muted">{{ \App\Support\StaffJobRoles::label($member->role) }}</p>
                     </div>
                     <div class="flex flex-col items-end gap-1 shrink-0">
                         @if($member->hub_on_leave_today)
@@ -245,7 +245,7 @@ document.addEventListener('alpine:init', function () {
     </div>
 
     {{-- Payroll modal --}}
-    <div x-show="payrollOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <x-modal-overlay show="payrollOpen">
         <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" @click.outside="closePayroll()">
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
                 <div>
@@ -297,10 +297,10 @@ document.addEventListener('alpine:init', function () {
                 </a>
             </div>
         </div>
-    </div>
+    </x-modal-overlay>
 
     {{-- Weekly schedule modal --}}
-    <div x-show="scheduleOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <x-modal-overlay show="scheduleOpen">
         <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" @click.outside="closeSchedule()">
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
                 <h3 class="text-lg font-serif font-bold text-heading">Weekly schedule — <span x-text="scheduleStaff.name"></span></h3>
@@ -347,6 +347,6 @@ document.addEventListener('alpine:init', function () {
                 </div>
             </form>
         </div>
-    </div>
+    </x-modal-overlay>
 </div>
 @endsection

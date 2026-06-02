@@ -13,6 +13,8 @@ use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use App\Billing\Plan;
+use App\Models\Salon;
+use App\Models\Tenant;
 use App\Notifications\VerifyEmailNotification;
 use App\Notifications\ResetPasswordNotification;
 
@@ -264,15 +266,60 @@ class User extends Authenticatable implements MustVerifyEmail
      * Staff profile id used to scope salon dashboard metrics to one team member.
      * Non-null for users who only have the stylist role (not admin, manager, or receptionist).
      */
+    public function ownsSalonId(int $salonId): bool
+    {
+        if ($salonId <= 0) {
+            return false;
+        }
+
+        return Salon::withoutGlobalScopes()
+            ->whereKey($salonId)
+            ->where('owner_id', $this->id)
+            ->exists();
+    }
+
+    /** Salon owner for the active tenant / session salon (not merely "has any salon"). */
+    public function ownsCurrentSalon(): bool
+    {
+        $salonIds = [];
+
+        if (Tenant::checkCurrent()) {
+            $salonIds[] = (int) Tenant::current()->getKey();
+        }
+
+        $sessionSalonId = (int) session('active_salon_id', 0);
+        if ($sessionSalonId > 0) {
+            $salonIds[] = $sessionSalonId;
+        }
+
+        $staffSalonId = (int) ($this->staffProfile?->salon_id ?? 0);
+        if ($staffSalonId > 0) {
+            $salonIds[] = $staffSalonId;
+        }
+
+        foreach (array_unique(array_filter($salonIds)) as $salonId) {
+            if ($this->ownsSalonId($salonId)) {
+                return true;
+            }
+        }
+
+        return $this->salons()->exists();
+    }
+
+    public function hasExplicitPermission(string $permission, string $guard = 'web'): bool
+    {
+        return $this->hasPermissionTo($permission, $guard);
+    }
+
     public function dashboardScopedStaffId(): ?int
     {
         if ($this->isSuperAdmin()) {
             return null;
         }
-        if ($this->hasAnyRole(['tenant_admin', 'manager', 'receptionist'])) {
+        if ($this->hasPermissionTo('appointments.view-all')) {
             return null;
         }
-        if (! $this->hasRole('stylist')) {
+        if (! $this->can('appointments.view')) {
             return null;
         }
 

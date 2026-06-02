@@ -47,7 +47,7 @@ document.addEventListener('alpine:init', () => {
         qcPhone: '',
         qcEmail: '',
         qcName: '',
-        qcRole: 'stylist',
+        qcRole: 'hair_stylist',
         qcStaffEmail: '',
         qcStaffPhone: '',
         qcInvCatName: '',
@@ -90,7 +90,7 @@ document.addEventListener('alpine:init', () => {
             this.qcLoyaltyTierId = '';
             this.qcMarketingConsent = false;
             this.qcName = '';
-            this.qcRole = 'stylist';
+            this.qcRole = 'hair_stylist';
             this.qcStaffEmail = '';
             this.qcStaffPhone = '';
             this.qcInvCatName = '';
@@ -240,9 +240,10 @@ document.addEventListener('alpine:init', () => {
         </svg>
     </button>
 
+    <template x-teleport="body">
     <div x-show="modalOpen"
          x-cloak
-         class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+         class="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          @keydown.escape.window="closeModal()"
          role="dialog"
          aria-modal="true"
@@ -367,8 +368,8 @@ document.addEventListener('alpine:init', () => {
                             <div>
                                 <label class="form-label">Role <span class="text-red-500">*</span></label>
                                 <select x-model="qcRole" @change="qcStaffServiceIds = []" class="form-select" :class="err('role') ? 'form-input-error' : ''">
-                                    @foreach(['stylist','therapist','manager','receptionist','junior','owner'] as $r)
-                                        <option value="{{ $r }}">{{ ucfirst($r) }}</option>
+                                    @foreach(\App\Support\StaffJobRoles::options() as $slug => $label)
+                                        <option value="{{ $slug }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
                                 <p class="form-error text-xs mt-0.5" x-show="err('role')" x-text="err('role')"></p>
@@ -436,4 +437,5 @@ document.addEventListener('alpine:init', () => {
             </div>
         </div>
     </div>
+    </template>
 </div>

@@ -27,10 +27,15 @@ class StaffPolicy
 
     private function isManagerOrAbove(User $user): bool
     {
-        return $user->hasAnyRole(['tenant_admin', 'manager']) || $user->salons()->exists();
+        return $user->salons()->exists()
+            || $user->can('staff.edit')
+            || $user->hasAnyRole(['tenant_admin', 'manager']);
     }
 
-    public function viewAny(User $user): bool { return true; }
+    public function viewAny(User $user): bool
+    {
+        return $user->salons()->exists() || $user->can('staff.view');
+    }
 
     public function view(User $user, Staff $staff): bool
     {
@@ -39,7 +44,7 @@ class StaffPolicy
 
     public function create(User $user): bool
     {
-        return $this->isManagerOrAbove($user);
+        return $user->salons()->exists() || $user->can('staff.create');
     }
 
     public function update(User $user, Staff $staff): bool

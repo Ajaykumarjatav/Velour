@@ -129,9 +129,10 @@ window.appendApptServiceRow = function (detail, listId) {
         </svg>
     </button>
 
+    <template x-teleport="body">
     <div x-show="modalOpen"
          x-cloak
-         class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+         class="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          @keydown.escape.window="closeModal()"
          role="dialog"
          aria-modal="true"
@@ -173,4 +174,5 @@ window.appendApptServiceRow = function (detail, listId) {
             </div>
         </div>
     </div>
+    </template>
 </div>
