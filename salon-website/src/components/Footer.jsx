@@ -1,4 +1,9 @@
+import { useSalon } from '../context/SalonContext'
+import SalonLogo from './SalonLogo'
+
 export default function Footer() {
+  const { salon } = useSalon()
+
   return (
     <footer className="w-full bg-black pt-16 md:pt-20">
       <div>
@@ -6,11 +11,16 @@ export default function Footer() {
           {/* Top row: Logo + Social */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
             {/* Logo */}
-            <a 
-              href="/" 
-              className="font-pacifico text-white hover:text-salmon text-2xl md:text-[34px] leading-tight transition-colors duration-300 outline-none focus-visible:ring-2 focus-visible:ring-salmon"
+            <a
+              href="#hero"
+              className="hover:text-salmon transition-colors duration-300 outline-none focus-visible:ring-2 focus-visible:ring-salmon rounded-sm"
             >
-              Your Logo
+              <SalonLogo
+                logoUrl={salon?.logo_url}
+                salonName={salon?.name}
+                imageClassName="h-10 md:h-12 w-auto max-w-[240px] object-contain"
+                placeholderClassName="font-pacifico text-white text-2xl md:text-[34px] leading-tight"
+              />
             </a>
 
             {/* Social Icons */}

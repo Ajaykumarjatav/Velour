@@ -68,13 +68,13 @@ export default function HeroSection() {
             </span>
           </div>
 
-          {/* Main Title */}
+          {/* Main Title — fixed marketing headline (salon name only in header logo area) */}
           <h2 className="font-manrope font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-[75px] xl:text-[90px] leading-tight lg:leading-[90px] xl:leading-[100px] text-white mb-6 md:mb-8 tracking-tight">
-            {salon.name}
+            Redefining Style for Every You.
           </h2>
 
           <p className="text-[#A5A5A5] font-inter font-light text-sm md:text-lg max-w-[500px] mb-8 md:mb-10 mx-auto lg:mx-0 leading-relaxed">
-            {salon.tagline}
+            Premium hair, skin, and grooming services tailored for all genders. Experience a new standard of self-care.
           </p>
 
           {/* Consultation Items */}

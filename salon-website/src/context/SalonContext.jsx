@@ -73,6 +73,7 @@ export function SalonProvider({ children }) {
       packages: data?.packages ?? [],
       reviews: data?.reviews ?? [],
       photos: data?.photos ?? [],
+      locations: data?.locations ?? [],
       loading,
       error,
       view,

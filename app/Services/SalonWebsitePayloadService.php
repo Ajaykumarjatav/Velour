@@ -11,8 +11,10 @@ use App\Models\ServiceCategory;
 use App\Models\ServicePackage;
 use App\Models\Staff;
 use App\Scopes\TenantScope;
+use App\Support\StaffJobRoles;
 use App\Support\StorefrontUrl;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 class SalonWebsitePayloadService
 {
@@ -30,9 +32,14 @@ class SalonWebsitePayloadService
             ->orderBy('name')
             ->get(['id', 'category_id', 'name', 'description', 'duration_minutes', 'price', 'image', 'sort_order']);
 
-        $categories = $this->groupServices($services, $salon->currency ?? 'GBP');
+        $categories = $this->groupServices($services, $salon->currency ?? 'GBP', $salonId);
 
         $staff = Staff::withoutGlobalScope(TenantScope::class)
+            ->with(['services' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)
+                ->where('services.salon_id', $salonId)
+                ->where('status', 'active')
+                ->orderBy('sort_order')
+                ->orderBy('name')])
             ->where('salon_id', $salonId)
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -92,7 +99,7 @@ class SalonWebsitePayloadService
                     $salon->city,
                     $salon->postcode,
                 ]))),
-                'logo_url'            => $salon->logo ? asset('storage/' . $salon->logo) : null,
+                'logo_url'            => $this->resolveLogoUrl($salon),
                 'cover_image_url'     => $salon->cover_image ? asset('storage/' . $salon->cover_image) : null,
                 'currency'            => $currency,
                 'currency_symbol'     => CurrencyHelper::symbol($currency),
@@ -114,10 +121,12 @@ class SalonWebsitePayloadService
                 'id'           => $s->id,
                 'name'         => trim($s->first_name . ' ' . $s->last_name),
                 'role'         => $s->role,
+                'role_label'   => StaffJobRoles::label($s->role),
                 'bio'          => $s->bio,
                 'specialisms'  => is_array($s->specialisms)
                     ? implode(' | ', $s->specialisms)
                     : (is_string($s->specialisms) ? $s->specialisms : null),
+                'service_labels' => $s->services->pluck('name')->values()->all(),
                 'avatar_url'   => \App\Models\Staff::resolvePublicAvatarUrl($s->avatar),
                 'initials'     => $this->staffInitials($s),
                 'color'        => $s->color ?? '#7c3aed',
@@ -149,72 +158,335 @@ class SalonWebsitePayloadService
                 'author' => $r->reviewer_name ?: 'Guest',
             ])->values()->all(),
             'photos' => $photos,
+            'locations'          => $this->resolveLocations($salon),
         ];
     }
 
-    /** @param  Collection<int, Service>  $services */
-    private function groupServices(Collection $services, string $currency): array
+    /** @return list<array<string, mixed>> */
+    private function resolveLocations(Salon $current): array
     {
-        $grouped = $services->groupBy(fn (Service $s) => $s->category_id ?: 0);
+        $query = Salon::withoutGlobalScope(TenantScope::class)
+            ->where('is_active', true);
+
+        if ($current->owner_id) {
+            $query->where('owner_id', $current->owner_id);
+        } else {
+            $query->where('id', $current->id);
+        }
+
+        $rows = $query
+            ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$current->id])
+            ->orderBy('name')
+            ->get([
+                'id', 'name', 'slug', 'address_line1', 'address_line2',
+                'city', 'postcode', 'country', 'latitude', 'longitude', 'opening_hours',
+            ]);
+
+        return $rows->map(fn (Salon $s) => $this->mapLocation($s, $current))->values()->all();
+    }
+
+    /** @return array<string, mixed> */
+    private function mapLocation(Salon $salon, Salon $current): array
+    {
+        $photos = SalonPhoto::where('salon_id', $salon->id)
+            ->orderBy('sort_order')
+            ->limit(4)
+            ->get()
+            ->map(fn ($p) => asset('storage/' . $p->path))
+            ->values()
+            ->all();
+
+        return [
+            'id'                  => $salon->id,
+            'name'                => $salon->name,
+            'slug'                => $salon->slug,
+            'address'             => trim(implode(', ', array_filter([
+                $salon->address_line1,
+                $salon->address_line2,
+                $salon->city,
+                $salon->postcode,
+            ]))),
+            'is_current'          => (int) $salon->id === (int) $current->id,
+            'map_embed_url'       => $this->mapEmbedUrl($salon),
+            'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),
+            'photos'              => $photos,
+        ];
+    }
+
+    private function mapEmbedUrl(Salon $salon): ?string
+    {
+        if ($salon->latitude !== null && $salon->longitude !== null) {
+            $lat = (float) $salon->latitude;
+            $lng = (float) $salon->longitude;
+
+            return 'https://www.google.com/maps?q=' . $lat . ',' . $lng . '&z=15&output=embed';
+        }
+
+        $query = trim(implode(', ', array_filter([
+            $salon->address_line1,
+            $salon->address_line2,
+            $salon->city,
+            $salon->postcode,
+            $salon->country,
+        ])));
+
+        if ($query === '') {
+            return null;
+        }
+
+        return 'https://www.google.com/maps?q=' . rawurlencode($query) . '&z=15&output=embed';
+    }
+
+    /** @param  Collection<int, Service>  $services */
+    private function groupServices(Collection $services, string $currency, int $salonId): array
+    {
+        $mapService = fn (Service $s) => [
+            'id'                 => $s->id,
+            'name'               => $s->name,
+            'description'        => $s->description ?: '',
+            'duration_minutes'   => (int) $s->duration_minutes,
+            'price'              => (float) $s->price,
+            'price_formatted'    => CurrencyHelper::format((float) $s->price, $currency),
+            'image_url'          => $s->image ? asset('storage/' . $s->image) : null,
+        ];
+
+        $grouped = $services->groupBy(fn (Service $s) => (int) ($s->category_id ?: 0));
+
+        $storeCategories = ServiceCategory::withoutGlobalScope(TenantScope::class)
+            ->where('salon_id', $salonId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'sort_order']);
 
         $out = [];
-        foreach ($grouped as $categoryId => $rows) {
-            $first = $rows->first();
-            $name = $first?->category?->name ?? 'Services';
+        $usedCategoryIds = [];
 
+        foreach ($storeCategories as $category) {
+            $rows = $grouped->get((int) $category->id, collect());
+            if ($rows->isEmpty()) {
+                continue;
+            }
+
+            $usedCategoryIds[] = (int) $category->id;
             $out[] = [
-                'id'       => (int) $categoryId,
-                'name'     => $name,
-                'services' => $rows->map(fn (Service $s) => [
-                    'id'                 => $s->id,
-                    'name'               => $s->name,
-                    'description'        => $s->description ?: '',
-                    'duration_minutes'   => (int) $s->duration_minutes,
-                    'price'              => (float) $s->price,
-                    'price_formatted'    => CurrencyHelper::format((float) $s->price, $currency),
-                    'image_url'          => $s->image ? asset('storage/' . $s->image) : null,
-                ])->values()->all(),
+                'id'       => (int) $category->id,
+                'name'     => $category->name,
+                'services' => $rows->map($mapService)->values()->all(),
             ];
         }
 
-        usort($out, fn ($a, $b) => strcmp($a['name'], $b['name']));
+        // Services linked to a category row outside this salon's active list (legacy / orphaned).
+        foreach ($grouped as $categoryId => $rows) {
+            $categoryId = (int) $categoryId;
+            if ($categoryId === 0 || in_array($categoryId, $usedCategoryIds, true) || $rows->isEmpty()) {
+                continue;
+            }
+
+            $first = $rows->first();
+            $out[] = [
+                'id'       => $categoryId,
+                'name'     => $first?->category?->name ?? 'Services',
+                'services' => $rows->map($mapService)->values()->all(),
+            ];
+        }
+
+        if ($grouped->has(0) && $grouped->get(0)->isNotEmpty()) {
+            $out[] = [
+                'id'       => 0,
+                'name'     => 'Services',
+                'services' => $grouped->get(0)->map($mapService)->values()->all(),
+            ];
+        }
 
         return $out;
     }
+
+    /** @var list<string> */
+    private const WEEKDAY_ORDER = [
+        'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    ];
 
     /** @return list<string> */
     private function openingHoursLines(?array $hours): array
     {
         if (! is_array($hours) || $hours === []) {
             return [
-                'Monday to Friday — 9:00 AM to 6:00 PM',
-                'Saturday — 10:00 AM to 5:00 PM',
+                'Monday to Friday — 9 AM to 6 PM',
+                'Saturday — 10 AM to 5 PM',
                 'Sunday — Closed',
             ];
         }
 
-        $lines = [];
-        foreach ($hours as $day => $config) {
-            if (! is_array($config)) {
+        $schedules = [];
+        foreach (self::WEEKDAY_ORDER as $day) {
+            $config = $this->hoursConfigForDay($hours, $day);
+            if ($config === null || ! $this->isDayOpen($config)) {
+                $schedules[] = ['day' => $day, 'closed' => true];
                 continue;
             }
-            if (array_key_exists('open', $config) && is_bool($config['open']) && $config['open'] === false) {
-                $lines[] = ucfirst((string) $day) . ' — Closed';
+
+            $times = $this->dayTimes($config);
+            if ($times === null) {
+                $schedules[] = ['day' => $day, 'closed' => true];
                 continue;
             }
-            if (($config['is_open'] ?? true) === false) {
-                $lines[] = ucfirst((string) $day) . ' — Closed';
-                continue;
-            }
-            $start = $config['start'] ?? $config['open_time'] ?? null;
-            $end   = $config['end'] ?? $config['close_time'] ?? $config['close'] ?? null;
-            if (! is_string($start) || ! is_string($end) || $start === '00:00' && $end === '00:00') {
-                continue;
-            }
-            $lines[] = ucfirst((string) $day) . ' — ' . $this->formatTime12($start) . ' to ' . $this->formatTime12($end);
+
+            $schedules[] = [
+                'day' => $day,
+                'closed' => false,
+                'start' => $times[0],
+                'end' => $times[1],
+            ];
         }
 
+        $lines = $this->groupOpeningHourSchedules($schedules);
+
         return $lines !== [] ? $lines : ['See salon for opening hours'];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function hoursConfigForDay(array $hours, string $day): ?array
+    {
+        if (isset($hours[$day]) && is_array($hours[$day])) {
+            return $hours[$day];
+        }
+
+        $ucfirst = ucfirst($day);
+        if (isset($hours[$ucfirst]) && is_array($hours[$ucfirst])) {
+            return $hours[$ucfirst];
+        }
+
+        foreach ($hours as $key => $config) {
+            if (is_string($key) && strtolower($key) === $day && is_array($config)) {
+                return $config;
+            }
+        }
+
+        return null;
+    }
+
+    /** @param  array<string, mixed>  $config */
+    private function isDayOpen(array $config): bool
+    {
+        if (($config['closed'] ?? false) === true || ($config['closed'] ?? false) === '1') {
+            return false;
+        }
+
+        if (isset($config['is_open']) && $config['is_open'] === false) {
+            return false;
+        }
+
+        if (array_key_exists('open', $config)) {
+            $open = $config['open'];
+            if (is_bool($open)) {
+                return $open;
+            }
+
+            return in_array((string) $open, ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return $this->dayTimes($config) !== null;
+    }
+
+    /** @param  array<string, mixed>  $config
+     * @return array{0: string, 1: string}|null
+     */
+    private function dayTimes(array $config): ?array
+    {
+        $start = $config['from'] ?? $config['start'] ?? $config['open_time'] ?? null;
+        $end = $config['to'] ?? $config['end'] ?? $config['close_time'] ?? $config['close'] ?? null;
+
+        if (! is_string($start) || ! is_string($end)) {
+            return null;
+        }
+
+        $start = substr($start, 0, 5);
+        $end = substr($end, 0, 5);
+
+        if ($start === '00:00' && $end === '00:00') {
+            return null;
+        }
+
+        return [$start, $end];
+    }
+
+    /**
+     * @param  list<array{day: string, closed: bool, start?: string, end?: string}>  $schedules
+     * @return list<string>
+     */
+    private function groupOpeningHourSchedules(array $schedules): array
+    {
+        $groups = [];
+        $current = null;
+
+        foreach ($schedules as $item) {
+            $key = $item['closed']
+                ? 'closed'
+                : ($item['start'] . '|' . $item['end']);
+
+            if ($current === null
+                || $current['key'] !== $key
+                || ! $this->areConsecutiveWeekdays($current['endDay'], $item['day'])) {
+                if ($current !== null) {
+                    $groups[] = $current;
+                }
+
+                $current = [
+                    'key' => $key,
+                    'startDay' => $item['day'],
+                    'endDay' => $item['day'],
+                    'closed' => $item['closed'],
+                    'start' => $item['start'] ?? null,
+                    'end' => $item['end'] ?? null,
+                    'count' => 1,
+                ];
+            } else {
+                $current['endDay'] = $item['day'];
+                $current['count']++;
+            }
+        }
+
+        if ($current !== null) {
+            $groups[] = $current;
+        }
+
+        $lines = [];
+        foreach ($groups as $group) {
+            $label = $this->formatWeekdayRange($group['startDay'], $group['endDay'], $group['count']);
+            if ($group['closed']) {
+                $lines[] = $label . ' — Closed';
+                continue;
+            }
+
+            $lines[] = $label . ' — ' . $this->formatTime12((string) $group['start'])
+                . ' to ' . $this->formatTime12((string) $group['end']);
+        }
+
+        return $lines;
+    }
+
+    private function areConsecutiveWeekdays(string $first, string $second): bool
+    {
+        $index = array_flip(self::WEEKDAY_ORDER);
+        if (! isset($index[$first], $index[$second])) {
+            return false;
+        }
+
+        return $index[$second] === $index[$first] + 1;
+    }
+
+    private function formatWeekdayRange(string $startDay, string $endDay, int $count): string
+    {
+        if ($count === 1) {
+            return ucfirst($startDay);
+        }
+
+        if ($count === 2 && $startDay === 'saturday' && $endDay === 'sunday') {
+            return 'Saturday & Sunday';
+        }
+
+        return ucfirst($startDay) . ' to ' . ucfirst($endDay);
     }
 
     private function formatTime12(string $hhmm): string
@@ -222,7 +494,7 @@ class SalonWebsitePayloadService
         try {
             $dt = \Carbon\Carbon::createFromFormat('H:i', substr($hhmm, 0, 5));
 
-            return $dt->format('g:i A');
+            return $dt->format((int) $dt->format('i') === 0 ? 'g A' : 'g:i A');
         } catch (\Throwable) {
             return $hhmm;
         }
@@ -252,6 +524,20 @@ class SalonWebsitePayloadService
         $last  = strtoupper(substr((string) ($staff->last_name ?? ''), 0, 1));
 
         return $first . $last ?: '?';
+    }
+
+    private function resolveLogoUrl(Salon $salon): ?string
+    {
+        $path = $salon->logo;
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return asset('storage/' . $path);
     }
 
     private function whatsappUrl(?string $phone): ?string

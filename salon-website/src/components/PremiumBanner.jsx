@@ -1,4 +1,5 @@
 import { assetUrl } from '../lib/assetUrl'
+import BookButton from './BookButton'
 
 export default function PremiumBanner() {
   return (
@@ -25,8 +26,7 @@ export default function PremiumBanner() {
             </div>
 
             {/* Right booking card */}
-            <a 
-              href="#services"
+            <BookButton
               className="bg-primary hover:bg-primary-dark rounded-2xl p-8 md:p-10 flex flex-col items-center justify-center text-center w-full max-w-[320px] shadow-lg hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-1.5 group outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {/* Calendar icon */}
@@ -43,7 +43,7 @@ export default function PremiumBanner() {
               <h4 className="font-manrope font-bold text-xl md:text-2xl text-white uppercase tracking-wider leading-tight">
                 Book Your<br />Appointment
               </h4>
-            </a>
+            </BookButton>
           </div>
         </div>
       </div>

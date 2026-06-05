@@ -78,6 +78,11 @@ export default function BookingFlow() {
 
   const serviceIds = useMemo(() => selected.services.map((s) => s.id), [selected.services])
 
+  const flatServices = useMemo(
+    () => allServices.flatMap((cat) => cat.services ?? []),
+    [allServices],
+  )
+
   const totalPrice = useCallback(
     () => selected.services.reduce((a, s) => a + parseFloat(s.price || 0), 0),
     [selected.services],
@@ -302,38 +307,37 @@ export default function BookingFlow() {
 
         {step === 0 && !loading ? (
           <div className="space-y-6">
-            <p className="text-white/70 text-sm">Select one or more services</p>
-            {allServices.map((cat) => (
-              <div key={cat.name}>
-                <h2 className="font-manrope font-bold text-sm text-white/50 uppercase mb-3">{cat.name}</h2>
-                <div className="space-y-2">
-                  {cat.services.map((svc) => {
+            <div className="rounded-2xl border border-white/10 bg-[#1a1f2e] p-5 sm:p-6">
+              <h2 className="font-manrope font-bold text-base text-white mb-4">Select Services</h2>
+              {flatServices.length === 0 ? (
+                <p className="text-white/50 text-sm py-8 text-center">No services available for booking.</p>
+              ) : (
+                <div
+                  className="grid grid-cols-2 gap-x-5 gap-y-3.5 overflow-y-auto scrollbar-none pr-1"
+                  style={{ minHeight: '9.5rem', maxHeight: 'min(50vh, 22rem)' }}
+                >
+                  {flatServices.map((svc) => {
                     const on = selected.services.some((s) => s.id === svc.id)
                     return (
-                      <button
+                      <label
                         key={svc.id}
-                        type="button"
-                        onClick={() => toggleService(svc)}
-                        className={`w-full text-left rounded-xl border-2 p-4 transition-colors ${
-                          on ? 'border-primary bg-primary/10' : 'border-white/10 bg-white/5 hover:border-white/20'
-                        }`}
+                        className="flex items-start gap-2.5 cursor-pointer group"
                       >
-                        <div className="flex justify-between gap-3">
-                          <span className="font-semibold">{svc.name}</span>
-                          <span className="text-primary font-bold shrink-0">
-                            {currency}
-                            {parseFloat(svc.price || 0).toFixed(2)}
-                          </span>
-                        </div>
-                        {svc.duration_minutes ? (
-                          <p className="text-xs text-white/50 mt-1">{svc.duration_minutes} min</p>
-                        ) : null}
-                      </button>
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => toggleService(svc)}
+                          className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 bg-transparent text-teal-500 focus:ring-teal-500/40 focus:ring-offset-0 accent-teal-500"
+                        />
+                        <span className="text-sm text-white/90 leading-snug group-hover:text-white">
+                          {svc.name}
+                        </span>
+                      </label>
                     )
                   })}
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
             {selected.services.length > 0 ? (
               <div className="sticky bottom-4 bg-black/90 backdrop-blur border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4">
                 <span className="text-sm">

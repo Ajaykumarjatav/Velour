@@ -1,4 +1,5 @@
 import { useSalon } from '../context/SalonContext'
+import SalonLogo from './SalonLogo'
 
 export default function TopBar() {
   const { salon } = useSalon()
@@ -15,10 +16,7 @@ export default function TopBar() {
           href="#hero"
           className="font-pacifico text-white hover:text-salmon text-2xl md:text-[30px] leading-[30px] flex-shrink-0 text-center sm:text-left transition-colors duration-300 outline-none focus-visible:ring-2 focus-visible:ring-salmon focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm flex items-center gap-2"
         >
-          {salon.logo_url ? (
-            <img src={salon.logo_url} alt="" className="h-8 w-8 rounded-lg object-cover" />
-          ) : null}
-          {salon.name}
+          <SalonLogo logoUrl={salon.logo_url} salonName={salon.name} />
         </a>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 lg:gap-10">

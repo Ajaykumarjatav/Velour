@@ -1,6 +1,21 @@
 import { useSalon } from '../context/SalonContext'
 import { assetUrl } from '../lib/assetUrl'
 
+function GalleryImage({ src, alt, fallbackSrc }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onError={(e) => {
+        if (fallbackSrc && e.currentTarget.src !== fallbackSrc) {
+          e.currentTarget.src = fallbackSrc
+        }
+      }}
+      className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
+    />
+  )
+}
+
 const fallbackGallery = [
   { src: assetUrl('assets/Rectangle 31.png'), alt: 'Salon interior 1' },
   { src: assetUrl('assets/Rectangle 27.png'), alt: 'Salon service 2' },
@@ -11,13 +26,11 @@ const fallbackGallery = [
 ]
 
 export default function AboutSection() {
-  const { salon, photos } = useSalon()
+  const { salon } = useSalon()
   if (!salon) return null
 
-  const galleryImages =
-    photos.length > 0
-      ? photos.map((src, i) => ({ src, alt: `${salon.name} photo ${i + 1}` }))
-      : fallbackGallery
+  // Always show the full default gallery strip (6 images), same as the original design.
+  const galleryImages = fallbackGallery
 
   return (
     <section id="about" className="w-full bg-white relative overflow-hidden">
@@ -38,10 +51,12 @@ export default function AboutSection() {
               the art of living.
             </h2>
 
-            {/* Description */}
+            {/* Description — fixed marketing copy (not salon name from backend) */}
             <p className="text-text-secondary font-inter font-light text-base md:text-lg leading-relaxed mb-12 max-w-[777px] mx-auto lg:mx-0">
-              {salon.description ||
-                `${salon.name} is more than a destination for hair and beauty—it is a sanctuary for self-care. Step in, exhale, and let us curate a look that is timelessly yours.`}
+              Your Salon is more than a destination for hair; it is a sanctuary for self-care. We believe that true
+              luxury lies in the details—from the initial consultation to the final sweep of the brush. Our master
+              stylists specialize in bespoke color and restorative treatments, ensuring that every guest leaves feeling
+              as vibrant as they look. Step in, exhale, and let us curate a look that is timelessly yours.
             </p>
 
             {/* Stats */}
@@ -100,10 +115,10 @@ export default function AboutSection() {
                 key={i}
                 className="flex-shrink-0 w-[280px] sm:w-[300px] lg:w-[327px] h-[220px] md:h-[280px] lg:h-[345px] overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-500 snap-center group cursor-pointer"
               >
-                <img
+                <GalleryImage
                   src={img.src}
                   alt={img.alt}
-                  className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
+                  fallbackSrc={fallbackGallery[i % fallbackGallery.length]?.src}
                 />
               </div>
             ))}
