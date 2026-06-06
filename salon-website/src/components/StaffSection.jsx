@@ -1,5 +1,4 @@
 import { useSalon } from '../context/SalonContext'
-import BookButton from './BookButton'
 import HorizontalDragScroll from './HorizontalDragScroll'
 
 function StaffAvatar({ member }) {
@@ -44,7 +43,7 @@ function StaffServicesList({ member }) {
 
   if (all.length === 0) {
     return (
-      <p className="flex-1 text-text-muted font-inter text-xs md:text-sm text-center leading-relaxed px-1 min-h-[5rem]">
+      <p className="text-text-muted font-inter text-xs md:text-sm text-center leading-relaxed px-1">
         {member.role_label || member.bio || 'Stylist'}
       </p>
     )
@@ -56,7 +55,7 @@ function StaffServicesList({ member }) {
   const moreCount = all.length - visible.length
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start min-h-[5rem] px-1 w-full">
+    <div className="flex flex-col items-center px-1 w-full">
       <p className="text-text-muted font-inter text-xs md:text-sm text-center leading-relaxed">
         {visible.map((label, index) => (
           <span key={`${index}-${label}`} className="inline whitespace-normal">
@@ -97,7 +96,7 @@ export default function StaffSection() {
             {staff.map((member) => (
               <article
                 key={member.id}
-                className="group shrink-0 snap-start w-[240px] sm:w-[252px] min-h-[320px] relative flex flex-col items-center bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] pt-20 pb-8 px-6 mt-16 cursor-pointer transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-[0_18px_50px_rgba(0,0,0,0.14)] hover:ring-1 hover:ring-primary/15"
+                className="group shrink-0 snap-start w-[240px] sm:w-[252px] h-[288px] relative flex flex-col items-center bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] pt-20 pb-10 px-6 mt-16 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-[0_18px_50px_rgba(0,0,0,0.14)] hover:ring-1 hover:ring-primary/15"
               >
                 <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-[128px] h-[128px] rounded-full overflow-hidden border-[5px] border-white shadow-lg bg-gray-100 transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-hover:border-primary/20">
                   <StaffAvatar member={member} />
@@ -108,15 +107,6 @@ export default function StaffSection() {
                 </h3>
 
                 <StaffServicesList member={member} />
-
-                <div className="mt-auto pt-6 shrink-0" onMouseDown={(e) => e.stopPropagation()}>
-                  <BookButton
-                    as="a"
-                    className="inline-block text-primary group-hover:text-primary-dark font-manrope font-bold text-xs md:text-sm uppercase tracking-[0.12em] transition-all duration-300 group-hover:tracking-[0.14em]"
-                  >
-                    Book Appointment
-                  </BookButton>
-                </div>
               </article>
             ))}
           </HorizontalDragScroll>

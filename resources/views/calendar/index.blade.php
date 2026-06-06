@@ -21,11 +21,13 @@
     ], $extra), fn ($value) => $value !== null && $value !== ''));
 @endphp
 
-<div class="alert-info mb-7 text-sm">
-    <div class="space-y-2 min-w-0">
-        <p class="font-medium leading-relaxed">Times use your business timezone (<abbr title="{{ $salonTz }}" class="cursor-help decoration-dotted underline-offset-2">{{ $tzAbbrev }}</abbr>). This calendar and the <a href="{{ route('appointments.index') }}" class="underline font-semibold decoration-velour-600/40 dark:decoration-velour-400/40 underline-offset-2">appointments</a> list share the same data.</p>
-        <p class="text-xs text-blue-800/90 dark:text-blue-200/90 leading-relaxed">Adjust staff hours or time off under <a href="{{ route('availability.index') }}" class="underline font-medium underline-offset-2">Availability &amp; Resources</a> or <a href="{{ route('staff.index') }}" class="underline font-medium underline-offset-2">Staff &amp; HR</a>.</p>
-    </div>
+<div class="mb-4 space-y-0.5">
+    <p class="text-[11px] leading-snug text-gray-400 dark:text-gray-500">
+        Times use your business timezone (<abbr title="{{ $salonTz }}" class="cursor-help decoration-dotted underline-offset-2">{{ $tzAbbrev }}</abbr>). This calendar and the <a href="{{ route('appointments.index') }}" class="text-gray-500 dark:text-gray-400 underline decoration-gray-300 dark:decoration-gray-600 hover:text-velour-600 dark:hover:text-velour-400">appointments</a> list share the same data.
+    </p>
+    <p class="text-[11px] leading-snug text-gray-400 dark:text-gray-500">
+        Adjust staff hours or time off under <a href="{{ route('availability.index') }}" class="text-gray-500 dark:text-gray-400 underline decoration-gray-300 dark:decoration-gray-600 hover:text-velour-600 dark:hover:text-velour-400">Availability &amp; Resources</a> or <a href="{{ route('staff.index') }}" class="text-gray-500 dark:text-gray-400 underline decoration-gray-300 dark:decoration-gray-600 hover:text-velour-600 dark:hover:text-velour-400">Staff &amp; HR</a>.
+    </p>
 </div>
 
 @if(!empty($selectedStaff))
@@ -121,22 +123,19 @@
                      x-transition:enter-start="opacity-0 -translate-y-1"
                      x-transition:enter-end="opacity-100 translate-y-0"
                      @click.outside="openRangePicker = false"
-                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(100vw-2rem,20rem)] sm:w-80 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[60]">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Custom week range</p>
+                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(100vw-1.5rem,40rem)] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[60] overflow-visible">
                     <form method="GET" action="{{ route('calendar') }}" class="space-y-3">
                         <input type="hidden" name="view" value="week">
                         <input type="hidden" name="staff_id" value="{{ $filterStaffId }}">
-                        <div class="relative z-10">
-                            <label class="form-label text-xs mb-1" for="cal-range-from">From</label>
-                            <input type="date" id="cal-range-from" name="from" class="form-input text-sm w-full" value="{{ $rangeFromYmd ?? $start->toDateString() }}">
-                        </div>
-                        <div class="relative z-10">
-                            <label class="form-label text-xs mb-1" for="cal-range-to">To</label>
-                            <input type="date" id="cal-range-to" name="to" class="form-input text-sm w-full" value="{{ $rangeToYmd ?? $end->toDateString() }}">
-                        </div>
+                        <x-date-range-picker
+                            :inline="true"
+                            :from-value="$rangeFromYmd ?? $start->toDateString()"
+                            :to-value="$rangeToYmd ?? $end->toDateString()"
+                            :salon-today="$salonTodayYmd"
+                            class="relative z-10" />
                         <div class="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                             <button type="button" class="btn-outline btn-sm" @click="openRangePicker = false">Cancel</button>
-                            <button type="submit" class="btn-primary btn-sm">Apply</button>
+                            <button type="submit" class="btn-primary btn-sm" @click="openRangePicker = false">Apply</button>
                         </div>
                     </form>
                 </div>

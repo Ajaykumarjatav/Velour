@@ -3,6 +3,10 @@
 @section('page-title', 'Point of Sale')
 @section('content')
 
+@php
+    $salonToday = \App\Support\SalonTime::todayDateString($salon);
+@endphp
+
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-3xl">
     <div class="stat-card">
         <p class="stat-label">Today's Revenue</p>
@@ -15,11 +19,17 @@
 </div>
 
 <div class="flex flex-col lg:flex-row gap-4 mb-6 items-start">
-    <form action="{{ route('pos.index') }}" method="GET" class="flex flex-1 flex-col gap-3 min-w-0 w-full">
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            <input type="text" name="search" value="{{ $search }}" placeholder="Search reference or client…" class="form-input w-full min-w-0">
-            <input type="date" name="from" value="{{ $from }}" class="form-input w-full min-w-0">
-            <input type="date" name="to" value="{{ $to }}" class="form-input w-full min-w-0">
+    <form action="{{ route('pos.index') }}" method="GET" class="flex flex-1 flex-col gap-3 min-w-0 w-full overflow-visible">
+        <div class="flex flex-wrap items-end gap-3">
+            <input type="text" name="search" value="{{ $search }}" placeholder="Search reference or client…" class="form-input w-full sm:flex-1 sm:min-w-[12rem] min-w-0">
+            <div class="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[14rem] sm:max-w-xs shrink-0">
+                <label class="form-label text-xs mb-0">Date range</label>
+                <x-date-range-picker
+                    :from-value="$from"
+                    :to-value="$to"
+                    :salon-today="$salonToday"
+                    class="w-full" />
+            </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <button type="submit" class="btn-secondary">Filter</button>

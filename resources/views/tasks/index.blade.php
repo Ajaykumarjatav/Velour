@@ -29,7 +29,7 @@
 <div class="max-w-7xl mx-auto space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-            <p class="text-sm text-muted mt-1 max-w-xl">Assign and track work across your team. Tasks stay in sync with the dashboard action center.</p>
+            <p class="mt-1 max-w-xl text-[11px] leading-snug text-gray-400 dark:text-gray-500">Assign and track work across your team. Tasks stay in sync with the dashboard action center.</p>
         </div>
         @if($canManage)
         <button type="button" onclick="document.getElementById('new-task-panel')?.classList.toggle('hidden')" class="btn-primary shrink-0">

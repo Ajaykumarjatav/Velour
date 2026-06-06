@@ -250,6 +250,25 @@
         .form-input-error {
             @apply border-red-400 dark:border-red-500 focus:ring-red-500;
         }
+        .form-date-wrap {
+            @apply relative;
+        }
+        .form-date-input {
+            @apply form-input pr-10;
+            color-scheme: light dark;
+        }
+        .form-date-icon {
+            @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500;
+        }
+        .form-date-input::-webkit-calendar-picker-indicator {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 2.5rem;
+            height: 100%;
+            cursor: pointer;
+            opacity: 0;
+        }
 
         /* ── Buttons ── */
         .btn {

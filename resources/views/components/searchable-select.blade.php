@@ -16,6 +16,8 @@
      * top: open above the trigger — use at the bottom of a clipped/scrollable panel (e.g. POS bill).
      */
     'panelPlacement' => 'bottom',
+    /** Plain menu list (no search bar) — e.g. report filters. */
+    'hideSearch' => false,
 ])
 
 @php
@@ -52,8 +54,10 @@
     </button>
 
     <div id="{{ $id }}-panel"
-         class="hidden absolute left-0 right-0 z-[100] {{ $panelPositionClasses }} rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden"
-         role="listbox">
+         class="hidden absolute left-0 z-[100] min-w-full w-full {{ $panelPositionClasses }} rounded-lg border border-gray-200/90 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-[0_4px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.45)] overflow-hidden"
+         role="listbox"
+         data-hide-search="{{ $hideSearch ? '1' : '0' }}">
+        @unless($hideSearch)
         <div class="p-2 border-b border-gray-100 dark:border-gray-800">
             <input type="search"
                    id="{{ $id }}-search"
@@ -61,7 +65,15 @@
                    placeholder="{{ $searchPlaceholder }}"
                    autocomplete="off">
         </div>
-        <ul id="{{ $id }}-list" class="max-h-52 overflow-y-auto py-1" role="presentation"></ul>
+        @else
+        <input type="search"
+               id="{{ $id }}-search"
+               class="sr-only"
+               tabindex="-1"
+               autocomplete="off"
+               aria-hidden="true">
+        @endunless
+        <ul id="{{ $id }}-list" class="max-h-60 overflow-y-auto overflow-x-hidden py-1" role="presentation"></ul>
         @if($hint)
             <p class="text-xs text-muted px-3 py-2 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
                 {{ $hint }}
@@ -140,11 +152,20 @@
         let activeController = null;
         let open = false;
 
+        const hideSearch = panel.dataset.hideSearch === '1';
+        const rowBtnClass = (selected) => [
+            'w-full text-left px-4 py-2.5 text-sm truncate',
+            'text-gray-800 dark:text-gray-100',
+            'hover:bg-blue-50 dark:hover:bg-blue-950/40',
+            'focus:bg-blue-50 dark:focus:bg-blue-950/40 focus:outline-none',
+            selected ? 'bg-blue-50 dark:bg-blue-950/40 font-medium text-blue-900 dark:text-blue-100' : '',
+        ].join(' ');
+
         const renderRows = (items) => {
             listEl.innerHTML = '';
             if (!items.length) {
                 const li = document.createElement('li');
-                li.className = 'px-3 py-2 text-sm text-muted';
+                li.className = 'px-4 py-2.5 text-sm text-muted';
                 li.textContent = remote ? 'No matches.' : 'No matching options.';
                 listEl.appendChild(li);
                 return;
@@ -153,8 +174,10 @@
                 const li = document.createElement('li');
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'w-full text-left px-3 py-2 text-sm text-body hover:bg-velour-50 dark:hover:bg-velour-900/20';
+                const selected = String(select.value) === String(row.id);
+                btn.className = rowBtnClass(selected);
                 btn.textContent = row.label;
+                btn.title = row.label;
                 btn.addEventListener('click', () => {
                     ensureOption(select, row.id, row.label);
                     syncTriggerLabel(select, labelEl);
@@ -225,7 +248,9 @@
             trigger.setAttribute('aria-expanded', 'true');
             searchInput.value = '';
             refreshList();
-            requestAnimationFrame(() => searchInput.focus());
+            if (!hideSearch) {
+                requestAnimationFrame(() => searchInput.focus());
+            }
         };
 
         const close = () => {

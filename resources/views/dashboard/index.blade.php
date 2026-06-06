@@ -23,9 +23,9 @@
 </div>
 @endif
 
-<div class="alert-info mb-7 text-sm flex flex-wrap items-start justify-between gap-3">
-    <p>Figures use your salon timezone (<abbr title="{{ $salon->timezone ?? 'UTC' }}">{{ $tzAbbr }}</abbr>). Revenue is counted when a POS sale is completed (see <a href="{{ route('reports.show', ['type' => 'revenue', 'from' => \App\Support\SalonTime::monthStartDateString($salon), 'to' => \App\Support\SalonTime::todayDateString($salon)]) }}" class="underline font-semibold">Revenue report</a>).</p>
-</div>
+<p class="mb-4 text-[11px] leading-snug text-gray-400 dark:text-gray-500">
+    Figures use your salon timezone (<abbr title="{{ $salon->timezone ?? 'UTC' }}">{{ $tzAbbr }}</abbr>). Revenue is counted when a POS sale is completed (<a href="{{ route('reports.show', ['type' => 'revenue', 'from' => \App\Support\SalonTime::monthStartDateString($salon), 'to' => \App\Support\SalonTime::todayDateString($salon)]) }}" class="text-gray-500 dark:text-gray-400 underline decoration-gray-300 dark:decoration-gray-600 hover:text-velour-600 dark:hover:text-velour-400">Revenue report</a>).
+</p>
 
 {{-- ══ Analytics slider ══ --}}
 @php

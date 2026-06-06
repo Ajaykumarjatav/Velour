@@ -25,11 +25,12 @@
       @endforeach
     </select>
 
-    <div class="flex gap-2 flex-1 min-w-0">
-      <input type="date" name="from" value="{{ request('from') }}"
-             class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
-      <input type="date" name="to" value="{{ request('to') }}"
-             class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
+    <div class="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[14rem] sm:max-w-xs shrink-0 overflow-visible">
+      <label class="form-label text-xs mb-0">Date range</label>
+      <x-date-range-picker
+          :from-value="request('from')"
+          :to-value="request('to')"
+          class="w-full" />
     </div>
 
     <div class="flex gap-2">

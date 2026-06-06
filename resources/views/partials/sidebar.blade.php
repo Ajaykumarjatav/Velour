@@ -289,7 +289,7 @@
         @endif
 
         {{-- ACCOUNT --}}
-        @if($navShow('billing') || $navShow('settings') || $navShow('security_support') || $navShow('notifications') || $navShow('growth_tips') || $navShow('support'))
+        @if($navShow('billing') || $navShow('settings') || $navShow('security_support') || $navShow('notifications') || $navShow('growth_tips') || $navShow('support') || $navShow('guide'))
         <p class="nav-section-title px-3 pt-5 pb-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">Account</p>
         @endif
 
@@ -388,35 +388,68 @@
         </a>
         @endif
 
-        @if($navShow('support'))
-        <button type="button"
-                x-data="{ chatUnread: false }"
-                x-init="window.addEventListener('velour-chat-unread', e => chatUnread = e.detail)"
-                class="sidebar-link w-full text-left"
-                @click="window.dispatchEvent(new CustomEvent('velour-chat-open'))"
-                aria-label="Open Velour Assistant">
-            <span class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-velour-600 text-white shadow-sm"
-                  aria-hidden="true">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+        {{-- Support sub-menu --}}
+        @if($navShow('support') || $navShow('guide'))
+        @php $supportMenuActive = request()->routeIs('guide.*'); @endphp
+        <div x-data="{ open: {{ $supportMenuActive ? 'true' : 'false' }}, chatUnread: false }"
+             x-init="window.addEventListener('velour-chat-unread', e => chatUnread = e.detail)">
+            <button type="button"
+                    @click="open = !open"
+                    class="sidebar-link w-full {{ $supportMenuActive ? 'active' : '' }}"
+                    data-title="Support">
+                <span class="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-velour-600 text-white shadow-sm"
+                      aria-hidden="true">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                    </svg>
+                    <span x-show="chatUnread"
+                          class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"
+                          aria-hidden="true"></span>
+                </span>
+                <span class="flex-1 text-left">Support</span>
+                <svg class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                 </svg>
-                <span x-show="chatUnread"
-                      class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"
-                      aria-hidden="true"></span>
-            </span>
-            <span class="flex-1">Support</span>
-        </button>
-        @endif
-
-        @if($navShow('guide'))
-        <a href="{{ route('guide.index') }}"
-           class="sidebar-link {{ request()->routeIs('guide.index') ? 'active' : '' }}">
-            <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253a3 3 0 11.001 5.999A3 3 0 0112 6.253zm-7.5 6.5h15M9 18h6" />
-            </svg>
-            Guide &amp; Setup
-        </a>
+            </button>
+            <div x-show="open"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 -translate-y-1"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 class="ml-4 mt-0.5 space-y-0.5">
+                @if($navShow('support'))
+                <button type="button"
+                        class="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-sm transition-colors text-left
+                               text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        @click="window.dispatchEvent(new CustomEvent('velour-chat-open'))"
+                        aria-label="Open Velour Assistant"
+                        data-title="Velour Assistant">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                    </svg>
+                    <span class="flex-1">Velour Assistant</span>
+                    <span x-show="chatUnread"
+                          class="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"
+                          aria-hidden="true"></span>
+                </button>
+                @endif
+                @if($navShow('guide'))
+                <a href="{{ route('guide.index') }}"
+                   class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors
+                          {{ request()->routeIs('guide.*')
+                             ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-medium'
+                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}"
+                   data-title="Guide &amp; Setup">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0 {{ request()->routeIs('guide.*') ? 'text-velour-600 dark:text-velour-300' : 'text-gray-400 dark:text-gray-500' }}"
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253a3 3 0 11.001 5.999A3 3 0 0112 6.253zm-7.5 6.5h15M9 18h6"/>
+                    </svg>
+                    Guide &amp; Setup
+                </a>
+                @endif
+            </div>
+        </div>
         @endif
 
         @if(\App\Support\SidebarNav::showAccountTeam(auth()->user()) || auth()->user()->isSuperAdmin())

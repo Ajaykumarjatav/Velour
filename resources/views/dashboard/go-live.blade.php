@@ -137,8 +137,8 @@
     </ul>
   </div>
 
-  {{-- ── SALON LOGO ─────────────────────────────────────────────────────── --}}
-  <div id="logo-upload" x-data="logoUploader()" class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+  {{-- Salon Logo — hidden for now --}}
+  <div id="logo-upload" x-data="logoUploader()" class="hidden" aria-hidden="true">
     <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <span class="text-lg">🏷️</span>
@@ -267,8 +267,8 @@
 
   </div>
 
-  {{-- ── SALON PHOTOS ────────────────────────────────────────────────────── --}}
-  <div x-data="salonPhotos()" x-init="init()" class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+  {{-- Salon Photos — hidden for now --}}
+  <div x-data="salonPhotos()" x-init="init()" class="hidden" aria-hidden="true">
     <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <span class="text-lg">🖼</span>
