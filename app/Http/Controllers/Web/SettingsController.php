@@ -178,30 +178,6 @@ class SettingsController extends Controller
             ->orderBy('sort_order')
             ->get();
         $profileStaff = $this->resolveProfileStaff($salon, $user);
-        $allSalonServices = Service::withoutGlobalScopes()
-            ->where('salon_id', $salon->id)
-            ->whereNull('deleted_at')
-            ->whereNotNull('duration_minutes')
-            ->where('duration_minutes', '>', 0)
-            ->whereNotNull('price')
-            ->where('price', '>', 0)
-            ->orderBy('sort_order')
-            ->get(['id', 'name']);
-        $profileStaffServices = collect();
-        $profileStaffAssignedServiceIds = [];
-        if ($profileStaff) {
-            $profileStaffServices = $allSalonServices;
-            $profileStaffAssignedServiceIds = $profileStaff->services()
-                ->withoutTenantScope()
-                ->pluck('services.id')
-                ->map(fn ($id) => (int) $id)
-                ->values()
-                ->all();
-        }
-        $teamServices = $allSalonServices
-            ->map(fn (Service $s) => ['id' => (int) $s->id, 'name' => (string) $s->name])
-            ->values()
-            ->all();
 
         $bufferRule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(
             ['salon_id' => $salon->id],
@@ -226,9 +202,6 @@ class SettingsController extends Controller
             'selectedStarterServiceMeta',
             'existingTeamMembers',
             'profileStaff',
-            'profileStaffServices',
-            'profileStaffAssignedServiceIds',
-            'teamServices',
             'bufferRule',
             'settingsTabLabels',
             'settingsTabCanEdit',
@@ -568,8 +541,6 @@ class SettingsController extends Controller
             'staff_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'staff_bio' => ['nullable', 'string', 'max:1000'],
             'staff_awards_accolades' => ['nullable', 'string', 'max:5000'],
-            'staff_services' => ['nullable', 'array'],
-            'staff_services.*' => ['integer', Rule::exists('services', 'id')->where('salon_id', $this->salon()->id)],
             'staff_is_active' => ['nullable', 'boolean'],
             'avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
             'remove_avatar' => ['nullable', 'boolean'],
@@ -592,10 +563,9 @@ class SettingsController extends Controller
             'staff_color' => $data['staff_color'] ?? null,
             'staff_bio' => $data['staff_bio'] ?? null,
             'staff_awards_accolades' => $data['staff_awards_accolades'] ?? null,
-            'staff_services' => array_values(array_map('intval', (array) ($data['staff_services'] ?? []))),
             'staff_is_active' => $request->boolean('staff_is_active'),
         ];
-        unset($data['staff_phone'], $data['staff_experience'], $data['staff_commission_rate'], $data['staff_role'], $data['staff_color'], $data['staff_bio'], $data['staff_awards_accolades'], $data['staff_services'], $data['staff_is_active'], $data['avatar'], $data['remove_avatar']);
+        unset($data['staff_phone'], $data['staff_experience'], $data['staff_commission_rate'], $data['staff_role'], $data['staff_color'], $data['staff_bio'], $data['staff_awards_accolades'], $data['staff_is_active'], $data['avatar'], $data['remove_avatar']);
 
         $user->update($data);
 
@@ -622,7 +592,6 @@ class SettingsController extends Controller
                 'awards_accolades' => $staffProfileData['staff_awards_accolades'],
                 'is_active' => $staffProfileData['staff_is_active'],
             ]);
-            $profileStaff->services()->withoutTenantScope()->sync($staffProfileData['staff_services'] ?? []);
             if (! empty($staffProfileData['staff_role'])) {
                 $user->syncRoles([$this->mapStaffRoleToLoginRole((string) $staffProfileData['staff_role'])]);
             }
@@ -666,10 +635,6 @@ class SettingsController extends Controller
             'staff_members.*.language_proficiency'   => ['nullable', 'array', 'max:30'],
             'staff_members.*.language_proficiency.*' => ['string', Rule::in($langCodes)],
             'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
-            'staff_members.*.assign_services' => ['nullable'],
-            'staff_members.*.services_present' => ['nullable'],
-            'staff_members.*.services' => ['nullable', 'array'],
-            'staff_members.*.services.*' => ['integer', Rule::exists('services', 'id')->where('salon_id', $salon->id)],
             'staff_member_avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
             'staff_member_remove_avatar' => ['nullable', 'boolean'],
         ]);
@@ -975,33 +940,20 @@ class SettingsController extends Controller
             })
             ->orderBy('sort_order')
             ->get()
-            ->map(function (Staff $member) {
-                $hasServices = DB::table('service_staff')
-                    ->where('staff_id', $member->id)
-                    ->exists();
-
-                return [
-                    'id' => $member->id,
-                    'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
-                    'email' => $member->email,
-                    'phone' => $member->phone,
-                    'role' => $member->role,
-                    'experience' => $member->experience,
-                    'language_proficiency' => $member->language_proficiency,
-                    'commission_rate' => $member->commission_rate,
-                    'color' => $member->color ?: '#7C3AED',
-                    'avatar' => $member->avatar,
-                    'bio' => $member->bio,
-                    'awards_accolades' => $member->awards_accolades,
-                    'assign_services' => $hasServices ? '1' : '0',
-                    'services' => DB::table('service_staff')
-                        ->where('staff_id', $member->id)
-                        ->pluck('service_id')
-                        ->map(fn ($id) => (int) $id)
-                        ->values()
-                        ->all(),
-                ];
-            })
+            ->map(fn (Staff $member) => [
+                'id' => $member->id,
+                'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                'email' => $member->email,
+                'phone' => $member->phone,
+                'role' => $member->role,
+                'experience' => $member->experience,
+                'language_proficiency' => $member->language_proficiency,
+                'commission_rate' => $member->commission_rate,
+                'color' => $member->color ?: '#7C3AED',
+                'avatar' => $member->avatar,
+                'bio' => $member->bio,
+                'awards_accolades' => $member->awards_accolades,
+            ])
             ->all();
     }
 
@@ -1011,13 +963,6 @@ class SettingsController extends Controller
     private function syncTeamMembers(\App\Models\Salon $salon, array $rows): void
     {
         $rows = array_values(array_filter($rows, fn ($row) => is_array($row) && trim((string) ($row['name'] ?? '')) !== ''));
-
-        $services = Service::withoutGlobalScopes()
-            ->where('salon_id', $salon->id)
-            ->whereNull('deleted_at')
-            ->withCount('staff')
-            ->orderBy('sort_order')
-            ->get(['id', 'allowed_roles']);
 
         $defaultColors = ['#7C3AED', '#EC4899', '#0EA5E9', '#14B8A6', '#F59E0B', '#84CC16'];
         $maxSort = (int) Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->max('sort_order');
@@ -1040,32 +985,9 @@ class SettingsController extends Controller
             $color = isset($row['color']) && is_string($row['color']) && preg_match('/^#[0-9A-Fa-f]{6}$/', $row['color'])
                 ? $row['color']
                 : $defaultColors[$i % count($defaultColors)];
-            $assign = ($row['assign_services'] ?? null) == '1' || ($row['assign_services'] ?? null) === 1 || ($row['assign_services'] ?? null) === true;
             $commission = isset($row['commission_rate']) ? (float) $row['commission_rate'] : 0.0;
             $commission = max(0.0, min(100.0, $commission));
             $role = (string) $row['role'];
-            // Role ↔ service filter disabled for now (see StaffServiceEligibility::assertEligibleForRole).
-            $menuServiceIds = Service::withoutGlobalScopes()
-                ->where('salon_id', $salon->id)
-                ->whereNull('deleted_at')
-                ->whereNotNull('duration_minutes')
-                ->where('duration_minutes', '>', 0)
-                ->whereNotNull('price')
-                ->where('price', '>', 0)
-                ->pluck('id')
-                ->map(fn ($id) => (int) $id)
-                ->values()
-                ->all();
-            $servicesWereSubmitted = array_key_exists('services', $row) || array_key_exists('services_present', $row);
-            $requestedServiceIds = array_values(array_unique(array_map('intval', (array) ($row['services'] ?? []))));
-            $serviceIds = [];
-
-            if ($assign) {
-                $serviceIds = $menuServiceIds;
-            } elseif ($servicesWereSubmitted) {
-                // StaffServiceEligibility::assertEligibleForRole($salon->id, $role, $requestedServiceIds);
-                $serviceIds = $requestedServiceIds;
-            }
 
             $staff = null;
             $id = isset($row['id']) ? (int) $row['id'] : 0;
@@ -1119,21 +1041,6 @@ class SettingsController extends Controller
                 ]);
             }
 
-            // Multi-location-safe sync: write pivot rows directly to avoid relation scope edge-cases.
-            DB::table('service_staff')->where('staff_id', $staff->id)->delete();
-            if ($serviceIds !== []) {
-                $nowTs = now();
-                $rows = array_map(
-                    fn (int $serviceId) => [
-                        'staff_id' => (int) $staff->id,
-                        'service_id' => $serviceId,
-                        'created_at' => $nowTs,
-                        'updated_at' => $nowTs,
-                    ],
-                    $serviceIds
-                );
-                DB::table('service_staff')->insert($rows);
-            }
             $keptIds[] = (int) $staff->id;
         }
 

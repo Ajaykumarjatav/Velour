@@ -33,9 +33,9 @@ class AppointmentService
      *   service_options?: array<int, array{variant?: ?string, addons?: list<string>}>
      * }  $data
      */
-    public function create(int $salonId, array $data): Appointment
+    public function create(int $salonId, array $data, array $options = []): Appointment
     {
-        return DB::transaction(function () use ($salonId, $data) {
+        return DB::transaction(function () use ($salonId, $data, $options) {
             $this->acquireStaffBookingLocks($salonId, [(int) $data['staff_id']]);
 
             $snapshot = Service::summarizeForAppointment(
@@ -43,13 +43,22 @@ class AppointmentService
                 $data['service_ids'],
                 $data['service_options'] ?? []
             );
-            $this->assertStaffCanPerformServices($salonId, (int) $data['staff_id'], $data['service_ids']);
+            if ($options['enforce_staff_services'] ?? true) {
+                $this->assertStaffCanPerformServices($salonId, (int) $data['staff_id'], $data['service_ids']);
+            }
 
             $salon    = Salon::findOrFail($salonId);
             $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
             $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
 
-            $this->assertWindowAllowed($salonId, (int) $data['staff_id'], $startsAt, $endsAt, null, false);
+            if ($options['enforce_availability'] ?? true) {
+                $this->assertWindowAllowed($salonId, (int) $data['staff_id'], $startsAt, $endsAt, null, false);
+            }
+
+            $status = $data['status'] ?? 'confirmed';
+            if (! in_array($status, ['pending', 'confirmed'], true)) {
+                $status = 'confirmed';
+            }
 
             $appointment = Appointment::create([
                 'salon_id'          => $salonId,
@@ -59,12 +68,12 @@ class AppointmentService
                 'ends_at'           => $endsAt->copy()->utc(),
                 'duration_minutes'  => $snapshot['total_span_minutes'],
                 'total_price'       => $snapshot['total_price'],
-                'status'            => 'confirmed',
+                'status'            => $status,
                 'source'            => $data['source'] ?? 'manual',
                 'payment_status'    => $data['payment_status'] ?? Appointment::PAYMENT_UNPAID,
                 'client_notes'      => $data['client_notes'] ?? null,
                 'internal_notes'    => $data['internal_notes'] ?? null,
-                'confirmed_at'      => now(),
+                'confirmed_at'      => $status === 'confirmed' ? now() : null,
             ]);
 
             foreach ($snapshot['lines'] as $line) {

@@ -13,13 +13,11 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Staff;
 use App\Services\NotificationService;
-use App\Support\StaffServiceEligibility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class RelationQuickCreateController extends Controller
 {
@@ -87,13 +85,8 @@ class RelationQuickCreateController extends Controller
             'bio'             => ['nullable', 'string', 'max:1000'],
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'services'        => ['nullable', 'array'],
-            'services.*'      => [Rule::exists('services', 'id')->where('salon_id', $salon->id)],
             'avatar'          => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
-
-        // Role ↔ service eligibility disabled for now — see StaffServiceEligibility::assertEligibleForRole.
-        // StaffServiceEligibility::assertEligibleForRole($salon->id, (string) $data['role'], $data['services'] ?? []);
 
         $nameParts = explode(' ', trim($data['name']), 2);
         $avatarFile = $request->file('avatar');
@@ -115,11 +108,6 @@ class RelationQuickCreateController extends Controller
         $staff->update([
             'avatar' => $avatarFile->store('salons/'.$salon->id.'/staff', 'public'),
         ]);
-
-        $serviceIds = array_values(array_map('intval', (array) ($data['services'] ?? [])));
-        if ($serviceIds !== []) {
-            $staff->services()->withoutTenantScope()->sync($serviceIds);
-        }
 
         return response()->json([
             'id'    => $staff->id,

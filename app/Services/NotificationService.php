@@ -36,6 +36,14 @@ class NotificationService
     public function appointmentConfirmation(Appointment $appointment): void
     {
         $this->notifyTenantNewBooking($appointment);
+        $this->notifyClientBookingConfirmed($appointment);
+    }
+
+    /**
+     * Email / WhatsApp to the client after their booking is confirmed (admin or instant online).
+     */
+    public function notifyClientBookingConfirmed(Appointment $appointment): void
+    {
         $this->sendClientBookingConfirmationIfEnabled($appointment);
         $this->sendClientBookingConfirmationWhatsAppIfEnabled($appointment);
     }
@@ -179,12 +187,14 @@ class NotificationService
             }
             $subject = $cfg->render($tpl['email_subject'] ?? 'Reminder', $ctx);
             $body = $cfg->render($tpl['email_body'] ?? '', $ctx);
-            Log::info('Client appointment reminder email (stub)', [
-                'appointment_id' => $appointment->id,
-                'to'             => $client->email,
-                'subject'        => $subject,
-                'preview'        => mb_substr($body, 0, 200),
-            ]);
+            try {
+                Mail::to($client->email)->queue(new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
+            } catch (\Throwable $e) {
+                Log::error('Client appointment reminder email failed', [
+                    'appointment_id' => $appointment->id,
+                    'error'          => $e->getMessage(),
+                ]);
+            }
             $cfg->markDispatchKey($appointment->fresh(), $key);
             $this->appointmentReminder($appointment->fresh());
 
@@ -248,6 +258,65 @@ class NotificationService
     public function appointmentCancellation(Appointment $appointment): void
     {
         $this->notifyTenantCancellation($appointment);
+        $this->sendClientCancellationConfirmation($appointment);
+    }
+
+    public function sendClientCancellationConfirmation(Appointment $appointment): void
+    {
+        $appointment->loadMissing(['client', 'salon', 'staff', 'services.service']);
+        $client = $appointment->client;
+        if (! $client?->email) {
+            return;
+        }
+
+        $salon = $appointment->salon;
+        $cfg = $this->notificationConfig();
+        $pluck = $this->salonSettingsPluck($salon);
+        if (! $cfg->isRuleEnabled($salon, 'client_booking_confirmation_email', $pluck)) {
+            return;
+        }
+
+        $ctx = $cfg->buildAppointmentContext($appointment);
+        $subject = $cfg->render('Appointment cancelled — {{reference}}', $ctx);
+        $body = $cfg->render(
+            "Hi {{client_first_name}},\n\nYour appointment on {{appointment_date}} at {{appointment_time}} has been cancelled.\n\nRef: {{reference}}",
+            $ctx
+        );
+
+        try {
+            Mail::to($client->email)->queue(new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
+        } catch (\Throwable $e) {
+            Log::error('Client cancellation email failed', ['appointment_id' => $appointment->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function sendClientRescheduleConfirmation(Appointment $appointment, Carbon $originalStartsAt): void
+    {
+        $appointment->loadMissing(['client', 'salon', 'staff', 'services.service']);
+        $client = $appointment->client;
+        if (! $client?->email) {
+            return;
+        }
+
+        $salon = $appointment->salon;
+        $cfg = $this->notificationConfig();
+        $pluck = $this->salonSettingsPluck($salon);
+        if (! $cfg->isRuleEnabled($salon, 'client_booking_confirmation_email', $pluck)) {
+            return;
+        }
+
+        $ctx = $cfg->buildAppointmentContext($appointment);
+        $subject = $cfg->render('Appointment rescheduled — {{reference}}', $ctx);
+        $body = $cfg->render(
+            "Hi {{client_first_name}},\n\nYour appointment has been rescheduled to {{appointment_date}} at {{appointment_time}}.\n\nRef: {{reference}}",
+            $ctx
+        );
+
+        try {
+            Mail::to($client->email)->queue(new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
+        } catch (\Throwable $e) {
+            Log::error('Client reschedule email failed', ['appointment_id' => $appointment->id, 'error' => $e->getMessage()]);
+        }
     }
 
     public function appointmentRescheduled(Appointment $appointment, ?Carbon $originalStartsAt = null): void
@@ -300,9 +369,11 @@ class NotificationService
      */
     public function notifyTenantNewBooking(Appointment $appointment): void
     {
+        $appointment->loadMissing(['client', 'staff', 'services.service', 'salon']);
+
         // 1. In-app notification
         $this->createNotification($appointment->salon_id, 'appointment', [
-            'title' => 'New Booking',
+            'title' => $appointment->status === 'pending' ? 'New Booking Request' : 'New Booking',
             'body'  => "{$appointment->client->first_name} {$appointment->client->last_name} — {$appointment->starts_at->format('D j M, g:ia')}",
             'staff_id' => $appointment->staff_id,
             'data'  => ['appointment_id' => $appointment->id],

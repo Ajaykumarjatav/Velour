@@ -9,7 +9,6 @@ use App\Support\LanguageProficiency;
 use App\Support\StaffJobRoles;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
-use App\Models\Service;
 use App\Services\StaffAttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -220,18 +219,9 @@ class StaffController extends Controller
 
     public function create()
     {
-        $salon    = $this->salon();
-        $services = \App\Models\Service::withoutGlobalScopes()
-            ->where('salon_id', $salon->id)
-            ->whereNull('deleted_at')
-            ->whereNotNull('duration_minutes')
-            ->where('duration_minutes', '>', 0)
-            ->whereNotNull('price')
-            ->where('price', '>', 0)
-            ->orderBy('sort_order')
-            ->get(['id', 'name']);
+        $salon = $this->salon();
 
-        return view('staff.create', compact('salon', 'services'));
+        return view('staff.create', compact('salon'));
     }
 
     public function store(Request $request)
@@ -250,8 +240,6 @@ class StaffController extends Controller
             'awards_accolades'  => ['nullable', 'string', 'max:5000'],
             'color'             => ['nullable', 'string', 'max:7'],
             'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'services'          => ['nullable', 'array'],
-            'services.*'        => [Rule::exists('services', 'id')->where('salon_id', $salon->id)],
             'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
@@ -280,11 +268,6 @@ class StaffController extends Controller
             $staff->update([
                 'avatar' => $avatarFile->store('salons/'.$salon->id.'/staff', 'public'),
             ]);
-        }
-
-        $serviceIds = array_values(array_map('intval', (array) ($data['services'] ?? [])));
-        if ($serviceIds !== []) {
-            $staff->services()->withoutTenantScope()->sync($serviceIds);
         }
 
         return redirect()->route('staff.index')->with('success', 'Staff member added.');
@@ -328,19 +311,8 @@ class StaffController extends Controller
     public function edit(Staff $staff)
     {
         $this->authorise($staff);
-        $salon    = $this->salon();
-        $services = Service::withoutGlobalScopes()
-            ->where('salon_id', $salon->id)
-            ->whereNull('deleted_at')
-            ->whereNotNull('duration_minutes')
-            ->where('duration_minutes', '>', 0)
-            ->whereNotNull('price')
-            ->where('price', '>', 0)
-            ->orderBy('sort_order')
-            ->get(['id', 'name']);
-        $assigned = $staff->services()->withoutTenantScope()->pluck('services.id')->all();
 
-        return view('staff.edit', compact('staff', 'services', 'assigned'));
+        return view('staff.edit', compact('staff'));
     }
 
     public function update(Request $request, Staff $staff)
@@ -360,12 +332,8 @@ class StaffController extends Controller
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'is_active'       => ['sometimes', 'boolean'],
-            'services'        => ['nullable', 'array'],
-            'services.*'      => [Rule::exists('services', 'id')->where('salon_id', $staff->salon_id)],
             'avatar'          => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
-
-        $serviceIds = array_values(array_map('intval', (array) ($data['services'] ?? [])));
 
         // Split 'name' into first_name / last_name for the Staff model
         if (isset($data['name'])) {
@@ -377,15 +345,11 @@ class StaffController extends Controller
 
         unset($data['avatar']);
 
-        unset($data['services']);
         $data['language_proficiency'] = LanguageProficiency::encode($data['language_proficiency'] ?? []);
 
         $data['is_active'] = $request->boolean('is_active');
 
         $staff->update($data);
-
-        // Branch services must sync without Service's tenant scope (active salon ≠ Tenant::current()).
-        $staff->services()->withoutTenantScope()->sync($serviceIds);
 
         $this->syncStaffAvatarFromRequest($request, $staff);
 

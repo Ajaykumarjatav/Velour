@@ -44,7 +44,7 @@
                         <option value="{{ $s->id }}" {{ (string) old('staff_id', $appointment->staff_id) === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
                         @endforeach
                     </x-searchable-select>
-                    <x-relation-quick-create-trigger type="staff" select-id="appt-edit-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
+                    <x-relation-quick-create-trigger type="staff" select-id="appt-edit-staff" />
                 </div>
 
                 <div class="mt-5">

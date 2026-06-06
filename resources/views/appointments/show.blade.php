@@ -12,19 +12,6 @@
 
 <div class="max-w-2xl space-y-5">
 
-    {{-- Flash messages --}}
-    @if(session('success'))
-    <div class="px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
-        {{ session('success') }}
-    </div>
-    @endif
-
-    @if($errors->any())
-    <div class="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
-        {{ $errors->first() }}
-    </div>
-    @endif
-
     {{-- Header card --}}
     <div class="card p-6">
         <div class="flex items-start justify-between mb-4">
@@ -309,7 +296,7 @@
                             <option value="{{ $s->id }}" {{ old('staff_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
                             @endforeach
                         </x-searchable-select>
-                        <x-relation-quick-create-trigger type="staff" select-id="appt-reschedule-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
+                        <x-relation-quick-create-trigger type="staff" select-id="appt-reschedule-staff" />
                     </div>
                 </div>
                 <div class="flex gap-2">

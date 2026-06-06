@@ -59,9 +59,7 @@ export function SalonProvider({ children }) {
         if (!cancelled) setLoading(false)
       })
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [slug])
 
   const value = useMemo(

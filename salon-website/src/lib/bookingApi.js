@@ -10,10 +10,19 @@ export async function fetchBookServices(slug) {
   const data = await res.json()
   const raw = data.services ?? {}
   const cats = []
-  for (const svcs of Object.values(raw)) {
+  for (const [categoryId, svcs] of Object.entries(raw)) {
     if (!Array.isArray(svcs) || svcs.length === 0) continue
-    cats.push({ name: svcs[0]?.category?.name ?? 'Services', services: svcs })
+    const parsedId = categoryId === '' || categoryId === 'null' ? 0 : Number(categoryId)
+    const first = svcs[0]
+    cats.push({
+      id: Number.isFinite(parsedId) ? parsedId : 0,
+      name: first?.category?.name ?? 'Services',
+      business_type: first?.category?.business_type?.name ?? null,
+      sort_order: first?.category?.sort_order ?? 999,
+      services: svcs,
+    })
   }
+  cats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
   return cats
 }
 
@@ -31,7 +40,16 @@ export async function fetchBookSlots(slug, { date, serviceIds, staffId }) {
   serviceIds.forEach((id) => params.append('service_ids[]', id))
   if (staffId) params.set('staff_id', String(staffId))
   const res = await fetch(`${bookBase(slug)}/availability?${params}`, { headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error('Failed to load availability')
+  if (!res.ok) {
+    let message = 'Failed to load availability'
+    try {
+      const err = await res.json()
+      message = err.message || err.error || message
+    } catch {
+      // ignore
+    }
+    throw new Error(message)
+  }
   return res.json()
 }
 

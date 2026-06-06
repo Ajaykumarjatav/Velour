@@ -142,6 +142,11 @@ class NotificationController extends Controller
 
     private function resolveActionUrl(SalonNotification $notification): ?string
     {
+        $appointmentId = (int) data_get($notification->data, 'appointment_id', 0);
+        if ($appointmentId > 0) {
+            return route('appointments.show', $appointmentId);
+        }
+
         $label = mb_strtolower(trim((string) data_get($notification->data, 'action_label', '')));
         $url = trim((string) ($notification->action_url ?? ''));
 

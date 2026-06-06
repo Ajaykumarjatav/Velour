@@ -276,7 +276,7 @@ class BookingService
     /**
      * Confirm the appointment from a hold token.
      */
-    public function confirmFromHold(Salon $salon, array $data): Appointment
+    public function confirmFromHold(Salon $salon, array $data, ?Client $authenticatedClient = null): Appointment
     {
         $cacheKey = "hold:{$salon->id}:{$data['hold_token']}";
         $hold     = Cache::get($cacheKey);
@@ -285,10 +285,16 @@ class BookingService
             throw new \InvalidArgumentException('Your hold has expired. Please select a time again.');
         }
 
-        // Find or create client
-        $client = $this->findOrCreateClient($salon->id, $data);
-        if ($client->wasRecentlyCreated) {
-            app(NotificationService::class)->notifyTenantNewClientRegistered($salon, $client);
+        if ($authenticatedClient) {
+            if ((int) $authenticatedClient->salon_id !== (int) $salon->id) {
+                throw new \InvalidArgumentException('This account does not belong to this salon.');
+            }
+            $client = $authenticatedClient;
+        } else {
+            $client = $this->findOrCreateClient($salon->id, $data);
+            if ($client->wasRecentlyCreated) {
+                app(NotificationService::class)->notifyTenantNewClientRegistered($salon, $client);
+            }
         }
 
         // Resolve staff
@@ -339,6 +345,7 @@ class BookingService
                 'service_options' => $hold['service_options'] ?? [],
                 'starts_at'       => $hold['starts_at'],
                 'source'          => 'online',
+                'status'          => 'pending',
                 'client_notes'    => $data['notes'] ?? null,
             ]);
         } catch (AvailabilityRejectedException $e) {
@@ -381,11 +388,24 @@ class BookingService
         }
 
         if ($client) {
-            // Update missing info
             $updates = [];
-            if (empty($client->email) && !empty($data['email'])) $updates['email'] = $data['email'];
-            if (empty($client->phone) && !empty($data['phone'])) $updates['phone'] = $data['phone'];
-            if (! empty($updates)) $client->update($updates);
+            if (empty($client->email) && ! empty($data['email'])) {
+                $updates['email'] = $data['email'];
+            }
+            if (empty($client->phone) && ! empty($data['phone'])) {
+                $updates['phone'] = $data['phone'];
+            }
+            if (! empty($data['first_name'])) {
+                $updates['first_name'] = trim((string) $data['first_name']);
+            }
+            if (! empty($data['last_name'])) {
+                $updates['last_name'] = trim((string) $data['last_name']);
+            }
+            if ($updates !== []) {
+                $client->update($updates);
+                $client->refresh();
+            }
+
             return $client;
         }
 

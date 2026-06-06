@@ -4,8 +4,6 @@
     'buttonClass' => 'inline-flex items-center justify-center h-10 w-10 flex-shrink-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-velour-600 dark:text-velour-400 hover:bg-velour-50 dark:hover:bg-velour-900/30 hover:border-velour-300 dark:hover:border-velour-600 transition-colors focus:outline-none focus:ring-2 focus:ring-velour-400',
     'title' => null,
     'clientLoyaltyTiers' => null,
-    /** @var array<string, list<array{id:int,name:string}>>|null */
-    'staffServicesByRole' => null,
 ])
 
 @php
@@ -21,9 +19,6 @@
         'postUrl' => $postUrl,
         'csrf' => csrf_token(),
     ];
-    if ($type === 'staff') {
-        $cfg['staffServicesByRole'] = $staffServicesByRole ?? [];
-    }
     $btnTitle = $title ?? match ($type) {
         'staff' => 'Add staff member',
         'inventory_category' => 'Add category',
@@ -61,22 +56,7 @@ document.addEventListener('alpine:init', () => {
         qcStaffCommission: '0',
         qcStaffColor: '#7C3AED',
         qcStaffBio: '',
-        qcStaffServiceIds: [],
         cfg,
-        servicesForRole() {
-            const m = this.cfg.staffServicesByRole || {};
-            return m[this.qcRole] || [];
-        },
-        toggleStaffService(id, on) {
-            id = Number(id);
-            if (on) {
-                if (!this.qcStaffServiceIds.includes(id)) {
-                    this.qcStaffServiceIds.push(id);
-                }
-            } else {
-                this.qcStaffServiceIds = this.qcStaffServiceIds.filter((x) => x !== id);
-            }
-        },
         openModal() {
             this.fieldErrors = {};
             this.qcFirst = '';
@@ -98,7 +78,6 @@ document.addEventListener('alpine:init', () => {
             this.qcStaffCommission = '0';
             this.qcStaffColor = '#7C3AED';
             this.qcStaffBio = '';
-            this.qcStaffServiceIds = [];
             this.modalOpen = true;
             this.$nextTick(() => {
                 const el = this.$refs.staffAvatarFile;
@@ -177,7 +156,6 @@ document.addEventListener('alpine:init', () => {
                 fd.append('bio', this.qcStaffBio || '');
                 fd.append('color', this.qcStaffColor || '#7C3AED');
                 fd.append('commission_rate', this.qcStaffCommission !== '' ? this.qcStaffCommission : '0');
-                (this.qcStaffServiceIds || []).forEach((id) => fd.append('services[]', String(id)));
                 const avatarEl = this.$refs.staffAvatarFile;
                 const file = avatarEl && avatarEl.files && avatarEl.files[0];
                 if (file) {
@@ -367,7 +345,7 @@ document.addEventListener('alpine:init', () => {
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="form-label">Role <span class="text-red-500">*</span></label>
-                                <select x-model="qcRole" @change="qcStaffServiceIds = []" class="form-select" :class="err('role') ? 'form-input-error' : ''">
+                                <select x-model="qcRole" class="form-select" :class="err('role') ? 'form-input-error' : ''">
                                     @foreach(\App\Support\StaffJobRoles::options() as $slug => $label)
                                         <option value="{{ $slug }}">{{ $label }}</option>
                                     @endforeach
@@ -389,23 +367,6 @@ document.addEventListener('alpine:init', () => {
                             <label class="form-label">Bio</label>
                             <textarea x-model="qcStaffBio" rows="3" class="form-textarea" :class="err('bio') ? 'form-input-error' : ''"></textarea>
                             <p class="form-error text-xs mt-0.5" x-show="err('bio')" x-text="err('bio')"></p>
-                        </div>
-                        <div x-show="servicesForRole().length > 0" x-cloak>
-                            <label class="form-label">Services offered</label>
-                            <p class="form-hint mb-2">Only services permitted for the role selected above are listed.</p>
-                            <p class="form-error text-xs mb-1" x-show="err('services')" x-text="err('services')"></p>
-                            <div class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
-                                <template x-for="svc in servicesForRole()" :key="svc.id">
-                                    <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
-                                        <input type="checkbox"
-                                               class="rounded border-gray-300 dark:border-gray-600 text-velour-600"
-                                               :value="svc.id"
-                                               :checked="qcStaffServiceIds.includes(Number(svc.id))"
-                                               @change="toggleStaffService(svc.id, $event.target.checked)">
-                                        <span class="text-sm text-body truncate" x-text="svc.name"></span>
-                                    </label>
-                                </template>
-                            </div>
                         </div>
                     </div>
                 </template>

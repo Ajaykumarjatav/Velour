@@ -314,7 +314,7 @@
                             <option value="{{ $s->id }}">{{ $s->name }}</option>
                         @endforeach
                     </x-searchable-select>
-                    <x-relation-quick-create-trigger type="staff" select-id="avail-leave-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
+                    <x-relation-quick-create-trigger type="staff" select-id="avail-leave-staff" />
                 </div>
                 <div>
                     <label class="form-label text-xs uppercase tracking-wide">Leave type</label>

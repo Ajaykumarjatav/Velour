@@ -16,6 +16,9 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\ClientPortal\ClientPortalAuthController;
+use App\Http\Controllers\Api\ClientPortal\ClientPortalAppointmentController;
+use App\Http\Controllers\Api\ClientPortal\ClientPortalReviewController;
 use App\Http\Controllers\Api\SalonWebsiteController;
 use App\Http\Controllers\Api\ShareController;
 use App\Http\Controllers\Api\NotificationController;
@@ -53,7 +56,7 @@ Route::prefix('v1')->middleware(['sanitize'])->group(function () {
     Route::get('salon/{salonSlug}/website', [SalonWebsiteController::class, 'show'])
         ->middleware('throttle:60,1');
 
-    // Public booking widget — moderate rate limit
+    // Public booking widget (guest hold/confirm — no login required)
     Route::prefix('book/{salonSlug}')->middleware(['throttle:30,1'])->group(function () {
         Route::get('/',              [BookingController::class, 'info']);
         Route::get('services',       [BookingController::class, 'services']);
@@ -64,6 +67,36 @@ Route::prefix('v1')->middleware(['sanitize'])->group(function () {
         Route::get('appointment/{ref}', [BookingController::class, 'getByRef']);
         Route::post('cancel/{ref}',  [BookingController::class, 'cancel']);
         Route::post('reschedule/{ref}', [BookingController::class, 'reschedule']);
+    });
+
+    // Client portal — salon-scoped customer accounts
+    Route::prefix('client/{salonSlug}')->middleware(['throttle:30,1', 'client.salon'])->group(function () {
+        Route::prefix('auth')->middleware(['throttle:10,1'])->group(function () {
+            Route::post('register', [ClientPortalAuthController::class, 'register']);
+            Route::post('login',    [ClientPortalAuthController::class, 'login']);
+            Route::post('forgot',   [ClientPortalAuthController::class, 'forgotPassword']);
+            Route::post('reset',    [ClientPortalAuthController::class, 'resetPassword']);
+
+            Route::middleware(['client.auth', 'client.portal'])->group(function () {
+                Route::post('logout',          [ClientPortalAuthController::class, 'logout']);
+                Route::get('me',               [ClientPortalAuthController::class, 'me']);
+                Route::put('me',               [ClientPortalAuthController::class, 'update']);
+                Route::put('me/password',      [ClientPortalAuthController::class, 'updatePassword']);
+                Route::post('me/avatar',       [ClientPortalAuthController::class, 'updateAvatar']);
+            });
+        });
+
+        Route::middleware(['client.auth', 'client.portal'])->group(function () {
+            Route::get('appointments', [ClientPortalAppointmentController::class, 'index']);
+            Route::get('appointments/{ref}', [ClientPortalAppointmentController::class, 'show']);
+            Route::post('appointments/{ref}/cancel', [ClientPortalAppointmentController::class, 'cancel']);
+            Route::post('appointments/{ref}/reschedule', [ClientPortalAppointmentController::class, 'reschedule']);
+            Route::get('appointments/{ref}/invoice', [ClientPortalAppointmentController::class, 'invoice']);
+            Route::get('appointments/{ref}/invoice.pdf', [ClientPortalAppointmentController::class, 'invoicePdf']);
+            Route::post('appointments/{ref}/review', [ClientPortalReviewController::class, 'store']);
+            Route::put('reviews/{id}', [ClientPortalReviewController::class, 'update']);
+            Route::delete('reviews/{id}', [ClientPortalReviewController::class, 'destroy']);
+        });
     });
 
     // Public reviews

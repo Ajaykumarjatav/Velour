@@ -5,7 +5,6 @@
 
 @php
     $occupiedSlotsUrl = route('appointments.occupied-slots');
-    $staffServiceIdsByStaffId = $staffServiceIdsByStaffId ?? [];
     $scopedStaffId = $scopedStaffId ?? auth()->user()->dashboardScopedStaffId();
     $defaultStaffId = (string) ($defaultStaffId ?? old('staff_id', ''));
     $lockedStaff = $scopedStaffId ? $staff->firstWhere('id', (int) $scopedStaffId) : null;
@@ -33,7 +32,7 @@
                 </div>
             </div>
 
-            <div x-data="timeslotPicker(@js($occupiedSlotsUrl), @js($staffServiceIdsByStaffId))" x-init="init()">
+            <div x-data="timeslotPicker(@js($occupiedSlotsUrl))" x-init="init()">
                 <div class="flex items-end gap-2">
                     @if($scopedStaffId !== null)
                         <div class="flex-1 min-w-0">
@@ -59,7 +58,7 @@
                             <option value="{{ $s->id }}" {{ (string) $defaultStaffId === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
                             @endforeach
                         </x-searchable-select>
-                        <x-relation-quick-create-trigger type="staff" select-id="appt-create-staff" :staff-services-by-role="$staffQuickCreateServicesByRole ?? []" />
+                        <x-relation-quick-create-trigger type="staff" select-id="appt-create-staff" />
                     @endif
                 </div>
 
@@ -67,23 +66,16 @@
                     <div class="flex items-end gap-2">
                         <div class="flex-1 min-w-0">
                             <label class="form-label">Services <span class="text-red-500">*</span></label>
-                            <p class="text-xs text-muted mt-0.5 mb-1">Only services linked to the selected staff member are shown (under Staff or each Service).</p>
                         </div>
                         <x-service-quick-create-trigger list-id="appt-services-list" />
                     </div>
                     <div id="appt-services-list" class="space-y-3 max-h-[28rem] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 @error('services') border-red-400 dark:border-red-500 @enderror">
-                        <p x-show="!staffId" class="text-sm text-muted py-3 px-2 rounded-lg border border-dashed border-gray-200 dark:border-gray-600 text-center">
-                            Select a staff member to see which services they can perform.
-                        </p>
-                        <p x-show="staffId && !serviceAllowedAny()" x-cloak class="text-sm text-amber-700 dark:text-amber-400 py-3 px-2 rounded-lg border border-dashed border-amber-200 dark:border-amber-900/50 text-center">
-                            No services are linked to this staff member yet. Assign services in <a href="{{ route('staff.index') }}" class="text-link font-medium">Staff</a> or on each service.
-                        </p>
                     @foreach($services as $svc)
                         @php
                             $vOpts = $svc->normalizedVariants();
                             $aOpts = $svc->normalizedAddons();
                         @endphp
-                        <div class="rounded-lg border border-gray-100 dark:border-gray-800 p-2" x-show="serviceAllowed({{ (int) $svc->id }})" x-cloak>
+                        <div class="rounded-lg border border-gray-100 dark:border-gray-800 p-2">
                             <label class="flex items-center gap-3 p-1 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20 cursor-pointer">
                                 <input type="checkbox" name="services[]" value="{{ $svc->id }}"
                                        {{ in_array($svc->id, old('services', [])) ? 'checked' : '' }}
@@ -194,25 +186,15 @@
 
 @push('scripts')
 <script>
-window.__apptStaffServiceMap = @json($staffServiceIdsByStaffId);
 window.syncApptQuickCreateServiceRows = function () {
-    const map = window.__apptStaffServiceMap || {};
-    const sel = document.getElementById('appt-create-staff');
-    const staffId = sel && sel.value ? String(sel.value) : '';
     document.querySelectorAll('#appt-services-list .appt-service-quick-row').forEach((wrap) => {
-        const cb = wrap.querySelector('input[name="services[]"]');
-        if (!cb) return;
-        const sid = parseInt(cb.value, 10);
-        const allowed = Array.isArray(map[staffId]) && map[staffId].includes(sid);
-        wrap.style.display = allowed ? '' : 'none';
-        if (!allowed) cb.checked = false;
+        wrap.style.display = '';
     });
 };
-function timeslotPicker(occupiedUrl, serviceStaffMap) {
+function timeslotPicker(occupiedUrl) {
     return {
         ...appointmentSchedulerMixin(),
         occupiedUrl,
-        serviceStaffMap: serviceStaffMap || {},
         today: @js($todayYmd),
         staffId: '{{ $defaultStaffId }}',
         selectedDate: '{{ old('starts_at') ? substr(old('starts_at'), 0, 10) : '' }}',
@@ -221,32 +203,10 @@ function timeslotPicker(occupiedUrl, serviceStaffMap) {
         blockedDetails: {},
         blockedReasonMessages: [],
         loadingSlots: false,
-        serviceAllowed(sid) {
-            const id = this.staffId ? String(this.staffId) : '';
-            if (!id) return false;
-            const list = this.serviceStaffMap[id];
-            if (!list || !list.length) return false;
-            return list.includes(Number(sid));
-        },
-        serviceAllowedAny() {
-            if (!this.staffId) return false;
-            const list = this.serviceStaffMap[String(this.staffId)] || [];
-            return list.length > 0;
-        },
-        uncheckDisallowedServices() {
-            document.querySelectorAll('#appt-services-list input[name="services[]"]').forEach((el) => {
-                const sid = parseInt(el.value, 10);
-                if (!this.serviceAllowed(sid)) el.checked = false;
-            });
-        },
         init() {
             this.initScheduler();
             this.$watch('staffId', () => {
                 this.selectedTime = '';
-                this.uncheckDisallowedServices();
-                if (typeof window.syncApptQuickCreateServiceRows === 'function') {
-                    window.syncApptQuickCreateServiceRows();
-                }
                 this.fetchBlocked();
             });
             this.$watch('selectedDate', () => {
@@ -267,11 +227,6 @@ function timeslotPicker(occupiedUrl, serviceStaffMap) {
                 this.fetchBlocked();
             });
             if (this.staffId && this.selectedDate) this.fetchBlocked();
-            this.$nextTick(() => {
-                if (typeof window.syncApptQuickCreateServiceRows === 'function') {
-                    window.syncApptQuickCreateServiceRows();
-                }
-            });
         },
         onDateChange() {
             if (this.selectedDate < this.today) {

@@ -20,7 +20,6 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\Scheduling\AvailabilityRejectedException;
 use App\Support\AppointmentDisplayLines;
 use App\Support\SalonTime;
-use App\Support\StaffServiceEligibility;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -133,14 +132,7 @@ class AppointmentController extends Controller
         if ($scopedStaffId !== null) {
             $staffQuery->whereKey($scopedStaffId);
         }
-        $staff    = $staffQuery->withName()
-            ->with([
-                'services' => fn ($q) => $q->withoutTenantScope()->where('services.salon_id', $salon->id),
-            ])
-            ->get();
-        $staffServiceIdsByStaffId = $staff->mapWithKeys(fn (Staff $s) => [
-            $s->id => $s->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
-        ])->all();
+        $staff    = $staffQuery->withName()->get();
         $services = Service::withoutTenantScope()
             ->where('salon_id', $salon->id)
             ->active()
@@ -153,7 +145,6 @@ class AppointmentController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'name']);
 
-        $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
         $defaultStaffId = old('staff_id', $scopedStaffId !== null ? (string) $scopedStaffId : '');
         if ($scopedStaffId !== null) {
             $defaultStaffId = (string) $scopedStaffId;
@@ -165,9 +156,7 @@ class AppointmentController extends Controller
             'clients',
             'staff',
             'services',
-            'staffServiceIdsByStaffId',
             'clientQuickCreateLoyaltyTiers',
-            'staffQuickCreateServicesByRole',
             'scopedStaffId',
             'defaultStaffId',
             'todayYmd'
@@ -281,6 +270,29 @@ class AppointmentController extends Controller
 
         $staffMember = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($staffId)->firstOrFail();
 
+        $tz = SalonTime::timezone($salon);
+
+        if (SalonTime::isTodayOrTomorrow($salon, $dateStr)) {
+            $blocked = [];
+            $blockedDetails = [];
+
+            if ($isTodayInSalon) {
+                foreach ($slotTimes as $time) {
+                    $start = Carbon::createFromFormat('Y-m-d H:i', $dateStr.' '.$time, $tz);
+                    if ($start->lte($nowInSalon)) {
+                        $blocked[] = $time;
+                        $blockedDetails[$time] = 'That time has already passed. Please choose a later time.';
+                    }
+                }
+            }
+
+            return response()->json([
+                'blocked'                    => $blocked,
+                'blocked_details'            => $blockedDetails,
+                'assumed_duration_minutes'   => $maxMinutes,
+            ]);
+        }
+
         $dayBlock = app(\App\Services\StaffAttendanceService::class)->daySchedulingBlockReason($salon, $staffMember, $dateStr);
         if ($dayBlock !== null) {
             $blockedDetails = collect($slotTimes)->mapWithKeys(fn ($t) => [$t => $dayBlock])->all();
@@ -292,7 +304,6 @@ class AppointmentController extends Controller
                 'day_blocked'                => true,
             ]);
         }
-        $tz          = SalonTime::timezone($salon);
         $availability = app(AvailabilityService::class);
 
         $blocked = [];
@@ -364,6 +375,8 @@ class AppointmentController extends Controller
             return back()->withErrors(['starts_at' => 'Please choose a future time slot.'])->withInput();
         }
 
+        $relaxedBookingDay = SalonTime::isTodayOrTomorrow($salon, $startsAtLocal->toDateString());
+
         try {
             app(AppointmentBookingService::class)->create($salon->id, [
                 'client_id'         => (int) $data['client_id'],
@@ -375,6 +388,9 @@ class AppointmentController extends Controller
                 'payment_status'    => $data['payment_status'],
                 'internal_notes'    => $data['internal_notes'] ?? null,
                 'client_notes'      => $data['client_notes'] ?? null,
+            ], [
+                'enforce_staff_services' => false,
+                'enforce_availability'   => ! $relaxedBookingDay,
             ]);
         } catch (AvailabilityRejectedException $e) {
             return back()->withErrors(['starts_at' => $e->result->firstMessage()])->withInput();
@@ -392,9 +408,8 @@ class AppointmentController extends Controller
         $displayServiceLines = AppointmentDisplayLines::serviceLines($appointment);
         $salon = $this->salon();
         $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
-        $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
 
-        return view('appointments.show', compact('appointment', 'staff', 'salon', 'staffQuickCreateServicesByRole', 'displayServiceLines'));
+        return view('appointments.show', compact('appointment', 'staff', 'salon', 'displayServiceLines'));
     }
 
     public function invoicePdf(Appointment $appointment)
@@ -463,10 +478,9 @@ class AppointmentController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'name']);
 
-        $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
         $todayYmd = SalonTime::todayDateString($salon);
 
-        return view('appointments.edit', compact('appointment', 'clients', 'staff', 'services', 'clientQuickCreateLoyaltyTiers', 'staffQuickCreateServicesByRole', 'todayYmd'));
+        return view('appointments.edit', compact('appointment', 'clients', 'staff', 'services', 'clientQuickCreateLoyaltyTiers', 'todayYmd'));
     }
 
     public function update(Request $request, Appointment $appointment)
@@ -559,7 +573,9 @@ class AppointmentController extends Controller
             'confirmed_at' => now(),
         ]);
 
-        $this->notificationService->notifyTenantNewBooking($appointment->fresh(['client', 'staff', 'services.service', 'salon']));
+        $this->notificationService->notifyClientBookingConfirmed(
+            $appointment->fresh(['client', 'staff', 'services.service', 'salon'])
+        );
 
         return back()->with('success', 'Appointment confirmed and client notified.');
     }

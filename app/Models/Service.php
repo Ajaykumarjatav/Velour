@@ -393,8 +393,8 @@ class Service extends Model
      */
     public function hasExplicitStaffAssignees(): bool
     {
-        if ($this->staff_count !== null) {
-            return (int) $this->staff_count > 0;
+        if (array_key_exists('staff_count', $this->attributes)) {
+            return (int) $this->attributes['staff_count'] > 0;
         }
         if ($this->relationLoaded('staff')) {
             return $this->staff->isNotEmpty();

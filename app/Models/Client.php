@@ -4,36 +4,47 @@ use App\Traits\BelongsToTenant;
 
 use App\Traits\AuditLog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Client extends Model
+class Client extends Authenticatable
 {
     use AuditLog, BelongsToTenant;
-    use HasFactory, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * @return list<string>
      */
     protected function extraAuditExcludeFields(): array
     {
-        return ['total_spent', 'visit_count', 'last_visit_at'];
+        return ['total_spent', 'visit_count', 'last_visit_at', 'password', 'remember_token'];
     }
 
     protected $fillable = [
         'salon_id','loyalty_tier_id','referred_by_client_id','first_name','last_name','email','phone',
+        'password','email_verified_at',
         'date_of_birth','avatar','color','tags','preferred_staff_id','allergies',
         'medical_notes','marketing_consent','sms_consent','email_consent','status',
         'is_vip','total_spent','visit_count','last_visit_at','next_appointment_at',
         'stripe_customer_id','source','gender','address','notes',
     ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
     protected $casts = [
         'tags'=>'array','date_of_birth'=>'date',
+        'email_verified_at'=>'datetime',
         'last_visit_at'=>'datetime','next_appointment_at'=>'datetime',
         'marketing_consent'=>'boolean','sms_consent'=>'boolean','email_consent'=>'boolean',
         'is_vip'=>'boolean','total_spent'=>'decimal:2',
     ];
-    public function getFullNameAttribute(): string { return "{$this->first_name} {$this->last_name}"; }
+
+    public function getFullNameAttribute(): string { return trim("{$this->first_name} {$this->last_name}"); }
     public function salon()          { return $this->belongsTo(Salon::class); }
     public function loyaltyTier()    { return $this->belongsTo(LoyaltyTier::class, 'loyalty_tier_id'); }
     public function referredBy()     { return $this->belongsTo(Client::class,'referred_by_client_id'); }
@@ -69,6 +80,11 @@ class Client extends Model
             ->where('status', 'completed')
             ->sum('total');
         $this->save();
+    }
+
+    public function hasPortalAccount(): bool
+    {
+        return ! empty($this->password);
     }
 
     protected static function newFactory()

@@ -16,6 +16,27 @@ import TestimonialsSection from './components/TestimonialsSection'
 import FooterInfoCards from './components/FooterInfoCards'
 import Footer from './components/Footer'
 
+function MarketingSite() {
+  return (
+    <div className="w-full min-h-screen bg-white overflow-x-hidden">
+      <TopBar />
+      <HeroSection />
+      <StickyNav />
+      <AboutSection />
+      <ServicesSection />
+      <PackagesSection />
+      <RelaxationSection />
+      <SpecialOfferBanner />
+      <StaffSection />
+      <PremiumBanner />
+      <LocationsSection />
+      <TestimonialsSection />
+      <FooterInfoCards />
+      <Footer />
+    </div>
+  )
+}
+
 function SalonApp() {
   const { view } = useSalon()
 
@@ -29,22 +50,7 @@ function SalonApp() {
 
   return (
     <SalonSiteShell>
-      <div className="w-full min-h-screen bg-white overflow-x-hidden">
-          <TopBar />
-          <HeroSection />
-          <StickyNav />
-          <AboutSection />
-          <ServicesSection />
-          <PackagesSection />
-          <RelaxationSection />
-          <SpecialOfferBanner />
-          <StaffSection />
-          <PremiumBanner />
-          <LocationsSection />
-          <TestimonialsSection />
-          <FooterInfoCards />
-          <Footer />
-      </div>
+      <MarketingSite />
     </SalonSiteShell>
   )
 }

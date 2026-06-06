@@ -129,8 +129,8 @@
             return m[s] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
         },
      }">
-    <div class="table-wrap [&_thead_th]:py-3 [&_thead_th]:px-5 [&_tbody_td]:py-2.5 [&_tbody_td]:px-5 min-w-0">
-        <table class="data-table">
+    <div class="table-wrap [&_thead_th]:py-3 [&_thead_th]:px-5 [&_tbody_td]:py-2.5 [&_tbody_td]:px-5 [&_thead_th:last-child]:pr-6 [&_tbody_td:last-child]:pr-6 min-w-0 overflow-x-auto">
+        <table class="data-table min-w-[36rem] w-full">
             <thead>
             <tr>
                 <th>Client</th>
@@ -138,7 +138,7 @@
                 <th class="hidden sm:table-cell">Staff</th>
                 <th>Date &amp; time</th>
                 <th class="hidden lg:table-cell text-right"><abbr title="@currencyLabel">Amount</abbr></th>
-                <th class="text-center">Status</th>
+                <th class="text-center whitespace-nowrap min-w-[7.25rem]">Status</th>
             </tr>
             </thead>
             <tbody>
@@ -169,18 +169,20 @@
                     </div>
                 </td>
                 <td class="hidden lg:table-cell font-semibold text-heading text-right tabular-nums">@money($apt->total_price)</td>
-                <td class="text-center">
+                <td class="text-center whitespace-nowrap min-w-[7.25rem]">
                     @php
                         $colors = [
-                            'confirmed' => 'badge-blue',
-                            'completed' => 'badge-green',
-                            'cancelled' => 'badge-red',
-                            'no_show'   => 'badge-yellow',
-                            'pending'   => 'badge-gray',
+                            'confirmed'   => 'badge-blue',
+                            'checked_in'  => 'badge-blue',
+                            'in_progress' => 'badge-purple',
+                            'completed'   => 'badge-green',
+                            'cancelled'   => 'badge-red',
+                            'no_show'     => 'badge-yellow',
+                            'pending'     => 'badge-gray',
                         ];
                         $cls = $colors[$apt->status] ?? 'badge-gray';
                     @endphp
-                    <span class="{{ $cls }}">{{ ucfirst(str_replace('_',' ',$apt->status)) }}</span>
+                    <span class="{{ $cls }} whitespace-nowrap shrink-0">{{ ucfirst(str_replace('_',' ',$apt->status)) }}</span>
                 </td>
             </tr>
             @empty

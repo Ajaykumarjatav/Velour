@@ -178,7 +178,8 @@ final class ClientHistory
             $out[$clientId] = $rows
                 ->sortByDesc('at')
                 ->take($perClient)
-                ->values();
+                ->values()
+                ->all();
         }
 
         return $out;

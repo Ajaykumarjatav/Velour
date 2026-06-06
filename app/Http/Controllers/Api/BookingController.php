@@ -57,7 +57,7 @@ class BookingController extends Controller
     {
         $salon    = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
         $services = Service::withoutGlobalScope(TenantScope::class)
-            ->with(['category', 'staff:id,first_name,last_name,initials,color,avatar'])
+            ->with(['category.businessType', 'staff:id,first_name,last_name,initials,color,avatar'])
             ->where('salon_id', $salon->id)
             ->where('status', 'active')
             ->where('online_bookable', true)
@@ -247,32 +247,40 @@ class BookingController extends Controller
 
         $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
 
-        if (!$salon->new_client_booking_enabled) {
-            // Check if client exists
+        if (! $salon->new_client_booking_enabled) {
             $exists = Client::withoutGlobalScope(TenantScope::class)
                 ->where('salon_id', $salon->id)
-                ->where(fn($q) => $q->where('email', $data['email'] ?? '')
-                                    ->orWhere('phone', $data['phone']))
+                ->where(fn ($q) => $q->where('email', $data['email'] ?? '')
+                    ->orWhere('phone', $data['phone']))
                 ->exists();
-            if (!$exists) {
+            if (! $exists) {
                 return response()->json(['message' => 'New client online booking is not currently available.'], 403);
             }
         }
 
         try {
             $appointment = $this->bookingService->confirmFromHold($salon, $data);
-            $this->notificationService->appointmentConfirmation($appointment);
+            $appointment->loadMissing(['client', 'staff', 'services.service', 'salon']);
+
+            if ($appointment->status === 'confirmed') {
+                $this->notificationService->appointmentConfirmation($appointment);
+            } else {
+                $this->notificationService->notifyTenantNewBooking($appointment);
+            }
 
             $tz     = SalonTime::timezone($salon);
             $starts = $appointment->starts_at->timezone($tz);
 
             return response()->json([
-                'message'     => 'Appointment confirmed!',
+                'message'     => $appointment->status === 'pending'
+                    ? 'Booking request received. The salon will confirm shortly.'
+                    : 'Appointment confirmed!',
+                'status'      => $appointment->status,
                 'reference'   => $appointment->reference,
                 'appointment' => $appointment->load(['services', 'staff:id,first_name,last_name']),
                 'display'     => [
-                    'time'       => $starts->format('H:i'),
-                    'date_long'  => $starts->format('l, j F Y'),
+                    'time'      => $starts->format('H:i'),
+                    'date_long' => $starts->format('l, j F Y'),
                 ],
             ], 201);
         } catch (\Exception $e) {

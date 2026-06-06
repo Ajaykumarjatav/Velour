@@ -105,47 +105,6 @@
                 </div>
             </div>
 
-            @if($services->count())
-            <div x-data="{
-                    allServices: false,
-                    syncAllServices() {
-                        const boxes = this.$refs.serviceList
-                            ? [...this.$refs.serviceList.querySelectorAll('input[name=\'services[]\']')]
-                            : [];
-                        this.allServices = boxes.length > 0 && boxes.every(function (el) { return el.checked; });
-                    },
-                    setAllServices(checked) {
-                        this.allServices = checked;
-                        if (!this.$refs.serviceList) return;
-                        this.$refs.serviceList.querySelectorAll('input[name=\'services[]\']').forEach(function (el) {
-                            el.checked = checked;
-                        });
-                    }
-                }"
-                x-init="syncAllServices()">
-                <label class="form-label">Services offered</label>
-                <p class="form-hint mb-2">The extent of service reliance will vary depending on the staff member’s role. Only services permitted for the role you selected above are shown here.</p>
-                <label class="flex items-center gap-2 cursor-pointer mb-2 px-1">
-                    <input type="checkbox"
-                           class="rounded border-gray-300 dark:border-gray-600 text-velour-600"
-                           x-model="allServices"
-                           @change="setAllServices(allServices)">
-                    <span class="text-sm font-medium text-body">Select all services</span>
-                </label>
-                <div x-ref="serviceList" class="grid grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
-                    @foreach($services as $svc)
-                    <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
-                        <input type="checkbox" name="services[]" value="{{ $svc->id }}"
-                               {{ in_array($svc->id, old('services', $assigned)) ? 'checked' : '' }}
-                               @change="syncAllServices()"
-                               class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                        <span class="text-sm text-body truncate">{{ $svc->name }}</span>
-                    </label>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
             <div>
                 <label class="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" name="is_active" value="1" {{ old('is_active', $staff->is_active) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">

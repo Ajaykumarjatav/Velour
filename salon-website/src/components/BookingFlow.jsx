@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import BookingDateCalendar from './BookingDateCalendar'
 import { useSalon } from '../context/SalonContext'
 import {
   confirmBooking,
   fetchBookServices,
   fetchBookSlots,
-  fetchBookStaff,
   holdSlot,
 } from '../lib/bookingApi'
 
-const STEPS = ['Services', 'Stylist', 'Date & time', 'Your details', 'Confirm']
+const STEPS = ['Services', 'Date & time', 'Stylist', 'Your details', 'Confirm']
 
 function todayYmd() {
   const d = new Date()
@@ -19,6 +19,22 @@ function maxDateYmd() {
   const d = new Date()
   d.setDate(d.getDate() + 60)
   return d.toISOString().slice(0, 10)
+}
+
+function slotPeriod(time) {
+  const hour = parseInt((time || '0').split(':')[0], 10)
+  if (hour < 12) return 'Morning'
+  if (hour < 17) return 'Afternoon'
+  return 'Evening'
+}
+
+function groupSlotsByPeriod(slots) {
+  const groups = { Morning: [], Afternoon: [], Evening: [] }
+  for (const slot of slots) {
+    const period = slotPeriod(slot.time)
+    groups[period].push(slot)
+  }
+  return Object.entries(groups).filter(([, list]) => list.length > 0)
 }
 
 function formatDate(dateStr) {
@@ -35,6 +51,121 @@ function formatDate(dateStr) {
   }
 }
 
+function formatServicePrice(value, symbol) {
+  const n = parseFloat(value || 0)
+  if (Number.isNaN(n)) return `${symbol}0`
+  if (symbol === '₹') {
+    return `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+  }
+  return `${symbol}${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+}
+
+function ServiceScissorsIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <line x1="20" y1="4" x2="8.12" y2="15.88" />
+      <line x1="14.47" y1="14.48" x2="20" y2="20" />
+      <line x1="8.12" y1="8.12" x2="12" y2="12" />
+    </svg>
+  )
+}
+
+function ServiceClockIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-70 shrink-0" aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  )
+}
+
+function BookingCategorySlider({ categories, activeCategoryId, onSelect }) {
+  const trackRef = useRef(null)
+  const isDragging = useRef(false)
+  const didDrag = useRef(false)
+  const startX = useRef(0)
+  const scrollStart = useRef(0)
+  const [grabbing, setGrabbing] = useState(false)
+
+  const endDrag = () => {
+    isDragging.current = false
+    setGrabbing(false)
+  }
+
+  const onMouseDown = (e) => {
+    if (e.button !== 0 || !trackRef.current) return
+    isDragging.current = true
+    didDrag.current = false
+    startX.current = e.pageX
+    scrollStart.current = trackRef.current.scrollLeft
+    setGrabbing(true)
+  }
+
+  const onMouseMove = (e) => {
+    if (!isDragging.current || !trackRef.current) return
+    const delta = e.pageX - startX.current
+    if (Math.abs(delta) > 4) didDrag.current = true
+    trackRef.current.scrollLeft = scrollStart.current - delta
+  }
+
+  const onWheel = (e) => {
+    const el = trackRef.current
+    if (!el || el.scrollWidth <= el.clientWidth) return
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
+    el.scrollLeft += e.deltaY
+    e.preventDefault()
+  }
+
+  const handleSelect = (id) => {
+    if (didDrag.current) return
+    onSelect(id)
+  }
+
+  useEffect(() => {
+    if (!grabbing) return
+    const stop = () => endDrag()
+    document.addEventListener('mouseup', stop)
+    return () => document.removeEventListener('mouseup', stop)
+  }, [grabbing])
+
+  return (
+    <div className="w-full min-w-0 pb-4 mb-4 border-b border-white/10">
+      <div
+        ref={trackRef}
+        role="tablist"
+        aria-label="Service categories"
+        onMouseDown={onMouseDown}
+        onMouseLeave={endDrag}
+        onMouseUp={endDrag}
+        onMouseMove={onMouseMove}
+        onWheel={onWheel}
+        className={`flex items-center gap-2 overflow-x-auto scrollbar-none scroll-smooth snap-x snap-mandatory py-1 w-full min-w-0 touch-pan-x select-none
+          ${grabbing ? 'cursor-grabbing snap-none' : 'cursor-grab'}`}
+      >
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            role="tab"
+            aria-selected={activeCategoryId === cat.id}
+            onClick={() => handleSelect(cat.id)}
+            className={`shrink-0 snap-start px-4 py-2 rounded-full font-manrope font-semibold text-xs uppercase tracking-wider transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary whitespace-nowrap max-w-[min(100%,18rem)] truncate
+              ${activeCategoryId === cat.id
+                ? 'bg-primary text-white shadow-md shadow-primary/25'
+                : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white'
+              }`}
+            title={cat.name}
+          >
+            {cat.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function BookingFlow() {
   const { slug, salon, closeBooking } = useSalon()
   const currency = salon?.currency_symbol ?? '£'
@@ -43,11 +174,11 @@ export default function BookingFlow() {
   const [loading, setLoading] = useState(true)
   const [globalError, setGlobalError] = useState('')
   const [allServices, setAllServices] = useState([])
-  const [staffList, setStaffList] = useState([])
-  const [staffLoading, setStaffLoading] = useState(false)
+  const [activeCategoryId, setActiveCategoryId] = useState(null)
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [slots, setSlots] = useState([])
   const [combinedInfo, setCombinedInfo] = useState(null)
+  const [slotsError, setSlotsError] = useState('')
   const [selected, setSelected] = useState({ services: [], staff: null, date: '', slot: null })
   const [client, setClient] = useState({
     first_name: '',
@@ -61,6 +192,7 @@ export default function BookingFlow() {
   const [bookingError, setBookingError] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [bookingRef, setBookingRef] = useState('')
+  const [bookingStatus, setBookingStatus] = useState('')
   const [confirmedStaff, setConfirmedStaff] = useState(null)
   const [confirmDisplay, setConfirmDisplay] = useState(null)
 
@@ -78,9 +210,29 @@ export default function BookingFlow() {
 
   const serviceIds = useMemo(() => selected.services.map((s) => s.id), [selected.services])
 
-  const flatServices = useMemo(
-    () => allServices.flatMap((cat) => cat.services ?? []),
+  const bookCategories = useMemo(
+    () => allServices.filter((cat) => (cat.services?.length ?? 0) > 0),
     [allServices],
+  )
+
+  useEffect(() => {
+    if (bookCategories.length === 0) {
+      setActiveCategoryId(null)
+      return
+    }
+    if (activeCategoryId === null || !bookCategories.some((c) => c.id === activeCategoryId)) {
+      setActiveCategoryId(bookCategories[0].id)
+    }
+  }, [bookCategories, activeCategoryId])
+
+  const activeCategory = useMemo(
+    () => bookCategories.find((c) => c.id === activeCategoryId) ?? null,
+    [bookCategories, activeCategoryId],
+  )
+
+  const activeCategoryServices = useMemo(
+    () => activeCategory?.services ?? [],
+    [activeCategory],
   )
 
   const totalPrice = useCallback(
@@ -104,20 +256,14 @@ export default function BookingFlow() {
     setCombinedInfo(null)
   }
 
-  const loadStaff = useCallback(async () => {
-    if (!slug || !serviceIds.length) {
-      setStaffList([])
-      return
-    }
-    setStaffLoading(true)
-    try {
-      setStaffList(await fetchBookStaff(slug, serviceIds))
-    } catch {
-      setStaffList([])
-    } finally {
-      setStaffLoading(false)
-    }
-  }, [slug, serviceIds])
+  const availableStaffForSlot = useMemo(() => {
+    const list = selected.slot?.available_staff ?? []
+    return [...list].sort((a, b) => {
+      const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim()
+      const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim()
+      return nameA.localeCompare(nameB)
+    })
+  }, [selected.slot])
 
   const loadSlots = useCallback(async () => {
     if (!slug || !selected.date || !serviceIds.length) return
@@ -126,6 +272,7 @@ export default function BookingFlow() {
     setSlotsLoading(true)
     setSlots([])
     setCombinedInfo(null)
+    setSlotsError('')
     try {
       const data = await fetchBookSlots(slug, {
         date,
@@ -137,15 +284,16 @@ export default function BookingFlow() {
       if (date !== selected.date) {
         setSelected((p) => ({ ...p, date }))
       }
-    } catch {
+    } catch (e) {
       setSlots([])
+      setSlotsError(e.message || 'Could not load available times. Please try again.')
     } finally {
       setSlotsLoading(false)
     }
   }, [slug, selected.date, selected.staff, serviceIds, today])
 
   useEffect(() => {
-    if (step === 2 && selected.date && serviceIds.length) {
+    if (step === 1 && selected.date && serviceIds.length) {
       loadSlots()
     }
   }, [step, selected.date, selected.staff?.id, serviceIds.join(','), loadSlots])
@@ -187,6 +335,7 @@ export default function BookingFlow() {
         marketing_consent: client.marketing_consent,
       })
       setBookingRef(confirmData.reference ?? confirmData.appointment?.reference ?? '')
+      setBookingStatus(confirmData.status ?? confirmData.appointment?.status ?? 'pending')
       setConfirmedStaff(confirmData.appointment?.staff ?? null)
       setConfirmDisplay(confirmData.display ?? null)
       setStep(5)
@@ -214,7 +363,7 @@ export default function BookingFlow() {
     setStep(4)
   }
 
-  if (step === 5) {
+  if (step === 5 && bookingRef) {
     return (
       <div className="min-h-screen bg-black text-white">
         <header className="border-b border-white/10 px-4 py-4 max-w-2xl mx-auto flex items-center justify-between">
@@ -227,9 +376,20 @@ export default function BookingFlow() {
           <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center mx-auto mb-6 text-3xl shadow-lg shadow-primary/30">
             ✓
           </div>
-          <h1 className="text-2xl font-bold mb-2">You&apos;re all booked!</h1>
+          <h1 className="text-2xl font-bold mb-2">
+            {bookingStatus === 'pending' ? 'Request received!' : "You're all booked!"}
+          </h1>
           <p className="text-white/70 text-sm mb-4">
-            Confirmation sent to <strong className="text-white">{client.email}</strong>
+            {bookingStatus === 'pending' ? (
+              <>
+                We&apos;ve received your booking request. You&apos;ll get a confirmation at{' '}
+                <strong className="text-white">{client.email}</strong> once the salon approves it.
+              </>
+            ) : (
+              <>
+                Confirmation sent to <strong className="text-white">{client.email}</strong>
+              </>
+            )}
           </p>
           {bookingRef ? (
             <p className="inline-block bg-white/10 rounded-full px-4 py-1 text-xs font-mono mb-8">
@@ -259,7 +419,17 @@ export default function BookingFlow() {
             onClick={() => {
               setStep(0)
               setSelected({ services: [], staff: null, date: '', slot: null })
+              setClient({
+                first_name: '',
+                last_name: '',
+                email: '',
+                phone: '',
+                notes: '',
+                marketing_consent: false,
+              })
               setBookingRef('')
+              setBookingStatus('')
+              setConfirmDisplay(null)
             }}
             className="bg-primary hover:bg-primary-dark text-white font-semibold rounded-full px-8 py-3"
           >
@@ -309,33 +479,75 @@ export default function BookingFlow() {
           <div className="space-y-6">
             <div className="rounded-2xl border border-white/10 bg-[#1a1f2e] p-5 sm:p-6">
               <h2 className="font-manrope font-bold text-base text-white mb-4">Select Services</h2>
-              {flatServices.length === 0 ? (
+              {bookCategories.length === 0 ? (
                 <p className="text-white/50 text-sm py-8 text-center">No services available for booking.</p>
               ) : (
-                <div
-                  className="grid grid-cols-2 gap-x-5 gap-y-3.5 overflow-y-auto scrollbar-none pr-1"
-                  style={{ minHeight: '9.5rem', maxHeight: 'min(50vh, 22rem)' }}
-                >
-                  {flatServices.map((svc) => {
-                    const on = selected.services.some((s) => s.id === svc.id)
-                    return (
-                      <label
-                        key={svc.id}
-                        className="flex items-start gap-2.5 cursor-pointer group"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          onChange={() => toggleService(svc)}
-                          className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 bg-transparent text-teal-500 focus:ring-teal-500/40 focus:ring-offset-0 accent-teal-500"
-                        />
-                        <span className="text-sm text-white/90 leading-snug group-hover:text-white">
-                          {svc.name}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
+                <>
+                  <BookingCategorySlider
+                    categories={bookCategories}
+                    activeCategoryId={activeCategoryId}
+                    onSelect={setActiveCategoryId}
+                  />
+
+                  {activeCategory ? (
+                    <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
+                      <div className="min-w-0">
+                        <h3 className="font-manrope font-semibold text-base text-white leading-snug">
+                          {activeCategory.name}
+                        </h3>
+                        {activeCategory.business_type ? (
+                          <p className="text-xs text-white/50 mt-0.5">{activeCategory.business_type}</p>
+                        ) : null}
+                      </div>
+                      <span className="shrink-0 inline-flex items-center rounded-full bg-white/10 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/70 tabular-nums">
+                        {activeCategoryServices.length} {activeCategoryServices.length === 1 ? 'service' : 'services'}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {activeCategoryServices.length === 0 ? (
+                    <p className="text-white/50 text-sm py-6 text-center">No services in this category.</p>
+                  ) : (
+                    <div
+                      className="divide-y divide-white/10 overflow-y-auto scrollbar-none -mx-1 px-1"
+                      style={{ maxHeight: 'min(55vh, 24rem)' }}
+                      role="tabpanel"
+                    >
+                      {activeCategoryServices.map((svc) => {
+                        const on = selected.services.some((s) => s.id === svc.id)
+                        return (
+                          <label
+                            key={svc.id}
+                            className={`flex items-center gap-3 py-3.5 cursor-pointer group transition-colors rounded-lg px-1 -mx-1
+                              ${on ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={on}
+                              onChange={() => toggleService(svc)}
+                              className="h-4 w-4 shrink-0 rounded border-white/30 bg-transparent text-teal-500 focus:ring-teal-500/40 focus:ring-offset-0 accent-teal-500"
+                            />
+                            <span className="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/90 to-purple-800/90 flex items-center justify-center text-white shadow-sm">
+                              <ServiceScissorsIcon />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="block font-semibold text-sm text-white leading-snug group-hover:text-white">
+                                {svc.name}
+                              </span>
+                              <span className="mt-0.5 flex items-center gap-1.5 text-xs text-white/50">
+                                <ServiceClockIcon />
+                                {svc.duration_minutes} min
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-sm font-semibold text-white tabular-nums">
+                              {formatServicePrice(svc.price, currency)}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             {selected.services.length > 0 ? (
@@ -346,10 +558,7 @@ export default function BookingFlow() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    loadStaff()
-                    setStep(1)
-                  }}
+                  onClick={() => setStep(1)}
                   className="bg-primary hover:bg-primary-dark text-white font-semibold rounded-full px-6 py-2.5 text-sm"
                 >
                   Continue
@@ -360,29 +569,128 @@ export default function BookingFlow() {
         ) : null}
 
         {step === 1 ? (
+          <div className="space-y-4">
+            <div className="text-center sm:text-left">
+              <h2 className="font-manrope font-bold text-base sm:text-lg">When would you like to visit?</h2>
+              <p className="text-xs sm:text-sm text-white/50 mt-0.5">Pick a date, then choose a time.</p>
+            </div>
+
+            <BookingDateCalendar
+              value={selected.date}
+              minDate={today}
+              maxDate={maxDate}
+              onChange={(ymd) => {
+                setSelected((p) => ({ ...p, date: ymd, slot: null }))
+              }}
+            />
+
+            {selected.date ? (
+              <div className="rounded-xl border border-white/10 bg-[#1a1f2e]/80 p-3 sm:p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <h3 className="font-manrope font-semibold text-sm text-white">Available times</h3>
+                  <button
+                    type="button"
+                    onClick={loadSlots}
+                    disabled={slotsLoading}
+                    className="text-[11px] font-semibold text-primary hover:text-primary-dark disabled:opacity-40 transition-colors"
+                  >
+                    {slotsLoading ? 'Loading…' : 'Refresh'}
+                  </button>
+                </div>
+
+                {combinedInfo ? (
+                  <p className="text-[11px] text-white/50 mb-2.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5">
+                    {combinedInfo.message || combinedInfo.label}
+                  </p>
+                ) : null}
+                {slotsError ? (
+                  <p className="text-red-300 text-xs sm:text-sm bg-red-500/20 border border-red-500/40 rounded-lg p-2.5 mb-3">{slotsError}</p>
+                ) : null}
+                {slotsLoading ? (
+                  <div className="flex items-center justify-center gap-2 py-6 text-white/50 text-xs sm:text-sm">
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-primary rounded-full animate-spin" />
+                    Finding open slots…
+                  </div>
+                ) : null}
+                {!slotsLoading && !slotsError && slots.length === 0 ? (
+                  <p className="text-white/50 text-xs sm:text-sm text-center py-5">No slots this day. Try another date.</p>
+                ) : null}
+
+                {!slotsLoading && slots.length > 0 ? (
+                  <div className="space-y-3 sm:space-y-4">
+                    {groupSlotsByPeriod(slots).map(([period, periodSlots]) => (
+                      <div key={period}>
+                        <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-white/35 mb-1.5">{period}</p>
+                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5 sm:gap-2">
+                          {periodSlots.map((slot) => (
+                            <button
+                              key={slot.time}
+                              type="button"
+                              disabled={!slot.available}
+                              onClick={() => {
+                                setSelected((p) => {
+                                  const next = { ...p, slot }
+                                  if (p.staff && !slot.available_staff?.some((s) => s.id === p.staff.id)) {
+                                    next.staff = null
+                                  }
+                                  return next
+                                })
+                                setStep(2)
+                              }}
+                              className={`rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm font-semibold border transition-colors duration-150 ${
+                                slot.available
+                                  ? 'border-white/15 bg-white/5 text-white hover:border-primary hover:bg-primary/15 active:scale-[0.98]'
+                                  : 'border-white/5 text-white/25 cursor-not-allowed'
+                              }`}
+                            >
+                              {slot.time}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-center text-xs sm:text-sm text-white/40 py-2">Tap the date field above to choose a day.</p>
+            )}
+
+            <button type="button" onClick={() => setStep(0)} className="text-sm text-white/50 hover:text-white">
+              ← Back
+            </button>
+          </div>
+        ) : null}
+
+        {step === 2 ? (
           <div>
             <p className="text-white/70 text-sm mb-4">Choose your stylist (or any available)</p>
-            {staffLoading ? <p className="text-white/50">Loading stylists…</p> : null}
+            {selected.slot ? (
+              <p className="text-xs text-white/50 mb-4">
+                Available for {formatDate(selected.date)} at {selected.slot.time}
+              </p>
+            ) : null}
             <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => {
-                  setSelected((p) => ({ ...p, staff: null, date: today, slot: null }))
-                  setStep(2)
-                  loadSlots()
+                  setSelected((p) => ({ ...p, staff: null }))
+                  setStep(3)
                 }}
                 className="w-full rounded-xl border-2 border-white/10 bg-white/5 p-4 text-left hover:border-primary"
               >
                 <span className="font-semibold">Any available stylist</span>
               </button>
-              {staffList.map((member) => (
+              {availableStaffForSlot.length === 0 ? (
+                <p className="text-white/50 text-sm py-2">No specific stylists are free at this time.</p>
+              ) : null}
+              {availableStaffForSlot.map((member) => (
                 <button
                   key={member.id}
                   type="button"
                   onClick={() => {
-                    setSelected((p) => ({ ...p, staff: member, date: p.date || today, slot: null }))
-                    setStep(2)
-                    loadSlots()
+                    setSelected((p) => ({ ...p, staff: member }))
+                    setStep(3)
                   }}
                   className="w-full rounded-xl border-2 border-white/10 bg-white/5 p-4 text-left hover:border-primary flex items-center gap-3"
                 >
@@ -392,56 +700,6 @@ export default function BookingFlow() {
                   <span className="font-semibold">
                     {member.first_name} {member.last_name}
                   </span>
-                </button>
-              ))}
-            </div>
-            <button type="button" onClick={() => setStep(0)} className="mt-6 text-sm text-white/50 hover:text-white">
-              ← Back
-            </button>
-          </div>
-        ) : null}
-
-        {step === 2 ? (
-          <div>
-            <label className="block text-sm text-white/70 mb-2">Date</label>
-            <input
-              type="date"
-              min={today}
-              max={maxDate}
-              value={selected.date || today}
-              onChange={(e) => {
-                setSelected((p) => ({ ...p, date: e.target.value, slot: null }))
-              }}
-              onBlur={loadSlots}
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white mb-4 [color-scheme:dark]"
-            />
-            <button type="button" onClick={loadSlots} className="text-sm text-primary mb-4">
-              Refresh times
-            </button>
-            {combinedInfo ? (
-              <p className="text-xs text-white/50 mb-3">{combinedInfo.message || combinedInfo.label}</p>
-            ) : null}
-            {slotsLoading ? <p className="text-white/50">Loading times…</p> : null}
-            {!slotsLoading && slots.length === 0 && selected.date ? (
-              <p className="text-white/50 text-sm">No slots available this day. Try another date.</p>
-            ) : null}
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {slots.map((slot) => (
-                <button
-                  key={slot.time}
-                  type="button"
-                  disabled={!slot.available}
-                  onClick={() => {
-                    setSelected((p) => ({ ...p, slot }))
-                    setStep(3)
-                  }}
-                  className={`rounded-xl py-3 text-sm font-semibold border-2 ${
-                    slot.available
-                      ? 'border-white/20 hover:border-primary bg-white/5'
-                      : 'border-white/5 text-white/30 cursor-not-allowed'
-                  }`}
-                >
-                  {slot.time}
                 </button>
               ))}
             </div>
@@ -497,7 +755,7 @@ export default function BookingFlow() {
                 type="checkbox"
                 checked={client.marketing_consent}
                 onChange={(e) => setClient((c) => ({ ...c, marketing_consent: e.target.checked }))}
-                className="rounded"
+                className="rounded accent-primary"
               />
               Keep me updated with offers and news
             </label>

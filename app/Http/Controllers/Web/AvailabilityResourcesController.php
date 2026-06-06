@@ -10,7 +10,6 @@ use App\Models\StaffAttendanceRecord;
 use App\Models\StaffLeaveRequest;
 use App\Models\User;
 use App\Services\StaffAttendanceService;
-use App\Support\StaffServiceEligibility;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -71,8 +70,6 @@ class AvailabilityResourcesController extends Controller
             ->with('staff')
             ->latest()
             ->get();
-
-        $staffQuickCreateServicesByRole = StaffServiceEligibility::servicesByRoleForSalon($salon->id);
 
         $attendanceGrid = null;
         $attendanceWeek = null;
@@ -137,7 +134,6 @@ class AvailabilityResourcesController extends Controller
             'staff',
             'resources',
             'leaveRequests',
-            'staffQuickCreateServicesByRole',
             'attendanceGrid',
             'attendanceWeek',
             'attendanceState',

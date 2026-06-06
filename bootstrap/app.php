@@ -82,6 +82,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'idempotency'      => \App\Http\Middleware\IdempotencyKey::class,
             'account.lockout'  => \App\Http\Middleware\AccountLockout::class,
             'profile.complete' => \App\Http\Middleware\EnsureSalonProfileComplete::class,
+            'client.auth'      => \App\Http\Middleware\AuthenticateClientToken::class,
+            'client.portal'    => \App\Http\Middleware\EnsureClientPortalAuth::class,
+            'client.salon'     => \App\Http\Middleware\ResolveClientSalon::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

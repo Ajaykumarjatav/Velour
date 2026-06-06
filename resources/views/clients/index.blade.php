@@ -219,14 +219,24 @@
         selectedClientId: {{ $firstClientId ? (int) $firstClientId : 'null' }},
         isScopedStaff: {{ ($isScopedStaffPanel ?? false) ? 'true' : 'false' }},
         clients: @js($clientRows),
+        visibleHistory: [],
         loyaltyOptions: @js(($loyaltyTiers ?? collect())->map(fn($t) => ['id' => (string) $t->id, 'name' => (string) $t->name])->values()),
         editMode: false,
         editForm: { first_name: '', last_name: '', email: '', phone: '', notes: '', loyalty_tier_id: '', marketing_consent: true },
+        init() {
+            this.syncHistory();
+        },
         selectedClient() {
-            return this.clients.find(c => c.id === this.selectedClientId) || this.clients[0] || null;
+            const id = Number(this.selectedClientId);
+            return this.clients.find(c => Number(c.id) === id) || this.clients[0] || null;
+        },
+        syncHistory() {
+            const client = this.selectedClient();
+            this.visibleHistory = Array.isArray(client?.history) ? client.history : [];
         },
         selectClient(id) {
-            this.selectedClientId = id;
+            this.selectedClientId = Number(id);
+            this.syncHistory();
             if (this.editMode) {
                 this.startEdit();
             }
@@ -476,7 +486,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <template x-for="row in (selectedClient().history || [])" :key="row.kind + row.date + row.detail + row.amount">
+                                <template x-for="(row, idx) in visibleHistory" :key="'history-' + idx + '-' + (row.kind || '')">
                                     <tr class="border-t border-gray-100 dark:border-gray-800/80 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
                                         <td class="px-5 py-2.5 text-body">
                                             <div x-text="row.date"></div>
@@ -492,7 +502,7 @@
                                         </td>
                                     </tr>
                                 </template>
-                                <tr x-show="!selectedClient().history || selectedClient().history.length === 0">
+                                <tr x-show="visibleHistory.length === 0">
                                     <td colspan="5" class="px-5 py-6 text-center text-sm text-muted">No history yet.</td>
                                 </tr>
                             </tbody>

@@ -1045,53 +1045,6 @@
                     <label class="form-label">Awards &amp; accolades</label>
                     <textarea name="staff_awards_accolades" rows="3" class="form-textarea" placeholder="Certifications, press, industry awards…">{{ old('staff_awards_accolades', $profileStaff->awards_accolades) }}</textarea>
                 </div>
-                @if(($profileStaffServices ?? collect())->count())
-                <div x-data="{
-                        allServices: false,
-                        syncAllServices() {
-                            const boxes = this.$refs.serviceList
-                                ? [...this.$refs.serviceList.querySelectorAll('input[name=\'staff_services[]\']')]
-                                : [];
-                            this.allServices = boxes.length > 0 && boxes.every(function (el) { return el.checked; });
-                        },
-                        setAllServices(checked) {
-                            this.allServices = checked;
-                            if (!this.$refs.serviceList) return;
-                            this.$refs.serviceList.querySelectorAll('input[name=\'staff_services[]\']').forEach(function (el) {
-                                el.checked = checked;
-                            });
-                        }
-                    }"
-                    x-init="syncAllServices()">
-                    <label class="form-label">Services offered</label>
-                    <label class="flex items-center gap-2 cursor-pointer mb-2 px-1">
-                        <input type="checkbox"
-                               class="rounded border-gray-300 dark:border-gray-600 text-velour-600"
-                               x-model="allServices"
-                               @change="setAllServices(allServices)">
-                        <span class="text-sm font-medium text-body">Select all services</span>
-                    </label>
-                    <div x-ref="serviceList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-48 sm:max-h-40 overflow-y-auto bg-white dark:bg-gray-800">
-                        @php
-                            $selectedStaffServices = old('staff_services');
-                            if (! is_array($selectedStaffServices)) {
-                                $selectedStaffServices = $profileStaffAssignedServiceIds ?? [];
-                            }
-                            $selectedStaffServices = array_map('intval', $selectedStaffServices);
-                        @endphp
-                        @foreach($profileStaffServices as $svc)
-                        <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20">
-                            <input type="checkbox" name="staff_services[]" value="{{ $svc->id }}"
-                                   {{ in_array((int) $svc->id, $selectedStaffServices, true) ? 'checked' : '' }}
-                                   @change="syncAllServices()"
-                                   class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                            <span class="text-sm text-body truncate">{{ $svc->name }}</span>
-                        </label>
-                        @endforeach
-                    </div>
-                    @error('staff_services')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
-                @endif
                 <div>
                     <label class="inline-flex items-center gap-3 cursor-pointer">
                         <input type="hidden" name="staff_is_active" value="0">
@@ -1145,10 +1098,6 @@
         <div class="card">
             @php
                 $mapMemberToRow = function ($member) {
-                    $hasServices = \Illuminate\Support\Facades\DB::table('service_staff')
-                        ->where('staff_id', $member->id)
-                        ->exists();
-
                     return [
                         'id' => $member->id,
                         'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
@@ -1162,8 +1111,6 @@
                         'avatar' => $member->avatar,
                         'bio' => $member->bio,
                         'awards_accolades' => $member->awards_accolades,
-                        'assign_services' => $hasServices ? '1' : '0',
-                        'services' => $member->services()->withoutTenantScope()->pluck('services.id')->map(fn ($id) => (int) $id)->values()->all(),
                     ];
                 };
                 $staffRows = old('staff_members');
@@ -1219,7 +1166,6 @@
                             <input type="hidden" name="return_to" value="{{ $returnTo }}">
                             <input type="hidden" name="save_single_team_member" value="1">
                             <input type="hidden" name="staff_members[0][id]" value="{{ $st['id'] ?? '' }}">
-                            <input type="hidden" name="staff_members[0][services_present]" value="1">
                             @php
                                 $avatarUrl = \App\Models\Staff::resolvePublicAvatarUrl($st['avatar'] ?? null);
                                 $nameLabel = trim((string) ($st['name'] ?? ''));
@@ -1317,53 +1263,11 @@
                                               class="form-textarea">{{ $st['awards_accolades'] ?? '' }}</textarea>
                                 </div>
                             </div>
-                            <input type="hidden" name="staff_members[0][assign_services]" value="0">
-                            @php
-                                $as = $st['assign_services'] ?? null;
-                                $assignChecked = (string) $as === '1' || $as === true || $as === 1;
-                            @endphp
-                            <label class="flex items-start gap-2.5 text-sm text-body cursor-pointer">
-                                <input type="checkbox" name="staff_members[0][assign_services]" value="1"
-                                       class="settings-staff-assign-services mt-0.5 shrink-0 rounded border-gray-300 dark:border-gray-600 text-velour-600"
-                                       {{ $assignChecked ? 'checked' : '' }}>
-                                <span class="min-w-0 break-words">Offer all services on this menu to this team member</span>
-                            </label>
-                            @php
-                                $rowServiceOptions = (array) ($teamServices ?? []);
-                                $selectedRowServices = old('staff_members.0.services');
-                                if (! is_array($selectedRowServices)) {
-                                    $selectedRowServices = array_map('intval', (array) ($st['services'] ?? []));
-                                } else {
-                                    $selectedRowServices = array_map('intval', $selectedRowServices);
-                                }
-                            @endphp
-                            <div>
-                                <label class="block text-xs font-medium text-body mb-1">Services offered</label>
-                                <p class="text-xs text-muted mb-2">Only services with both time and price configured are shown.</p>
-                                @if(count($rowServiceOptions))
-                                    <div data-staff-service-list class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 max-h-52 sm:max-h-44 overflow-y-auto bg-white dark:bg-gray-800">
-                                        @foreach($rowServiceOptions as $svc)
-                                            @php $svcId = (int) ($svc['id'] ?? 0); @endphp
-                                            <label class="flex items-start sm:items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20 min-w-0">
-                                                <input type="checkbox" name="staff_members[0][services][]" value="{{ $svcId }}"
-                                                       {{ in_array($svcId, $selectedRowServices, true) ? 'checked' : '' }}
-                                                       class="settings-staff-service-cb rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                                                <span class="text-sm text-body break-words sm:truncate min-w-0">{{ (string) ($svc['name'] ?? '') }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 px-3 py-2 text-xs text-muted">
-                                        No services available yet.
-                                    </div>
-                                @endif
-                            </div>
                             @error('staff_members.0.name')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.role')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.id')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.language_proficiency')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                            @error('staff_members.0.services')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="!canEditTab('team')">Save this team member</button>
                         </form>
                         </div>
@@ -1832,7 +1736,6 @@
         });
         clone.querySelectorAll('input[type="hidden"]').forEach(function (el) {
             if (el.name && el.name.indexOf('[id]') !== -1) el.value = '';
-            if (el.name && el.name.indexOf('assign_services') !== -1) el.value = '0';
         });
         var toggle = clone.querySelector('.settings-staff-row-toggle');
         var body = clone.querySelector('.settings-staff-row-body');
@@ -1867,43 +1770,6 @@
         if (!row || container.querySelectorAll('.settings-staff-member-row').length <= 1) return;
         row.remove();
         renumberStaffRows();
-    });
-
-    function setRowServiceChecks(row, checked) {
-        var list = row.querySelector('[data-staff-service-list]');
-        if (!list) return;
-        list.querySelectorAll('.settings-staff-service-cb').forEach(function (cb) {
-            cb.checked = checked;
-        });
-    }
-
-    function syncRowAssignFromServices(row) {
-        var assignCb = row.querySelector('.settings-staff-assign-services');
-        var list = row.querySelector('[data-staff-service-list]');
-        if (!assignCb || !list) return;
-        var boxes = list.querySelectorAll('.settings-staff-service-cb');
-        assignCb.checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (cb) { return cb.checked; });
-    }
-
-    container.addEventListener('change', function (e) {
-        var row = e.target.closest('.settings-staff-member-row');
-        if (!row) return;
-        if (e.target.classList.contains('settings-staff-assign-services')) {
-            setRowServiceChecks(row, e.target.checked);
-            return;
-        }
-        if (e.target.classList.contains('settings-staff-service-cb')) {
-            syncRowAssignFromServices(row);
-        }
-    });
-
-    container.querySelectorAll('.settings-staff-member-row').forEach(function (row) {
-        var assignCb = row.querySelector('.settings-staff-assign-services');
-        if (assignCb && assignCb.checked) {
-            setRowServiceChecks(row, true);
-        } else {
-            syncRowAssignFromServices(row);
-        }
     });
 
     renumberStaffRows();

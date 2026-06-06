@@ -515,7 +515,7 @@
                     $headerUnreadCount   = 0;
                     $headerNotifications = collect();
                     try {
-                        $headerSalon = auth()->user()->salons()->first();
+                        $headerSalon = $currentSalon ?? null;
                         if ($headerSalon) {
                             $headerUnreadCount   = \App\Models\SalonNotification::where('salon_id', $headerSalon->id)->where('is_read', false)->count();
                             $headerNotifications = \App\Models\SalonNotification::where('salon_id', $headerSalon->id)->latest()->limit(6)->get();
@@ -549,7 +549,13 @@
                         </div>
                         <div class="max-h-72 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
                             @forelse($headerNotifications as $n)
-                            <div class="px-4 py-3 {{ !$n->is_read ? 'bg-velour-50/50 dark:bg-velour-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800' }}">
+                            @php
+                                $nApptId = (int) data_get($n->data, 'appointment_id', 0);
+                                $nHref = $nApptId > 0 ? route('appointments.show', $nApptId) : route('notifications.index');
+                            @endphp
+                            <a href="{{ $nHref }}"
+                               @click="notifOpen=false"
+                               class="block px-4 py-3 {{ !$n->is_read ? 'bg-velour-50/50 dark:bg-velour-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800' }} transition-colors">
                                 <div class="flex items-start gap-3">
                                     <div class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 {{ !$n->is_read ? 'bg-velour-500' : 'bg-transparent' }}"></div>
                                     <div class="flex-1 min-w-0">
@@ -558,7 +564,7 @@
                                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ $n->created_at->diffForHumans() }}</p>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                             @empty
                             <div class="px-4 py-8 text-center text-xs text-gray-400 dark:text-gray-500">No notifications yet</div>
                             @endforelse

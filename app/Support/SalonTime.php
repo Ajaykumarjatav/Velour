@@ -27,6 +27,17 @@ final class SalonTime
         return self::now($salon)->toDateString();
     }
 
+    public static function tomorrowDateString(Salon $salon): string
+    {
+        return self::now($salon)->copy()->addDay()->toDateString();
+    }
+
+    /** Whether $ymd is the salon's local today or tomorrow (admin relaxed booking window). */
+    public static function isTodayOrTomorrow(Salon $salon, string $ymd): bool
+    {
+        return $ymd === self::todayDateString($salon) || $ymd === self::tomorrowDateString($salon);
+    }
+
     public static function monthStartDateString(Salon $salon): string
     {
         return self::now($salon)->copy()->startOfMonth()->toDateString();
@@ -81,11 +92,11 @@ final class SalonTime
     /**
      * Parse a calendar date from the URL as start-of-day in the salon timezone.
      */
-    public static function parseLocalDate(Salon $salon, string $ymd): Carbon
+    public static function parseLocalDate(Salon $salon, string $ymd): SupportCarbon
     {
         $tz = self::timezone($salon);
 
-        return Carbon::createFromFormat('Y-m-d', $ymd, $tz)->startOfDay();
+        return SupportCarbon::createFromFormat('Y-m-d', $ymd, $tz)->startOfDay();
     }
 
     /**

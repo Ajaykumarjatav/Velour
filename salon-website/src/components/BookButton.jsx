@@ -1,26 +1,24 @@
 import { useSalon } from '../context/SalonContext'
 
-/** Opens in-site booking (current black theme) — never redirects to /book/ */
+/** Opens in-site booking — no login required */
 export default function BookButton({ children, className = '', as: Tag = 'button' }) {
   const { openBooking } = useSalon()
 
+  const handleClick = (e) => {
+    e.preventDefault()
+    openBooking()
+  }
+
   if (Tag === 'a') {
     return (
-      <a
-        href="#book"
-        onClick={(e) => {
-          e.preventDefault()
-          openBooking()
-        }}
-        className={className}
-      >
+      <a href="#book" onClick={handleClick} className={className}>
         {children}
       </a>
     )
   }
 
   return (
-    <button type="button" onClick={openBooking} className={className}>
+    <button type="button" onClick={handleClick} className={className}>
       {children}
     </button>
   )
