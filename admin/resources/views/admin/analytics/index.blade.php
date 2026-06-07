@@ -181,7 +181,7 @@
              class="text-sm font-medium text-gray-200 hover:text-white truncate block">
             {{ $row->name }}
           </a>
-          <p class="text-xs text-gray-500 font-mono">{{ $row->slug }}.velour.app</p>
+          <p class="text-xs text-gray-500 font-mono">{{ $row->slug }}.easygrox.com</p>
         </div>
         <div class="text-right flex-shrink-0">
           <span class="text-sm font-bold text-velour-400">{{ number_format($row->count) }}</span>

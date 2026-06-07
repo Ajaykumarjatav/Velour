@@ -21,7 +21,7 @@
     @php
       $loses = [];
       foreach($user->currentPlan()->features as $key => $val) {
-        if($val) $loses[] = ['online_booking'=>'Online booking widget','marketing'=>'Email & SMS marketing campaigns','reports'=>'Advanced revenue & staff reports','api_access'=>'API & third-party integrations','custom_domain'=>'Custom domain','priority_support'=>'Priority support','white_label'=>'White-label branding','remove_branding'=>'Velour branding removal'][$key] ?? $key;
+        if($val) $loses[] = ['online_booking'=>'Online booking widget','marketing'=>'Email & SMS marketing campaigns','reports'=>'Advanced revenue & staff reports','api_access'=>'API & third-party integrations','custom_domain'=>'Custom domain','priority_support'=>'Priority support','white_label'=>'White-label branding','remove_branding'=>'EasyGrox branding removal'][$key] ?? $key;
       }
     @endphp
     <ul class="space-y-2">
@@ -42,7 +42,7 @@
     <p class="font-semibold mb-2">Before you go…</p>
     <ul class="space-y-1.5">
       <li>• Need a lower price? <a href="{{ route('billing.plans') }}?interval=yearly" class="underline font-medium">Switch to yearly billing</a> and save 20%.</li>
-      <li>• Having trouble? <a href="mailto:support@velour.app" class="underline font-medium">Contact support</a> — we'll help.</li>
+      <li>• Having trouble? <a href="mailto:support@easygrox.com" class="underline font-medium">Contact support</a> — we'll help.</li>
       <li>• Heading away? You can pause from the <a href="{{ route('billing.portal') }}" class="underline font-medium">billing portal</a>.</li>
     </ul>
   </div>

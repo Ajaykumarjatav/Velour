@@ -17,20 +17,20 @@ use Illuminate\Support\Str;
  *   php artisan db:seed --class=SuperAdminSeeder
  *
  * Env variables (add to .env):
- *   SUPER_ADMIN_NAME="Velour Admin"
- *   SUPER_ADMIN_EMAIL="admin@velour.app"
+ *   SUPER_ADMIN_NAME="EasyGrox Admin"
+ *   SUPER_ADMIN_EMAIL="admin@EasyGrox.app"
  *   SUPER_ADMIN_PASSWORD="change-me-immediately"
  */
 class SuperAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = env('SUPER_ADMIN_EMAIL', 'admin@velour.app');
+        $email = env('SUPER_ADMIN_EMAIL', 'admin@EasyGrox.app');
 
         $user = User::withTrashed()->firstOrCreate(
             ['email' => $email],
             [
-                'name'              => env('SUPER_ADMIN_NAME', 'Velour Admin'),
+                'name'              => env('SUPER_ADMIN_NAME', 'EasyGrox Admin'),
                 'password'          => Hash::make(env('SUPER_ADMIN_PASSWORD', Str::random(32))),
                 'system_role'       => 'super_admin',
                 'is_active'         => true,

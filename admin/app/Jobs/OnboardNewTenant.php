@@ -66,7 +66,7 @@ class OnboardNewTenant implements ShouldQueue, NotTenantAware
         $notifications = [
             [
                 'type'       => 'onboarding',
-                'title'      => '👋 Welcome to Velour!',
+                'title'      => '👋 Welcome to EasyGrox!',
                 'body'       => 'Your salon is set up and ready. Start by adding your services and staff.',
                 'action_url' => '/settings?tab=services',
                 'data'       => ['action_label' => 'Add Services'],

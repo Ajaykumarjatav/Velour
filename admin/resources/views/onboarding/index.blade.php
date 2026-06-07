@@ -1,5 +1,5 @@
 @extends('layouts.auth')
-@section('title', 'Welcome to Velour')
+@section('title', 'Welcome to EasyGrox')
 
 @push('styles')
 <style>
@@ -95,7 +95,7 @@
 
   </div>
 
-  {{-- Velour branding --}}
+  {{-- EasyGrox branding --}}
   <p class="text-xs text-gray-400 mt-6">
     Need help? <a href="{{ route('help.index') }}" class="underline">Visit our Help Centre</a>
   </p>

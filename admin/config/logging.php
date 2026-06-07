@@ -86,7 +86,7 @@ return [
         'slack' => [
             'driver'   => 'slack',
             'url'      => env('SLACK_LOG_WEBHOOK'),
-            'username' => 'Velour Alerts',
+            'username' => 'EasyGrox Alerts',
             'emoji'    => ':boom:',
             'level'    => env('LOG_SLACK_LEVEL', 'critical'),
             'replace_placeholders' => true,

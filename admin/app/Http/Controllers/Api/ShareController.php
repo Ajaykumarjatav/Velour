@@ -216,7 +216,7 @@ class ShareController extends Controller
 
         return $this->success([
             'iframe' => implode("\n", [
-                "<!-- Velour Booking Widget -->",
+                "<!-- EasyGrox Booking Widget -->",
                 "<iframe",
                 "  src=\"{$widgetUrl}\"",
                 "  width=\"100%\"",
@@ -228,7 +228,7 @@ class ShareController extends Controller
                 "></iframe>",
             ]),
             'js' => implode("\n", [
-                "<!-- Velour Booking SDK -->",
+                "<!-- EasyGrox Booking SDK -->",
                 "<script src=\"{$appUrl}/sdk.js\" defer></script>",
                 "<div",
                 "  data-velour-booking=\"{$salon->slug}\"",
@@ -237,13 +237,13 @@ class ShareController extends Controller
                 "></div>",
             ]),
             'react' => implode("\n", [
-                "import { VelourBooking } from '@velour/react';",
+                "import { EasyGroxBooking } from '@velour/react';",
                 "",
                 "// Install: npm install @velour/react",
                 "",
                 "export default function BookingPage() {",
                 "  return (",
-                "    <VelourBooking",
+                "    <EasyGroxBooking",
                 "      salon=\"{$salon->slug}\"",
                 "      theme=\"light\"",
                 "      primaryColor=\"#B8943A\"",

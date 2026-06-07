@@ -140,7 +140,7 @@ class AccountController extends Controller
         Auth::logout();
         $user->delete(); // soft delete
 
-        return redirect('/')->with('success', 'Your account has been deleted. Thank you for using Velour.');
+        return redirect('/')->with('success', 'Your account has been deleted. Thank you for using EasyGrox.');
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

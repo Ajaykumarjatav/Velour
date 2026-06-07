@@ -18,7 +18,7 @@ class SupportTicketReplyNotification extends Notification
         return (new MailMessage)
             ->subject("[{$this->ticket->ticket_number}] Re: {$this->ticket->subject}")
             ->greeting("Hello {$notifiable->name},")
-            ->line("The Velour support team has replied to your ticket **{$this->ticket->ticket_number}**.")
+            ->line("The EasyGrox support team has replied to your ticket **{$this->ticket->ticket_number}**.")
             ->line("---")
             ->line(substr(strip_tags($this->replyBody), 0, 500))
             ->line("---")

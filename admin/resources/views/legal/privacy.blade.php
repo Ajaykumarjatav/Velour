@@ -7,7 +7,7 @@
 @section('content')
 
 <h2>1. Who We Are</h2>
-<p>Velour Salon SaaS ("Velour", "we", "us") is operated by Velour Technologies Ltd, registered in England and Wales. Our registered address and Data Protection Officer contact: <a href="mailto:privacy@velour.app">privacy@velour.app</a>.</p>
+<p>EasyGrox Salon SaaS ("EasyGrox", "we", "us") is operated by EasyGrox Technologies Ltd, registered in England and Wales. Our registered address and Data Protection Officer contact: <a href="mailto:privacy@easygrox.com">privacy@easygrox.com</a>.</p>
 
 <h2>2. Data We Collect</h2>
 
@@ -21,7 +21,7 @@
 <p>IP address, browser user agent, session identifiers, and usage analytics (page views, feature interactions) to operate and improve the service.</p>
 
 <h3>Client data (data processor role)</h3>
-<p>When you enter your clients' personal data into Velour, you are the data controller. We process that data on your behalf under our <a href="{{ route('legal.terms') }}">Data Processing Agreement</a> (incorporated into the Terms of Service).</p>
+<p>When you enter your clients' personal data into EasyGrox, you are the data controller. We process that data on your behalf under our <a href="{{ route('legal.terms') }}">Data Processing Agreement</a> (incorporated into the Terms of Service).</p>
 
 <h2>3. Legal Basis for Processing</h2>
 <ul>
@@ -33,7 +33,7 @@
 
 <h2>4. How We Use Your Data</h2>
 <ul>
-  <li>Provide, maintain, and improve the Velour platform</li>
+  <li>Provide, maintain, and improve the EasyGrox platform</li>
   <li>Process subscription payments via Stripe</li>
   <li>Send transactional emails (booking confirmations, reminders, billing receipts)</li>
   <li>Detect and prevent fraud, abuse, and security threats</li>
@@ -69,7 +69,7 @@
   <li><strong>Restriction</strong> — limit how we process your data</li>
   <li><strong>Objection</strong> — object to processing based on legitimate interests</li>
 </ul>
-<p>To exercise any right, email <a href="mailto:privacy@velour.app">privacy@velour.app</a>. We will respond within 30 days. You also have the right to lodge a complaint with the ICO (ico.org.uk).</p>
+<p>To exercise any right, email <a href="mailto:privacy@easygrox.com">privacy@easygrox.com</a>. We will respond within 30 days. You also have the right to lodge a complaint with the ICO (ico.org.uk).</p>
 
 <h2>8. Cookies</h2>
 <p>We use essential, functional, and analytics cookies. See our <a href="{{ route('legal.cookies') }}">Cookie Policy</a> for full details and your consent preferences.</p>
@@ -84,7 +84,7 @@
 <p>We will notify you by email at least 14 days before any material changes. Continued use after the effective date constitutes acceptance.</p>
 
 <h2>12. Contact</h2>
-<p>Data Protection Officer: <a href="mailto:privacy@velour.app">privacy@velour.app</a><br>
-Velour Technologies Ltd, 123 Example Street, London, EC1A 1BB</p>
+<p>Data Protection Officer: <a href="mailto:privacy@easygrox.com">privacy@easygrox.com</a><br>
+EasyGrox Technologies Ltd, 123 Example Street, London, EC1A 1BB</p>
 
 @endsection

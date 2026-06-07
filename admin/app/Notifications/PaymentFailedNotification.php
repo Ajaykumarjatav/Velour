@@ -23,7 +23,7 @@ class PaymentFailedNotification extends Notification implements ShouldQueue, Not
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage())
-            ->subject('Action required: Velour payment failed')
+            ->subject('Action required: EasyGrox payment failed')
             ->view('emails.billing.payment-failed', [
                 'user'        => $notifiable,
                 'amount'      => $this->amount,

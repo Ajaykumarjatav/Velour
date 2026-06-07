@@ -1,8 +1,8 @@
-@extends('emails.auth._layout', ['subject' => 'Reset your Velour password'])
+@extends('emails.auth._layout', ['subject' => 'Reset your EasyGrox password'])
 
 @section('body')
 <p class="greeting">Password reset request</p>
-<p class="text">Hi {{ $user->name }}, we received a request to reset your Velour password. Click the button below to choose a new one.</p>
+<p class="text">Hi {{ $user->name }}, we received a request to reset your EasyGrox password. Click the button below to choose a new one.</p>
 
 <div style="text-align:center">
   <a href="{{ $url }}" class="btn">🔒 Reset my password</a>

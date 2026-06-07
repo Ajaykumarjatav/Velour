@@ -112,7 +112,7 @@ class GdprController extends Controller
         $export = [
             'export_metadata' => [
                 'generated_at'  => now()->toIso8601String(),
-                'generated_by'  => 'Velour Salon SaaS',
+                'generated_by'  => 'EasyGrox',
                 'gdpr_basis'    => 'Article 20 — Right to Data Portability',
                 'salon_id'      => $salonId,
                 'client_id'     => $client->id,

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ $subject ?? 'Velour' }}</title>
+<title>{{ $subject ?? 'EasyGrox' }}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:#f5f3ff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#1f2937; }
@@ -31,14 +31,14 @@
 <body>
 <div class="wrapper">
   <div class="header">
-    <div class="header-logo">velour<span>.</span></div>
+    <img src="{{ asset('images/easygrox-logo-dark.png') }}" alt="EasyGrox" width="160" style="display:block;margin:0 auto;max-width:100%;height:auto;">
   </div>
   <div class="body">
     @yield('body')
   </div>
   <div class="footer">
-    <p>© {{ date('Y') }} Velour · Salon Management Platform</p>
-    <p>You received this email because you have an account at <a href="{{ config('app.url') }}">velour.app</a></p>
+    <p>© {{ date('Y') }} EasyGrox · Salon Management Platform</p>
+    <p>You received this email because you have an account at <a href="{{ config('app.url') }}">easygrox.com</a></p>
   </div>
 </div>
 </body>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Welcome to Velour</title>
+<title>Welcome to EasyGrox</title>
 <style>
   body{font-family:Georgia,serif;background:#0a0a0a;margin:0;padding:20px;}
   .wrap{max-width:600px;margin:0 auto;background:#141414;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;}
@@ -21,7 +21,7 @@
 <body>
 <div class="wrap">
   <div class="header">
-    <div class="logo">Velour</div>
+    <div class="logo">EasyGrox</div>
     <p style="color:#B8943A;margin:12px 0 0;font-size:13px;letter-spacing:3px;">SALON MANAGEMENT</p>
   </div>
   <div class="body">
@@ -63,4 +63,4 @@
     </p>
   </div>
   <div class="footer">
-    Velour Salon SaaS &bull; <a href="/cdn-cgi/l/email-protection#60131510100f12142016050c0f15124e011010" style="color:#555;"><span class="__cf_email__" data-cfemail="ed9e989d9d829f99ad9b888182989fc38c9d9d">[email&#160;protected]</span></a
+    EasyGrox Salon SaaS &bull; <a href="/cdn-cgi/l/email-protection#60131510100f12142016050c0f15124e011010" style="color:#555;"><span class="__cf_email__" data-cfemail="ed9e989d9d829f99ad9b888182989fc38c9d9d">[email&#160;protected]</span></a

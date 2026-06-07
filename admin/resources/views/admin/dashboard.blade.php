@@ -35,7 +35,7 @@
           <a href="{{ route('admin.tenants.show', $tenant->id) }}" class="font-medium text-gray-200 hover:text-white">
             {{ $tenant->name }}
           </a>
-          <p class="text-xs text-gray-500">{{ $tenant->subdomain }}.velour.app</p>
+          <p class="text-xs text-gray-500">{{ $tenant->subdomain }}.easygrox.com</p>
         </td>
         <td class="px-4 py-3 text-right">
           <span class="px-2 py-0.5 rounded-lg text-xs font-semibold

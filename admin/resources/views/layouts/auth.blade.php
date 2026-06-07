@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Sign In') — Velour</title>
+    <title>@yield('title', 'Sign In') — EasyGrox</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -84,12 +85,11 @@
             opacity: 0.035;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
         }
-        .auth-brand-link:hover .auth-logo-tile {
-            transform: translateY(-2px) rotate(-2deg);
-            box-shadow: 0 20px 40px -12px rgba(124, 58, 237, 0.45);
+        .auth-logo-img {
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .auth-logo-tile {
-            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+        .auth-brand-link:hover .auth-logo-img {
+            transform: translateY(-2px) scale(1.02);
         }
         .auth-link-line {
             padding-bottom: 2px;
@@ -108,9 +108,8 @@
             .animate-auth-shine {
                 animation: none !important;
             }
-            .auth-brand-link:hover .auth-logo-tile {
+            .auth-brand-link:hover .auth-logo-img {
                 transform: none;
-                box-shadow: 0 20px 40px -12px rgba(124, 58, 237, 0.45);
             }
         }
         * {
@@ -152,17 +151,9 @@
     <div class="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-14">
         <div class="w-full mx-auto min-w-0 @yield('auth_container_class', 'max-w-[440px]')">
             <header class="mb-9 text-center sm:mb-11">
-                <a href="{{ url('/') }}" class="auth-brand-link group inline-flex flex-col items-center gap-4 rounded-2xl outline-none ring-velour-500/30 focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent">
-                    <span class="auth-logo-tile relative flex h-[3.75rem] w-[3.75rem] items-center justify-center rounded-2xl bg-gradient-to-br from-velour-500 via-violet-600 to-purple-700 text-white shadow-xl shadow-velour-600/30 ring-2 ring-white/60">
-                        <span class="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/10 to-transparent" aria-hidden="true"></span>
-                        <svg class="relative h-8 w-8 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.65" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                        </svg>
-                    </span>
-                    <span class="space-y-1">
-                        <span class="block bg-gradient-to-r from-slate-900 via-velour-900 to-violet-900 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-[2rem]">Velour</span>
-                        <span class="block text-[13px] font-medium tracking-wide text-slate-500">Salon management, elevated</span>
-                    </span>
+                <a href="{{ url('/') }}" class="auth-brand-link group inline-flex flex-col items-center gap-3 rounded-2xl outline-none ring-velour-500/30 focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent">
+                    <img src="{{ asset('images/easygrox-logo-light.png') }}" alt="EasyGrox" class="auth-logo-img h-16 w-auto sm:h-[4.5rem]">
+                    <span class="block text-[13px] font-medium tracking-wide text-slate-500">Salon management, elevated</span>
                 </a>
             </header>
 
@@ -187,7 +178,7 @@
             <div class="mt-10 flex flex-col items-center gap-3">
                 <div class="h-px w-16 bg-gradient-to-r from-transparent via-slate-300 to-transparent" aria-hidden="true"></div>
                 <p class="text-center text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
-                    © {{ date('Y') }} Velour · Encrypted session
+                    © {{ date('Y') }} EasyGrox · Encrypted session
                 </p>
             </div>
         </div>

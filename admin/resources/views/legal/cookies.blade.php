@@ -54,6 +54,6 @@
 </div>
 
 <h2>5. More Information</h2>
-<p>For more about how we use personal data, see our <a href="{{ route('legal.privacy') }}">Privacy Policy</a>. For questions about cookies, email <a href="mailto:privacy@velour.app">privacy@velour.app</a>.</p>
+<p>For more about how we use personal data, see our <a href="{{ route('legal.privacy') }}">Privacy Policy</a>. For questions about cookies, email <a href="mailto:privacy@easygrox.com">privacy@easygrox.com</a>.</p>
 
 @endsection

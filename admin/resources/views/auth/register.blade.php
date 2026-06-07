@@ -44,7 +44,7 @@
     </div>
 
     <p class="rounded-2xl border border-slate-100/80 bg-slate-50/50 px-4 py-3 text-xs leading-relaxed text-slate-500">
-        By continuing, you agree to use Velour responsibly for your salon’s client and team data.
+        By continuing, you agree to use EasyGrox responsibly for your salon’s client and team data.
     </p>
 
     <button type="submit"

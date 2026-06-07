@@ -17,7 +17,7 @@
         <div>
           <p class="text-3xl font-black capitalize">{{ $user->plan ?? 'Free' }}</p>
           <p class="text-sm opacity-80 mt-0.5">
-            {{ $plans[$user->plan ?? 'free']['name'] ?? 'Free' }} — {{ $plans[$user->plan ?? 'free']['tagline'] ?? 'Velour Salon Management' }}
+            {{ $plans[$user->plan ?? 'free']['name'] ?? 'Free' }} — {{ $plans[$user->plan ?? 'free']['tagline'] ?? 'EasyGrox Salon Management' }}
           </p>
         </div>
         @php $sub = $user->subscription('default'); @endphp

@@ -27,7 +27,7 @@
           {{ ucfirst($owner?->plan ?? 'free') }} plan
         </span>
       </div>
-      <p class="text-sm text-gray-500 mt-1 font-mono">{{ $salon->slug }}.velour.app</p>
+      <p class="text-sm text-gray-500 mt-1 font-mono">{{ $salon->slug }}.easygrox.com</p>
       @if($salon->domain)<p class="text-xs text-velour-400 mt-0.5">{{ $salon->domain }}</p>@endif
     </div>
     <div class="flex flex-wrap gap-2">
@@ -263,7 +263,7 @@
       <div class="flex items-center gap-2 flex-1 min-w-[200px]">
         <input type="text" name="slug" value="{{ $salon->slug }}" placeholder="subdomain"
                class="flex-1 px-4 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
-        <span class="text-sm text-gray-500">.velour.app</span>
+        <span class="text-sm text-gray-500">.easygrox.com</span>
       </div>
       <input type="text" name="domain" value="{{ $salon->domain }}" placeholder="custom-domain.com (optional)"
              class="flex-1 min-w-[200px] px-4 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500 placeholder-gray-600">

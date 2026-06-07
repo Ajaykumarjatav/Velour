@@ -80,7 +80,7 @@
 
       <div class="px-6 py-5 flex-1">
         @php
-          $featureLabels = ['online_booking'=>'Online booking','marketing'=>'Email & SMS marketing','reports'=>'Advanced reports','api_access'=>'API access','custom_domain'=>'Custom domain','priority_support'=>'Priority support','white_label'=>'White-label','multi_location'=>'Multi-location','remove_branding'=>'Remove Velour branding'];
+          $featureLabels = ['online_booking'=>'Online booking','marketing'=>'Email & SMS marketing','reports'=>'Advanced reports','api_access'=>'API access','custom_domain'=>'Custom domain','priority_support'=>'Priority support','white_label'=>'White-label','multi_location'=>'Multi-location','remove_branding'=>'Remove EasyGrox branding'];
           $limits = ['staff'=>$plan->isUnlimited('staff') ? 'Unlimited staff' : $plan->limit('staff').' staff','clients'=>$plan->isUnlimited('clients') ? 'Unlimited clients' : number_format($plan->limit('clients')).' clients','services'=>$plan->isUnlimited('services') ? 'Unlimited services' : $plan->limit('services').' services'];
         @endphp
         <ul class="space-y-2.5 mb-4">

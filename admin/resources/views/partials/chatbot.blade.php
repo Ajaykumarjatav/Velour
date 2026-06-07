@@ -34,7 +34,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-semibold text-white leading-none">
-                        {{ $isAdmin ? 'Admin Assistant' : 'Velour Assistant' }}
+                        {{ $isAdmin ? 'Admin Assistant' : 'EasyGrox Assistant' }}
                     </p>
                     <p class="text-xs text-velour-200 mt-0.5" x-text="listening ? '🎙 Listening…' : (voiceMode ? '🔊 Voice mode on' : 'Ask me anything')"></p>
                 </div>

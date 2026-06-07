@@ -8,7 +8,7 @@
     <p>Hello Admin,</p>
     <p>Your client export for <strong>{{ $salonName }}</strong> is attached as a CSV file.</p>
     <p>For security, client exports are sent only to the admin email.</p>
-    <p>Thanks,<br>Velour</p>
+    <p>Thanks,<br>EasyGrox</p>
 </body>
 </html>
 

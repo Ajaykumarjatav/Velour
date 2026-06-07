@@ -107,7 +107,7 @@
       </td>
       <td class="px-4 py-3">
         <a href="{{ route('admin.tenants.show', $tenant->id) }}" class="font-semibold text-gray-200 hover:text-white">{{ $tenant->name }}</a>
-        <p class="text-xs text-gray-500 font-mono">{{ $tenant->slug }}.velour.app</p>
+        <p class="text-xs text-gray-500 font-mono">{{ $tenant->slug }}.easygrox.com</p>
         @if($tenant->owner)<p class="text-xs text-gray-600">{{ $tenant->owner->email }}</p>@endif
       </td>
       <td class="px-4 py-3 hidden sm:table-cell">

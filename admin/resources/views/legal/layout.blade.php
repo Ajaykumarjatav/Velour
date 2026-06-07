@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>@yield('title') — Velour</title>
+<title>@yield('title') — EasyGrox</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -29,7 +29,7 @@
 <header class="border-b border-gray-100 bg-white sticky top-0 z-10">
   <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
     <a href="{{ route('dashboard') }}" class="text-xl font-bold" style="font-family:'Playfair Display',serif;color:#0F0E0C">
-      Velour<span class="gold">.</span>
+      EasyGrox<span class="gold">.</span>
     </a>
     <div class="flex items-center gap-1">
       <a href="{{ route('legal.privacy') }}" class="nav-link @yield('nav-active-privacy')">Privacy</a>
@@ -52,7 +52,7 @@
 
 <footer class="border-t border-gray-100 py-8 mt-16">
   <p class="text-center text-sm text-gray-400">
-    © {{ date('Y') }} Velour Salon SaaS. All rights reserved.
+    © {{ date('Y') }} EasyGrox Salon SaaS. All rights reserved.
   </p>
 </footer>
 

@@ -77,7 +77,7 @@ class GoLiveController extends Controller
         $embedCodes = [
             'iframe' => "<iframe src=\"{$widgetUrl}\" width=\"100%\" height=\"700\" frameborder=\"0\" loading=\"lazy\" style=\"border-radius:16px;border:none;\" title=\"{$salon->name} — Online Booking\"></iframe>",
             'js'     => "<script src=\"{$appUrl}/sdk.js\" defer></script>\n<div data-velour-booking=\"{$salon->slug}\" data-theme=\"light\" data-primary-color=\"#B8943A\"></div>",
-            'react'  => "import { VelourBooking } from '@velour/react';\n\nexport default function BookingPage() {\n  return (\n    <VelourBooking\n      salon=\"{$salon->slug}\"\n      theme=\"light\"\n      primaryColor=\"#B8943A\"\n    />\n  );\n}",
+            'react'  => "import { EasyGroxBooking } from '@velour/react';\n\nexport default function BookingPage() {\n  return (\n    <EasyGroxBooking\n      salon=\"{$salon->slug}\"\n      theme=\"light\"\n      primaryColor=\"#B8943A\"\n    />\n  );\n}",
         ];
 
         // ── Social share click history (this month, by platform) ──────────

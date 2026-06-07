@@ -12,7 +12,7 @@ use Spatie\Multitenancy\Jobs\NotTenantAware;
  * ResetPasswordNotification
  *
  * Replaces Laravel's default password reset notification with a branded
- * Velour email.  The reset link expires in 60 minutes (configurable via
+ * EasyGrox email.  The reset link expires in 60 minutes (configurable via
  * config/auth.php → passwords.users.expire).
  *
  * Implements NotTenantAware so Spatie Multitenancy does not attempt to
@@ -30,7 +30,7 @@ class ResetPasswordNotification extends ResetPassword implements ShouldQueue, No
         ], false));
 
         return (new MailMessage())
-            ->subject('Reset your Velour password')
+            ->subject('Reset your EasyGrox password')
             ->view('emails.auth.reset-password', [
                 'user'    => $notifiable,
                 'url'     => $url,

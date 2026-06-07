@@ -79,7 +79,7 @@
           <a href="{{ route('admin.tenants.show', $salon->id) }}" class="font-medium text-gray-200 hover:text-white text-sm">
             {{ $salon->name }}
           </a>
-          <p class="text-xs text-gray-500">{{ $salon->subdomain }}.velour.app</p>
+          <p class="text-xs text-gray-500">{{ $salon->subdomain }}.easygrox.com</p>
         </div>
         <span class="text-xs {{ $salon->is_active ? 'text-green-400' : 'text-red-400' }}">
           {{ $salon->is_active ? 'Active' : 'Suspended' }}

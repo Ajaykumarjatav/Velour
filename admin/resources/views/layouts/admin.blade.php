@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Velour Admin · @yield('title', 'Dashboard')</title>
+  <title>EasyGrox Admin · @yield('title', 'Dashboard')</title>
+  <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -47,7 +48,7 @@
   {{-- Sidebar --}}
   <aside class="w-56 flex-shrink-0 bg-gray-900 flex flex-col h-screen sticky top-0">
     <div class="px-5 py-5 border-b border-gray-800">
-      <p class="text-lg font-black text-white tracking-tight">velour<span class="text-velour-400">.</span></p>
+      <img src="{{ asset('images/easygrox-logo-dark.png') }}" alt="EasyGrox" class="h-8 w-auto max-w-full">
       <p class="text-xs text-red-400 font-semibold uppercase tracking-widest mt-0.5">Admin Panel</p>
     </div>
 
@@ -100,7 +101,7 @@
       </div>
       <a href="{{ route('dashboard') }}"
          class="flex items-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-white rounded-xl hover:bg-gray-800 transition-colors">
-        ← Back to Velour
+        ← Back to EasyGrox
       </a>
       <form method="POST" action="{{ route('logout') }}">
         @csrf

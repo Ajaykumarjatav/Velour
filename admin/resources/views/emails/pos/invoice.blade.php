@@ -28,7 +28,7 @@
             <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                     <td valign="top" style="padding-right:16px;">
-                        <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#4c1d95;line-height:1.2;">{{ $salon?->name ?? 'Velour' }}</h1>
+                        <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#4c1d95;line-height:1.2;">{{ $salon?->name ?? 'EasyGrox' }}</h1>
                         @foreach($addressLines as $line)
                             <p style="margin:0 0 2px;font-size:13px;color:#52525b;">{{ $line }}</p>
                         @endforeach
@@ -129,7 +129,7 @@
             <p style="margin:20px 0 0;font-size:13px;color:#71717a;">Thank you for your business.</p>
         </div>
     </div>
-    <p style="margin:16px 0 0;text-align:center;font-size:12px;color:#a1a1aa;">Powered by Velour</p>
+    <p style="margin:16px 0 0;text-align:center;font-size:12px;color:#a1a1aa;">Powered by EasyGrox</p>
 </div>
 </body>
 </html>

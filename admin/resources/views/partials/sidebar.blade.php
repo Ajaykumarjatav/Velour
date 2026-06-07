@@ -3,9 +3,9 @@
     {{-- Business status header --}}
     <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800 min-h-[4.25rem]">
         {{-- Collapsed: store icon only --}}
-        <div class="sidebar-logo-icon flex w-8 h-8 rounded-lg bg-velour-600 items-center justify-center text-white shrink-0 mx-auto"
-             title="{{ ($salonBusinessStatus ?? null) ? $salonBusinessStatus['name'] : 'Velour' }}">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <div class="sidebar-logo-icon flex w-8 h-8 items-center justify-center shrink-0 mx-auto"
+             title="{{ ($salonBusinessStatus ?? null) ? $salonBusinessStatus['name'] : 'EasyGrox' }}">
+            <img src="{{ asset('images/easygrox-icon.png') }}" alt="EasyGrox" class="w-8 h-8 object-contain">
         </div>
 
         @if(Auth::check() && ($salonBusinessStatus ?? null))
@@ -44,9 +44,10 @@
             </button>
         </div>
         @else
-        <p class="sidebar-text text-base font-semibold text-gray-900 dark:text-white tracking-tight font-sans whitespace-nowrap">
-            velour<span class="text-velour-500 font-semibold">.</span>
-        </p>
+        <div class="sidebar-text">
+            <img src="{{ asset('images/easygrox-logo-light.png') }}" alt="EasyGrox" class="h-7 w-auto max-w-full dark:hidden">
+            <img src="{{ asset('images/easygrox-logo-dark.png') }}" alt="EasyGrox" class="h-7 w-auto max-w-full hidden dark:block">
+        </div>
         @endif
     </div>
 
@@ -422,13 +423,13 @@
                         class="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-sm transition-colors text-left
                                text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                         @click="window.dispatchEvent(new CustomEvent('velour-chat-open'))"
-                        aria-label="Open Velour Assistant"
-                        data-title="Velour Assistant">
+                        aria-label="Open EasyGrox Assistant"
+                        data-title="EasyGrox Assistant">
                     <svg class="w-3.5 h-3.5 flex-shrink-0 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                     </svg>
-                    <span class="flex-1">Velour Assistant</span>
+                    <span class="flex-1">EasyGrox Assistant</span>
                     <span x-show="chatUnread"
                           class="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"
                           aria-hidden="true"></span>

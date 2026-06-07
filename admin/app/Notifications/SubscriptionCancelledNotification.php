@@ -17,7 +17,7 @@ class SubscriptionCancelledNotification extends Notification implements ShouldQu
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage())
-            ->subject('Your Velour subscription has ended')
+            ->subject('Your EasyGrox subscription has ended')
             ->view('emails.billing.subscription-cancelled', ['user' => $notifiable]);
     }
 }

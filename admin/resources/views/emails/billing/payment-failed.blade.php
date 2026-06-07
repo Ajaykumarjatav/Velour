@@ -1,7 +1,7 @@
-@extends('emails.auth._layout', ['subject' => 'Action required: Velour payment failed'])
+@extends('emails.auth._layout', ['subject' => 'Action required: EasyGrox payment failed'])
 @section('body')
 <p class="greeting" style="color:#dc2626">⚠ Payment failed</p>
-<p class="text">Hi {{ $user->name }}, we were unable to collect your Velour subscription payment of <strong>{{ config('billing.currency_symbol', '£') }}{{ number_format($amount, 2) }}</strong>.</p>
+<p class="text">Hi {{ $user->name }}, we were unable to collect your EasyGrox subscription payment of <strong>{{ config('billing.currency_symbol', '£') }}{{ number_format($amount, 2) }}</strong>.</p>
 
 @if($nextAttempt)
 <p class="text">We'll automatically retry on <strong>{{ $nextAttempt->format('d M Y') }}</strong>. To avoid any interruption, please update your payment method before then.</p>

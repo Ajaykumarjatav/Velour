@@ -27,7 +27,7 @@ class StaffInviteCredentialsNotification extends Notification implements ShouldQ
         $mail = (new MailMessage)
             ->subject('You are invited to ' . $this->salonName)
             ->greeting('Hello ' . ($notifiable->name ?: 'there') . ',')
-            ->line('You have been invited to join ' . $this->salonName . ' on Velour. Open the sign-in page, then log in with your email and the temporary password below.')
+            ->line('You have been invited to join ' . $this->salonName . ' on EasyGrox. Open the sign-in page, then log in with your email and the temporary password below.')
             ->line('Email (login): ' . $notifiable->email);
 
         if ($this->temporaryPassword !== null) {

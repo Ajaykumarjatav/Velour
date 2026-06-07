@@ -24,7 +24,7 @@ class SubscriptionCreatedNotification extends Notification implements ShouldQueu
         $planName = ucfirst($this->planKey);
         $subject  = $this->onTrial
             ? "Your {$planName} trial has started 🎉"
-            : "Welcome to Velour {$planName}!";
+            : "Welcome to EasyGrox {$planName}!";
 
         return (new MailMessage())
             ->subject($subject)

@@ -117,7 +117,7 @@ class MarketingSeeder extends Seeder
                 'type'            => 'sms',
                 'status'          => 'sent',
                 'target'          => 'all',
-                'content'         => 'Hi {{first_name}}, book any colour this week and receive a FREE Olaplex treatment (worth £55). Limited slots — book now: velour.app/book',
+                'content'         => 'Hi {{first_name}}, book any colour this week and receive a FREE Olaplex treatment (worth £55). Limited slots — book now: EasyGrox.app/book',
                 'recipient_count' => 89,
                 'sent_count'      => 89,
                 'opened_count'    => 89,

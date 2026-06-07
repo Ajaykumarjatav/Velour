@@ -1,14 +1,14 @@
-@extends('emails.auth._layout', ['subject' => 'Verify your Velour email address'])
+@extends('emails.auth._layout', ['subject' => 'Verify your EasyGrox email address'])
 
 @section('body')
 <p class="greeting">Verify your email address</p>
-<p class="text">Hi {{ $user->name }}, welcome to Velour! Please verify your email address to activate your account and start managing your salon.</p>
+<p class="text">Hi {{ $user->name }}, welcome to EasyGrox! Please verify your email address to activate your account and start managing your salon.</p>
 
 <div style="text-align:center">
   <a href="{{ $url }}" class="btn">✓ Verify email address</a>
 </div>
 
-<p class="note">This link expires in {{ $expiry }}. If you didn't create a Velour account, you can safely ignore this email.</p>
+<p class="note">This link expires in {{ $expiry }}. If you didn't create a EasyGrox account, you can safely ignore this email.</p>
 
 <hr class="divider">
 

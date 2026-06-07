@@ -77,7 +77,7 @@
         'online_booking'=>['Online booking','book'],'marketing'=>['Email & SMS marketing','mail'],
         'reports'=>['Advanced reports','chart'],'api_access'=>['API access','api'],
         'custom_domain'=>['Custom domain','globe'],'priority_support'=>['Priority support','star'],
-        'white_label'=>['White-label branding','tag'],'remove_branding'=>['Remove Velour branding','clean'],
+        'white_label'=>['White-label branding','tag'],'remove_branding'=>['Remove EasyGrox branding','clean'],
       ];
     @endphp
     <div class="grid sm:grid-cols-2 gap-2">

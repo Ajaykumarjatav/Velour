@@ -89,7 +89,7 @@ class ReviewSeeder extends Seeder
                 'staff_id'      => $member->id,
                 'rating'        => $rating,
                 'comment'       => $comment,
-                'source'        => ['velour','google','google','facebook'][array_rand([0,1,2,3])],
+                'source'        => ['EasyGrox','google','google','facebook'][array_rand([0,1,2,3])],
                 'reviewer_name' => $client->first_name . ' ' . substr($client->last_name, 0, 1) . '.',
                 'owner_reply'   => $reply,
                 'replied_at'    => $reply ? now()->subDays(rand(1, 5)) : null,

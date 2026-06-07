@@ -19,7 +19,7 @@ class TenantSuspendedNotification extends Notification
         $mail = (new MailMessage)
             ->subject("Your {$this->salon->name} account has been suspended")
             ->greeting("Hello {$notifiable->name},")
-            ->line("We're writing to let you know that your Velour account for **{$this->salon->name}** has been temporarily suspended.")
+            ->line("We're writing to let you know that your EasyGrox account for **{$this->salon->name}** has been temporarily suspended.")
             ->line("**Reason:** " . ucwords(str_replace('_', ' ', $this->reason)));
         if ($this->customerMessage) {
             $mail->line($this->customerMessage);

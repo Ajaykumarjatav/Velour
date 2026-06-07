@@ -234,8 +234,8 @@ class AuthController extends Controller
         }
 
         return $user->isSuperAdmin()
-            ? redirect()->route('admin.dashboard')->with('success', 'Email verified. Welcome to Velour!')
-            : redirect()->route('dashboard')->with('success', 'Email verified. Welcome to Velour!');
+            ? redirect()->route('admin.dashboard')->with('success', 'Email verified. Welcome to EasyGrox!')
+            : redirect()->route('dashboard')->with('success', 'Email verified. Welcome to EasyGrox!');
     }
 
     public function resendVerification(Request $request)

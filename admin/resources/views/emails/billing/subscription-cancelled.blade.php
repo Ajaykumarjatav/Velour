@@ -1,7 +1,7 @@
-@extends('emails.auth._layout', ['subject' => 'Your Velour subscription has ended'])
+@extends('emails.auth._layout', ['subject' => 'Your EasyGrox subscription has ended'])
 @section('body')
 <p class="greeting">Your subscription has ended</p>
-<p class="text">Hi {{ $user->name }}, your Velour subscription has been cancelled and your account has been moved to the Free plan.</p>
+<p class="text">Hi {{ $user->name }}, your EasyGrox subscription has been cancelled and your account has been moved to the Free plan.</p>
 <p class="text">You can still access your salon data, but some features are now restricted. To restore full access, resubscribe at any time.</p>
 <div style="text-align:center">
   <a href="{{ route('billing.plans') }}" class="btn">View plans →</a>

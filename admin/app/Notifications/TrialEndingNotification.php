@@ -20,7 +20,7 @@ class TrialEndingNotification extends Notification implements ShouldQueue, NotTe
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage())
-            ->subject('Your Velour trial ends in 3 days')
+            ->subject('Your EasyGrox trial ends in 3 days')
             ->view('emails.billing.trial-ending', [
                 'user'         => $notifiable,
                 'trialEndsAt'  => $this->trialEndsAt,

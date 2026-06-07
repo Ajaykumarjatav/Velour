@@ -41,7 +41,7 @@ class HealthCheck extends Command
                 'checks'    => $this->results,
             ], JSON_PRETTY_PRINT));
         } else {
-            $this->info("Velour Health Check — " . now()->toIso8601String());
+            $this->info("EasyGrox Health Check — " . now()->toIso8601String());
             $this->line(str_repeat('─', 50));
             foreach ($this->results as $name => $r) {
                 $icon = $r['healthy'] ? '✅' : '❌';

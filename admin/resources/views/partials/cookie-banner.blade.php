@@ -24,7 +24,7 @@
         <div>
           <p class="font-semibold text-gray-800 text-sm mb-0.5">We use cookies</p>
           <p class="text-xs text-gray-500 leading-relaxed">
-            We use essential cookies to make Velour work, and optional analytics cookies to help us improve it.
+            We use essential cookies to make EasyGrox work, and optional analytics cookies to help us improve it.
             <a href="{{ route('legal.cookies') }}" class="text-amber-600 underline">Learn more</a>
           </p>
         </div>
@@ -53,7 +53,7 @@
         @foreach([
           ['essential', 'Essential', 'Required for login and security. Cannot be disabled.', true],
           ['functional', 'Functional', 'Remember your UI preferences (sidebar, calendar view).', false],
-          ['analytics', 'Analytics', 'Anonymised usage data to help us improve Velour.', false],
+          ['analytics', 'Analytics', 'Anonymised usage data to help us improve EasyGrox.', false],
           ['marketing', 'Marketing', 'Campaign attribution — never shared with third parties.', false],
         ] as [$key, $label, $desc, $required])
         <label class="flex items-start gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer"

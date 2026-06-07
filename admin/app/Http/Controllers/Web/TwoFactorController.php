@@ -61,7 +61,7 @@ class TwoFactorController extends Controller
         session(['two_factor_pending_secret' => $secret]);
 
         $qrCodeUrl = $google2fa->getQRCodeUrl(
-            config('app.name', 'Velour'),
+            config('app.name', 'EasyGrox'),
             $user->email,
             $secret
         );

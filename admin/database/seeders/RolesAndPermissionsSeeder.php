@@ -13,7 +13,7 @@ use App\Support\StaffJobRoles;
 /**
  * RolesAndPermissionsSeeder
  *
- * Creates the full RBAC hierarchy for Velour.
+ * Creates the full RBAC hierarchy for EasyGrox.
  *
  * ┌─────────────────────────────────────────────────────────────────────────┐
  * │  Role          │  Guard  │  Scope         │  Description                │

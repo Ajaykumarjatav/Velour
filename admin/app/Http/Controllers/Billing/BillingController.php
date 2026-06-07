@@ -285,9 +285,9 @@ class BillingController extends Controller
         $user = Auth::user();
 
         return $user->downloadInvoice($invoiceId, [
-            'vendor'  => 'Velour',
+            'vendor'  => 'EasyGrox',
             'product' => 'Salon Management Subscription',
-            'street'  => '1 Velour Way',
+            'street'  => '1 EasyGrox Way',
             'location'=> 'London',
             'country' => 'United Kingdom',
             'url'     => config('app.url'),

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Guide')
-@section('page-title', 'How to use Velour')
+@section('page-title', 'How to use EasyGrox')
 @section('content')
 
 <div class="max-w-3xl space-y-6">

@@ -30,7 +30,7 @@ class TwoFactorCodeNotification extends Notification implements ShouldQueue, Not
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage())
-            ->subject('Your Velour login code: ' . $this->code)
+            ->subject('Your EasyGrox login code: ' . $this->code)
             ->view('emails.auth.two-factor-code', [
                 'user' => $notifiable,
                 'code' => $this->code,

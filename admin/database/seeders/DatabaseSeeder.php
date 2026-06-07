@@ -7,14 +7,14 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the Velour demo data.
+     * Seed the EasyGrox demo data.
      *
      * Run:  php artisan db:seed
      * Or:   php artisan migrate:fresh --seed
      *
      * Safe to re-run without migrate:fresh — seeders skip or update existing demo rows.
      *
-     * Demo login: demo@velour.app / password
+     * Demo login: demo@EasyGrox.app / password
      */
     public function run(): void
     {
@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->command->info('');
-        $this->command->info('✅  Velour demo data seeded successfully!');
+        $this->command->info('✅  EasyGrox demo data seeded successfully!');
         $this->command->info('');
         $this->command->table(
             ['Resource', 'Count'],
@@ -55,6 +55,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $this->command->info('');
-        $this->command->info('🔑  Login: demo@velour.app / password');
+        $this->command->info('🔑  Login: demo@EasyGrox.app / password');
     }
 }

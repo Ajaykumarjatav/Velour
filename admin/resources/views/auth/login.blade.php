@@ -41,7 +41,7 @@
 </form>
 
 <p class="mt-9 border-t border-slate-200/60 pt-8 text-center text-sm text-slate-500">
-    New to Velour?
+    New to EasyGrox?
     <a href="{{ route('register') }}" class="auth-link-line font-semibold text-velour-700 decoration-transparent hover:text-velour-900">Create a free account</a>
 </p>
 @endsection

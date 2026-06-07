@@ -76,7 +76,7 @@
         <p class="text-2xl mb-2">💬</p>
         <p class="text-sm font-medium text-gray-700 mb-1">Still stuck?</p>
         <p class="text-xs text-gray-400 mb-3">Our team replies within 2 hours</p>
-        <a href="mailto:support@velour.app"
+        <a href="mailto:support@easygrox.com"
           class="block bg-amber-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-amber-600 transition">
           Contact Support
         </a>

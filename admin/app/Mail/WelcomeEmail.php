@@ -27,7 +27,7 @@ class WelcomeEmail extends Mailable implements ShouldQueue, NotTenantAware
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Welcome to Velour — {$this->salon->name} is live 🎉",
+            subject: "Welcome to EasyGrox — {$this->salon->name} is live 🎉",
         );
     }
 

@@ -18,7 +18,7 @@ class SalonSeeder extends Seeder
     public function run(): void
     {
         $owner = User::firstOrCreate(
-            ['email' => 'demo@velour.app'],
+            ['email' => 'demo@EasyGrox.app'],
             [
                 'name'      => 'Isabelle Laurent',
                 'password'  => Hash::make('password'),
@@ -52,7 +52,7 @@ class SalonSeeder extends Seeder
                 'timezone'                   => 'Europe/London',
                 'currency'                   => 'GBP',
                 'locale'                     => 'en-GB',
-                'booking_url'                => 'velour.app/maison-lumiere',
+                'booking_url'                => 'EasyGrox.app/maison-lumiere',
                 'online_booking_enabled'     => true,
                 'new_client_booking_enabled' => true,
                 'deposit_required'           => true,

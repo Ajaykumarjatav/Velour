@@ -37,7 +37,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |──────────────────────────────────────────────────────────────────────────────
-| VELOUR — Web Routes
+| EasyGrox — Web Routes
 |──────────────────────────────────────────────────────────────────────────────
 |
 |  Middleware layers (applied in order):

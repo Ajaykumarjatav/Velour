@@ -15,7 +15,7 @@ use Spatie\Multitenancy\Jobs\NotTenantAware;
  * VerifyEmailNotification
  *
  * Replaces Laravel's default email verification notification with a branded
- * Velour version.  Generates a signed URL valid for 60 minutes.
+ * EasyGrox version.  Generates a signed URL valid for 60 minutes.
  *
  * Implements NotTenantAware so Spatie Multitenancy does not attempt to
  * resolve a tenant for this job (email verification runs in guest context).
@@ -32,7 +32,7 @@ class VerifyEmailNotification extends VerifyEmail implements ShouldQueue, NotTen
         $url = $this->verificationUrl($notifiable);
 
         return (new MailMessage())
-            ->subject('Verify your Velour email address')
+            ->subject('Verify your EasyGrox email address')
             ->view('emails.auth.verify-email', [
                 'user'    => $notifiable,
                 'url'     => $url,

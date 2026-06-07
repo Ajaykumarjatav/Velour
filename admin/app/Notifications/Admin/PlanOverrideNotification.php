@@ -21,7 +21,7 @@ class PlanOverrideNotification extends Notification
             ? "until " . $this->override->expires_at->format('d M Y')
             : "with no expiry date";
         return (new MailMessage)
-            ->subject("Your Velour plan has been updated")
+            ->subject("Your EasyGrox plan has been updated")
             ->greeting("Hello {$notifiable->name}!")
             ->line("Great news — your account for **{$this->salon->name}** has been upgraded to the **{$planName}** plan {$expiry}.")
             ->line("You now have access to all features included in your new plan.")

@@ -18,7 +18,7 @@ class TenantUnsuspendedNotification extends Notification
         $mail = (new MailMessage)
             ->subject("Your {$this->salon->name} account has been reinstated")
             ->greeting("Good news, {$notifiable->name}!")
-            ->line("Your Velour account for **{$this->salon->name}** has been fully reinstated and is now active again.");
+            ->line("Your EasyGrox account for **{$this->salon->name}** has been fully reinstated and is now active again.");
         if ($this->message) { $mail->line($this->message); }
         return $mail
             ->action('Go to Dashboard', route('dashboard'))

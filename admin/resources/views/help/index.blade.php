@@ -44,7 +44,7 @@
     <div class="text-center py-16 text-gray-400">
       <p class="text-5xl mb-4">🔎</p>
       <p class="text-lg font-medium">No articles found</p>
-      <p class="text-sm">Try a different search or <a href="mailto:support@velour.app" class="text-amber-600 underline">contact support</a>.</p>
+      <p class="text-sm">Try a different search or <a href="mailto:support@easygrox.com" class="text-amber-600 underline">contact support</a>.</p>
     </div>
   @else
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -79,7 +79,7 @@
     <h2 class="text-xl font-bold text-gray-800 mb-2">Still need help?</h2>
     <p class="text-gray-500 mb-5">Our support team typically responds within 2 hours during business hours.</p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <a href="mailto:support@velour.app"
+      <a href="mailto:support@easygrox.com"
         class="bg-gray-900 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-700 transition text-sm">
         ✉ Email Support
       </a>

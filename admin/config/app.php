@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'name'            => env('APP_NAME', 'Velour Salon SaaS'),
+    'name'            => env('APP_NAME', 'EasyGrox'),
     'env'             => env('APP_ENV', 'local'),
     'debug'           => (bool) env('APP_DEBUG', true),
     'url'             => env('APP_URL', 'http://localhost'),

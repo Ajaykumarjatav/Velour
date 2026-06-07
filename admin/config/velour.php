@@ -4,11 +4,11 @@ return [
 
     /*
     |──────────────────────────────────────────────────────────────────────────
-    | Velour Platform Configuration
+    | EasyGrox Platform Configuration
     |──────────────────────────────────────────────────────────────────────────
     */
 
-    'name'    => 'Velour Salon SaaS',
+    'name'    => 'EasyGrox',
     'version' => '1.0.0',
 
     /*
