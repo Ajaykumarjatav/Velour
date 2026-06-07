@@ -1,0 +1,175 @@
+<?php
+
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
+use App\Models\SalonNotification;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+
+class NotificationController extends Controller
+{
+    use ResolvesActiveSalon;
+
+    /**
+     * Full notifications page — paginated list of all salon notifications.
+     */
+    public function index(Request $request)
+    {
+        $salon = $this->activeSalon();
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+
+        $filter = $request->get('filter'); // 'unread' | '' (all)
+
+        $query = SalonNotification::where('salon_id', $salon->id)->latest();
+        if ($scopedStaffId !== null) {
+            $query->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+
+        if ($filter === 'unread') {
+            $query->where('is_read', false);
+        }
+
+        $notifications = $query->paginate(30)->withQueryString();
+        $notifications->getCollection()->transform(function (SalonNotification $notification) {
+            $notification->setAttribute('resolved_action_url', $this->resolveActionUrl($notification));
+            return $notification;
+        });
+        $unreadCountQuery = SalonNotification::where('salon_id', $salon->id)
+            ->where('is_read', false);
+        if ($scopedStaffId !== null) {
+            $unreadCountQuery->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+        $unreadCount = $unreadCountQuery->count();
+
+        return view('notifications.index', compact('notifications', 'unreadCount', 'filter'));
+    }
+
+    /**
+     * Mark a single notification as read (AJAX or redirect).
+     */
+    public function markRead(Request $request, SalonNotification $notification)
+    {
+        abort_unless($notification->salon_id === $this->activeSalon()->id, 403);
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+        if ($scopedStaffId !== null) {
+            abort_unless($notification->staff_id === null || (int) $notification->staff_id === (int) $scopedStaffId, 403);
+        }
+
+        $notification->markRead();
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        // Follow action_url if present, else back
+        $resolvedActionUrl = $this->resolveActionUrl($notification);
+        if ($resolvedActionUrl) {
+            return redirect($resolvedActionUrl);
+        }
+
+        return back();
+    }
+
+    /**
+     * Mark all unread notifications as read.
+     */
+    public function markAllRead()
+    {
+        $salon = $this->activeSalon();
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+
+        $query = SalonNotification::where('salon_id', $salon->id)
+            ->where('is_read', false);
+        if ($scopedStaffId !== null) {
+            $query->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+        $query->update(['is_read' => true, 'read_at' => now()]);
+
+        return back()->with('success', 'All notifications marked as read.');
+    }
+
+    /**
+     * Return latest 8 unread + recent notifications as JSON (for header dropdown).
+     */
+    public function dropdown()
+    {
+        $salon = $this->activeSalon();
+        $scopedStaffId = Auth::user()->dashboardScopedStaffId();
+
+        $itemsQuery = SalonNotification::where('salon_id', $salon->id);
+        if ($scopedStaffId !== null) {
+            $itemsQuery->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+        $items = $itemsQuery
+            ->latest()
+            ->limit(8)
+            ->get(['id', 'type', 'title', 'body', 'is_read', 'action_url', 'created_at']);
+        $items->transform(function (SalonNotification $notification) {
+            $notification->setAttribute('resolved_action_url', $this->resolveActionUrl($notification));
+            return $notification;
+        });
+
+        $unreadCountQuery = SalonNotification::where('salon_id', $salon->id)
+            ->where('is_read', false);
+        if ($scopedStaffId !== null) {
+            $unreadCountQuery->where(function ($q) use ($scopedStaffId) {
+                $q->whereNull('staff_id')
+                    ->orWhere('staff_id', $scopedStaffId);
+            });
+        }
+        $unreadCount = $unreadCountQuery->count();
+
+        return response()->json([
+            'notifications' => $items,
+            'unread_count'  => $unreadCount,
+        ]);
+    }
+
+    private function resolveActionUrl(SalonNotification $notification): ?string
+    {
+        $appointmentId = (int) data_get($notification->data, 'appointment_id', 0);
+        if ($appointmentId > 0) {
+            return route('appointments.show', $appointmentId);
+        }
+
+        $label = mb_strtolower(trim((string) data_get($notification->data, 'action_label', '')));
+        $url = trim((string) ($notification->action_url ?? ''));
+
+        if ($label === 'add services' || $url === '/services') {
+            return route('settings.index', ['tab' => 'services']);
+        }
+        if ($label === 'set hours' || $url === '/settings/hours') {
+            return route('settings.index', ['tab' => 'hours']);
+        }
+        if ($label === 'go live' || $url === '/go-live') {
+            return route('go-live');
+        }
+
+        if ($url === '') {
+            return null;
+        }
+        if (Str::startsWith($url, ['http://', 'https://'])) {
+            return $url;
+        }
+        if (Str::startsWith($url, '/')) {
+            return url($url);
+        }
+
+        return $url;
+    }
+}

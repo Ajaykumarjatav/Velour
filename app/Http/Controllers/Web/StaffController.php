@@ -1,0 +1,389 @@
+<?php
+
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
+use App\Models\Appointment;
+use App\Support\LanguageProficiency;
+use App\Support\StaffJobRoles;
+use App\Models\Staff;
+use App\Models\StaffLeaveRequest;
+use App\Services\StaffAttendanceService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use App\Support\PublicStorage;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class StaffController extends Controller
+{
+    use ResolvesActiveSalon;
+
+    public function __construct(
+        private readonly StaffAttendanceService $attendanceService,
+    ) {}
+
+    private function salon()
+    {
+        return $this->activeSalon();
+    }
+
+    public function index()
+    {
+        $salon       = $this->salon();
+        $monthStart  = now()->startOfMonth();
+        $monthEnd    = now()->endOfMonth();
+        $todayStr    = now()->toDateString();
+        $taxRate     = 0.10;
+
+        $staff = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->withCount([
+                'appointments as total_appointments' => fn ($q) => $q
+                    ->withoutGlobalScopes()
+                    ->where('salon_id', $salon->id),
+                'appointments as completed_appointments' => fn ($q) => $q
+                    ->withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->where('status', 'completed'),
+            ])
+            ->withAvg('reviews', 'rating')
+            ->orderBy('first_name')
+            ->get();
+
+        $revenueByStaff = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('status', 'completed')
+            ->whereBetween('starts_at', [$monthStart, $monthEnd])
+            ->selectRaw('staff_id, COALESCE(SUM(total_price),0) as rev')
+            ->groupBy('staff_id')
+            ->pluck('rev', 'staff_id');
+
+        $apptsMonthByStaff = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->whereBetween('starts_at', [$monthStart, $monthEnd])
+            ->selectRaw('staff_id, COUNT(*) as c')
+            ->groupBy('staff_id')
+            ->pluck('c', 'staff_id');
+
+        $payrollRows = [];
+        $chart       = [];
+
+        foreach ($staff as $m) {
+            $rev   = (float) ($revenueByStaff[$m->id] ?? 0);
+            $apptM = (int) ($apptsMonthByStaff[$m->id] ?? 0);
+            $todayAttendance = $this->attendanceService->todayStatus($salon, $m);
+            $onLeave = StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $m->id, $todayStr)
+                || $todayAttendance === \App\Models\StaffAttendanceRecord::STATUS_ON_LEAVE;
+
+            $base          = (float) ($m->base_salary ?? 0);
+            $commPct       = (float) ($m->commission_rate ?? 0);
+            $commissionAmt = round($rev * $commPct / 100, 2);
+            $gross         = $base + $commissionAmt;
+            $tax           = round($gross * $taxRate, 2);
+            $net           = round($gross - $tax, 2);
+
+            $payrollRows[] = [
+                'staff'       => $m,
+                'base'        => $base,
+                'commission'  => $commissionAmt,
+                'tax'         => $tax,
+                'net'         => $net,
+            ];
+            $chart[] = ['name' => $m->name, 'revenue' => $rev];
+
+            $m->setAttribute('hub_revenue_month', $rev);
+            $m->setAttribute('hub_appts_month', $apptM);
+            $m->setAttribute('hub_on_leave_today', $onLeave);
+            $m->setAttribute('hub_attendance_today', $todayAttendance);
+        }
+
+        $maxRev    = $chart === [] ? 1 : max(1, ...array_column($chart, 'revenue'));
+        $totalTeam = $staff->count();
+        $onDuty    = $staff->filter(fn ($m) => $m->is_active && $this->attendanceService->isOnDutyToday($salon, $m))->count();
+
+        return view('staff.index', compact(
+            'salon',
+            'staff',
+            'payrollRows',
+            'chart',
+            'maxRev',
+            'monthStart',
+            'totalTeam',
+            'onDuty',
+            'taxRate'
+        ));
+    }
+
+    public function updateWeeklySchedule(Request $request, Staff $staff)
+    {
+        $this->authorise($staff);
+
+        $data = $request->validate([
+            'working_days'   => ['nullable', 'array'],
+            'working_days.*' => ['string', 'in:Mon,Tue,Wed,Thu,Fri,Sat,Sun'],
+            'start_time'     => ['nullable', 'string', 'max:8'],
+            'end_time'       => ['nullable', 'string', 'max:8'],
+        ]);
+
+        $staff->update([
+            'working_days' => $data['working_days'] ?? [],
+            'start_time'   => $data['start_time'] ?? $staff->start_time,
+            'end_time'     => $data['end_time'] ?? $staff->end_time,
+        ]);
+
+        return redirect()->route('staff.index')->with('success', 'Weekly schedule updated.');
+    }
+
+    public function updateBaseSalary(Request $request, Staff $staff)
+    {
+        $this->authorise($staff);
+
+        $data = $request->validate([
+            'base_salary' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999'],
+        ]);
+
+        $staff->update(['base_salary' => $data['base_salary'] ?? null]);
+
+        return redirect()->route('staff.index')->with('success', 'Base salary saved.');
+    }
+
+    public function exportPayroll(Request $request): StreamedResponse
+    {
+        $salon = $this->salon();
+
+        $month = $request->query('month', now()->format('Y-m'));
+        if (! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = now()->format('Y-m');
+        }
+
+        $monthStart = Carbon::parse($month . '-01')->startOfMonth();
+        $monthEnd   = $monthStart->copy()->endOfMonth();
+        $taxRate    = 0.10;
+
+        $staffQuery = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->orderBy('first_name');
+
+        if ($request->filled('staff_id')) {
+            $staffQuery->where('id', (int) $request->query('staff_id'));
+        }
+
+        $staff = $staffQuery->get();
+
+        if ($request->filled('staff_id') && $staff->isEmpty()) {
+            abort(404);
+        }
+
+        $revenueByStaff = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('status', 'completed')
+            ->whereBetween('starts_at', [$monthStart, $monthEnd])
+            ->selectRaw('staff_id, COALESCE(SUM(total_price),0) as rev')
+            ->groupBy('staff_id')
+            ->pluck('rev', 'staff_id');
+
+        $staffSlug = $staff->count() === 1
+            ? '-' . \Illuminate\Support\Str::slug($staff->first()->name)
+            : '';
+        $filename = 'payroll-' . $month . $staffSlug . '.csv';
+
+        return response()->streamDownload(function () use ($staff, $revenueByStaff, $taxRate) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Staff', 'Base', 'Commission', 'Tax', 'Net pay']);
+
+            foreach ($staff as $m) {
+                $rev           = (float) ($revenueByStaff[$m->id] ?? 0);
+                $base          = (float) ($m->base_salary ?? 0);
+                $commPct       = (float) ($m->commission_rate ?? 0);
+                $commissionAmt = round($rev * $commPct / 100, 2);
+                $gross         = $base + $commissionAmt;
+                $tax           = round($gross * $taxRate, 2);
+                $net           = round($gross - $tax, 2);
+
+                fputcsv($out, [
+                    $m->name,
+                    number_format($base, 2, '.', ''),
+                    number_format($commissionAmt, 2, '.', ''),
+                    number_format($tax, 2, '.', ''),
+                    number_format($net, 2, '.', ''),
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function create()
+    {
+        $salon = $this->salon();
+
+        return view('staff.create', compact('salon'));
+    }
+
+    public function store(Request $request)
+    {
+        $salon = $this->salon();
+
+        $data = $request->validate([
+            'name'              => ['required', 'string', 'max:100'],
+            'email'             => ['nullable', 'email', 'max:150'],
+            'phone'             => ['nullable', 'string', 'max:20'],
+            'role'              => StaffJobRoles::validationRules(),
+            'experience'        => ['nullable', 'string', 'max:120'],
+            'language_proficiency'   => ['nullable', 'array', 'max:30'],
+            'language_proficiency.*' => ['string', Rule::in(LanguageProficiency::allowedCodes())],
+            'bio'               => ['nullable', 'string', 'max:1000'],
+            'awards_accolades'  => ['nullable', 'string', 'max:5000'],
+            'color'             => ['nullable', 'string', 'max:7'],
+            'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+        ]);
+
+        $nameParts = explode(' ', trim($data['name']), 2);
+        $avatarFile = $request->file('avatar');
+        unset($data['avatar']);
+        $encodedLanguages = LanguageProficiency::encode($data['language_proficiency'] ?? []);
+
+        $staff = Staff::create([
+            'salon_id'        => $salon->id,
+            'first_name'      => $nameParts[0],
+            'last_name'       => $nameParts[1] ?? '',
+            'email'           => $data['email'] ?? null,
+            'phone'           => $data['phone'] ?? null,
+            'role'            => $data['role'],
+            'experience'      => $data['experience'] ?? null,
+            'language_proficiency' => $encodedLanguages,
+            'bio'             => $data['bio'] ?? null,
+            'awards_accolades' => $data['awards_accolades'] ?? null,
+            'color'           => $data['color'] ?? '#7C3AED',
+            'commission_rate' => $data['commission_rate'] ?? 0,
+            'is_active'       => true,
+        ]);
+
+        if ($avatarFile) {
+            $staff->update([
+                'avatar' => $avatarFile->store('salons/'.$salon->id.'/staff', 'public'),
+            ]);
+        }
+
+        return redirect()->route('staff.index')->with('success', 'Staff member added.');
+    }
+
+    public function show(Staff $staff)
+    {
+        $this->authorise($staff);
+        $salon = $this->salon();
+
+        $recentAppointments = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('staff_id', $staff->id)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->with(['client', 'services.service'])
+            ->latest('starts_at')
+            ->paginate(10);
+
+        $completedCount = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('staff_id', $staff->id)
+            ->where('status', 'completed')
+            ->count();
+
+        $totalRevenue = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('staff_id', $staff->id)
+            ->where('status', 'completed')
+            ->sum('total_price');
+
+        $upcomingCount = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('staff_id', $staff->id)
+            ->where('starts_at', '>=', now())
+            ->where('status', 'confirmed')
+            ->count();
+
+        return view('staff.show', compact('staff', 'recentAppointments', 'completedCount', 'totalRevenue', 'upcomingCount'));
+    }
+
+    public function edit(Staff $staff)
+    {
+        $this->authorise($staff);
+
+        return view('staff.edit', compact('staff'));
+    }
+
+    public function update(Request $request, Staff $staff)
+    {
+        $this->authorise($staff);
+
+        $data = $request->validate([
+            'name'            => ['required', 'string', 'max:100'],
+            'email'           => ['nullable', 'email', 'max:150'],
+            'phone'           => ['nullable', 'string', 'max:20'],
+            'role'            => StaffJobRoles::validationRules(),
+            'experience'      => ['nullable', 'string', 'max:120'],
+            'language_proficiency'   => ['nullable', 'array', 'max:30'],
+            'language_proficiency.*' => ['string', Rule::in(LanguageProficiency::allowedCodes())],
+            'bio'             => ['nullable', 'string', 'max:1000'],
+            'awards_accolades' => ['nullable', 'string', 'max:5000'],
+            'color'           => ['nullable', 'string', 'max:7'],
+            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'is_active'       => ['sometimes', 'boolean'],
+            'avatar'          => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+        ]);
+
+        // Split 'name' into first_name / last_name for the Staff model
+        if (isset($data['name'])) {
+            $nameParts = explode(' ', trim($data['name']), 2);
+            $data['first_name'] = $nameParts[0];
+            $data['last_name']  = $nameParts[1] ?? '';
+            unset($data['name']);
+        }
+
+        unset($data['avatar']);
+
+        $data['language_proficiency'] = LanguageProficiency::encode($data['language_proficiency'] ?? []);
+
+        $data['is_active'] = $request->boolean('is_active');
+
+        $staff->update($data);
+
+        $this->syncStaffAvatarFromRequest($request, $staff);
+
+        return redirect()->route('staff.show', $staff)->with('success', 'Staff member updated.');
+    }
+
+    public function destroy(Staff $staff)
+    {
+        $this->authorise($staff);
+        $staff->delete();
+
+        return redirect()->route('staff.index')->with('success', 'Staff member removed.');
+    }
+
+    private function authorise(Staff $staff): void
+    {
+        abort_unless($staff->salon_id === $this->salon()->id, 403);
+    }
+
+    /** Replace or remove profile photo; matches API storage path `salons/{id}/staff`. */
+    private function syncStaffAvatarFromRequest(Request $request, Staff $staff): void
+    {
+        if ($request->hasFile('avatar')) {
+            PublicStorage::delete($staff->avatar);
+            $path = $request->file('avatar')->store('salons/'.$staff->salon_id.'/staff', 'public');
+            $staff->update(['avatar' => $path]);
+
+            return;
+        }
+
+        if ($request->boolean('remove_avatar')) {
+            PublicStorage::delete($staff->avatar);
+            $staff->update(['avatar' => null]);
+        }
+    }
+
+}

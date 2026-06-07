@@ -1,25 +1,11 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # 301: strip /public/ from admin URLs (e.g. /vellor/admin/public/login → /vellor/admin/login)
-    RewriteCond %{ENV:REDIRECT_STATUS} ^$
-    RewriteCond %{THE_REQUEST} \s[^\s]*/admin/public/([^\s?]*) [NC]
-    RewriteRule ^admin/public/(.*)$ admin/$1 [R=301,L,NE]
+    # Redirect legacy /public/ URLs to clean paths (e.g. /vellor/admin/public/login → /vellor/admin/login)
+    RewriteCond %{THE_REQUEST} \s/+(.*/)?public/([^\s?]*) [NC]
+    RewriteRule ^ /%1%2 [R=301,L,NE]
 
-    # Laravel admin — serve from admin/public without /public in the browser URL
-    RewriteRule ^admin/?$ admin/public/index.php [L]
-    RewriteRule ^admin/(.*)$ admin/public/$1 [L]
-
-    # Marketing site — built React app in dist/
-    RewriteCond %{DOCUMENT_ROOT}/vellor/dist/$1 -f
-    RewriteRule ^(.+)$ dist/$1 [L]
-
-    RewriteCond %{DOCUMENT_ROOT}/vellor/dist/$1 -d
-    RewriteRule ^(.+)$ dist/$1 [L]
-
-    # SPA fallback for marketing routes (not admin)
-    RewriteCond %{REQUEST_URI} !/admin(/|$) [NC]
-    RewriteRule ^ dist/index.html [L]
+    # Route all requests through Laravel's public directory
+    RewriteRule ^$ public/index.php [L]
+    RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
-
-DirectoryIndex dist/index.html
