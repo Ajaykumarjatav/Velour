@@ -63,6 +63,15 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $appUrl = (string) config('app.url');
+        if ($appUrl !== '') {
+            URL::forceRootUrl(rtrim($appUrl, '/'));
+            $scheme = parse_url($appUrl, PHP_URL_SCHEME);
+            if (is_string($scheme) && $scheme !== '') {
+                URL::forceScheme($scheme);
+            }
+        }
+
         // Stripe PHP defaults to ext-curl. Apache (XAMPP) may run PHP without curl while CLI has it.
         // Use Laravel HTTP (Guzzle + streams) when curl is unavailable so billing/portal works.
         if (! function_exists('curl_version')) {

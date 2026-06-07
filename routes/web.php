@@ -51,6 +51,20 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// ── Home ─────────────────────────────────────────────────────────────────────
+
+Route::get('/', function () {
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    if (auth()->user()->isSuperAdmin()) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    return redirect()->route('dashboard');
+})->name('home');
+
 // ── Guest Routes ──────────────────────────────────────────────────────────────
 
 Route::middleware('guest')->group(function () {
@@ -124,7 +138,6 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
     Route::middleware([InitializeTenancyFromDomain::class, 'tenant', 'profile.complete', 'sync.staff.role', 'route.permission'])->group(function () {
 
-        Route::get('/', fn() => redirect()->route('dashboard'));
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::post('action-items', [SalonActionItemController::class, 'store'])->name('action-items.store');
         Route::patch('action-items/{actionItem}', [SalonActionItemController::class, 'update'])->name('action-items.update');

@@ -23,6 +23,8 @@ final class AuthRedirect
             return $default;
         }
 
+        $intended = AppUrl::absolute($intended);
+
         if ($user->isSuperAdmin()) {
             $path = parse_url($intended, PHP_URL_PATH) ?? '';
 

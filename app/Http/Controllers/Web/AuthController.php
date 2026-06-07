@@ -64,7 +64,7 @@ class AuthController extends Controller
 
         // Super-admins don't operate within a tenant; send them to the admin area
         if ($user->system_role === 'super_admin') {
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->to(AuthRedirect::afterLoginUrl($request, $user));
         }
 
         // Self-heal: invited staff can end up with a soft-deleted staff row.

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\AppUrl;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -48,7 +49,7 @@ class RequireTwoFactor
         }
 
         // Store the intended URL so we can redirect back after 2FA
-        session(['url.intended' => $request->url()]);
+        session(['url.intended' => AppUrl::intendedFromRequest($request)]);
 
         return redirect()->route('two-factor.challenge');
     }
