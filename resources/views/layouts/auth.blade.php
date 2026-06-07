@@ -153,7 +153,7 @@
             <header class="mb-9 text-center sm:mb-11">
                 <a href="{{ url('/') }}" class="auth-brand-link group inline-flex flex-col items-center gap-3 rounded-2xl outline-none ring-velour-500/30 focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent">
                     <img src="{{ asset('images/easygrox-logo-light.png') }}" alt="EasyGrox" class="auth-logo-img h-16 w-auto sm:h-[4.5rem]">
-                    <span class="block text-[13px] font-medium tracking-wide text-slate-500">Your business11, one platform</span>
+                    <span class="block text-[13px] font-medium tracking-wide text-slate-500">Your business22, one platform</span>
                 </a>
             </header>
 
