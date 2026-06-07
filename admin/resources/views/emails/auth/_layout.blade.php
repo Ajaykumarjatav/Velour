@@ -37,7 +37,7 @@
     @yield('body')
   </div>
   <div class="footer">
-    <p>© {{ date('Y') }} EasyGrox · Salon Management Platform</p>
+    <p>© {{ date('Y') }} EasyGrox · Business Management Platform</p>
     <p>You received this email because you have an account at <a href="{{ config('app.url') }}">easygrox.com</a></p>
   </div>
 </div>
