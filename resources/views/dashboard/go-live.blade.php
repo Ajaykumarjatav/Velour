@@ -354,6 +354,16 @@
         </div>
         <div class="p-6 space-y-4">
           <p class="text-xs text-muted">Public marketing site (React). Clients can browse services and book from the site.</p>
+
+          <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+            @include('partials.storefront-theme-picker', [
+              'action' => route('go-live.theme'),
+              'themes' => $themes,
+              'themeSlug' => $themeSlug,
+              'themeLabel' => $themeLabel,
+            ])
+          </div>
+
           <div class="flex gap-2">
             <div class="flex-1 flex items-center bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 gap-2 min-w-0">
               <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

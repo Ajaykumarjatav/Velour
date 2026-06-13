@@ -1,44 +1,24 @@
-import { SalonProvider, useSalon } from './context/SalonContext'
-import SalonSiteShell from './components/SalonSiteShell'
-import BookingFlow from './components/BookingFlow'
-import TopBar from './components/TopBar'
-import HeroSection from './components/HeroSection'
-import StickyNav from './components/StickyNav'
-import AboutSection from './components/AboutSection'
-import ServicesSection from './components/ServicesSection'
-import PackagesSection from './components/PackagesSection'
-import RelaxationSection from './components/RelaxationSection'
-import SpecialOfferBanner from './components/SpecialOfferBanner'
-import StaffSection from './components/StaffSection'
-import PremiumBanner from './components/PremiumBanner'
-import LocationsSection from './components/LocationsSection'
-import TestimonialsSection from './components/TestimonialsSection'
-import FooterInfoCards from './components/FooterInfoCards'
-import Footer from './components/Footer'
-
-function MarketingSite() {
-  return (
-    <div className="w-full min-h-screen bg-white overflow-x-hidden">
-      <TopBar />
-      <HeroSection />
-      <StickyNav />
-      <AboutSection />
-      <ServicesSection />
-      <PackagesSection />
-      <RelaxationSection />
-      <SpecialOfferBanner />
-      <StaffSection />
-      <PremiumBanner />
-      <LocationsSection />
-      <TestimonialsSection />
-      <FooterInfoCards />
-      <Footer />
-    </div>
-  )
-}
+import { Suspense, useEffect, useMemo } from 'react'
+import { SalonProvider, useSalon } from '@salon/core/context/SalonContext'
+import SalonSiteShell from '@salon/core/components/SalonSiteShell'
+import BookingFlow from '@salon/core/components/BookingFlow'
+import { setAssetTheme } from '@salon/core/lib/assetUrl'
+import { resolveThemeId } from './resolveThemeId'
+import { lazyTheme } from './themeRegistry'
+import { applyThemeTokens } from './applyThemeTokens'
 
 function SalonApp() {
-  const { view } = useSalon()
+  const { view, salon } = useSalon()
+  const themeId = useMemo(
+    () => resolveThemeId(salon?.website_theme),
+    [salon?.website_theme],
+  )
+  const MarketingSite = useMemo(() => lazyTheme(themeId), [themeId])
+
+  useEffect(() => {
+    setAssetTheme(themeId)
+    applyThemeTokens(themeId)
+  }, [themeId])
 
   if (view === 'booking') {
     return (
@@ -50,7 +30,15 @@ function SalonApp() {
 
   return (
     <SalonSiteShell>
-      <MarketingSite />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-white text-gray-500 text-sm">
+            Loading theme…
+          </div>
+        }
+      >
+        <MarketingSite />
+      </Suspense>
     </SalonSiteShell>
   )
 }

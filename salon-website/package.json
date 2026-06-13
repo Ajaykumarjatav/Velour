@@ -4,11 +4,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/prepare-themes.mjs && node scripts/sync-dynamic-components.mjs && node scripts/restore-theme-footers.mjs && node scripts/sync-theme-assets.mjs",
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "prebuild": "node scripts/prepare-themes.mjs && node scripts/sync-dynamic-components.mjs && node scripts/restore-theme-footers.mjs",
+    "build": "node scripts/build-all.mjs",
+    "build:all": "node scripts/build-all.mjs",
+    "sync:assets": "node scripts/sync-theme-assets.mjs"
   },
   "dependencies": {
+    "@salon/core": "file:./packages/core",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

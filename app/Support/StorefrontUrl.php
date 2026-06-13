@@ -8,9 +8,9 @@ final class StorefrontUrl
 {
     public static function website(Salon $salon): string
     {
-        $dev = config('storefront.dev_url');
-        if ($dev && app()->environment('local')) {
-            return rtrim((string) $dev, '/') . '/s/' . $salon->slug;
+        $dev = StorefrontTheme::devUrl($salon);
+        if ($dev) {
+            return rtrim($dev, '/') . '/s/' . $salon->slug;
         }
 
         return rtrim(config('app.url'), '/') . '/s/' . $salon->slug;

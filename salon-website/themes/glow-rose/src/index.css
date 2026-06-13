@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #D14D41;
+  --color-primary-dark: #B44445;
+  --color-primary-darker: #BE1F20;
+  --color-deep-maroon: #63242E;
+  --color-burgundy: #63242E;
+  --color-footer-dark: #510000;
+  --color-dark-card: #2A2A2A;
+  --color-cta-dark: #222222;
+  --color-salmon: #D14D41;
+  --color-star-hero: #F7FF00;
+  --color-star-gold: #FFC400;
+  --color-green-discount: #00D419;
+  --color-testimonial-bg: #FDF5F5;
+  --color-icon-circle: #FFEFEF;
+  --color-section-light: #F8F8F8;
+  --color-section-lighter: #FAFAFA;
+  --color-section-lightest: #F9F9F9;
+  --color-pill-inactive: #E9E9E9;
+  --color-border: #CDCDCD;
+  --color-border-light: #D4D4D4;
+  --color-text-secondary: #4D4D4D;
+  --color-text-muted: #676767;
+  --color-text-light: #616161;
+  --color-text-faded: #999999;
+  --color-dark-brown: #4B0201;
+
+  --font-pacifico: "Pacifico", cursive;
+  --font-manrope: "Manrope", sans-serif;
+  --font-inter: "Inter", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-inter;
+  }
+
+  @keyframes rotate-infinite {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes rotate-infinite-reverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+
+  .rotate-infinite {
+    animation: rotate-infinite 20s linear infinite !important;
+  }
+
+  .rotate-infinite-reverse {
+    animation: rotate-infinite-reverse 25s linear infinite !important;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+

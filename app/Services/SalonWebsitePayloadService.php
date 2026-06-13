@@ -12,6 +12,7 @@ use App\Models\ServicePackage;
 use App\Models\Staff;
 use App\Scopes\TenantScope;
 use App\Support\StaffJobRoles;
+use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -105,6 +106,8 @@ class SalonWebsitePayloadService
                 'currency_symbol'     => CurrencyHelper::symbol($currency),
                 'website_url'         => StorefrontUrl::website($salon),
                 'booking_url'         => StorefrontUrl::booking($salon),
+                'website_theme'       => StorefrontTheme::forSalon($salon),
+                'website_theme_label' => StorefrontTheme::label(StorefrontTheme::forSalon($salon)),
                 'whatsapp_url'        => $this->whatsappUrl($salon->phone),
                 'opening_hours'       => $salon->opening_hours,
                 'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),

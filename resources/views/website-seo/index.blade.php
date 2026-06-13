@@ -60,11 +60,20 @@
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3 text-center"><p class="font-semibold text-heading">Skin</p></div>
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3 text-center"><p class="font-semibold text-heading">Nails</p></div>
                 </div>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3"><p class="text-xs text-muted">Theme</p><p class="font-semibold text-heading">{{ $stats['theme'] }}</p></div>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                    <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3"><p class="text-xs text-muted">Active theme</p><p class="font-semibold text-heading">{{ $stats['theme'] }}</p></div>
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3"><p class="text-xs text-muted">Domain</p><p class="font-semibold text-heading">{{ $stats['domain_status'] }}</p></div>
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3"><p class="text-xs text-muted">Pages</p><p class="font-semibold text-heading">{{ $stats['pages'] }}</p></div>
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3"><p class="text-xs text-muted">Mobile</p><p class="font-semibold text-heading">{{ $stats['mobile'] }}</p></div>
+                </div>
+
+                <div>
+                    @include('partials.storefront-theme-picker', [
+                        'action' => route('website-seo.theme'),
+                        'themes' => $themes,
+                        'themeSlug' => $themeSlug,
+                        'themeLabel' => $stats['theme'],
+                    ])
                 </div>
             </div>
         </div>

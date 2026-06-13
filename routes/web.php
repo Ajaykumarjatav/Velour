@@ -290,12 +290,20 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
         // Go Live & Share
         Route::get('go-live', [\App\Http\Controllers\Web\GoLiveController::class, 'index'])->name('go-live');
+        Route::post('go-live/theme', [\App\Http\Controllers\Web\GoLiveController::class, 'updateTheme'])->name('go-live.theme');
+        Route::get('theme-preview/{slug}', function (string $slug) {
+            $path = \App\Support\StorefrontTheme::previewImagePath($slug);
+            abort_unless($path, 404);
+
+            return response()->file($path);
+        })->name('storefront.theme-preview');
         Route::get('setup-progress', [\App\Http\Controllers\Web\SetupProgressController::class, 'index'])->name('setup-progress');
         Route::post('go-live/logo', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadLogo'])->name('go-live.logo.upload');
         Route::post('go-live/settings', [\App\Http\Controllers\Web\GoLiveController::class, 'updateSettings'])->name('go-live.settings.update');
         Route::post('go-live/photos', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadPhoto'])->name('go-live.photos.upload');
         Route::delete('go-live/photos/{photo}', [\App\Http\Controllers\Web\GoLiveController::class, 'deletePhoto'])->name('go-live.photos.delete');
         Route::get('website-seo', [WebsiteSeoController::class, 'index'])->name('website-seo.index');
+        Route::post('website-seo/theme', [WebsiteSeoController::class, 'updateTheme'])->name('website-seo.theme');
         Route::post('website-seo/publish', [WebsiteSeoController::class, 'publish'])->name('website-seo.publish');
         Route::get('security-support', [SecuritySupportController::class, 'index'])->name('security-support.index');
         Route::put('security-support/security', [SecuritySupportController::class, 'updateSecurity'])->name('security-support.security.update');

@@ -9,6 +9,8 @@ use App\Models\LinkVisit;
 use App\Models\PosTransaction;
 use App\Models\Salon;
 use App\Models\SalonPhoto;
+use App\Models\SalonSetting;
+use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
 use App\Models\Service;
 use App\Models\Staff;
@@ -50,6 +52,9 @@ class GoLiveController extends Controller
         ]);
 
         $salonId    = $salon->id;
+        $themeSlug  = StorefrontTheme::forSalon($salon);
+        $themeLabel = StorefrontTheme::label($themeSlug);
+        $themes     = StorefrontTheme::all();
         $websiteUrl = StorefrontUrl::website($salon);
         $bookingUrl = StorefrontUrl::booking($salon);
 
@@ -108,7 +113,29 @@ class GoLiveController extends Controller
             'embedCodes',
             'shareclicks',
             'photos',
+            'themes',
+            'themeSlug',
+            'themeLabel',
         ));
+    }
+
+    public function updateTheme(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $salon = $this->activeSalon();
+        $allowed = array_keys(StorefrontTheme::all());
+
+        $validated = $request->validate([
+            'theme' => ['required', 'string', \Illuminate\Validation\Rule::in($allowed)],
+        ]);
+
+        SalonSetting::withoutGlobalScopes()->updateOrCreate(
+            ['salon_id' => $salon->id, 'key' => 'website_theme'],
+            ['value' => $validated['theme'], 'type' => 'string']
+        );
+
+        return redirect()
+            ->route('go-live')
+            ->with('success', 'Website theme updated to ' . StorefrontTheme::label($validated['theme']) . '.');
     }
 
     public function uploadPhoto(Request $request): \Illuminate\Http\JsonResponse
