@@ -3,14 +3,14 @@ import { assetUrl } from '@salon/core/lib/assetUrl'
 import BookButton from '@salon/core/components/BookButton'
 import HorizontalDragScroll from '@salon/core/components/HorizontalDragScroll'
 
-const packageImages = [
-  assetUrl('assets/Rectangle 46.png'),
-  assetUrl('assets/Rectangle 46 (1).png'),
-  assetUrl('assets/Rectangle 27 (1).png'),
-]
-
 export default function PackagesSection() {
   const { salon, packages } = useSalon()
+
+  const packageImages = [
+    assetUrl('assets/Rectangle 46.png'),
+    assetUrl('assets/Rectangle 46 (1).png'),
+    assetUrl('assets/Rectangle 27 (1).png'),
+  ]
 
   if (!salon || packages.length === 0) return null
 

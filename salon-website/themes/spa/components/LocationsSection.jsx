@@ -33,13 +33,6 @@ const calendarIcon = (
   </svg>
 )
 
-// Fixed salon interior gallery — same as local project design (always these 3).
-const locationGallery = [
-  assetUrl('assets/Rectangle 58.png'),
-  assetUrl('assets/Rectangle 59.png'),
-  assetUrl('assets/Rectangle 60.png'),
-]
-
 function LocationCard({ location, isActive, onSelect }) {
   return (
     <button
@@ -64,6 +57,12 @@ function LocationCard({ location, isActive, onSelect }) {
 
 export default function LocationsSection() {
   const { salon, locations } = useSalon()
+
+  const locationGallery = [
+  assetUrl('assets/Rectangle 58.png'),
+  assetUrl('assets/Rectangle 59.png'),
+  assetUrl('assets/Rectangle 60.png'),
+]
 
   const locationList = useMemo(() => {
     if (locations?.length) return locations

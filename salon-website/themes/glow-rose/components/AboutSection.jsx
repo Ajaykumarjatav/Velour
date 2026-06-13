@@ -16,21 +16,23 @@ function GalleryImage({ src, alt, fallbackSrc }) {
   )
 }
 
-const fallbackGallery = [
-  { src: assetUrl('assets/Rectangle 31.png'), alt: 'Salon interior 1' },
-  { src: assetUrl('assets/Rectangle 27.png'), alt: 'Salon service 2' },
-  { src: assetUrl('assets/Rectangle 28.png'), alt: 'Hair styling 3' },
-  { src: assetUrl('assets/Rectangle 29.png'), alt: 'Grooming 4' },
-  { src: assetUrl('assets/Rectangle 30.png'), alt: 'Salon ambience 5' },
-  { src: assetUrl('assets/Rectangle 32.png'), alt: 'Professional care 6' },
+const galleryImageFiles = [
+  { file: 'Rectangle 31.png', alt: 'Salon interior 1' },
+  { file: 'Rectangle 27.png', alt: 'Salon service 2' },
+  { file: 'Rectangle 28.png', alt: 'Hair styling 3' },
+  { file: 'Rectangle 29.png', alt: 'Grooming 4' },
+  { file: 'Rectangle 30.png', alt: 'Salon ambience 5' },
+  { file: 'Rectangle 32.png', alt: 'Professional care 6' },
 ]
 
 export default function AboutSection() {
   const { salon } = useSalon()
   if (!salon) return null
 
-  // Always show the full default gallery strip (6 images), same as the original design.
-  const galleryImages = fallbackGallery
+  const galleryImages = galleryImageFiles.map((img) => ({
+    src: assetUrl(`assets/${img.file}`),
+    alt: img.alt,
+  }))
 
   return (
     <section id="about" className="w-full bg-white relative overflow-hidden">

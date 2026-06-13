@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo } from 'react'
+import { Suspense, useLayoutEffect, useMemo } from 'react'
 import { SalonProvider, useSalon } from '@salon/core/context/SalonContext'
 import SalonSiteShell from '@salon/core/components/SalonSiteShell'
 import BookingFlow from '@salon/core/components/BookingFlow'
@@ -15,8 +15,9 @@ function SalonApp() {
   )
   const MarketingSite = useMemo(() => lazyTheme(themeId), [themeId])
 
-  useEffect(() => {
-    setAssetTheme(themeId)
+  setAssetTheme(themeId)
+
+  useLayoutEffect(() => {
     applyThemeTokens(themeId)
   }, [themeId])
 

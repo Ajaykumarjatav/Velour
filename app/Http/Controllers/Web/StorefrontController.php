@@ -54,18 +54,26 @@ class StorefrontController extends Controller
         ) ?? $html;
 
         $apiBase = rtrim((string) config('app.url'), '/');
-        $meta = '<meta name="api-base" content="' . e($apiBase) . '">';
+        $assetBase = rtrim(asset('website/' . $theme . '/'), '/') . '/';
 
-        if (str_contains($html, 'name="api-base"')) {
-            $html = preg_replace(
-                '#<meta name="api-base" content="[^"]*">#',
-                $meta,
-                $html
-            ) ?? $html;
-        } else {
-            $html = str_replace('<head>', '<head>' . $meta, $html);
-        }
+        $html = $this->upsertMeta($html, 'api-base', $apiBase);
+        $html = $this->upsertMeta($html, 'storefront-asset-base', $assetBase);
 
         return response($html)->header('Content-Type', 'text/html');
+    }
+
+    private function upsertMeta(string $html, string $name, string $content): string
+    {
+        $tag = '<meta name="' . $name . '" content="' . e($content) . '">';
+
+        if (str_contains($html, 'name="' . $name . '"')) {
+            return preg_replace(
+                '#<meta name="' . preg_quote($name, '#') . '" content="[^"]*">#',
+                $tag,
+                $html
+            ) ?? $html;
+        }
+
+        return str_replace('<head>', '<head>' . $tag, $html);
     }
 }
