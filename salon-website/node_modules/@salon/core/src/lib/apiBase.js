@@ -4,6 +4,12 @@
  * - Production on /vellor/public/s/{slug}: derived from URL path
  * - Override anytime with VITE_API_BASE in salon-website/.env
  */
+function apiBaseFromMeta() {
+  if (typeof document === 'undefined') return ''
+  const content = document.querySelector('meta[name="api-base"]')?.getAttribute('content')?.trim()
+  return content ? content.replace(/\/$/, '') : ''
+}
+
 export function getApiBase() {
   let fromEnv = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
 
@@ -25,6 +31,11 @@ export function getApiBase() {
 
   if (import.meta.env.DEV) {
     return ''
+  }
+
+  const fromMeta = apiBaseFromMeta()
+  if (fromMeta) {
+    return fromMeta
   }
 
   const m = window.location.pathname.match(/^(.*)\/s\/[^/]+/)

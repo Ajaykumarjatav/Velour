@@ -5,8 +5,9 @@ export default function TestimonialsSection() {
   const { reviews } = useSalon()
   const [current, setCurrent] = useState(0)
   const [animate, setAnimate] = useState(true)
+  const items = Array.isArray(reviews) ? reviews.filter((r) => r && (r.text || r.title)) : []
 
-  if (!reviews.length) {
+  if (!items.length) {
     return null
   }
 
@@ -18,10 +19,10 @@ export default function TestimonialsSection() {
     }, 150)
   }
 
-  const goNext = () => triggerAnimation((current + 1) % reviews.length)
-  const goPrev = () => triggerAnimation((current - 1 + reviews.length) % reviews.length)
+  const goNext = () => triggerAnimation((current + 1) % items.length)
+  const goPrev = () => triggerAnimation((current - 1 + items.length) % items.length)
 
-  const review = reviews[current]
+  const review = items[current]
 
   return (
     <section id="testimonials" className="w-full bg-white py-20 lg:py-24">
@@ -51,7 +52,7 @@ export default function TestimonialsSection() {
               <p className="font-manrope font-semibold text-black">— {review.author}</p>
             </div>
 
-            {reviews.length > 1 ? (
+            {items.length > 1 ? (
               <div className="flex justify-center gap-4 mt-6">
                 <button type="button" onClick={goPrev} className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-colors" aria-label="Previous review">
                   ←

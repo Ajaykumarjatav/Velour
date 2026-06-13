@@ -114,6 +114,7 @@ class ReviewController extends Controller
             'comment'        => $data['comment'] ?? null,
             'source'         => 'velour',
             'is_verified'    => true,
+            'is_public'      => true,
         ]);
 
         return response()->json(['message' => 'Thank you for your review!', 'review' => $review], 201);

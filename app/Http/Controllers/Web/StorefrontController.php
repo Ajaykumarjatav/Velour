@@ -6,11 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Salon;
 use App\Support\StorefrontTheme;
 use Illuminate\Http\Response;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class StorefrontController extends Controller
 {
-    public function show(string $slug): Response|BinaryFileResponse
+    public function show(string $slug): Response
     {
         $salon = Salon::query()
             ->where('slug', $slug)
@@ -23,7 +22,7 @@ class StorefrontController extends Controller
         if (! is_file($index)) {
             $fallback = public_path('website/index.html');
             if (is_file($fallback)) {
-                return response()->file($fallback);
+                return $this->renderStorefrontHtml((string) file_get_contents($fallback), $theme);
             }
 
             return response(
@@ -37,6 +36,36 @@ class StorefrontController extends Controller
             )->header('Content-Type', 'text/html');
         }
 
-        return response()->file($index);
+        return $this->renderStorefrontHtml((string) file_get_contents($index), $theme);
+    }
+
+    /**
+     * Rewrite baked Vite asset paths and inject API base so production works on any APP_URL.
+     */
+    private function renderStorefrontHtml(string $html, string $theme): Response
+    {
+        $assetPath = parse_url(asset('website/' . $theme . '/'), PHP_URL_PATH) ?: StorefrontTheme::assetBase($theme);
+        $assetPath = '/' . trim((string) $assetPath, '/') . '/';
+
+        $html = preg_replace(
+            '#(?:https?://[^"\'\s]+)?/?[^"\'\s]*/website/' . preg_quote($theme, '#') . '/#',
+            $assetPath,
+            $html
+        ) ?? $html;
+
+        $apiBase = rtrim((string) config('app.url'), '/');
+        $meta = '<meta name="api-base" content="' . e($apiBase) . '">';
+
+        if (str_contains($html, 'name="api-base"')) {
+            $html = preg_replace(
+                '#<meta name="api-base" content="[^"]*">#',
+                $meta,
+                $html
+            ) ?? $html;
+        } else {
+            $html = str_replace('<head>', '<head>' . $meta, $html);
+        }
+
+        return response($html)->header('Content-Type', 'text/html');
     }
 }

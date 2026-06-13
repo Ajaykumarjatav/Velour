@@ -12,10 +12,29 @@ const themes = fs.readdirSync(themesDir).filter((name) =>
   fs.statSync(path.join(themesDir, name)).isDirectory()
 )
 
+function resolveAssetRoot() {
+  if (process.env.STOREFRONT_ASSET_BASE) {
+    return process.env.STOREFRONT_ASSET_BASE
+  }
+
+  const adminEnv = path.resolve(__dirname, '../../.env')
+  if (fs.existsSync(adminEnv)) {
+    const match = fs.readFileSync(adminEnv, 'utf8').match(/^STOREFRONT_ASSET_BASE=(.+)$/m)
+    if (match?.[1]) {
+      return match[1].trim().replace(/^["']|["']$/g, '')
+    }
+  }
+
+  return '/website/'
+}
+
+const assetRoot = resolveAssetRoot().replace(/\/?$/, '/')
+
 let failed = false
 
 for (const theme of themes) {
-  console.log(`\n=== Building theme: ${theme} ===`)
+  const storefrontBase = `${assetRoot}${theme}/`
+  console.log(`\n=== Building theme: ${theme} (base: ${storefrontBase}) ===`)
   const result = spawnSync('npx', ['vite', 'build'], {
       cwd: root,
       stdio: 'inherit',
@@ -23,7 +42,7 @@ for (const theme of themes) {
       env: {
         ...process.env,
         VITE_BUILD_THEME: theme,
-        VITE_STOREFRONT_BASE: `/vellor/admin/website/${theme}/`,
+        VITE_STOREFRONT_BASE: storefrontBase,
       },
     },
   )
