@@ -11,9 +11,19 @@ export default defineConfig(({ mode }) => {
   const buildTheme = env.VITE_BUILD_THEME || 'glow-rose'
   const isProdBuild = mode === 'production' && env.VITE_BUILD_THEME
 
-  const base = mode === 'production'
-    ? (env.VITE_STOREFRONT_BASE || `/vellor/admin/website/${buildTheme}/`)
-    : '/'
+  const resolveProdBase = () => {
+    const configured = (env.VITE_STOREFRONT_BASE || '').trim()
+    if (configured !== '') {
+      return configured.replace(
+        /\/website\/[^/]+\/?$/,
+        `/website/${buildTheme}/`
+      )
+    }
+
+    return `/vellor/admin/website/${buildTheme}/`
+  }
+
+  const base = mode === 'production' ? resolveProdBase() : '/'
 
   const apiTarget = env.VITE_API_PROXY_TARGET || 'http://localhost/vellor/admin'
 

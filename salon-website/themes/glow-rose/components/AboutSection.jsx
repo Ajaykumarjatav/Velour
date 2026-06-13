@@ -120,7 +120,7 @@ export default function AboutSection() {
                 <GalleryImage
                   src={img.src}
                   alt={img.alt}
-                  fallbackSrc={fallbackGallery[i % fallbackGallery.length]?.src}
+                  fallbackSrc={galleryImages[i % galleryImages.length]?.src}
                 />
               </div>
             ))}

@@ -19,9 +19,23 @@ function resolveAssetRoot() {
 
   const adminEnv = path.resolve(__dirname, '../../.env')
   if (fs.existsSync(adminEnv)) {
-    const match = fs.readFileSync(adminEnv, 'utf8').match(/^STOREFRONT_ASSET_BASE=(.+)$/m)
-    if (match?.[1]) {
-      return match[1].trim().replace(/^["']|["']$/g, '')
+    const env = fs.readFileSync(adminEnv, 'utf8')
+    const explicit = env.match(/^STOREFRONT_ASSET_BASE=(.+)$/m)
+    if (explicit?.[1]) {
+      return explicit[1].trim().replace(/^["']|["']$/g, '')
+    }
+
+    const appUrl = env.match(/^APP_URL=(.+)$/m)?.[1]?.trim().replace(/^["']|["']$/g, '')
+    if (appUrl) {
+      try {
+        const appPath = new URL(appUrl).pathname.replace(/\/$/, '') || ''
+        const assetPath = `${appPath}/website/`.replace(/\/{2,}/g, '/')
+        if (assetPath !== '/website/') {
+          return assetPath
+        }
+      } catch {
+        // ignore invalid APP_URL
+      }
     }
   }
 

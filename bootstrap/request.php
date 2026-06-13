@@ -38,6 +38,11 @@ function vellor_normalize_request_uri(): void
             $appPath = rtrim($appPath, '/');
             if ($appPath !== '') {
                 $bases[] = $appPath;
+                $publicPrefix = preg_replace('#/admin$#', '', $appPath);
+                $publicPrefix = rtrim((string) $publicPrefix, '/');
+                if ($publicPrefix !== '' && $publicPrefix !== $appPath) {
+                    $bases[] = $publicPrefix;
+                }
             }
         }
     }
