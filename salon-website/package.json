@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node scripts/prepare-themes.mjs && node scripts/sync-dynamic-components.mjs && node scripts/restore-theme-footers.mjs && node scripts/sync-theme-assets.mjs",
+    "predev": "node scripts/prepare-themes.mjs && node scripts/sync-dynamic-components.mjs && node scripts/restore-theme-footers.mjs && node scripts/sync-brand-logos.mjs && node scripts/sync-theme-assets.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/prepare-themes.mjs && node scripts/sync-dynamic-components.mjs && node scripts/restore-theme-footers.mjs",
+    "prebuild": "node scripts/prepare-themes.mjs && node scripts/sync-dynamic-components.mjs && node scripts/restore-theme-footers.mjs && node scripts/sync-brand-logos.mjs",
     "build": "node scripts/build-all.mjs",
     "build:all": "node scripts/build-all.mjs",
     "sync:assets": "node scripts/sync-theme-assets.mjs"

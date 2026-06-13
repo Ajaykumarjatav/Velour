@@ -351,10 +351,20 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth', function (Request $request) {
             return Limit::perMinute(config('security.rate_limits.auth.per_minute', 10))
                 ->by('auth:ip:' . $request->ip())
-                ->response(fn () => response()->json([
-                    'message'     => 'Too many authentication attempts. Please wait and try again.',
-                    'retry_after' => 60,
-                ], 429));
+                ->response(function () use ($request) {
+                    $message = 'Too many login attempts. Please wait a minute and try again.';
+
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'message'     => $message,
+                            'retry_after' => 60,
+                        ], 429);
+                    }
+
+                    return redirect()->route('login')
+                        ->withErrors(['email' => $message])
+                        ->withInput($request->only('email'));
+                });
         });
 
         /**

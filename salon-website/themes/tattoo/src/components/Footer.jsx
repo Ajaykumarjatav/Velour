@@ -13,12 +13,12 @@ export default function Footer() {
             {/* Logo */}
             <a
               href="#hero"
-              className="font-pacifico text-white hover:text-[#9a031e] text-2xl md:text-[34px] leading-tight transition-colors duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[#9a031e]"
+              className="inline-flex items-center transition-opacity duration-300 hover:opacity-90 outline-none focus-visible:ring-2 focus-visible:ring-[#9a031e]"
             >
               <SalonLogo
                 logoUrl={salon?.logo_url}
                 salonName={salon?.name}
-                imageClassName="h-10 md:h-12 w-auto max-w-[240px] object-contain"
+                variant="footer"
                 placeholderClassName="font-pacifico text-white text-2xl md:text-[34px] leading-tight"
               />
             </a>

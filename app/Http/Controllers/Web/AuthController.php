@@ -7,6 +7,7 @@ use App\Jobs\OnboardNewTenant;
 use App\Models\Salon;
 use App\Models\Staff;
 use App\Models\User;
+use App\Rules\ValidTurnstile;
 use App\Support\AuthRedirect;
 use App\Support\ProfileCompletion;
 use Illuminate\Auth\Events\Registered;
@@ -31,11 +32,15 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email'    => ['required', 'email'],
-            'password' => ['required'],
+            'email'                 => ['required', 'email'],
+            'password'              => ['required'],
+            'cf-turnstile-response' => [new ValidTurnstile()],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt(
+            ['email' => $credentials['email'], 'password' => $credentials['password']],
+            $request->boolean('remember')
+        )) {
             return back()->withErrors(['email' => 'These credentials do not match our records.'])->onlyInput('email');
         }
 

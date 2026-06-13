@@ -14,9 +14,9 @@ export default function TopBar() {
       <div className="max-w-[1360px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <a
           href="#hero"
-          className="font-pacifico text-white hover:text-[#9a031e] text-2xl md:text-[30px] leading-[30px] flex-shrink-0 text-center sm:text-left transition-colors duration-300"
+          className="inline-flex items-center flex-shrink-0 text-center sm:text-left transition-opacity duration-300 hover:opacity-90"
         >
-          <SalonLogo logoUrl={salon.logo_url} salonName={salon.name} />
+          <SalonLogo logoUrl={salon.logo_url} salonName={salon.name} variant="header" />
         </a>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 lg:gap-10">

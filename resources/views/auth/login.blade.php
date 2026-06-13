@@ -32,6 +32,14 @@
         <input type="checkbox" name="remember" class="h-4 w-4 rounded-md border-slate-300 text-velour-600 shadow-sm focus:ring-velour-500">
         <span class="font-medium leading-snug">Stay signed in on this device</span>
     </label>
+
+    @if(config('captcha.turnstile.enabled') && filled(config('captcha.turnstile.site_key')))
+        <div class="flex justify-center">
+            <div class="cf-turnstile" data-sitekey="{{ config('captcha.turnstile.site_key') }}" data-theme="light"></div>
+        </div>
+        @error('cf-turnstile-response')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+    @endif
+
     <button type="submit"
             class="auth-btn-primary group relative mt-1 w-full overflow-hidden rounded-2xl py-4 text-sm font-bold text-white shadow-lg shadow-velour-600/30 transition-all duration-300 hover:shadow-xl hover:shadow-velour-600/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-velour-500 focus-visible:ring-offset-2 active:scale-[0.985]">
         <span class="absolute inset-0 bg-gradient-to-r from-velour-600 via-violet-600 to-purple-600 transition-opacity duration-300 group-hover:opacity-[0.92]" aria-hidden="true"></span>
@@ -39,6 +47,12 @@
         <span class="relative z-10 tracking-wide">Sign in</span>
     </button>
 </form>
+
+@if(config('captcha.turnstile.enabled') && filled(config('captcha.turnstile.site_key')))
+    @push('scripts')
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @endpush
+@endif
 
 <p class="mt-9 border-t border-slate-200/60 pt-8 text-center text-sm text-slate-500">
     New to EasyGrox?

@@ -18,7 +18,7 @@ export default function Footer() {
               <SalonLogo
                 logoUrl={salon?.logo_url}
                 salonName={salon?.name}
-                imageClassName="h-10 md:h-12 w-auto max-w-[240px] object-contain"
+                variant="footer"
                 placeholderClassName="font-pacifico text-white text-2xl md:text-[34px] leading-tight"
               />
             </a>
