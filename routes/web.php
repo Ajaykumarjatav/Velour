@@ -24,6 +24,7 @@ use App\Http\Controllers\Web\MultiLocationController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\ReviewController;
 use App\Http\Controllers\Web\CustomizationController;
+use App\Http\Controllers\Web\DeletedItemsController;
 use App\Http\Controllers\Web\SecuritySupportController;
 use App\Http\Controllers\Web\WebsiteSeoController;
 use App\Http\Controllers\Web\RelationQuickCreateController;
@@ -156,6 +157,10 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         })->name('ui.hide-profile-bar');
 
         Route::get('guide', [GuideController::class, 'index'])->name('guide.index');
+
+        Route::get('deleted-items', [DeletedItemsController::class, 'index'])->name('deleted-items.index');
+        Route::post('deleted-items/{type}/{id}/restore', [DeletedItemsController::class, 'restore'])->name('deleted-items.restore');
+        Route::delete('deleted-items/{type}/{id}', [DeletedItemsController::class, 'forceDestroy'])->name('deleted-items.force-delete');
 
         Route::post('appointments/validate-window', [AppointmentController::class, 'validateWindow'])
             ->name('appointments.validate-window');

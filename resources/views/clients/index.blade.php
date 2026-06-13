@@ -15,36 +15,78 @@
     )));
 @endphp
 
-<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+{{-- Row 1: Compact engagement stats --}}
+<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-3">
     <a href="{{ $engagementQuery() }}"
-       class="rounded-2xl border p-4 transition-all {{ ! $engagementFilter ? 'border-velour-400 bg-velour-50/80 dark:bg-velour-950/30 ring-1 ring-velour-200 dark:ring-velour-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-velour-300' }}">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">All clients</p>
-        <p class="mt-1.5 text-2xl font-bold text-heading tabular-nums">{{ number_format($clientTotal) }}</p>
+       title="All clients in your salon"
+       class="rounded-xl border px-3 py-2.5 transition-all {{ ! $engagementFilter ? 'border-velour-400 bg-velour-50/80 dark:bg-velour-950/30 ring-1 ring-velour-200 dark:ring-velour-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-velour-300' }}">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted">All clients</p>
+        <p class="mt-0.5 text-xl font-bold text-heading tabular-nums leading-none">{{ number_format($clientTotal) }}</p>
     </a>
     <a href="{{ $engagementQuery(['engagement' => 'active']) }}"
-       class="rounded-2xl border p-4 transition-all {{ $engagementFilter === 'active' ? 'border-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/25 ring-1 ring-emerald-200 dark:ring-emerald-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-emerald-300' }}">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Active</p>
-        <p class="mt-1.5 text-2xl font-bold text-heading tabular-nums">{{ number_format($engagementActiveCount ?? 0) }}</p>
-        <p class="mt-1 text-[11px] text-muted leading-snug">Visited in last {{ $engagementWindowDays }} days or has upcoming booking</p>
+       title="Visited in last {{ $engagementWindowDays }} days or has upcoming booking"
+       class="rounded-xl border px-3 py-2.5 transition-all {{ $engagementFilter === 'active' ? 'border-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/25 ring-1 ring-emerald-200 dark:ring-emerald-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-emerald-300' }}">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.06em] text-emerald-700 dark:text-emerald-400">Active</p>
+        <p class="mt-0.5 text-xl font-bold text-heading tabular-nums leading-none">{{ number_format($engagementActiveCount ?? 0) }}</p>
+        <p class="mt-1 text-[10px] text-muted leading-tight hidden sm:block">Recent visit or booking</p>
     </a>
     <a href="{{ $engagementQuery(['engagement' => 'inactive']) }}"
-       class="col-span-2 sm:col-span-1 rounded-2xl border p-4 transition-all {{ $engagementFilter === 'inactive' ? 'border-amber-400 bg-amber-50/80 dark:bg-amber-950/25 ring-1 ring-amber-200 dark:ring-amber-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-amber-300' }}">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">Inactive</p>
-        <p class="mt-1.5 text-2xl font-bold text-heading tabular-nums">{{ number_format($engagementInactiveCount ?? 0) }}</p>
-        <p class="mt-1 text-[11px] text-muted leading-snug">No visit in {{ $engagementWindowDays }} days and no upcoming booking</p>
+       title="No visit in {{ $engagementWindowDays }} days and no upcoming booking"
+       class="rounded-xl border px-3 py-2.5 transition-all {{ $engagementFilter === 'inactive' ? 'border-amber-400 bg-amber-50/80 dark:bg-amber-950/25 ring-1 ring-amber-200 dark:ring-amber-800' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:border-amber-300' }}">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-700 dark:text-amber-400">Inactive</p>
+        <p class="mt-0.5 text-xl font-bold text-heading tabular-nums leading-none">{{ number_format($engagementInactiveCount ?? 0) }}</p>
+        <p class="mt-1 text-[10px] text-muted leading-tight hidden sm:block">No recent activity</p>
     </a>
 </div>
 
-@if(!($isScopedStaffPanel ?? false))
-<div class="card p-5 sm:p-6 mb-6 shadow-sm dark:shadow-none" x-data="{ openReviewRequest: false }">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5">
-        <div class="min-w-0 space-y-1.5">
-            <p class="font-semibold text-heading leading-snug">Get more reviews from your valuable clients</p>
-            <p class="text-sm text-muted leading-relaxed max-w-2xl">Send email-only review requests to clients who have not submitted a review yet.</p>
+@if(!empty($loyaltyFilterTier))
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-velour-200/90 dark:border-velour-500/20 bg-velour-50 dark:bg-velour-950/35 px-4 py-2.5 text-[13px] leading-snug">
+        <span class="text-body">Showing <strong class="text-heading">{{ $loyaltyFilterTier->name }}</strong> members</span>
+        <a href="{{ route('clients.index', request()->except('loyalty_tier_id')) }}" class="text-link font-semibold shrink-0 hover:underline">Clear filter</a>
+    </div>
+@endif
+
+{{-- Row 2: Search + actions (+ review requests) --}}
+<div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 px-3 py-2.5 sm:px-4 sm:py-3 mb-5 shadow-sm dark:shadow-none"
+     @if(!($isScopedStaffPanel ?? false)) x-data="{ openReviewRequest: false }" @endif>
+    <div class="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3">
+        <form action="{{ route('clients.index') }}" method="GET" class="flex flex-1 flex-wrap items-center gap-2 min-w-0">
+            @if(request('loyalty_tier_id'))
+                <input type="hidden" name="loyalty_tier_id" value="{{ request('loyalty_tier_id') }}">
+            @endif
+            @if($engagementFilter)
+                <input type="hidden" name="engagement" value="{{ $engagementFilter }}">
+            @endif
+            <input type="text" name="search" value="{{ $search }}" placeholder="Search name, email or phone…" class="form-input w-full min-w-0 sm:flex-1 sm:min-w-[10rem] lg:max-w-md">
+            <div class="flex w-full sm:w-auto gap-2 shrink-0">
+                <button type="submit" class="btn-secondary flex-1 sm:flex-initial min-w-0">Search</button>
+                @if($search)<a href="{{ route('clients.index') }}" class="btn-outline flex-1 sm:flex-initial min-w-0 text-center">Clear</a>@endif
+            </div>
+        </form>
+        <div class="flex flex-wrap items-center gap-2 shrink-0 lg:border-l lg:border-gray-200 lg:dark:border-gray-800 lg:pl-3">
+            @if(!($isScopedStaffPanel ?? false))
+            <button type="button" class="btn-outline whitespace-nowrap" @click="openReviewRequest = true" title="Send email review requests to eligible clients">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                Request Reviews
+            </button>
+            <form action="{{ route('clients.import') }}" method="POST" enctype="multipart/form-data" class="inline-flex shrink-0 min-w-0">
+                @csrf
+                <label for="client-csv-upload" class="btn-outline cursor-pointer inline-flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    Import
+                </label>
+                <input id="client-csv-upload" type="file" name="file" accept=".csv,text/csv,text/plain,.txt" class="hidden" onchange="if(this.files.length)this.form.submit()">
+            </form>
+            <a href="{{ route('clients.export') }}" class="btn-outline inline-flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Export
+            </a>
+            @endif
+            <a href="{{ route('clients.create') }}" class="btn-primary whitespace-nowrap">+ Add Client</a>
         </div>
-        <button type="button" class="btn-primary shrink-0 w-full sm:w-auto whitespace-nowrap" @click="openReviewRequest = true">Request Reviews</button>
     </div>
 
+    @if(!($isScopedStaffPanel ?? false))
     <x-modal-overlay show="openReviewRequest" @click.self="openReviewRequest = false">
         <div class="w-full max-w-3xl" @click.stop>
             <div class="card p-6 max-h-[80vh] overflow-y-auto">
@@ -90,49 +132,7 @@
             </div>
         </div>
     </x-modal-overlay>
-</div>
-@endif
-
-@if(!empty($loyaltyFilterTier))
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-velour-200/90 dark:border-velour-500/20 bg-velour-50 dark:bg-velour-950/35 px-5 py-4 text-sm leading-relaxed">
-        <span class="text-body">Showing <strong class="text-heading">{{ $loyaltyFilterTier->name }}</strong> members</span>
-        <a href="{{ route('clients.index', request()->except('loyalty_tier_id')) }}" class="text-link font-semibold shrink-0 hover:underline">Clear filter</a>
-    </div>
-@endif
-
-<div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 px-4 py-3.5 sm:px-5 sm:py-4 mb-7 shadow-sm dark:shadow-none">
-    <div class="flex flex-col xl:flex-row xl:items-center gap-4 xl:gap-5">
-        <form action="{{ route('clients.index') }}" method="GET" class="flex flex-1 flex-wrap items-center gap-2.5 sm:gap-3 min-w-0 w-full">
-            @if(request('loyalty_tier_id'))
-                <input type="hidden" name="loyalty_tier_id" value="{{ request('loyalty_tier_id') }}">
-            @endif
-            @if($engagementFilter)
-                <input type="hidden" name="engagement" value="{{ $engagementFilter }}">
-            @endif
-            <input type="text" name="search" value="{{ $search }}" placeholder="Search name, email or phone…" class="form-input w-full min-w-0 sm:flex-1 sm:min-w-[12rem] xl:max-w-xl">
-            <div class="flex w-full sm:w-auto gap-2 shrink-0">
-                <button type="submit" class="btn-secondary flex-1 sm:flex-initial min-w-0">Search</button>
-                @if($search)<a href="{{ route('clients.index') }}" class="btn-outline flex-1 sm:flex-initial min-w-0 text-center">Clear</a>@endif
-            </div>
-        </form>
-        <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-2.5 shrink-0 xl:border-l xl:border-gray-200 xl:dark:border-gray-800 xl:pl-5">
-            @if(!($isScopedStaffPanel ?? false))
-            <form action="{{ route('clients.import') }}" method="POST" enctype="multipart/form-data" class="inline-flex w-full sm:w-auto shrink-0 min-w-0">
-                @csrf
-                <label for="client-csv-upload" class="btn-outline cursor-pointer w-full sm:w-auto inline-flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                    Import
-                </label>
-                <input id="client-csv-upload" type="file" name="file" accept=".csv,text/csv,text/plain,.txt" class="hidden" onchange="if(this.files.length)this.form.submit()">
-            </form>
-            <a href="{{ route('clients.export') }}" class="btn-outline w-full sm:w-auto inline-flex items-center justify-center gap-2 text-center">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Export
-            </a>
-            @endif
-            <a href="{{ route('clients.create') }}" class="btn-primary w-full sm:w-auto text-center whitespace-nowrap sm:min-w-[10.5rem]">+ Add Client</a>
-        </div>
-    </div>
+    @endif
 </div>
 
 @php

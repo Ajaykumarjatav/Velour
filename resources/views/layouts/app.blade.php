@@ -52,10 +52,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style type="text/tailwindcss">
-        /* App-wide: Inter at 400 / 500 / 600 only — map heavier utility classes to 600 */
+        /* App-wide: Inter — compact admin scale (14px root ≈ reference UI) */
+        html {
+            font-size: 14px;
+        }
         html, body {
             font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
             font-weight: 400;
+            line-height: 1.45;
             font-feature-settings: 'kern' 1, 'liga' 1, 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -100,24 +104,38 @@
 
         /* ── Sidebar links ── */
         .sidebar-link {
-            @apply flex items-center gap-2.5 pl-2 pr-2.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                   border-l-2 border-transparent
-                   text-gray-600 hover:bg-gray-100 hover:text-gray-900
-                   dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100;
+            @apply flex items-center gap-3 pl-2.5 pr-3 py-2.5 rounded-xl text-[13px] font-medium leading-snug transition-all duration-200
+                   text-gray-600 hover:bg-gray-100/90 hover:text-gray-900
+                   dark:text-[#94a3b8] dark:hover:bg-white/[0.06] dark:hover:text-gray-200;
         }
         .sidebar-link.active {
-            @apply border-velour-600 bg-velour-50 text-velour-700
-                   hover:bg-velour-100/80 dark:bg-velour-950/40 dark:text-velour-300 dark:border-velour-500
-                   dark:hover:bg-velour-950/55;
+            @apply bg-amber-50 text-amber-900 font-semibold
+                   hover:bg-amber-50
+                   dark:bg-[#2a2520] dark:text-amber-300 dark:hover:bg-[#302a24];
         }
-        .nav-icon { @apply w-5 h-5 flex-shrink-0 opacity-90; }
+        .nav-icon-wrap {
+            @apply flex h-8 w-8 flex-shrink-0 items-center justify-center;
+        }
+        .nav-icon-illustration {
+            @apply h-7 w-7;
+            filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.22));
+        }
+        .nav-section-title {
+            @apply px-3 pt-5 pb-2 text-[10px] font-bold text-gray-400 dark:text-[#64748b] uppercase tracking-[0.14em];
+        }
+        .sidebar-sub-link {
+            @apply flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] leading-snug transition-colors;
+        }
+        .sidebar-nav-badge {
+            @apply ml-auto min-w-[1.35rem] px-1.5 py-0.5 text-[10px] font-bold rounded-full text-center tabular-nums;
+        }
         [x-cloak] { display: none !important; }
 
         /* ── App shell layout (no transition on load) ── */
         @media (min-width: 1024px) {
-            .app-shell-main { padding-left: 14rem; }
+            .app-shell-main { padding-left: 15rem; }
             html.sidebar-is-collapsed .app-shell-main { padding-left: 4.5rem; }
-            .app-shell-sidebar { width: 14rem; }
+            .app-shell-sidebar { width: 15rem; }
             html.sidebar-is-collapsed .app-shell-sidebar { width: 4.5rem; }
         }
 
@@ -136,10 +154,14 @@
             font-size: 0;
             gap: 0;
         }
-        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
-            width: 1.25rem;
-            height: 1.25rem;
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon-wrap {
+            width: 2rem;
+            height: 2rem;
             flex-shrink: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon-illustration {
+            width: 1.375rem;
+            height: 1.375rem;
         }
         html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link::after {
             content: attr(data-title);
@@ -210,29 +232,29 @@
                    text-gray-700 dark:text-gray-300;
         }
         .card-header {
-            @apply px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-800;
+            @apply px-5 py-3.5 border-b border-gray-100 dark:border-gray-800;
         }
-        .card-body  { @apply px-6 py-5; }
+        .card-body  { @apply px-5 py-4; }
         .card-footer {
             @apply px-6 py-3.5 border-t border-gray-100 dark:border-gray-800
                    bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl;
         }
 
         /* ── Page headings ── */
-        .page-title   { @apply text-lg sm:text-xl font-semibold tracking-tight text-gray-900 dark:text-white; }
-        .page-subtitle{ @apply text-sm text-gray-500 dark:text-gray-300; }
-        .section-title{ @apply text-[15px] sm:text-base font-semibold tracking-tight text-gray-800 dark:text-gray-100; }
+        .page-title   { @apply text-[15px] sm:text-base font-semibold tracking-tight text-gray-900 dark:text-white; }
+        .page-subtitle{ @apply text-xs text-gray-500 dark:text-gray-400 leading-relaxed; }
+        .section-title{ @apply text-sm font-semibold tracking-tight text-gray-800 dark:text-gray-100; }
 
         /* ── Form elements ── */
         .form-label {
-            @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+            @apply block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1;
         }
         .form-input {
             @apply w-full rounded-xl border border-gray-300 dark:border-gray-700
                    bg-white dark:bg-gray-800
                    text-gray-900 dark:text-gray-100
                    placeholder-gray-400 dark:placeholder-gray-500
-                   px-3 py-2 text-sm
+                   px-3 py-1.5 text-[13px]
                    focus:outline-none focus:ring-2 focus:ring-velour-500 focus:border-transparent
                    transition-colors;
         }
@@ -273,8 +295,8 @@
 
         /* ── Buttons ── */
         .btn {
-            @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl
-                   text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
+            @apply inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-xl
+                   text-[13px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
                    dark:focus:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed;
         }
         .btn-primary {
@@ -294,8 +316,8 @@
                    hover:bg-gray-50 dark:hover:bg-gray-800
                    focus:ring-gray-400;
         }
-        .btn-sm { @apply px-3 py-1.5 text-xs; }
-        .btn-lg { @apply px-6 py-3 text-base; }
+        .btn-sm { @apply px-2.5 py-1 text-[11px]; }
+        .btn-lg { @apply px-5 py-2.5 text-sm; }
 
         /* ── Tables ── */
         .table-wrap {
@@ -303,7 +325,7 @@
                    bg-white dark:bg-gray-900;
         }
         table.data-table {
-            @apply w-full text-sm;
+            @apply w-full text-[13px];
         }
         /* Optional: keeps columns from stretching endlessly on very wide viewports */
         table.data-table.data-table-fixed {
@@ -313,8 +335,8 @@
             @apply bg-gray-50 dark:bg-gray-800/60;
         }
         table.data-table thead th {
-            @apply px-4 py-3 align-middle text-xs font-semibold
-                   text-gray-500 dark:text-gray-400 uppercase tracking-wider;
+            @apply px-3 py-2 align-middle text-[10px] font-semibold
+                   text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em];
         }
         /* Default left; :where() keeps specificity at 0 so .text-right / .text-center on th win */
         :where(table.data-table thead th) {
@@ -325,18 +347,18 @@
                    hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors;
         }
         table.data-table tbody td {
-            @apply px-4 py-3 align-middle text-gray-700 dark:text-gray-300;
+            @apply px-3 py-2 align-middle text-gray-700 dark:text-gray-300;
         }
 
         /* ── Stat / metric cards ── */
         .stat-card {
-            @apply card p-6;
+            @apply card p-5;
         }
         .stat-label {
-            @apply text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-1.5;
+            @apply text-[10px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-[0.06em] mb-1;
         }
         .stat-value {
-            @apply text-2xl sm:text-[1.65rem] font-[700] tracking-tight text-gray-900 dark:text-white;
+            @apply text-xl sm:text-[1.35rem] font-[700] tracking-tight text-gray-900 dark:text-white;
         }
         .stat-sub {
             @apply text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed;
@@ -410,7 +432,7 @@
                    bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800;
         }
         .dropdown-item {
-            @apply block w-full text-left px-4 py-2 text-sm
+            @apply block w-full text-left px-3.5 py-1.5 text-[13px]
                    text-gray-700 dark:text-gray-300
                    hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors;
         }
@@ -420,7 +442,7 @@
             @apply flex gap-1 border-b border-gray-200 dark:border-gray-800 mb-5;
         }
         .tab-item {
-            @apply px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors
+            @apply px-3.5 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors
                    text-gray-500 dark:text-gray-400 border-transparent
                    hover:text-gray-700 dark:hover:text-gray-200;
         }
@@ -464,7 +486,7 @@
 
     {{-- Desktop sidebar --}}
     <aside class="app-shell-sidebar hidden lg:flex lg:flex-col lg:min-h-0 lg:fixed lg:inset-y-0 z-30
-                  bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-visible">
+                  bg-white dark:bg-[#16161f] border-r border-gray-200 dark:border-gray-800/80 overflow-visible">
         @include('partials.sidebar')
     </aside>
 
@@ -474,8 +496,8 @@
 
     {{-- Mobile sidebar --}}
     <aside x-show="sidebarOpen" x-cloak
-           class="fixed inset-y-0 left-0 w-56 z-50 lg:hidden flex flex-col min-h-0
-                  bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
+           class="fixed inset-y-0 left-0 w-60 z-50 lg:hidden flex flex-col min-h-0
+                  bg-white dark:bg-[#16161f] border-r border-gray-200 dark:border-gray-800/80">
         @include('partials.sidebar')
     </aside>
 
@@ -483,9 +505,9 @@
     <div class="app-shell-main flex-1 flex flex-col min-h-screen min-w-0">
 
         {{-- Top bar --}}
-        <header class="sticky top-0 z-20 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
+        <header class="sticky top-0 z-50 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
                        bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800
-                       transition-colors duration-200 py-2 sm:py-0">
+                       transition-colors duration-200 py-2 sm:py-0 isolate">
             <div class="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
                 {{-- Mobile: open sidebar --}}
                 <button @click="sidebarOpen=true"
@@ -504,7 +526,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
                     </svg>
                 </button>
-                <h1 class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 dark:text-white truncate">
+                <h1 class="text-[15px] sm:text-base font-semibold tracking-tight text-gray-900 dark:text-white truncate">
                     @yield('page-title', 'Dashboard')
                 </h1>
             </div>
@@ -556,8 +578,8 @@
                         @endif
                     </button>
                     <div x-show="notifOpen" x-cloak @click.outside="notifOpen=false"
-                         class="absolute right-0 mt-2 w-80 rounded-2xl shadow-xl border z-50 overflow-hidden
-                                bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
+                         class="absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl border z-[60] overflow-hidden
+                                bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                             <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">Notifications</span>
                             @if($headerUnreadCount > 0)
@@ -606,8 +628,8 @@
                         </div>
                     </button>
                     <div x-show="open" x-cloak @click.outside="open=false"
-                         class="absolute right-0 mt-2 w-64 rounded-2xl shadow-xl border z-50
-                                bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 overflow-hidden">
+                         class="absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl border z-[60]
+                                bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 overflow-hidden">
                         {{-- Profile header --}}
                         <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
                             <div class="flex items-center gap-3">
@@ -716,7 +738,7 @@
         @endif
         @endif
 
-        <main class="flex-1 min-w-0 p-5 sm:p-7 lg:p-8">
+        <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-7 text-[13px] leading-snug">
 
             @if(session('success'))
             <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm

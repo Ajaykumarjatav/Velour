@@ -38,7 +38,7 @@
         position: sticky;
         left: 0;
         top: 0;
-        z-index: 40;
+        z-index: 5;
         min-height: var(--day-head-h);
         background: rgb(249 250 251 / 0.98);
         border-bottom: 1px solid rgb(229 231 235);
@@ -51,7 +51,7 @@
     .day-cal__staff-head {
         position: sticky;
         top: 0;
-        z-index: 35;
+        z-index: 4;
         min-height: var(--day-head-h);
         padding: 0.35rem 0.4rem;
         display: flex;
@@ -91,7 +91,7 @@
     .day-cal__time-col {
         position: sticky;
         left: 0;
-        z-index: 30;
+        z-index: 3;
         background: rgb(249 250 251 / 0.98);
         border-right: 1px solid rgb(229 231 235);
         padding-top: var(--day-time-inset);

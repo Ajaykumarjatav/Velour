@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Notifications\TwoFactorCodeNotification;
 use App\Services\LoginActivityService;
 use App\Support\AuthRedirect;
+use App\Support\TrustedDevice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -213,6 +214,11 @@ class TwoFactorController extends Controller
         session(['two_factor_passed' => true]);
         session()->forget('two_factor_code_sent');
         $activity->recordSuccess($user, $request, via2fa: true);
+
+        if ($request->session()->pull('auth.remember_requested')) {
+            Auth::login($user, true);
+            TrustedDevice::issue($user);
+        }
 
         return redirect()->to(AuthRedirect::afterLoginUrl($request, $user));
     }

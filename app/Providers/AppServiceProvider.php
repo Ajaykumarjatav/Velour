@@ -70,6 +70,17 @@ class AppServiceProvider extends ServiceProvider
             if (is_string($scheme) && $scheme !== '') {
                 URL::forceScheme($scheme);
             }
+
+            $appPath = parse_url($appUrl, PHP_URL_PATH) ?: '';
+            $appPath = rtrim($appPath, '/');
+            if ($appPath !== '' && $appPath !== '/') {
+                config(['session.path' => $appPath]);
+            }
+        }
+
+        $rememberMinutes = (int) config('auth.remember_lifetime', 43_200);
+        if ($rememberMinutes > 0) {
+            auth()->guard('web')->setRememberDuration($rememberMinutes);
         }
 
         // Stripe PHP defaults to ext-curl. Apache (XAMPP) may run PHP without curl while CLI has it.

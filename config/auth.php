@@ -1,6 +1,10 @@
 <?php
 return [
     'defaults'  => ['guard' => 'web', 'passwords' => 'users'],
+
+    // "Stay signed in" cookie lifetime (minutes). Default: 30 days.
+    'remember_lifetime' => (int) env('AUTH_REMEMBER_LIFETIME', 43_200),
+
     'guards'    => [
         'web'     => ['driver' => 'session', 'provider' => 'users'],
         'sanctum' => ['driver' => 'sanctum', 'provider' => 'users'],

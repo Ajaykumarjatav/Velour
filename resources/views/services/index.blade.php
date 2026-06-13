@@ -2,14 +2,6 @@
 @section('title', 'Services')
 @section('page-title', 'Services')
 
-@section('header-actions')
-    <a href="{{ route('services.create') }}"
-       class="btn-primary inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl shadow-md shadow-velour-600/20 dark:shadow-velour-900/25 active:scale-[0.97] transition-transform duration-150">
-        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        <span>+ Add Service</span>
-    </a>
-@endsection
-
 @section('content')
 
 @php
@@ -146,14 +138,21 @@
             </div>
         </form>
 
-        <div class="flex flex-wrap gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
-            <a href="{{ route('service-packages.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm font-medium text-body hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors duration-200">
-                <svg class="w-4 h-4 text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                Packages
-            </a>
-            <a href="{{ route('service-categories.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm font-medium text-body hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors duration-200">
-                <svg class="w-4 h-4 text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                Categories
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('service-packages.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm font-medium text-body hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors duration-200">
+                    <svg class="w-4 h-4 text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    Packages
+                </a>
+                <a href="{{ route('service-categories.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm font-medium text-body hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors duration-200">
+                    <svg class="w-4 h-4 text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                    Categories
+                </a>
+            </div>
+            <a href="{{ route('services.create') }}"
+               class="btn-primary inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl shadow-md shadow-velour-600/20 dark:shadow-velour-900/25 active:scale-[0.97] transition-transform duration-150 shrink-0">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>Add Service</span>
             </a>
         </div>
     </div>

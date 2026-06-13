@@ -25,14 +25,14 @@
     .staff-cal__sidebar {
         position: sticky;
         left: 0;
-        z-index: 25;
+        z-index: 4;
         background: rgb(249 250 251 / 0.98);
     }
     .dark .staff-cal__sidebar { background: rgb(17 24 39 / 0.98); }
     .staff-cal__head {
         position: sticky;
         top: 0;
-        z-index: 30;
+        z-index: 5;
         background: rgb(249 250 251 / 0.98);
     }
     .dark .staff-cal__head { background: rgb(17 24 39 / 0.98); }

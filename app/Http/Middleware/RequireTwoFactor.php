@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\AppUrl;
+use App\Support\TrustedDevice;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,6 +38,13 @@ class RequireTwoFactor
 
         // Check if the 2FA challenge has already been passed this session
         if ($request->session()->get('two_factor_passed') === true) {
+            return $next($request);
+        }
+
+        // Trusted device from "Stay signed in on this device"
+        if (TrustedDevice::matches($user, $request->cookie(TrustedDevice::COOKIE))) {
+            $request->session()->put('two_factor_passed', true);
+
             return $next($request);
         }
 

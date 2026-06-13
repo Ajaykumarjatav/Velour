@@ -43,7 +43,7 @@
     </div>
 @endif
 
-<div class="relative z-40 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 px-4 py-3.5 sm:px-5 sm:py-4 mb-7 shadow-sm dark:shadow-none">
+<div class="relative z-30 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3.5 sm:px-5 sm:py-4 mb-7 shadow-sm dark:shadow-none">
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div class="inline-flex p-1 rounded-xl bg-gray-100 dark:bg-gray-800/90 border border-gray-200/90 dark:border-gray-700 gap-0.5">
             @foreach(['day'=>'Day','week'=>'Week','month'=>'Month'] as $v => $label)
@@ -123,7 +123,7 @@
                      x-transition:enter-start="opacity-0 -translate-y-1"
                      x-transition:enter-end="opacity-100 translate-y-0"
                      @click.outside="openRangePicker = false"
-                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(100vw-1.5rem,40rem)] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[60] overflow-visible">
+                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(100vw-1.5rem,40rem)] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 p-3 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[80] overflow-visible">
                     <form method="GET" action="{{ route('calendar') }}" class="space-y-3">
                         <input type="hidden" name="view" value="week">
                         <input type="hidden" name="staff_id" value="{{ $filterStaffId }}">
@@ -146,7 +146,7 @@
     </div>
 </div>
 
-<div class="card overflow-hidden">
+<div class="card overflow-hidden relative z-0">
     @if($view === 'day' && !empty($dayScheduleGrid))
         @include('calendar.partials.day-schedule-grid')
     @elseif(in_array($view, ['week', 'month'], true))

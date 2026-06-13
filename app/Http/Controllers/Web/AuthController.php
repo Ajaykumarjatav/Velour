@@ -11,6 +11,7 @@ use App\Rules\ValidTurnstile;
 use App\Services\LoginActivityService;
 use App\Support\AuthRedirect;
 use App\Support\ProfileCompletion;
+use App\Support\TrustedDevice;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
@@ -38,9 +39,11 @@ class AuthController extends Controller
             'cf-turnstile-response' => [new ValidTurnstile()],
         ]);
 
+        $remember = $request->boolean('remember');
+
         if (! Auth::attempt(
             ['email' => $credentials['email'], 'password' => $credentials['password']],
-            $request->boolean('remember')
+            $remember
         )) {
             $activity->recordFailure($request, $credentials['email']);
 
@@ -59,6 +62,10 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $user->update(['last_login_at' => now()]);
 
+        if ($remember) {
+            $request->session()->put('auth.remember_requested', true);
+        }
+
         // Reset 2FA session flag on fresh login
         session()->forget('two_factor_passed');
         session()->forget('two_factor_code_sent');
@@ -69,6 +76,10 @@ class AuthController extends Controller
         }
 
         $activity->recordSuccess($user, $request);
+
+        if ($remember) {
+            TrustedDevice::issue($user);
+        }
 
         if ($user->force_password_change) {
             return redirect()->route('password.force.show');
@@ -220,6 +231,7 @@ class AuthController extends Controller
         }
 
         Auth::logout();
+        TrustedDevice::forget();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

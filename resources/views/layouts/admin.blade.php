@@ -19,9 +19,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    html { font-size: 14px; }
     html, body {
       font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
       font-weight: 400;
+      line-height: 1.45;
       font-feature-settings: 'kern' 1, 'liga' 1, 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -81,9 +83,9 @@
       @endphp
       @foreach($nav as $item)
       <a href="{{ route($item['route']) }}"
-         class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors
-                {{ request()->routeIs($item['route'].'*') ? 'bg-velour-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
-        <span class="text-base">{{ $item['icon'] }}</span>
+         class="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-colors
+                {{ request()->routeIs($item['route'].'*') ? 'bg-velour-600 text-white font-semibold' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
+        <span class="text-sm">{{ $item['icon'] }}</span>
         <span class="flex-1">{{ $item['label'] }}</span>
         @if($item['route'] === 'admin.support.index' && $openTickets > 0)
           <span class="text-[10px] font-bold bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0">
@@ -116,7 +118,7 @@
   <main class="flex-1 min-h-0 overflow-y-auto bg-gray-950">
     {{-- Top bar --}}
     <div class="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-      <h1 class="text-lg font-semibold text-white">@yield('page-title', 'Admin')</h1>
+      <h1 class="text-[15px] font-semibold text-white">@yield('page-title', 'Admin')</h1>
       <span class="px-2.5 py-1 text-xs font-bold bg-red-900/50 text-red-300 rounded-lg border border-red-800/50 uppercase tracking-wider">
         Super Admin
       </span>
@@ -146,7 +148,7 @@
       @endif
     </div>
 
-    <div class="p-6">
+    <div class="p-5 text-[13px] leading-snug">
       @yield('content')
     </div>
   </main>

@@ -45,4 +45,9 @@ final class SidebarNav
         return self::show($user, 'team')
             && ($user->ownsCurrentSalon() || $user->hasRole('tenant_admin'));
     }
+
+    public static function showDeletedItems(User $user): bool
+    {
+        return \App\Support\DeletedItemsRegistry::userCanAccessTrash($user);
+    }
 }

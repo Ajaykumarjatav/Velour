@@ -64,6 +64,7 @@ final class PermissionCatalog
         'notifications' => null,
         'security_support' => null,
         'support' => null,
+        'deleted_items' => null,
     ];
 
     /**

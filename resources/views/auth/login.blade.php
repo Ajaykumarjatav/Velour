@@ -29,7 +29,7 @@
         </div>
     </div>
     <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200/60 bg-gradient-to-br from-slate-50/90 to-white/50 px-4 py-3 text-sm text-slate-600 transition-all duration-300 hover:border-velour-200/50 hover:from-velour-50/30 focus-within:border-velour-300/40 focus-within:ring-2 focus-within:ring-velour-500/20">
-        <input type="checkbox" name="remember" class="h-4 w-4 rounded-md border-slate-300 text-velour-600 shadow-sm focus:ring-velour-500">
+        <input type="checkbox" name="remember" value="1" @checked(old('remember')) class="h-4 w-4 rounded-md border-slate-300 text-velour-600 accent-velour-600 shadow-sm focus:ring-velour-500">
         <span class="font-medium leading-snug">Stay signed in on this device</span>
     </label>
 
