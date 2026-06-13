@@ -76,7 +76,7 @@ class SecurityHeaders
 
         // ── Content-Security-Policy ───────────────────────────────────────
         if (config('security.csp.enabled', true)) {
-            $csp = $this->buildCsp($nonce);
+            $csp = $this->buildCsp($nonce, $request);
 
             $headerName = config('security.csp.report_only', false)
                 ? 'Content-Security-Policy-Report-Only'
@@ -106,33 +106,46 @@ class SecurityHeaders
 
     // ── CSP builder ───────────────────────────────────────────────────────────
 
-    private function buildCsp(string $nonce): string
+    private function buildCsp(string $nonce, Request $request): string
     {
-        $directives = config('security.csp.directives', []);
-        $parts      = [];
+        $directives = $this->usesBladeUi($request)
+            ? config('security.csp.directives_blade', [])
+            : config('security.csp.directives', []);
+
+        $parts = [];
 
         foreach ($directives as $directive => $sources) {
             if (empty($sources)) {
-                // Bare directive (no value) e.g. upgrade-insecure-requests
                 $parts[] = $directive;
                 continue;
             }
 
-            // Replace the placeholder 'nonce' with the real nonce value
             $resolved = array_map(
-                fn($s) => $s === "'nonce'" ? "'nonce-{$nonce}'" : $s,
+                fn ($s) => $s === "'nonce'" ? "'nonce-{$nonce}'" : $s,
                 $sources
             );
 
             $parts[] = $directive . ' ' . implode(' ', $resolved);
         }
 
-        // Append report-uri if configured
+        if (
+            ! $this->usesBladeUi($request)
+            && app()->environment('production')
+            && array_key_exists('upgrade-insecure-requests', config('security.csp.directives', []))
+        ) {
+            $parts[] = 'upgrade-insecure-requests';
+        }
+
         if ($uri = config('security.csp.report_uri')) {
             $parts[] = "report-uri {$uri}";
-            $parts[] = "report-to csp-endpoint";
+            $parts[] = 'report-to csp-endpoint';
         }
 
         return implode('; ', $parts);
+    }
+
+    private function usesBladeUi(Request $request): bool
+    {
+        return ! $request->is('api/*') && ! $request->expectsJson();
     }
 }

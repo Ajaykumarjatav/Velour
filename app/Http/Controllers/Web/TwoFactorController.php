@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Notifications\TwoFactorCodeNotification;
+use App\Services\LoginActivityService;
 use App\Support\AuthRedirect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -191,7 +192,7 @@ class TwoFactorController extends Controller
         ]);
     }
 
-    public function challenge(Request $request)
+    public function challenge(Request $request, LoginActivityService $activity)
     {
         $request->validate(['code' => 'required|string']);
 
@@ -208,9 +209,10 @@ class TwoFactorController extends Controller
             return back()->withErrors(['code' => 'Invalid or expired code. Please try again.']);
         }
 
-        // Mark 2FA as passed for this session
+        $request->session()->regenerate();
         session(['two_factor_passed' => true]);
         session()->forget('two_factor_code_sent');
+        $activity->recordSuccess($user, $request, via2fa: true);
 
         return redirect()->to(AuthRedirect::afterLoginUrl($request, $user));
     }

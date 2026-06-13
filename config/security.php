@@ -49,7 +49,27 @@ return [
             'media-src'       => ["'self'"],
             'worker-src'      => ["'self'", 'blob:'],
             'manifest-src'    => ["'self'"],
-            'upgrade-insecure-requests' => [],   // empty value = directive with no value
+            'upgrade-insecure-requests' => [],
+        ],
+
+        /*
+        | Relaxed CSP for Blade admin UI (Tailwind CDN injects runtime styles).
+        */
+        'directives_blade' => [
+            'default-src'     => ["'self'"],
+            'script-src'      => ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://js.stripe.com', 'https://cdn.jsdelivr.net', 'https://cdn.tailwindcss.com', 'https://challenges.cloudflare.com'],
+            'style-src'       => ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
+            'font-src'        => ["'self'", 'https://fonts.gstatic.com', 'data:'],
+            'img-src'         => ["'self'", 'data:', 'blob:', 'https:', 'https://api.qrserver.com'],
+            'connect-src'     => ["'self'", 'https://api.stripe.com', 'https://vitals.vercel-insights.com', 'https://challenges.cloudflare.com'],
+            'frame-src'       => ["'self'", 'https://js.stripe.com', 'https://hooks.stripe.com', 'https://challenges.cloudflare.com'],
+            'frame-ancestors' => ["'none'"],
+            'base-uri'        => ["'self'"],
+            'form-action'     => ["'self'"],
+            'object-src'      => ["'none'"],
+            'media-src'       => ["'self'"],
+            'worker-src'      => ["'self'", 'blob:'],
+            'manifest-src'    => ["'self'"],
         ],
     ],
 

@@ -8,6 +8,7 @@ use App\Models\Salon;
 use App\Models\Staff;
 use App\Models\User;
 use App\Rules\ValidTurnstile;
+use App\Services\LoginActivityService;
 use App\Support\AuthRedirect;
 use App\Support\ProfileCompletion;
 use Illuminate\Auth\Events\Registered;
@@ -29,7 +30,7 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request)
+    public function login(Request $request, LoginActivityService $activity)
     {
         $credentials = $request->validate([
             'email'                 => ['required', 'email'],
@@ -41,6 +42,8 @@ class AuthController extends Controller
             ['email' => $credentials['email'], 'password' => $credentials['password']],
             $request->boolean('remember')
         )) {
+            $activity->recordFailure($request, $credentials['email']);
+
             return back()->withErrors(['email' => 'These credentials do not match our records.'])->onlyInput('email');
         }
 
@@ -48,6 +51,8 @@ class AuthController extends Controller
 
         if (! $user->is_active) {
             Auth::logout();
+            $activity->recordFailure($request, $credentials['email'], 'account_suspended');
+
             return back()->withErrors(['email' => 'Your account has been suspended. Please contact support.']);
         }
 
@@ -62,6 +67,8 @@ class AuthController extends Controller
         if ($user->hasTwoFactorEnabled()) {
             return redirect()->route('two-factor.challenge');
         }
+
+        $activity->recordSuccess($user, $request);
 
         if ($user->force_password_change) {
             return redirect()->route('password.force.show');
@@ -205,8 +212,13 @@ class AuthController extends Controller
 
     // ── Logout ────────────────────────────────────────────────────────────────
 
-    public function logout(Request $request)
+    public function logout(Request $request, LoginActivityService $activity)
     {
+        $user = Auth::user();
+        if ($user) {
+            $activity->recordLogout($user);
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

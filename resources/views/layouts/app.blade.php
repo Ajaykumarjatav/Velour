@@ -638,6 +638,11 @@
                                 Settings
                             </a>
                             @endif
+                            <a href="{{ route('account.sessions') }}"
+                               class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Login activity logs
+                            </a>
                         </div>
                         <hr class="border-gray-100 dark:border-gray-800">
                         <div class="py-1">
@@ -779,7 +784,7 @@
 
 @stack('modals')
 
-<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script>
     // Alpine theme store — syncs with the class already set by the inline IIFE above
     document.addEventListener('alpine:init', () => {

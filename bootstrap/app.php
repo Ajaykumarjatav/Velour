@@ -31,6 +31,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Sanctum stateful API support
         $middleware->statefulApi();
 
+        // Security headers + HTTPS redirect on all web pages
+        $middleware->web(prepend: [
+            \App\Http\Middleware\ForceHttps::class,
+            \App\Http\Middleware\SecurityHeaders::class,
+        ]);
+
         // Global API middleware (applies to all API routes)
         $middleware->api(prepend: [
             \App\Http\Middleware\SecurityHeaders::class,
