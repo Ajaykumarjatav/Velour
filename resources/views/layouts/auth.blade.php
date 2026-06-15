@@ -6,9 +6,26 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sign In') — EasyGrox</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    <script>
+        (function () {
+            var saved = localStorage.getItem('velour-theme');
+            var themeVersion = localStorage.getItem('velour-theme-v');
+            if (themeVersion !== '2') {
+                localStorage.setItem('velour-theme', 'light');
+                localStorage.setItem('velour-theme-v', '2');
+                saved = 'light';
+            }
+            if (saved === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -70,6 +87,12 @@
                 radial-gradient(ellipse 70% 50% at 0% 80%, rgba(221, 214, 254, 0.35), transparent 45%),
                 linear-gradient(180deg, #faf8ff 0%, #f4f0ff 45%, #faf5ff 100%);
         }
+        .dark .auth-bg-mesh {
+            background:
+                radial-gradient(ellipse 100% 70% at 50% -20%, rgba(124, 58, 237, 0.18), transparent 55%),
+                radial-gradient(ellipse 80% 50% at 100% 60%, rgba(91, 33, 182, 0.12), transparent 50%),
+                linear-gradient(180deg, #0c0c12 0%, #101018 50%, #0a0a10 100%);
+        }
         .auth-bg-grid {
             background-image:
                 linear-gradient(to right, rgba(124, 58, 237, 0.055) 1px, transparent 1px),
@@ -119,6 +142,11 @@
         *::-webkit-scrollbar { width: 8px; height: 8px; }
         *::-webkit-scrollbar-track { background: rgb(245 243 255); border-radius: 4px; }
         *::-webkit-scrollbar-thumb { background: rgb(196 181 253); border-radius: 4px; }
+        .dark * {
+            scrollbar-color: rgb(91 33 182) rgb(24 24 32);
+        }
+        .dark *::-webkit-scrollbar-track { background: rgb(24 24 32); }
+        .dark *::-webkit-scrollbar-thumb { background: rgb(91 33 182); }
     </style>
     <script>
         document.addEventListener('click', function (e) {
@@ -141,7 +169,15 @@
         });
     </script>
 </head>
-<body class="min-h-screen relative overflow-x-hidden text-slate-800 auth-bg-mesh">
+<body class="min-h-screen relative overflow-x-hidden text-slate-800 dark:text-slate-200 auth-bg-mesh" x-data>
+    <button type="button"
+            @click="$store.theme.toggle()"
+            class="fixed top-4 right-4 z-20 rounded-xl border border-slate-200/80 bg-white/80 p-2.5 text-slate-500 shadow-sm backdrop-blur-sm transition-colors hover:text-slate-800 dark:border-gray-700 dark:bg-gray-900/80 dark:text-gray-400 dark:hover:text-white"
+            title="Toggle theme"
+            aria-label="Toggle theme">
+        <svg x-show="$store.theme.dark" x-cloak class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <svg x-show="!$store.theme.dark" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+    </button>
     <div class="pointer-events-none fixed inset-0 auth-bg-grid" aria-hidden="true"></div>
     <div class="pointer-events-none fixed inset-0 auth-noise" aria-hidden="true"></div>
     <div class="pointer-events-none fixed -top-40 left-1/2 h-[480px] w-[780px] -translate-x-1/2 animate-auth-orb-1 rounded-full bg-gradient-to-br from-velour-300 via-violet-300 to-fuchsia-200 opacity-60 auth-orb" aria-hidden="true"></div>
@@ -153,22 +189,26 @@
             <header class="mb-9 text-center sm:mb-11">
                 <a href="{{ url('/') }}" class="auth-brand-link group inline-flex flex-col items-center gap-3 rounded-2xl outline-none ring-velour-500/30 focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent">
                     <img src="{{ asset('images/easygrox-logo-light.png') }}" alt="EasyGrox" class="auth-logo-img h-16 w-auto sm:h-[4.5rem]">
-                    <span class="block text-[13px] font-medium tracking-wide text-slate-500">Your business, one platform</span>
+                    <span class="block text-[13px] font-medium tracking-wide text-slate-500 dark:text-slate-400">Your business, one platform</span>
                 </a>
             </header>
 
-            <main class="overflow-hidden rounded-[1.35rem] bg-white/75 shadow-auth-card ring-1 ring-white/80 backdrop-blur-xl sm:rounded-3xl">
+            <main class="overflow-hidden rounded-[1.35rem] bg-white/75 shadow-auth-card ring-1 ring-white/80 backdrop-blur-xl dark:bg-gray-900/90 dark:ring-gray-800/80 dark:shadow-none sm:rounded-3xl">
                 <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-velour-500 to-fuchsia-500 opacity-95" aria-hidden="true"></div>
                 <div class="px-6 py-7 sm:px-9 sm:py-9 md:px-10 md:py-10">
                     @if(session('success'))
-                        <div class="mb-6 flex gap-3 rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/95 to-teal-50/50 px-4 py-3 text-sm text-emerald-900 shadow-sm">
-                            <svg class="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div class="mb-6 flex gap-3 rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/95 to-teal-50/50 px-4 py-3 text-sm text-emerald-900 shadow-sm dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-teal-950/30 dark:text-emerald-200">
+                            <svg class="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <div>{{ session('success') }}</div>
                         </div>
                     @endif
-                    @if($errors->any())
-                        <div class="mb-6 space-y-1 rounded-2xl border border-red-200/80 bg-gradient-to-br from-red-50 to-rose-50/80 px-4 py-3 text-sm text-red-900 shadow-sm">
-                            @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
+                    @php
+                        $authInlineErrorFields = ['email', 'password', 'name', 'password_confirmation', 'cf-turnstile-response', 'code', 'recovery_code'];
+                        $authBannerErrors = collect($errors->getMessages())->except($authInlineErrorFields)->flatten();
+                    @endphp
+                    @if($authBannerErrors->isNotEmpty())
+                        <div class="mb-6 space-y-1 rounded-2xl border border-red-200/80 bg-gradient-to-br from-red-50 to-rose-50/80 px-4 py-3 text-sm text-red-900 shadow-sm dark:border-red-900/50 dark:from-red-950/40 dark:to-rose-950/30 dark:text-red-200">
+                            @foreach($authBannerErrors as $error)<p>{{ $error }}</p>@endforeach
                         </div>
                     @endif
                     @yield('content')
@@ -177,13 +217,34 @@
 
             <div class="mt-10 flex flex-col items-center gap-3">
                 <div class="h-px w-16 bg-gradient-to-r from-transparent via-slate-300 to-transparent" aria-hidden="true"></div>
-                <p class="text-center text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+                <p class="text-center text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
                     © {{ date('Y') }} EasyGrox · Encrypted session
                 </p>
             </div>
         </div>
     </div>
 @stack('scripts')
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('theme', {
+            dark: document.documentElement.classList.contains('dark'),
+            toggle() {
+                this.dark = !this.dark;
+                if (this.dark) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('velour-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('velour-theme', 'light');
+                }
+                document.querySelectorAll('.cf-turnstile').forEach((el) => {
+                    el.setAttribute('data-theme', this.dark ? 'dark' : 'light');
+                });
+            }
+        });
+    });
+</script>
 @include('partials.form-client-validation')
 @include('partials.disable-double-submit')
 </body>

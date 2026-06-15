@@ -1,6 +1,6 @@
 {{-- Expects $targetId (input id). Reuses script in layouts/auth.blade.php --}}
 <button type="button" data-password-target="{{ $targetId }}"
-        class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-xl p-2 text-slate-400 transition-all duration-200 hover:bg-slate-100/90 hover:text-slate-700 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-velour-400/50"
+        class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-xl p-2 text-slate-400 transition-all duration-200 hover:bg-slate-100/90 hover:text-slate-700 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-velour-400/50 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
         aria-label="Show password" aria-pressed="false" tabindex="0">
     <svg class="auth-password-eye h-[1.125rem] w-[1.125rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>

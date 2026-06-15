@@ -75,12 +75,12 @@
         >
         <div @class([
             'flex flex-col sm:flex-row',
-            'h-[17rem]' => $compact,
+            'h-[21.5rem]' => $compact,
             'h-[min(70vh,26rem)]' => ! $compact,
         ])>
             <div @class([
                 'shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto',
-                'sm:w-[8.75rem] py-0.5 max-h-[9rem] sm:max-h-none' => $compact,
+                'sm:w-[10rem] py-1 max-h-[10rem] sm:max-h-none' => $compact,
                 'sm:w-[11.5rem] py-1 max-h-[12rem] sm:max-h-none' => ! $compact,
             ])>
                 <template x-for="item in presets" :key="item.key">
@@ -88,11 +88,11 @@
                             @click="applyPreset(item.key)"
                             @class([
                                 'w-full text-left transition-colors border-l-2',
-                                'px-2.5 py-1 text-[11px] leading-tight' => $compact,
+                                'px-3 py-1.5 text-xs leading-snug' => $compact,
                                 'px-4 py-2 text-[13px]' => ! $compact,
                             ])
                             :class="preset === item.key
-                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-l-blue-500'
+                                ? 'bg-velour-50 dark:bg-velour-950/50 text-velour-700 dark:text-velour-300 border-l-velour-500'
                                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/80 border-l-transparent'"
                             x-text="item.label"></button>
                 </template>
@@ -101,14 +101,14 @@
             <div class="flex-1 min-w-0 flex flex-col min-h-0">
                 <div @class([
                     'flex items-end border-b border-gray-100 dark:border-gray-800 shrink-0',
-                    'gap-1.5 px-2.5 pt-2.5 pb-2' => $compact,
+                    'gap-2 px-3 pt-3 pb-2.5' => $compact,
                     'gap-2 px-4 pt-4 pb-3' => ! $compact,
                 ])>
                     <div class="flex-1 min-w-0 relative">
                         <label @class([
-                            'absolute -top-2 left-2 px-0.5 font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900',
-                            'text-[9px]' => $compact,
-                            'text-[10px]' => ! $compact,
+                            'absolute -top-2 left-2 px-0.5 font-medium text-gray-500 dark:text-gray-400',
+                            'text-[10px] bg-white dark:bg-gray-950' => $compact,
+                            'text-[10px] bg-white dark:bg-gray-900' => ! $compact,
                         ])>Start</label>
                         <input type="text"
                                x-model="startInput"
@@ -116,16 +116,16 @@
                                @keydown.enter.prevent="commitStartInput()"
                                @class([
                                    'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-heading focus:outline-none focus:border-velour-500 focus:ring-1 focus:ring-velour-500',
-                                   'px-2 py-1 text-xs' => $compact,
+                                   'px-2.5 py-1.5 text-sm' => $compact,
                                    'px-3 py-2 text-sm' => ! $compact,
                                ])>
                     </div>
-                    <span class="text-gray-400 dark:text-gray-500 shrink-0 text-xs pb-1.5">–</span>
+                    <span class="text-gray-400 dark:text-gray-500 shrink-0 text-sm pb-2">–</span>
                     <div class="flex-1 min-w-0 relative">
                         <label @class([
-                            'absolute -top-2 left-2 px-0.5 font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900',
-                            'text-[9px]' => $compact,
-                            'text-[10px]' => ! $compact,
+                            'absolute -top-2 left-2 px-0.5 font-medium text-gray-500 dark:text-gray-400',
+                            'text-[10px] bg-white dark:bg-gray-950' => $compact,
+                            'text-[10px] bg-white dark:bg-gray-900' => ! $compact,
                         ])>End</label>
                         <input type="text"
                                x-model="endInput"
@@ -133,7 +133,7 @@
                                @keydown.enter.prevent="commitEndInput()"
                                @class([
                                    'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-heading focus:outline-none focus:border-velour-500 focus:ring-1 focus:ring-velour-500',
-                                   'px-2 py-1 text-xs' => $compact,
+                                   'px-2.5 py-1.5 text-sm' => $compact,
                                    'px-3 py-2 text-sm' => ! $compact,
                                ])>
                     </div>
@@ -141,7 +141,7 @@
 
                 <div @class([
                     'flex items-center justify-end gap-0.5 border-b border-gray-50 dark:border-gray-800/80 shrink-0',
-                    'px-2 py-1' => $compact,
+                    'px-3 py-1.5' => $compact,
                     'px-4 py-2' => ! $compact,
                 ])>
                     <button type="button" @click="shiftMonths(-1)" class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500" aria-label="Previous month">
@@ -154,21 +154,21 @@
 
                 <div @class([
                     'flex-1 min-h-0 overflow-y-auto',
-                    'px-2 py-1 space-y-2' => $compact,
+                    'px-3 py-2 space-y-3' => $compact,
                     'px-4 py-2 space-y-4' => ! $compact,
                 ])>
                     <template x-for="month in calendarMonths" :key="month.key">
                         <div>
                             <p @class([
                                 'font-semibold tracking-wide text-gray-500 dark:text-gray-400 uppercase',
-                                'text-[10px] mb-1' => $compact,
+                                'text-[11px] mb-1.5' => $compact,
                                 'text-[11px] mb-2' => ! $compact,
                             ]) x-text="month.label"></p>
                             <div class="grid grid-cols-7 gap-0 text-center font-normal text-gray-500 dark:text-gray-400 mb-0.5">
                                 <template x-for="(wd, wi) in weekdays" :key="'wd-' + wi">
                                     <span @class([
                                         'flex items-center justify-center',
-                                        'h-5 text-[10px]' => $compact,
+                                        'h-6 text-xs' => $compact,
                                         'h-7 text-[11px]' => ! $compact,
                                     ]) x-text="wd"></span>
                                 </template>
@@ -177,7 +177,7 @@
                                 <template x-for="(cell, idx) in month.days" :key="month.key + '-' + idx">
                                     <div @class([
                                         'w-full flex items-center justify-center',
-                                        'h-7' => $compact,
+                                        'h-8' => $compact,
                                         'h-9' => ! $compact,
                                     ])>
                                         <button type="button"
@@ -185,10 +185,10 @@
                                                 @click="selectDay(cell.ymd)"
                                                 @class([
                                                     'rounded-full font-normal transition-colors',
-                                                    'h-7 w-7 text-xs' => $compact,
+                                                    'h-8 w-8 text-sm' => $compact,
                                                     'h-9 w-9 text-sm' => ! $compact,
                                                 ])
-                                                :class="cell && isEdge(cell.ymd) ? 'bg-blue-600 text-white hover:bg-blue-700' : (cell && inRange(cell.ymd) ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200' : (cell && cell.ymd > today ? 'text-gray-300 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'))"
+                                                :class="cell && isEdge(cell.ymd) ? 'bg-velour-600 text-white hover:bg-velour-700' : (cell && inRange(cell.ymd) ? 'bg-velour-50 dark:bg-velour-950/50 text-velour-800 dark:text-velour-200' : (cell && cell.ymd > today ? 'text-gray-300 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'))"
                                                 x-text="cell ? cell.day : ''"></button>
                                     </div>
                                 </template>
@@ -280,7 +280,7 @@ document.addEventListener('alpine:init', () => {
                 const width = Math.min(window.innerWidth - 16, this.compact ? 512 : 640);
                 let left = Math.min(rect.left, window.innerWidth - width - 12);
                 left = Math.max(12, left);
-                const height = this.compact ? 272 : Math.min(window.innerHeight * 0.7, 352);
+                const height = this.compact ? 344 : Math.min(window.innerHeight * 0.7, 352);
                 let top = rect.bottom + 6;
                 if (top + height > window.innerHeight - 12) {
                     top = Math.max(12, rect.top - height - 6);

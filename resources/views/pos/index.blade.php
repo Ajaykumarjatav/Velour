@@ -49,7 +49,7 @@
                      x-transition:enter-start="opacity-0 -translate-y-0.5"
                      x-transition:enter-end="opacity-100 translate-y-0"
                      @click.outside="openRangePicker = false"
-                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-1.5 w-[min(100vw-1rem,32rem)] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 p-2 shadow-lg ring-1 ring-black/5 dark:ring-white/10 z-[80]">
+                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-1.5 w-[min(100vw-1rem,36rem)] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 p-2.5 shadow-lg ring-1 ring-black/5 dark:ring-white/10 z-[80]">
                     <x-date-range-picker
                         :inline="true"
                         :compact="true"
@@ -115,7 +115,7 @@
             </td>
         </tr>
         @empty
-        <tr><td colspan="7" class="px-5 py-12 text-center text-sm text-muted">No transactions</td></tr>
+        <tr><td colspan="7" class="px-5 py-12 text-center text-sm text-muted">No transactions for the selected date range.</td></tr>
         @endforelse
         </tbody>
     </table>
