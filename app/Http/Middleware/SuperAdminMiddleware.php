@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\AuthPanel;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +25,14 @@ class SuperAdminMiddleware
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Access denied.'], 403);
             }
+
+            $user = $request->user();
+            if ($user && AuthPanel::canAccessSalonPanel($user)) {
+                return redirect()
+                    ->route('dashboard')
+                    ->with('error', 'That area is for platform administrators only.');
+            }
+
             abort(403, 'Super-admin access required.');
         }
 

@@ -54,6 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Named middleware aliases
         $middleware->alias([
+            'salon.panel'     => \App\Http\Middleware\EnsureSalonPanel::class,
             'salon.access'    => \App\Http\Middleware\EnsureSalonAccess::class,
             'sanitize'        => \App\Http\Middleware\SanitizeInput::class,
             'throttle'        => \Illuminate\Routing\Middleware\ThrottleRequests::class,

@@ -9,6 +9,7 @@ use App\Models\Staff;
 use App\Models\User;
 use App\Rules\ValidTurnstile;
 use App\Services\LoginActivityService;
+use App\Support\AuthPanel;
 use App\Support\AuthRedirect;
 use App\Support\ProfileCompletion;
 use App\Support\TrustedDevice;
@@ -85,8 +86,11 @@ class AuthController extends Controller
             return redirect()->route('password.force.show');
         }
 
-        // Super-admins don't operate within a tenant; send them to the admin area
-        if ($user->system_role === 'super_admin') {
+        if (AuthPanel::typeFor($user) === AuthPanel::PLATFORM) {
+            return redirect()->to(AuthRedirect::afterLoginUrl($request, $user));
+        }
+
+        if (AuthPanel::typeFor($user) === AuthPanel::STAFF) {
             return redirect()->to(AuthRedirect::afterLoginUrl($request, $user));
         }
 
@@ -243,9 +247,7 @@ class AuthController extends Controller
     public function verificationNotice()
     {
         if (Auth::user()->hasVerifiedEmail()) {
-            return Auth::user()->isSuperAdmin()
-                ? redirect()->route('admin.dashboard')
-                : redirect()->route('dashboard');
+            return redirect()->to(AuthPanel::homeUrl(Auth::user()));
         }
         return view('auth.verify-email');
     }
@@ -262,9 +264,8 @@ class AuthController extends Controller
             }
         }
 
-        return $user->isSuperAdmin()
-            ? redirect()->route('admin.dashboard')->with('success', 'Email verified. Welcome to EasyGrox!')
-            : redirect()->route('dashboard')->with('success', 'Email verified. Welcome to EasyGrox!');
+        return redirect()->to(AuthPanel::homeUrl($user))
+            ->with('success', 'Email verified. Welcome to EasyGrox!');
     }
 
     public function resendVerification(Request $request)

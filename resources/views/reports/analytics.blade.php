@@ -213,19 +213,6 @@
         </div>
     </div>
 
-    <div id="growth-tips" class="card p-5 border-amber-200/70 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-semibold text-heading">Growth Tips</h2>
-            <span class="text-xs text-amber-700 dark:text-amber-300">Actionable ideas</span>
-        </div>
-        <ul class="space-y-2 text-sm text-body">
-            <li><strong>Instagram bio link</strong> — add your booking URL to Instagram bio.</li>
-            <li><strong>WhatsApp auto-reply</strong> — send booking link automatically in replies.</li>
-            <li><strong>Window QR sticker</strong> — convert walk-ins by scanning the booking QR.</li>
-            <li><strong>Google Business profile</strong> — add booking URL to improve direct booking from search.</li>
-        </ul>
-    </div>
-
     <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold text-heading">Staff Performance</h2>

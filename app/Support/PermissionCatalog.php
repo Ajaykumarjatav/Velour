@@ -44,13 +44,13 @@ final class PermissionCatalog
         'staff' => 'staff.view',
         'services' => 'services.view',
         'service_packages' => 'services.view',
-        'multi_location' => 'settings.edit',
+        'multi_location' => 'multi-location.view',
         'availability' => 'staff.view',
         'inventory' => 'inventory.view',
         'pos' => 'pos.view',
-        'go_live' => 'settings.edit',
-        'website_seo' => 'settings.edit',
-        'customization' => 'settings.edit',
+        'go_live' => 'website.view',
+        'website_seo' => 'website.view',
+        'customization' => 'website.view',
         'marketing' => 'marketing.view',
         'reviews' => 'reviews.view',
         'analytics' => 'reports.view',
@@ -82,6 +82,8 @@ final class PermissionCatalog
         'marketing' => 'Marketing',
         'reports' => 'Reports',
         'reviews' => 'Reviews',
+        'website' => 'Website & Go Live',
+        'multi_location' => 'Multi-location',
         'settings' => 'Settings',
         'users' => 'User Management',
         'billing' => 'Billing',
@@ -102,6 +104,8 @@ final class PermissionCatalog
         'marketing' => 'marketing.view',
         'reports' => 'reports.view',
         'reviews' => 'reviews.view',
+        'website' => 'website.view',
+        'multi_location' => 'multi-location.view',
         'settings' => 'settings.view',
         'users' => 'users.view',
         'billing' => 'billing.view',
@@ -198,6 +202,22 @@ final class PermissionCatalog
                     ['key' => 'reviews.delete', 'label' => 'Delete'],
                 ],
             ],
+            'website' => [
+                'label' => 'Website & Go Live',
+                'permissions' => [
+                    ['key' => 'website.view', 'label' => 'View'],
+                    ['key' => 'website.edit', 'label' => 'Edit & publish'],
+                    ['key' => 'website.share', 'label' => 'Copy & share links'],
+                ],
+            ],
+            'multi_location' => [
+                'label' => 'Multi-location',
+                'permissions' => [
+                    ['key' => 'multi-location.view', 'label' => 'View branches'],
+                    ['key' => 'multi-location.edit', 'label' => 'Add & edit branches'],
+                    ['key' => 'multi-location.switch', 'label' => 'Switch active branch'],
+                ],
+            ],
             'settings' => SettingsTabPermissions::unifiedPermissionCatalogGroup(),
             'users' => [
                 'label' => 'User Management',
@@ -249,6 +269,14 @@ final class PermissionCatalog
 
         if ($moduleKey === 'settings') {
             return SettingsTabPermissions::canOpenSettings($user);
+        }
+
+        if ($moduleKey === 'go_live' || $moduleKey === 'website_seo' || $moduleKey === 'customization') {
+            return WebsitePermissions::canView($user);
+        }
+
+        if ($moduleKey === 'multi_location') {
+            return MultiLocationPermissions::canView($user);
         }
 
         $permission = self::MODULE_VIEW_PERMISSION[$moduleKey] ?? null;

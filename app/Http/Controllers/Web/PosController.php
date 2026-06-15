@@ -13,6 +13,7 @@ use App\Models\InventoryItem;
 use App\Models\Staff;
 use App\Mail\PosTransactionInvoiceMail;
 use App\Models\Tenant;
+use App\Support\SalonTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,8 +29,9 @@ class PosController extends Controller
     {
         $salon  = $this->activeSalon();
         $search = $request->get('search');
-        $from   = $request->get('from');
-        $to     = $request->get('to');
+        $salonToday = SalonTime::todayDateString($salon);
+        $from   = $request->get('from', $salonToday);
+        $to     = $request->get('to', $salonToday);
         $method = $request->get('payment_method');
 
         $query = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
@@ -46,15 +48,23 @@ class PosController extends Controller
             );
         }
 
-        if ($from) { $query->whereDate('created_at', '>=', $from); }
-        if ($to)   { $query->whereDate('created_at', '<=', $to); }
+        [$rangeStartUtc, $rangeEndUtc] = SalonTime::ymdRangeUtcInclusive($salon, $from, $to);
+        $query->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$rangeStartUtc, $rangeEndUtc]);
+
         if ($method){ $query->where('payment_method', $method); }
 
         $transactions = $query->paginate(25)->withQueryString();
 
-        // Today's summary
-        $todayRevenue  = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->whereDate('created_at', today())->where('status','completed')->sum('total');
-        $todayCount    = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->whereDate('created_at', today())->count();
+        [$todayStartUtc, $todayEndUtc] = SalonTime::dayRangeUtcFromYmd($salon, $salonToday);
+        $todayRevenue  = PosTransaction::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('status', 'completed')
+            ->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$todayStartUtc, $todayEndUtc])
+            ->sum('total');
+        $todayCount    = PosTransaction::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$todayStartUtc, $todayEndUtc])
+            ->count();
 
         return view('pos.index', compact('salon', 'transactions', 'search', 'from', 'to', 'method', 'todayRevenue', 'todayCount'));
     }

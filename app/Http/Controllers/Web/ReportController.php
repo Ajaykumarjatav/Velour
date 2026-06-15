@@ -15,6 +15,7 @@ use App\Helpers\CurrencyHelper;
 use App\Services\ReportService;
 use App\Support\ReportCatalog;
 use App\Support\SalonTime;
+use App\Support\StorefrontUrl;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -299,6 +300,14 @@ class ReportController extends Controller
             'visitTrendRows',
             'deviceBreakdown'
         ));
+    }
+
+    public function growthTips()
+    {
+        $salon = $this->activeSalon();
+        $bookingUrl = StorefrontUrl::booking($salon);
+
+        return view('reports.growth-tips', compact('salon', 'bookingUrl'));
     }
 
     public function show(Request $request, string $type)

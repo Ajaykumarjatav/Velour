@@ -115,7 +115,12 @@ class TenantAdminController extends Controller
 
         // Settings toggles on another role tab also apply to the editor's own login role
         // (e.g. Salon Manager editing Hair Stylist still needs Settings on their account).
-        if (str_starts_with($data['permission'], 'settings.') && $data['enabled']) {
+        if (
+            (str_starts_with($data['permission'], 'settings.')
+                || str_starts_with($data['permission'], 'website.')
+                || str_starts_with($data['permission'], 'multi-location.'))
+            && $data['enabled']
+        ) {
             $actor = Auth::user();
             $actorRoleName = $actor?->roles->first()?->name;
             if ($actorRoleName && $actorRoleName !== $data['role']) {

@@ -40,6 +40,8 @@ final class RolePermissionDefaults
             'marketing.delete', 'marketing.send',
             'reports.view', 'reports.export',
             'reviews.view', 'reviews.reply', 'reviews.delete',
+            'website.view', 'website.edit', 'website.share',
+            'multi-location.view', 'multi-location.edit', 'multi-location.switch',
             'settings.view', 'settings.edit',
             ...SettingsTabPermissions::permissionsForTabs(array_keys(SettingsTabPermissions::TABS)),
             'users.view', 'users.invite', 'users.edit', 'users.delete',
@@ -63,6 +65,8 @@ final class RolePermissionDefaults
             'marketing.view', 'marketing.create', 'marketing.edit', 'marketing.send',
             'reports.view', 'reports.export',
             'reviews.view', 'reviews.reply',
+            'website.view', 'website.edit', 'website.share',
+            'multi-location.view', 'multi-location.edit', 'multi-location.switch',
             'settings.view',
             ...SettingsTabPermissions::permissionsForTabs([
                 'salon', 'booking', 'services', 'hours', 'social', 'notifications', 'team',

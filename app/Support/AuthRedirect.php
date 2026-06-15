@@ -6,16 +6,13 @@ use App\Models\User;
 use Illuminate\Http\Request;
 
 /**
- * Post-authentication redirects that respect url.intended without sending
- * platform super-admins to tenant-only routes (they have no salon tenant).
+ * Post-authentication redirects that respect url.intended and panel boundaries.
  */
 final class AuthRedirect
 {
     public static function afterLoginUrl(Request $request, User $user): string
     {
-        $default = $user->isSuperAdmin()
-            ? route('admin.dashboard')
-            : route('dashboard');
+        $default = AuthPanel::homeUrl($user);
 
         $intended = $request->session()->pull('url.intended');
 
@@ -25,16 +22,10 @@ final class AuthRedirect
 
         $intended = AppUrl::absolute($intended);
 
-        if ($user->isSuperAdmin()) {
-            $path = parse_url($intended, PHP_URL_PATH) ?? '';
-
-            if (str_contains($path, '/admin')) {
-                return $intended;
-            }
-
-            return $default;
+        if (AuthPanel::canAccessUrl($user, $intended)) {
+            return $intended;
         }
 
-        return $intended;
+        return $default;
     }
 }

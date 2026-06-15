@@ -358,8 +358,8 @@
         @endif
 
         @if($navShow('growth_tips'))
-        <a href="{{ route('reports.analytics') }}#growth-tips"
-           class="sidebar-link {{ request()->routeIs('reports.analytics') && request()->get('focus') === 'growth' ? 'active' : '' }}">
+        <a href="{{ route('reports.growth-tips') }}"
+           class="sidebar-link {{ request()->routeIs('reports.growth-tips') ? 'active' : '' }}">
             @include('partials.sidebar-nav-icon', ['icon' => 'growth'])
             Growth Tips
         </a>
@@ -453,8 +453,53 @@
 
 </div>
 <script>
-document.querySelectorAll('.sidebar-link').forEach(function(el) {
-    var text = el.textContent.trim();
-    if (text) el.setAttribute('data-title', text);
-});
+(function () {
+    document.querySelectorAll('.sidebar-link').forEach(function (el) {
+        var text = el.textContent.trim();
+        if (text) el.setAttribute('data-title', text);
+    });
+
+    function findActiveLink(nav) {
+        return nav.querySelector('a.sidebar-link.active, a.sidebar-sub-link.font-semibold')
+            || nav.querySelector('button.sidebar-link.active');
+    }
+
+    function scrollLinkIntoNav(nav, link) {
+        if (!nav || !link) return;
+
+        var padding = 16;
+        var navRect = nav.getBoundingClientRect();
+        var linkRect = link.getBoundingClientRect();
+        var delta = 0;
+
+        if (linkRect.top < navRect.top + padding) {
+            delta = linkRect.top - navRect.top - padding;
+        } else if (linkRect.bottom > navRect.bottom - padding) {
+            delta = linkRect.bottom - navRect.bottom + padding;
+        }
+
+        if (delta !== 0) {
+            nav.scrollTop += delta;
+        }
+    }
+
+    function restoreSidebarScroll() {
+        document.querySelectorAll('.sidebar-wrapper nav').forEach(function (nav) {
+            var active = findActiveLink(nav);
+            if (!active) return;
+
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    scrollLinkIntoNav(nav, active);
+                });
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', restoreSidebarScroll);
+    } else {
+        restoreSidebarScroll();
+    }
+})();
 </script>
