@@ -44,7 +44,12 @@ class Client extends Authenticatable
         'is_vip'=>'boolean','total_spent'=>'decimal:2',
     ];
 
-    public function getFullNameAttribute(): string { return trim("{$this->first_name} {$this->last_name}"); }
+    public function getFullNameAttribute(): string
+    {
+        $name = trim("{$this->first_name} {$this->last_name}");
+
+        return $name !== '' ? $name : (string) ($this->phone ?? '');
+    }
     public function salon()          { return $this->belongsTo(Salon::class); }
     public function loyaltyTier()    { return $this->belongsTo(LoyaltyTier::class, 'loyalty_tier_id'); }
     public function referredBy()     { return $this->belongsTo(Client::class,'referred_by_client_id'); }

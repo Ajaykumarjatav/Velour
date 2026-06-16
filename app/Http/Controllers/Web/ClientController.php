@@ -293,15 +293,13 @@ class ClientController extends Controller
         $headers = array_map(fn ($h) => strtolower(trim((string) $h)), $headerLine);
         $col     = array_flip($headers);
 
-        foreach (['first_name', 'last_name'] as $required) {
-            if (! isset($col[$required])) {
-                fclose($handle);
+        if (! isset($col['phone']) && ! isset($col['mobile'])) {
+            fclose($handle);
 
-                return redirect()->route('clients.index')->with(
-                    'error',
-                    'CSV must include columns: first_name, last_name (optional: email, mobile/phone, address, gender, marketing_consent).'
-                );
-            }
+            return redirect()->route('clients.index')->with(
+                'error',
+                'CSV must include a mobile or phone column (optional: name or first_name/last_name, email, address, gender, marketing_consent).'
+            );
         }
 
         $imported = 0;
@@ -321,32 +319,26 @@ class ClientController extends Controller
                 return isset($row[$i]) ? trim((string) $row[$i]) : '';
             };
 
-            $first = $get('first_name');
-            $last  = $get('last_name');
-            if ($first === '' || $last === '') {
-                $skipped++;
-
-                continue;
-            }
-
-            $email = $get('email') ?: null;
-            if ($email !== null && $email !== '') {
-                $v = Validator::make(['email' => $email], ['email' => ['email', 'max:150']]);
-                if ($v->fails()) {
-                    $skipped++;
-
-                    continue;
-                }
+            $name = $get('name');
+            if ($name !== '') {
+                $parts = explode(' ', trim($name), 2);
+                $first = $parts[0];
+                $last  = $parts[1] ?? '';
             } else {
-                $email = null;
+                $first = $get('first_name');
+                $last  = $get('last_name');
             }
 
             $phone = $get('mobile');
             if ($phone === '') {
                 $phone = $get('phone');
             }
-            $phone = $phone !== '' ? $phone : null;
-            if ($phone !== null && strlen($phone) > 20) {
+            if ($phone === '') {
+                $skipped++;
+
+                continue;
+            }
+            if (strlen($phone) > 20) {
                 $phone = substr($phone, 0, 20);
             }
 
@@ -369,8 +361,6 @@ class ClientController extends Controller
             } elseif ($phone) {
                 $duplicate = Client::withoutGlobalScopes()
                     ->where('salon_id', $salon->id)
-                    ->where('first_name', $first)
-                    ->where('last_name', $last)
                     ->where('phone', $phone)
                     ->exists();
             }
@@ -463,10 +453,11 @@ class ClientController extends Controller
         $salon = $this->activeSalon();
 
         $data = $request->validate([
-            'first_name'   => ['required', 'string', 'max:100'],
-            'last_name'    => ['required', 'string', 'max:100'],
+            'name'         => ['nullable', 'string', 'max:200'],
+            'first_name'   => ['nullable', 'string', 'max:100'],
+            'last_name'    => ['nullable', 'string', 'max:100'],
             'email'        => ['nullable', 'email', 'max:150'],
-            'phone'        => ['nullable', 'string', 'max:20'],
+            'phone'        => ['required', 'string', 'max:20', 'regex:/^[\+\d\s\(\)\-]+$/'],
             'date_of_birth'=> ['nullable', 'date'],
             'gender'       => ['nullable', 'in:female,male,non_binary,prefer_not_to_say'],
             'address'      => ['nullable', 'string', 'max:500'],
@@ -474,6 +465,15 @@ class ClientController extends Controller
             'marketing_consent' => ['boolean'],
             'loyalty_tier_id'   => ['nullable', 'integer', 'exists:loyalty_tiers,id'],
         ]);
+
+        if ($request->filled('name')) {
+            $parts = explode(' ', trim($data['name']), 2);
+            $data['first_name'] = $parts[0];
+            $data['last_name']  = $parts[1] ?? '';
+        }
+        unset($data['name']);
+        $data['first_name'] = $data['first_name'] ?? '';
+        $data['last_name']  = $data['last_name'] ?? '';
 
         if (! empty($data['loyalty_tier_id'])) {
             abort_unless(
@@ -523,16 +523,26 @@ class ClientController extends Controller
         $this->authorise($client);
 
         $data = $request->validate([
-            'first_name'   => ['required', 'string', 'max:100'],
-            'last_name'    => ['required', 'string', 'max:100'],
+            'name'         => ['nullable', 'string', 'max:200'],
+            'first_name'   => ['nullable', 'string', 'max:100'],
+            'last_name'    => ['nullable', 'string', 'max:100'],
             'email'        => ['nullable', 'email', 'max:150'],
-            'phone'        => ['nullable', 'string', 'max:20'],
+            'phone'        => ['required', 'string', 'max:20', 'regex:/^[\+\d\s\(\)\-]+$/'],
             'date_of_birth'=> ['nullable', 'date'],
             'gender'       => ['nullable', 'in:female,male,non_binary,prefer_not_to_say'],
             'address'      => ['nullable', 'string', 'max:500'],
             'notes'        => ['nullable', 'string', 'max:2000'],
             'marketing_consent' => ['boolean'],
         ]);
+
+        if ($request->filled('name')) {
+            $parts = explode(' ', trim($data['name']), 2);
+            $data['first_name'] = $parts[0];
+            $data['last_name']  = $parts[1] ?? '';
+        }
+        unset($data['name']);
+        $data['first_name'] = $data['first_name'] ?? '';
+        $data['last_name']  = $data['last_name'] ?? '';
 
         if ($request->has('loyalty_tier_id')) {
             $request->validate(['loyalty_tier_id' => ['nullable', 'integer', 'exists:loyalty_tiers,id']]);

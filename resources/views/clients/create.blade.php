@@ -7,32 +7,25 @@
     <div class="card p-6">
         <form action="{{ route('clients.store') }}" method="POST" class="space-y-5">
             @csrf
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="form-label">First name <span class="text-red-500">*</span></label>
-                    <input type="text" name="first_name" value="{{ old('first_name') }}" required
-                           class="form-input @error('first_name') form-input-error @enderror">
-                    @error('first_name')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="form-label">Last name <span class="text-red-500">*</span></label>
-                    <input type="text" name="last_name" value="{{ old('last_name') }}" required
-                           class="form-input @error('last_name') form-input-error @enderror">
-                    @error('last_name')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
+            <div>
+                <label class="form-label">Name</label>
+                <input type="text" name="name" value="{{ old('name') }}"
+                       class="form-input @error('name') form-input-error @enderror" autocomplete="name"
+                       placeholder="Client name (optional)">
+                @error('name')<p class="form-error">{{ $message }}</p>@enderror
             </div>
             <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="form-label">Mobile <span class="text-red-500">*</span></label>
+                    <input type="tel" name="phone" value="{{ old('phone') }}" required
+                           class="form-input @error('phone') form-input-error @enderror" autocomplete="tel">
+                    @error('phone')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
                 <div>
                     <label class="form-label">Email</label>
                     <input type="email" name="email" value="{{ old('email') }}"
                            class="form-input @error('email') form-input-error @enderror">
                     @error('email')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="form-label">Phone</label>
-                    <input type="tel" name="phone" value="{{ old('phone') }}"
-                           class="form-input @error('phone') form-input-error @enderror">
-                    @error('phone')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">

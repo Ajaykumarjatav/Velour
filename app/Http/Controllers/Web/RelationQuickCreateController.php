@@ -36,16 +36,26 @@ class RelationQuickCreateController extends Controller
         ]);
 
         $data = $request->validate([
-            'first_name'        => ['required', 'string', 'max:100'],
-            'last_name'         => ['required', 'string', 'max:100'],
+            'name'              => ['nullable', 'string', 'max:200'],
+            'first_name'        => ['nullable', 'string', 'max:100'],
+            'last_name'         => ['nullable', 'string', 'max:100'],
             'email'             => ['nullable', 'email', 'max:150'],
-            'phone'             => ['nullable', 'string', 'max:20'],
+            'phone'             => ['required', 'string', 'max:20', 'regex:/^[\+\d\s\(\)\-]+$/'],
             'date_of_birth'     => ['nullable', 'date'],
             'gender'            => ['nullable', 'in:female,male,non_binary,prefer_not_to_say'],
             'address'           => ['nullable', 'string', 'max:500'],
             'notes'             => ['nullable', 'string', 'max:2000'],
             'loyalty_tier_id'   => ['nullable', 'integer', 'exists:loyalty_tiers,id'],
         ]);
+
+        if ($request->filled('name')) {
+            $parts = explode(' ', trim($data['name']), 2);
+            $data['first_name'] = $parts[0];
+            $data['last_name']  = $parts[1] ?? '';
+        }
+        unset($data['name']);
+        $data['first_name'] = $data['first_name'] ?? '';
+        $data['last_name']  = $data['last_name'] ?? '';
 
         if (! empty($data['loyalty_tier_id'])) {
             abort_unless(
@@ -60,10 +70,10 @@ class RelationQuickCreateController extends Controller
         $client = Client::create($data);
         app(NotificationService::class)->notifyTenantNewClientRegistered($salon, $client);
 
-        $label = trim($client->first_name.' '.$client->last_name);
-        if ($client->phone) {
-            $label .= ' — '.$client->phone;
-        }
+        $name = trim($client->first_name.' '.$client->last_name);
+        $label = $name !== ''
+            ? $name.($client->phone ? ' — '.$client->phone : '')
+            : (string) $client->phone;
 
         return response()->json([
             'id'    => $client->id,

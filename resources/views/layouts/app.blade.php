@@ -109,17 +109,11 @@
                    dark:text-[#94a3b8] dark:hover:bg-white/[0.06] dark:hover:text-gray-200;
         }
         .sidebar-link.active {
-            @apply bg-amber-50 text-amber-900 font-semibold
-                   hover:bg-amber-50
-                   dark:bg-[#2a2520] dark:text-amber-300 dark:hover:bg-[#302a24];
+            @apply bg-velour-50 text-velour-800 font-semibold
+                   hover:bg-velour-50
+                   dark:bg-velour-950/40 dark:text-velour-300 dark:hover:bg-velour-950/40;
         }
-        .nav-icon-wrap {
-            @apply flex h-8 w-8 flex-shrink-0 items-center justify-center;
-        }
-        .nav-icon-illustration {
-            @apply h-7 w-7;
-            filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.22));
-        }
+        .nav-icon { @apply w-5 h-5 flex-shrink-0 opacity-90; }
         .nav-section-title {
             @apply px-3 pt-5 pb-2 text-[10px] font-bold text-gray-400 dark:text-[#64748b] uppercase tracking-[0.14em];
         }
@@ -154,14 +148,10 @@
             font-size: 0;
             gap: 0;
         }
-        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon-wrap {
-            width: 2rem;
-            height: 2rem;
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
+            width: 1.25rem;
+            height: 1.25rem;
             flex-shrink: 0;
-        }
-        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon-illustration {
-            width: 1.375rem;
-            height: 1.375rem;
         }
         html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link::after {
             content: attr(data-title);

@@ -201,6 +201,10 @@
                                 </button>
                             @endif
                             <div class="flex flex-wrap justify-end gap-1">
+                                @if($item->retail_price > 0 && $item->stock_quantity > 0)
+                                <a href="{{ route('pos.create', ['tab' => 'retail']) }}"
+                                   class="btn-primary btn-sm py-1 px-2 relative z-30">Sell</a>
+                                @endif
                                 <a href="{{ route('inventory.edit', $item) }}"
                                    class="btn-outline btn-sm py-1 px-2 relative z-30">Edit</a>
                                 <button type="button"
@@ -292,6 +296,7 @@
                     <div>
                         <label class="form-label">Unit price ({{ \App\Helpers\CurrencyHelper::symbol($currency) }})</label>
                         <input type="number" name="retail_price" min="0" step="0.01" value="{{ old('retail_price') }}" class="form-input">
+                        <p class="text-xs text-muted mt-1">Retail price enables selling at POS.</p>
                     </div>
                     <div>
                         <label class="form-label">Cost price ({{ \App\Helpers\CurrencyHelper::symbol($currency) }})</label>

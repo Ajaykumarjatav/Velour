@@ -14,10 +14,11 @@ class UpdateClientRequest extends FormRequest
         $salonId  = $this->attributes->get('salon_id');
         $clientId = $this->route('client');
         return [
-            'first_name'         => ['sometimes','string','max:100'],
-            'last_name'          => ['sometimes','string','max:100'],
+            'name'               => ['sometimes', 'string', 'max:200'],
+            'first_name'         => ['sometimes', 'string', 'max:100'],
+            'last_name'          => ['sometimes', 'string', 'max:100'],
             'email'              => ['nullable','email','max:255', "unique:clients,email,{$clientId},id,salon_id,{$salonId}"],
-            'phone'              => ['nullable','string','max:30','regex:/^[\+\d\s\(\)\-]+$/'],
+            'phone'              => ['required', 'string', 'max:30', 'regex:/^[\+\d\s\(\)\-]+$/'],
             'date_of_birth'      => ['nullable','date','before:today','after:1900-01-01'],
             'preferred_staff_id' => ['nullable','integer','exists:staff,id'],
             'tags'               => ['nullable','array'],

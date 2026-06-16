@@ -249,6 +249,7 @@ class InventoryController extends Controller
         $data['category_id'] = $data['inventory_category_id'] ?? null;
         $data['cost_price']   = $data['cost_price']   ?? 0;
         $data['retail_price'] = $data['retail_price'] ?? 0;
+        $data['type'] = $data['retail_price'] > 0 ? 'retail' : 'professional';
         unset($data['quantity'], $data['low_stock_threshold'], $data['inventory_category_id']);
         InventoryItem::create($data);
 
@@ -291,6 +292,11 @@ class InventoryController extends Controller
         $data['category_id']  = $data['inventory_category_id'] ?? null;
         $data['cost_price']   = $data['cost_price']   ?? 0;
         $data['retail_price'] = $data['retail_price'] ?? 0;
+        if ($data['retail_price'] > 0 && $inventory->type === 'professional') {
+            $data['type'] = 'retail';
+        } elseif ($data['retail_price'] <= 0 && $inventory->type === 'retail') {
+            $data['type'] = 'professional';
+        }
         unset($data['low_stock_threshold'], $data['inventory_category_id']);
         $inventory->update($data);
 

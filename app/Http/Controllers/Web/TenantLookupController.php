@@ -59,7 +59,6 @@ class TenantLookupController extends Controller
 
         $salon = $this->activeSalon();
         $term = trim((string) ($data['q'] ?? ''));
-        $compact = $request->boolean('compact');
 
         $query = Staff::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
@@ -83,10 +82,7 @@ class TenantLookupController extends Controller
             ->get()
             ->map(fn (Staff $staff) => [
                 'id' => (int) $staff->id,
-                'label' => $compact
-                    ? trim($staff->first_name . ' ' . $staff->last_name)
-                    : trim($staff->first_name . ' ' . $staff->last_name)
-                        . ($staff->phone ? ' — ' . $staff->phone : ($staff->email ? ' — ' . $staff->email : '')),
+                'label' => $staff->name,
             ])
             ->values();
 

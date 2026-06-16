@@ -154,10 +154,10 @@
 
         return [
             'id' => (int) $c->id,
-            'name' => trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')),
+            'name' => trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')) ?: (string) ($c->phone ?? ''),
             'first_name' => (string) ($c->first_name ?? ''),
             'last_name' => (string) ($c->last_name ?? ''),
-            'initial' => strtoupper(substr((string) ($c->first_name ?? '?'), 0, 1)),
+            'initial' => strtoupper(substr(trim(($c->first_name ?? '') ?: (string) ($c->phone ?? '?')), 0, 1)),
             'email' => $isScopedStaffPanel ? null : $c->email,
             'phone' => $isScopedStaffPanel ? null : $c->phone,
             'added' => $c->created_at?->format('d M Y'),
@@ -222,7 +222,7 @@
         visibleHistory: [],
         loyaltyOptions: @js(($loyaltyTiers ?? collect())->map(fn($t) => ['id' => (string) $t->id, 'name' => (string) $t->name])->values()),
         editMode: false,
-        editForm: { first_name: '', last_name: '', email: '', phone: '', notes: '', loyalty_tier_id: '', marketing_consent: true },
+        editForm: { name: '', email: '', phone: '', notes: '', loyalty_tier_id: '', marketing_consent: true },
         init() {
             this.syncHistory();
         },
@@ -245,8 +245,7 @@
             const c = this.selectedClient();
             if (!c) return;
             this.editForm = {
-                first_name: c.first_name || '',
-                last_name: c.last_name || '',
+                name: c.name || '',
                 email: c.email || '',
                 phone: c.phone || '',
                 notes: c.notes || '',
@@ -288,10 +287,10 @@
                 <td>
                     <div class="flex items-center gap-3 min-h-[2.75rem]">
                         <div class="w-9 h-9 rounded-full bg-velour-100 dark:bg-velour-900/40 flex items-center justify-center text-velour-700 dark:text-velour-300 font-bold text-sm flex-shrink-0">
-                            {{ strtoupper(substr($client->first_name, 0, 1)) }}
+                            {{ strtoupper(substr(trim($client->first_name ?: (string) $client->phone), 0, 1) ?: '?') }}
                         </div>
                         <div>
-                            <p class="font-semibold text-heading">{{ $client->first_name }} {{ $client->last_name }}</p>
+                            <p class="font-semibold text-heading">{{ $client->full_name }}</p>
                             @if($client->email)<p class="text-xs text-muted">{{ $client->email }}</p>@endif
                         </div>
                     </div>
@@ -333,21 +332,17 @@
                     </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="form-label">First name <span class="text-red-500">*</span></label>
-                        <input type="text" name="first_name" x-model="editForm.first_name" required class="form-input">
+                    <div class="md:col-span-2">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" x-model="editForm.name" class="form-input" placeholder="Client name (optional)">
                     </div>
                     <div>
-                        <label class="form-label">Last name <span class="text-red-500">*</span></label>
-                        <input type="text" name="last_name" x-model="editForm.last_name" required class="form-input">
+                        <label class="form-label">Mobile <span class="text-red-500">*</span></label>
+                        <input type="tel" name="phone" x-model="editForm.phone" required class="form-input">
                     </div>
                     <div>
                         <label class="form-label">Email</label>
                         <input type="email" name="email" x-model="editForm.email" class="form-input">
-                    </div>
-                    <div>
-                        <label class="form-label">Phone</label>
-                        <input type="text" name="phone" x-model="editForm.phone" class="form-input">
                     </div>
                 </div>
 

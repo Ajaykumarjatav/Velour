@@ -4,10 +4,13 @@
 @section('content')
 @php
     use App\Support\AppointmentDisplayLines;
+    use App\Support\AppointmentLifecycle;
     $isScopedStaffPanel = auth()->user()?->dashboardScopedStaffId() !== null;
     $currency = $salon->currency ?? 'GBP';
     $appointmentRows = $appointments->getCollection()->map(function (\App\Models\Appointment $apt) use ($salon, $currency, $isScopedStaffPanel) {
         $st = $apt->status;
+        $isMissed = AppointmentLifecycle::isPastUnresolved($apt, $salon);
+        $displayStatus = AppointmentLifecycle::displayStatusKey($apt, $salon);
         $pay = $apt->payment_status ?? \App\Models\Appointment::PAYMENT_UNPAID;
         $serviceLines = AppointmentDisplayLines::serviceLines($apt);
         $balanceDue = max(0, round((float) $apt->total_price - (float) $apt->amount_paid, 2));
@@ -34,7 +37,10 @@
             'invoice_pdf_url' => $isCompleted ? route('appointments.invoice.pdf', $apt) : null,
             'invoice_page_url' => $isCompleted ? route('appointments.invoice.show', $apt) : null,
             'status' => $st,
-            'status_label' => ucfirst(str_replace('_', ' ', (string) $st)),
+            'display_status' => $displayStatus,
+            'is_missed' => $isMissed,
+            'status_label' => AppointmentLifecycle::displayStatusLabel($apt, $salon),
+            'status_url' => route('appointments.status', $apt->id),
             'source' => (string) ($apt->source ?? 'manual'),
             'source_label' => \App\Models\Appointment::sourceLabel($apt->source),
             'payment_status' => $pay,
@@ -75,8 +81,8 @@
                 search-placeholder="Status…"
                 trigger-class="form-select w-full min-w-0 sm:w-[10.5rem] shrink-0">
                 <option value="">All statuses</option>
-                @foreach(['pending','confirmed','checked_in','in_progress','completed','cancelled','no_show'] as $s)
-                <option value="{{ $s }}" {{ $status === $s ? 'selected' : '' }}>{{ ucfirst(str_replace('_',' ',$s)) }}</option>
+                @foreach(['pending','confirmed','checked_in','in_progress','completed','cancelled','no_show','missed'] as $s)
+                <option value="{{ $s }}" {{ $status === $s ? 'selected' : '' }}>{{ $s === 'missed' ? 'Missed' : ucfirst(str_replace('_',' ',$s)) }}</option>
                 @endforeach
             </x-searchable-select>
             <x-searchable-select
@@ -124,6 +130,7 @@
                 completed: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
                 cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
                 no_show: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
+                missed: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 ring-1 ring-amber-300/80 dark:ring-amber-600/50',
                 pending: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
             };
             return m[s] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
@@ -171,6 +178,7 @@
                 <td class="hidden lg:table-cell font-semibold text-heading text-right tabular-nums">@money($apt->total_price)</td>
                 <td class="text-center whitespace-nowrap min-w-[7.25rem]">
                     @php
+                        $displayKey = AppointmentLifecycle::displayStatusKey($apt, $salon);
                         $colors = [
                             'confirmed'   => 'badge-blue',
                             'checked_in'  => 'badge-blue',
@@ -178,11 +186,12 @@
                             'completed'   => 'badge-green',
                             'cancelled'   => 'badge-red',
                             'no_show'     => 'badge-yellow',
+                            'missed'      => 'badge-yellow',
                             'pending'     => 'badge-gray',
                         ];
-                        $cls = $colors[$apt->status] ?? 'badge-gray';
+                        $cls = $colors[$displayKey] ?? 'badge-gray';
                     @endphp
-                    <span class="{{ $cls }} whitespace-nowrap shrink-0">{{ ucfirst(str_replace('_',' ',$apt->status)) }}</span>
+                    <span class="{{ $cls }} whitespace-nowrap shrink-0">{{ AppointmentLifecycle::displayStatusLabel($apt, $salon) }}</span>
                 </td>
             </tr>
             @empty
@@ -202,7 +211,7 @@
                             <p class="text-xs text-muted font-mono mt-0.5" x-text="selectedAppointment().reference"></p>
                             <div class="flex flex-wrap gap-2 mt-2.5">
                                 <span class="text-xs font-medium px-2 py-0.5 rounded-full"
-                                      :class="statusPillClass(selectedAppointment().status)"
+                                      :class="statusPillClass(selectedAppointment().display_status)"
                                       x-text="selectedAppointment().status_label"></span>
                                 <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200" x-text="selectedAppointment().source_label"></span>
                                 <span class="text-xs font-medium px-2 py-0.5 rounded-full"
@@ -219,11 +228,28 @@
 
                     <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 px-3 py-3 sm:px-4">
                         <p class="text-[10px] font-semibold uppercase tracking-wide text-muted mb-2.5">Actions</p>
+                        <div x-show="selectedAppointment().is_missed"
+                             class="mb-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-xs text-amber-900 dark:text-amber-100">
+                            <p class="font-semibold">No action taken</p>
+                            <p class="mt-0.5 text-amber-800/90 dark:text-amber-200/90">This appointment time has passed. Mark as no-show if the client did not arrive, or complete if they were served.</p>
+                        </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <a :href="selectedAppointment().show_url"
                                class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-medium rounded-xl border border-gray-300 dark:border-gray-600 text-body hover:bg-white dark:hover:bg-gray-800 whitespace-nowrap">
                                 View
                             </a>
+                            <template x-if="selectedAppointment().is_missed">
+                                <form :action="selectedAppointment().status_url" method="POST"
+                                      onsubmit="return confirm('Mark this appointment as no-show?')">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="no_show">
+                                    <button type="submit"
+                                            class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white whitespace-nowrap">
+                                        Mark no-show
+                                    </button>
+                                </form>
+                            </template>
                             <template x-if="selectedAppointment().status === 'completed'">
                                 <a :href="selectedAppointment().invoice_pdf_url"
                                    target="_blank"

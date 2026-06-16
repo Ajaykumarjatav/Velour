@@ -6,6 +6,9 @@
     $isScopedStaffPanel = auth()->user()?->dashboardScopedStaffId() !== null;
     $balanceDue = $appointment->balance_due;
     $isCompleted = $appointment->status === 'completed';
+    $isMissed = \App\Support\AppointmentLifecycle::isPastUnresolved($appointment, $salon);
+    $displayStatusKey = \App\Support\AppointmentLifecycle::displayStatusKey($appointment, $salon);
+    $displayStatusLabel = \App\Support\AppointmentLifecycle::displayStatusLabel($appointment, $salon);
     $isPartialPayment = $appointment->payment_status === \App\Models\Appointment::PAYMENT_PARTIAL
         || ($balanceDue > 0 && (float) $appointment->amount_paid > 0);
 @endphp
@@ -30,10 +33,11 @@
                     'completed'   => 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
                     'cancelled'   => 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
                     'no_show'     => 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+                    'missed'      => 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 ring-1 ring-amber-300/80 dark:ring-amber-600/50',
                 ];
             @endphp
-            <span class="px-3 py-1.5 text-sm font-semibold rounded-xl {{ $statusColors[$appointment->status] ?? 'bg-gray-100 text-gray-600' }}">
-                {{ ucfirst(str_replace('_', ' ', $appointment->status)) }}
+            <span class="px-3 py-1.5 text-sm font-semibold rounded-xl {{ $statusColors[$displayStatusKey] ?? 'bg-gray-100 text-gray-600' }}">
+                {{ $displayStatusLabel }}
             </span>
         </div>
 
@@ -186,6 +190,12 @@
         <h3 class="font-semibold text-heading">Actions</h3>
 
         {{-- Payment required warning --}}
+        @if($isMissed)
+        <div class="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800 text-sm text-amber-900 dark:text-amber-100">
+            <p class="font-semibold">No action taken</p>
+            <p class="text-xs mt-0.5 text-amber-800/90 dark:text-amber-200/90">This appointment time has passed without being completed or cancelled. Mark as no-show if the client did not arrive.</p>
+        </div>
+        @endif
         @if($appointment->status === 'completed' && $appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID)
         <div class="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
             <p class="font-semibold">Payment pending</p>
@@ -202,6 +212,19 @@
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                 Collect Payment
             </a>
+            @endif
+
+            {{-- Mark no-show (missed appointment) --}}
+            @if($isMissed)
+            <form action="{{ route('appointments.status', $appointment->id) }}" method="POST">
+                @csrf @method('PATCH')
+                <input type="hidden" name="status" value="no_show">
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                        onclick="return confirm('Mark this appointment as no-show?')">
+                    Mark no-show
+                </button>
+            </form>
             @endif
 
             {{-- Confirm (pending only) --}}

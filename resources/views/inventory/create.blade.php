@@ -72,6 +72,7 @@
                     <input type="number" name="retail_price" min="0" step="0.01"
                            value="{{ old('retail_price', $item->retail_price ?? '') }}"
                            class="form-input @error('retail_price') form-input-error @enderror">
+                    <p class="text-xs text-muted mt-1">Set a price here to sell this item at POS (Retail tab).</p>
                     @error('retail_price')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
             </div>

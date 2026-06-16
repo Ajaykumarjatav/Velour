@@ -37,8 +37,7 @@ document.addEventListener('alpine:init', () => {
         modalOpen: false,
         loading: false,
         fieldErrors: {},
-        qcFirst: '',
-        qcLast: '',
+        qcClientName: '',
         qcPhone: '',
         qcEmail: '',
         qcName: '',
@@ -59,8 +58,7 @@ document.addEventListener('alpine:init', () => {
         cfg,
         openModal() {
             this.fieldErrors = {};
-            this.qcFirst = '';
-            this.qcLast = '';
+            this.qcClientName = '';
             this.qcPhone = '';
             this.qcEmail = '';
             this.qcDateOfBirth = '';
@@ -136,8 +134,7 @@ document.addEventListener('alpine:init', () => {
             const fd = new FormData();
             fd.append('_token', this.cfg.csrf);
             if (this.cfg.type === 'client') {
-                fd.append('first_name', this.qcFirst);
-                fd.append('last_name', this.qcLast);
+                fd.append('name', this.qcClientName || '');
                 fd.append('phone', this.qcPhone || '');
                 fd.append('email', this.qcEmail || '');
                 fd.append('date_of_birth', this.qcDateOfBirth || '');
@@ -238,28 +235,22 @@ document.addEventListener('alpine:init', () => {
             <div class="p-5 space-y-4">
                 <template x-if="cfg.type === 'client'">
                     <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="form-label">First name <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="qcFirst" class="form-input" :class="err('first_name') ? 'form-input-error' : ''" autocomplete="given-name">
-                                <p class="form-error text-xs mt-0.5" x-show="err('first_name')" x-text="err('first_name')"></p>
-                            </div>
-                            <div>
-                                <label class="form-label">Last name <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="qcLast" class="form-input" :class="err('last_name') ? 'form-input-error' : ''" autocomplete="family-name">
-                                <p class="form-error text-xs mt-0.5" x-show="err('last_name')" x-text="err('last_name')"></p>
-                            </div>
+                        <div>
+                            <label class="form-label">Name</label>
+                            <input type="text" x-model="qcClientName" class="form-input" :class="err('name') || err('first_name') ? 'form-input-error' : ''" autocomplete="name" placeholder="Client name (optional)">
+                            <p class="form-error text-xs mt-0.5" x-show="err('name')" x-text="err('name')"></p>
+                            <p class="form-error text-xs mt-0.5" x-show="err('first_name')" x-text="err('first_name')"></p>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="form-label">Mobile <span class="text-red-500">*</span></label>
+                                <input type="tel" x-model="qcPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''" autocomplete="tel" required>
+                                <p class="form-error text-xs mt-0.5" x-show="err('phone')" x-text="err('phone')"></p>
+                            </div>
                             <div>
                                 <label class="form-label">Email</label>
                                 <input type="email" x-model="qcEmail" class="form-input" :class="err('email') ? 'form-input-error' : ''" autocomplete="email">
                                 <p class="form-error text-xs mt-0.5" x-show="err('email')" x-text="err('email')"></p>
-                            </div>
-                            <div>
-                                <label class="form-label">Phone</label>
-                                <input type="tel" x-model="qcPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''" autocomplete="tel">
-                                <p class="form-error text-xs mt-0.5" x-show="err('phone')" x-text="err('phone')"></p>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">

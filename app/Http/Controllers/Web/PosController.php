@@ -83,9 +83,14 @@ class PosController extends Controller
             ->with('category:id,name')
             ->orderBy('sort_order')
             ->get();
-        $products = InventoryItem::withoutGlobalScopes()->where('salon_id', $salon->id)
+        $products = InventoryItem::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->where('retail_price', '>', 0)
             ->where('stock_quantity', '>', 0)
-            ->get(['id', 'name', 'retail_price', 'stock_quantity']);
+            ->with('category:id,name')
+            ->orderBy('name')
+            ->get(['id', 'name', 'retail_price', 'stock_quantity', 'category_id']);
 
         $prefillFromAppointment = null;
         if ($request->filled('appointment')) {
@@ -189,14 +194,6 @@ class PosController extends Controller
         ]);
         unset($data['payment_received']);
 
-        $hasProduct = collect($data['items'])->contains(fn ($i) => ($i['type'] ?? '') === 'product');
-        $hasService = collect($data['items'])->contains(fn ($i) => ($i['type'] ?? '') === 'service');
-        if ($hasProduct && ! $hasService) {
-            throw ValidationException::withMessages([
-                'items' => __('Add at least one service to the bill before selling retail products.'),
-            ]);
-        }
-
         if (! empty($data['client_id'])) {
             $clientOk = Client::withoutGlobalScopes()
                 ->where('salon_id', $salon->id)
@@ -237,6 +234,11 @@ class PosController extends Controller
                 if (! $prod || ! $prod->is_active) {
                     throw ValidationException::withMessages([
                         "items.{$idx}.id" => __('One or more products are missing or inactive.'),
+                    ]);
+                }
+                if ((float) $prod->retail_price <= 0) {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.id" => __('One or more products are not set up for retail sale.'),
                     ]);
                 }
                 if ((int) $prod->stock_quantity < (int) $line['qty']) {

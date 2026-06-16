@@ -20,6 +20,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\Scheduling\AvailabilityRejectedException;
 use App\Support\AppointmentDisplayLines;
 use App\Support\SalonTime;
+use App\Support\AppointmentLifecycle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -66,7 +67,9 @@ class AppointmentController extends Controller
             });
         }
 
-        if ($status) {
+        if ($status === AppointmentLifecycle::DISPLAY_MISSED) {
+            AppointmentLifecycle::scopeMissedUnresolved($query, $salon);
+        } elseif ($status) {
             $query->where('status', $status);
         }
 

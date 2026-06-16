@@ -72,10 +72,11 @@ class ClientController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'first_name'        => 'required|string|max:100',
-            'last_name'         => 'required|string|max:100',
+            'name'              => 'nullable|string|max:200',
+            'first_name'        => 'nullable|string|max:100',
+            'last_name'         => 'nullable|string|max:100',
             'email'             => 'nullable|email|max:255',
-            'phone'             => 'nullable|string|max:30',
+            'phone'             => 'required|string|max:30|regex:/^[\+\d\s\(\)\-]+$/',
             'date_of_birth'     => 'nullable|date|before:today',
             'tags'              => 'nullable|array',
             'is_vip'            => 'nullable|boolean',
@@ -88,6 +89,15 @@ class ClientController extends Controller
             'source'            => 'nullable|string|max:50',
             'notes'             => 'nullable|string|max:2000',
         ]);
+
+        if ($request->filled('name')) {
+            $parts = explode(' ', trim($data['name']), 2);
+            $data['first_name'] = $parts[0];
+            $data['last_name']  = $parts[1] ?? '';
+        }
+        unset($data['name']);
+        $data['first_name'] = $data['first_name'] ?? '';
+        $data['last_name']  = $data['last_name'] ?? '';
 
         $salonId = $request->attributes->get('salon_id');
 
@@ -148,10 +158,11 @@ class ClientController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $data = $request->validate([
+            'name'               => 'sometimes|string|max:200',
             'first_name'         => 'sometimes|string|max:100',
             'last_name'          => 'sometimes|string|max:100',
             'email'              => 'nullable|email|max:255',
-            'phone'              => 'nullable|string|max:30',
+            'phone'              => 'required|string|max:30|regex:/^[\+\d\s\(\)\-]+$/',
             'date_of_birth'      => 'nullable|date|before:today',
             'tags'               => 'nullable|array',
             'is_vip'             => 'nullable|boolean',
@@ -163,6 +174,13 @@ class ClientController extends Controller
             'email_consent'      => 'nullable|boolean',
             'status'             => 'nullable|in:active,inactive,blocked',
         ]);
+
+        if ($request->filled('name')) {
+            $parts = explode(' ', trim($data['name']), 2);
+            $data['first_name'] = $parts[0];
+            $data['last_name']  = $parts[1] ?? '';
+        }
+        unset($data['name']);
 
         $client = Client::where('salon_id', $request->attributes->get('salon_id'))
                         ->findOrFail($id);
