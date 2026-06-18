@@ -153,6 +153,14 @@
         </a>
         @endif
 
+        @if($navShow('expenses'))
+        <a href="{{ route('expenses.index') }}"
+           class="sidebar-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}">
+            @include('partials.sidebar-nav-icon', ['icon' => 'expenses'])
+            Expenses
+        </a>
+        @endif
+
         @if($navShow('pos'))
         <a href="{{ route('pos.index') }}"
            class="sidebar-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">

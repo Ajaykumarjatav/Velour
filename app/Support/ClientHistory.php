@@ -63,7 +63,9 @@ final class ClientHistory
                 'detail' => trim(($apt->services->pluck('service_name')->filter()->join(', ') ?: 'Services')
                     . ($apt->staff?->name ? ' · '.$apt->staff->name : '')),
                 'amount' => $amount,
-                'status' => ucfirst(str_replace('_', ' ', (string) $apt->status)),
+                'status' => (string) $apt->status,
+                'display_status' => self::displayStatusForAppointment((string) $apt->status),
+                'action_label' => 'Details',
                 'url'    => route('appointments.show', $apt->id),
             ]);
         }
@@ -77,13 +79,23 @@ final class ClientHistory
                 return $qty > 1 ? "{$name} × {$qty}" : $name;
             })->filter()->take(4)->join(', ');
 
+            $paymentLabel = $tx->payment_method
+                ? ucfirst(str_replace('_', ' ', (string) $tx->payment_method))
+                : null;
+            $detailWithPay = $lineSummary !== '' ? $lineSummary : ($tx->reference ?? 'Walk-in sale');
+            if ($paymentLabel) {
+                $detailWithPay .= ' · '.$paymentLabel;
+            }
+
             $rows->push([
                 'kind'   => 'sale',
                 'at'     => $at,
                 'label'  => 'POS sale',
-                'detail' => $lineSummary !== '' ? $lineSummary : ($tx->reference ?? 'Walk-in sale'),
+                'detail' => $detailWithPay,
                 'amount' => (float) $tx->total,
-                'status' => ucfirst(str_replace('_', ' ', (string) $tx->payment_method)),
+                'status' => 'completed',
+                'display_status' => 'Done',
+                'action_label' => 'Receipt',
                 'url'    => route('pos.show', $tx->id),
             ]);
         }
@@ -149,7 +161,9 @@ final class ClientHistory
                     'detail' => trim(($apt->services->pluck('service_name')->filter()->join(', ') ?: 'Services')
                         . ($apt->staff?->name ? ' · '.$apt->staff->name : '')),
                     'amount' => $amount,
-                    'status' => ucfirst(str_replace('_', ' ', (string) $apt->status)),
+                    'status' => (string) $apt->status,
+                    'display_status' => self::displayStatusForAppointment((string) $apt->status),
+                    'action_label' => 'Details',
                     'url'    => route('appointments.show', $apt->id),
                 ]);
             }
@@ -164,13 +178,23 @@ final class ClientHistory
                         : (string) $line->name;
                 })->filter()->take(4)->join(', ');
 
+                $paymentLabel = $tx->payment_method
+                    ? ucfirst(str_replace('_', ' ', (string) $tx->payment_method))
+                    : null;
+                $detailWithPay = $lineSummary !== '' ? $lineSummary : ($tx->reference ?? 'Sale');
+                if ($paymentLabel) {
+                    $detailWithPay .= ' · '.$paymentLabel;
+                }
+
                 $rows->push([
                     'kind'   => 'sale',
                     'at'     => $at?->toIso8601String(),
                     'label'  => 'POS sale',
-                    'detail' => $lineSummary !== '' ? $lineSummary : ($tx->reference ?? 'Sale'),
+                    'detail' => $detailWithPay,
                     'amount' => (float) $tx->total,
-                    'status' => ucfirst(str_replace('_', ' ', (string) $tx->payment_method)),
+                    'status' => 'completed',
+                    'display_status' => 'Done',
+                    'action_label' => 'Receipt',
                     'url'    => route('pos.show', $tx->id),
                 ]);
             }
@@ -183,5 +207,10 @@ final class ClientHistory
         }
 
         return $out;
+    }
+
+    private static function displayStatusForAppointment(string $status): string
+    {
+        return $status === 'completed' ? 'Done' : ucfirst(str_replace('_', ' ', $status));
     }
 }

@@ -69,14 +69,22 @@
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
                 Request Reviews
             </button>
-            <form action="{{ route('clients.import') }}" method="POST" enctype="multipart/form-data" class="inline-flex shrink-0 min-w-0">
-                @csrf
-                <label for="client-csv-upload" class="btn-outline cursor-pointer inline-flex items-center justify-center gap-1.5">
-                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                    Import
-                </label>
-                <input id="client-csv-upload" type="file" name="file" accept=".csv,text/csv,text/plain,.txt" class="hidden" onchange="if(this.files.length)this.form.submit()">
-            </form>
+            <div class="inline-flex items-center gap-1.5 shrink-0 min-w-0">
+                <form action="{{ route('clients.import') }}" method="POST" enctype="multipart/form-data" class="inline-flex shrink-0 min-w-0">
+                    @csrf
+                    <label for="client-csv-upload" class="btn-outline cursor-pointer inline-flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        Import
+                    </label>
+                    <input id="client-csv-upload" type="file" name="file" accept=".csv,text/csv,text/plain,.txt" class="hidden" onchange="if(this.files.length)this.form.submit()">
+                </form>
+                <a href="{{ route('clients.import.sample') }}"
+                   class="btn-outline inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+                   title="Download sample CSV with column headers and example rows">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Sample CSV
+                </a>
+            </div>
             <a href="{{ route('clients.export') }}" class="btn-outline inline-flex items-center justify-center gap-1.5">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Export
@@ -176,6 +184,8 @@
             'is_vip' => (bool) ($c->is_vip ?? false),
             'notes' => $isScopedStaffPanel ? null : $c->notes,
             'loyalty_tier_id' => $c->loyalty_tier_id ? (string) $c->loyalty_tier_id : '',
+            'loyalty_plan_name' => $c->loyaltyTier?->name,
+            'has_loyalty_plan' => $c->loyalty_tier_id !== null,
             'show_url' => route('clients.show', $c->id),
             'update_url' => route('clients.update', $c->id),
             'edit_url' => route('clients.edit', $c->id),
@@ -205,7 +215,8 @@
                     'label' => $row['label'],
                     'detail' => $row['detail'],
                     'amount' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP').number_format((float) ($row['amount'] ?? 0), 2),
-                    'status' => $row['status'],
+                    'display_status' => $row['display_status'] ?? 'Done',
+                    'action_label' => $row['action_label'] ?? 'View',
                     'url' => $row['url'] ?? null,
                 ];
             })->values()->all(),
@@ -400,7 +411,7 @@
                     </div>
                 </div>
 
-                <div class="mt-5 grid grid-cols-3 gap-2.5 sm:gap-3">
+                <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                     <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/25 p-3.5 text-center">
                         <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">Visits</p>
                         <p class="mt-1.5 text-lg font-semibold tabular-nums text-heading" x-text="selectedClient().visits"></p>
@@ -414,6 +425,12 @@
                     <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/25 p-3.5 text-center">
                         <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">Last Visit</p>
                         <p class="mt-1.5 text-sm font-semibold text-heading" x-text="selectedClient().last_visit"></p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-800/25 p-3.5 text-center"
+                         :class="selectedClient().has_loyalty_plan ? 'ring-1 ring-velour-200/80 dark:ring-velour-700/40' : ''">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">Loyalty Plan</p>
+                        <p class="mt-1.5 text-sm font-semibold text-heading truncate px-1"
+                           x-text="selectedClient().loyalty_plan_name || 'Not sold'"></p>
                     </div>
                 </div>
 
@@ -443,6 +460,17 @@
                                   x-text="selectedClient().status"></span>
                         </p>
                         <p class="mt-1 text-[11px] text-muted" x-text="selectedClient().status_hint"></p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-wide text-muted">Loyalty plan</p>
+                        <p class="mt-1">
+                            <span class="inline-flex text-xs font-semibold px-2 py-0.5 rounded-full"
+                                  :class="selectedClient().has_loyalty_plan
+                                      ? 'bg-velour-100 text-velour-800 dark:bg-velour-900/40 dark:text-velour-200'
+                                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'"
+                                  x-text="selectedClient().has_loyalty_plan ? 'Plan sold' : 'No plan'"></span>
+                        </p>
+                        <p class="mt-1 text-sm text-body" x-text="selectedClient().loyalty_plan_name || '—'"></p>
                     </div>
                     <div>
                         <p class="text-[11px] uppercase tracking-wide text-muted">Source</p>
@@ -478,6 +506,7 @@
                                     <th class="px-5 py-2.5 text-left">Details</th>
                                     <th class="px-5 py-2.5 text-left">Amount</th>
                                     <th class="px-5 py-2.5 text-left">Status</th>
+                                    <th class="px-5 py-2.5 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -491,14 +520,22 @@
                                         <td class="px-5 py-2.5 text-body text-xs" x-text="row.detail"></td>
                                         <td class="px-5 py-2.5 text-body tabular-nums font-semibold" x-text="row.amount"></td>
                                         <td class="px-5 py-2.5">
-                                            <a x-show="row.url" :href="row.url" class="text-link text-xs font-medium">View</a>
-                                            <span x-show="!row.url" class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                                                  x-text="row.status"></span>
+                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium"
+                                                  :class="row.display_status === 'Done'
+                                                      ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200'
+                                                      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                                                  x-text="row.display_status"></span>
+                                        </td>
+                                        <td class="px-5 py-2.5 text-right">
+                                            <a x-show="row.url" :href="row.url"
+                                               class="inline-flex items-center justify-center min-h-[1.75rem] px-2.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-body hover:bg-white dark:hover:bg-gray-800"
+                                               x-text="row.action_label"></a>
+                                            <span x-show="!row.url" class="text-xs text-muted">—</span>
                                         </td>
                                     </tr>
                                 </template>
                                 <tr x-show="visibleHistory.length === 0">
-                                    <td colspan="5" class="px-5 py-6 text-center text-sm text-muted">No history yet.</td>
+                                    <td colspan="6" class="px-5 py-6 text-center text-sm text-muted">No history yet.</td>
                                 </tr>
                             </tbody>
                         </table>

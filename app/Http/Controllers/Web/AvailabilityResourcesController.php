@@ -71,11 +71,26 @@ class AvailabilityResourcesController extends Controller
             ->latest()
             ->get();
 
+        $staffwise = $request->boolean('staffwise') && $request->filled('staff_id');
+        $staffwiseStaffId = $staffwise ? (int) $request->query('staff_id') : null;
+        if ($staffwiseStaffId && ! $staff->contains('id', $staffwiseStaffId)) {
+            $staffwise = false;
+            $staffwiseStaffId = null;
+        }
+        $lockedStaff = $staffwiseStaffId ? $staff->firstWhere('id', $staffwiseStaffId) : null;
+
+        if ($staffwiseStaffId) {
+            $leaveRequests = $leaveRequests->where('staff_id', $staffwiseStaffId)->values();
+        }
+
         $attendanceGrid = null;
         $attendanceWeek = null;
         $attendanceState = null;
         $attendancePeriod = 'week';
         $attendanceStaffId = $request->filled('staff_id') ? (int) $request->query('staff_id') : null;
+        if ($staffwiseStaffId) {
+            $attendanceStaffId = $staffwiseStaffId;
+        }
         $attendanceAnchor = now();
         if ($tab === 'attendance') {
             $attendancePeriod = in_array($request->query('period'), ['week', 'month', 'year'], true)
@@ -139,7 +154,10 @@ class AvailabilityResourcesController extends Controller
             'attendanceState',
             'attendancePeriod',
             'attendanceStaffId',
-            'attendanceAnchor'
+            'attendanceAnchor',
+            'staffwise',
+            'staffwiseStaffId',
+            'lockedStaff'
         ));
     }
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
-use App\Mail\ClientExportCsvMail;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\LoyaltyTier;
@@ -68,6 +67,7 @@ class ClientController extends Controller
         }
 
         $clients = $query
+            ->with(['loyaltyTier:id,salon_id,name,service_discount_percent'])
             ->withSum(['transactions as transactions_total' => fn ($q) => $q->where('status', 'completed')], 'total')
             ->orderBy($sort, $dir)
             ->paginate(25)
@@ -233,7 +233,7 @@ class ClientController extends Controller
     }
 
     /**
-     * CSV export for the current salon (matches columns useful for re-import).
+     * Download clients as CSV for the current salon.
      */
     public function export()
     {
@@ -241,27 +241,36 @@ class ClientController extends Controller
         Gate::authorize('export', Client::class);
 
         $salon = $this->activeSalon();
-        $adminEmail = (string) ($salon->owner?->email ?? '');
-        if ($adminEmail === '') {
-            return redirect()->route('clients.index')->with('error', 'Admin email is missing. Unable to send export.');
-        }
-
         $slug = $salon->slug ?: 'salon';
         $fileName = 'clients-' . preg_replace('/[^a-z0-9_-]+/i', '-', $slug) . '-' . now()->format('Y-m-d') . '.csv';
         $csvContent = $this->buildClientsExportCsv($salon->id);
 
-        Mail::to($adminEmail)->send(new ClientExportCsvMail(
-            salonName: (string) $salon->name,
-            fileName: $fileName,
-            csvContent: $csvContent
-        ));
-
-        return redirect()->route('clients.index')->with('success', 'Client export has been emailed to the admin.');
+        return response($csvContent, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
     }
 
     /**
-     * Import clients from CSV (first row = headers: first_name, last_name, email,
-     * mobile/phone, address, gender, marketing_consent).
+     * Download a sample CSV showing the import column layout.
+     */
+    public function importSample()
+    {
+        abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot import client data.');
+        Gate::authorize('create', Client::class);
+
+        $csv = $this->buildClientsImportSampleCsv();
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="clients-import-sample.csv"',
+        ]);
+    }
+
+    /**
+     * Import clients from CSV (first row = headers).
+     * Required: mobile or phone. Optional: name (or first_name + last_name), email,
+     * address, gender, marketing_consent.
      */
     public function import(Request $request)
     {
@@ -342,6 +351,18 @@ class ClientController extends Controller
                 $phone = substr($phone, 0, 20);
             }
 
+            $email = $get('email') ?: null;
+            if ($email !== null && $email !== '') {
+                $v = Validator::make(['email' => $email], ['email' => ['email', 'max:150']]);
+                if ($v->fails()) {
+                    $skipped++;
+
+                    continue;
+                }
+            } else {
+                $email = null;
+            }
+
             $address = $get('address') ?: null;
             if ($address !== null && strlen($address) > 500) {
                 $address = substr($address, 0, 500);
@@ -403,6 +424,47 @@ class ClientController extends Controller
         }
 
         return true;
+    }
+
+    private function buildClientsImportSampleCsv(): string
+    {
+        $stream = fopen('php://temp', 'r+');
+        if ($stream === false) {
+            return '';
+        }
+
+        fprintf($stream, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fputcsv($stream, ['name', 'mobile', 'email', 'address', 'gender', 'marketing_consent']);
+        fputcsv($stream, [
+            'Priya Sharma',
+            '9876543210',
+            'priya@example.com',
+            '12 MG Road, Delhi',
+            'female',
+            'yes',
+        ]);
+        fputcsv($stream, [
+            'Raj Kumar',
+            '9123456789',
+            '',
+            '',
+            'male',
+            'no',
+        ]);
+        fputcsv($stream, [
+            '',
+            '9988776655',
+            '',
+            '',
+            '',
+            '0',
+        ]);
+
+        rewind($stream);
+        $content = stream_get_contents($stream);
+        fclose($stream);
+
+        return $content !== false ? $content : '';
     }
 
     private function buildClientsExportCsv(int $salonId): string

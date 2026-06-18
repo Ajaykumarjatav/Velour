@@ -720,23 +720,23 @@
 
                 @php
                 $platforms = [
-                    'instagram' => ['label' => 'Instagram',       'icon' => '📸', 'placeholder' => 'https://instagram.com/yoursalon'],
-                    'facebook'  => ['label' => 'Facebook',        'icon' => '👍', 'placeholder' => 'https://facebook.com/yoursalon'],
-                    'tiktok'    => ['label' => 'TikTok',          'icon' => '🎵', 'placeholder' => 'https://tiktok.com/@yoursalon'],
-                    'whatsapp'  => ['label' => 'WhatsApp',        'icon' => '💬', 'placeholder' => 'https://wa.me/447700000000'],
-                    'google'    => ['label' => 'Google Business', 'icon' => '🔍', 'placeholder' => 'https://g.page/yoursalon'],
-                    'twitter'   => ['label' => 'X / Twitter',     'icon' => '🐦', 'placeholder' => 'https://x.com/yoursalon'],
-                    'youtube'   => ['label' => 'YouTube',         'icon' => '▶️', 'placeholder' => 'https://youtube.com/@yoursalon'],
-                    'linkedin'  => ['label' => 'LinkedIn',        'icon' => '💼', 'placeholder' => 'https://linkedin.com/company/yoursalon'],
-                    'pinterest' => ['label' => 'Pinterest',       'icon' => '📌', 'placeholder' => 'https://pinterest.com/yoursalon'],
+                    'instagram' => ['label' => 'Instagram',       'placeholder' => 'https://instagram.com/yoursalon'],
+                    'facebook'  => ['label' => 'Facebook',        'placeholder' => 'https://facebook.com/yoursalon'],
+                    'tiktok'    => ['label' => 'TikTok',          'placeholder' => 'https://tiktok.com/@yoursalon'],
+                    'whatsapp'  => ['label' => 'WhatsApp',        'placeholder' => 'https://wa.me/447700000000'],
+                    'google'    => ['label' => 'Google Business', 'placeholder' => 'https://g.page/yoursalon'],
+                    'twitter'   => ['label' => 'X / Twitter',     'placeholder' => 'https://x.com/yoursalon'],
+                    'youtube'   => ['label' => 'YouTube',         'placeholder' => 'https://youtube.com/@yoursalon'],
+                    'linkedin'  => ['label' => 'LinkedIn',        'placeholder' => 'https://linkedin.com/company/yoursalon'],
+                    'pinterest' => ['label' => 'Pinterest',       'placeholder' => 'https://pinterest.com/yoursalon'],
                 ];
                 $saved = $salon->social_links ?? [];
                 @endphp
 
                 @foreach($platforms as $key => $meta)
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-lg flex-shrink-0">
-                        {{ $meta['icon'] }}
+                    <div class="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center flex-shrink-0">
+                        @include('partials.social-platform-icon', ['platform' => $key, 'class' => 'w-5 h-5'])
                     </div>
                     <div class="flex-1">
                         <label class="form-label mb-1">{{ $meta['label'] }}</label>

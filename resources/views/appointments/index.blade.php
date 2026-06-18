@@ -51,8 +51,14 @@
             'internal_notes' => $isScopedStaffPanel ? null : $apt->internal_notes,
             'show_url' => route('appointments.show', $apt->id),
             'pos_url' => route('pos.create', ['appointment' => $apt->id]),
-            'rebook_url' => route('appointments.create', ['client_id' => $apt->client_id]),
-            'rebook_same_url' => route('appointments.create', ['client_id' => $apt->client_id, 'services' => $apt->services->pluck('service_id')->join(','), 'staff_id' => $apt->staff_id]),
+            'rebook_url' => route('appointments.create', ['client_id' => $apt->client_id, 'from' => $apt->id]),
+            'rebook_same_url' => route('appointments.create', [
+                'client_id' => $apt->client_id,
+                'services' => $apt->services->pluck('service_id')->filter()->join(','),
+                'staff_id' => $apt->staff_id,
+                'from' => $apt->id,
+            ]),
+            'can_rebook' => in_array($st, ['completed', 'cancelled', 'no_show'], true) && ! $isMissed,
             'services' => $serviceLines->map(fn ($line) => [
                 'name' => $line['name'],
                 'price' => \App\Helpers\CurrencyHelper::format((float) $line['price'], $currency),
@@ -264,7 +270,7 @@
                                     Email / share
                                 </a>
                             </template>
-                            <template x-if="selectedAppointment().status === 'completed'">
+                            <template x-if="selectedAppointment().can_rebook && selectedAppointment().status === 'completed'">
                                 <a :href="selectedAppointment().rebook_same_url"
                                    class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap">
                                     Rebook
@@ -278,7 +284,7 @@
                                 </a>
                             </template>
                             <template x-if="selectedAppointment().status !== 'completed'">
-                                <a x-show="['cancelled','no_show'].includes(selectedAppointment().status)"
+                                <a x-show="selectedAppointment().can_rebook && ['cancelled','no_show'].includes(selectedAppointment().status)"
                                    :href="selectedAppointment().rebook_same_url"
                                    class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap">
                                     Rebook

@@ -2,15 +2,20 @@
     $state = $attendanceState ?? null;
     $period = $attendancePeriod ?? 'week';
     $staffFilterId = $attendanceStaffId ?? null;
+    $staffwise = $staffwise ?? false;
+    $lockedStaff = $lockedStaff ?? null;
     $anchor = isset($attendanceAnchor) ? $attendanceAnchor->copy() : now();
 
-    $attendanceUrl = function (array $overrides = []) use ($period, $staffFilterId, $anchor) {
+    $attendanceUrl = function (array $overrides = []) use ($period, $staffFilterId, $anchor, $staffwise) {
         $base = [
             'tab' => 'attendance',
             'period' => $period,
         ];
         if ($staffFilterId) {
             $base['staff_id'] = $staffFilterId;
+        }
+        if ($staffwise && $staffFilterId) {
+            $base['staffwise'] = 1;
         }
         if ($period === 'month') {
             $base['month'] = $anchor->format('Y-m');
@@ -101,6 +106,10 @@
                 <form method="GET" action="{{ route('availability.index') }}" class="flex items-center gap-2 min-w-0">
                     <input type="hidden" name="tab" value="attendance">
                     <input type="hidden" name="period" value="{{ $period }}">
+                    @if($staffwise && $staffFilterId)
+                        <input type="hidden" name="staff_id" value="{{ $staffFilterId }}">
+                        <input type="hidden" name="staffwise" value="1">
+                    @endif
                     @if($period === 'month')
                         <input type="hidden" name="month" value="{{ $anchor->format('Y-m') }}">
                     @elseif($period === 'year')
@@ -108,6 +117,15 @@
                     @else
                         <input type="hidden" name="week" value="{{ $anchor->copy()->startOfWeek(\Carbon\Carbon::MONDAY)->toDateString() }}">
                     @endif
+                    @if($staffwise && $lockedStaff)
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-velour-100 text-velour-800 dark:bg-velour-900/40 dark:text-velour-200 border border-velour-200/60 dark:border-velour-800/50">
+                            <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                                  style="background-color: {{ $lockedStaff->color ?: '#7C3AED' }}">{{ $lockedStaff->display_initials }}</span>
+                            {{ $lockedStaff->name }}
+                        </span>
+                        <a href="{{ route('availability.index', ['tab' => 'attendance', 'week' => $anchor->copy()->startOfWeek(\Carbon\Carbon::MONDAY)->toDateString(), 'period' => $period]) }}"
+                           class="text-xs text-velour-600 hover:underline whitespace-nowrap">View all staff</a>
+                    @else
                     <label for="attendance-staff-filter" class="sr-only">Staff</label>
                     <select id="attendance-staff-filter" name="staff_id" class="form-select text-sm min-w-[10rem] max-w-full" onchange="this.form.submit()">
                         <option value="">All staff</option>
@@ -115,6 +133,7 @@
                             <option value="{{ $st->id }}" {{ (string) $staffFilterId === (string) $st->id ? 'selected' : '' }}>{{ $st->name }}</option>
                         @endforeach
                     </select>
+                    @endif
                 </form>
 
                 <div class="inline-flex items-stretch rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-x divide-gray-200 dark:divide-gray-700 text-sm sm:ml-auto">

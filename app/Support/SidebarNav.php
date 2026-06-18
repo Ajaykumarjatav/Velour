@@ -20,7 +20,7 @@ final class SidebarNav
 
     public static function showManageHeading(User $user): bool
     {
-        foreach (['staff', 'services', 'service_packages', 'multi_location', 'availability', 'inventory'] as $key) {
+        foreach (['staff', 'services', 'service_packages', 'multi_location', 'availability', 'inventory', 'expenses'] as $key) {
             if (self::show($user, $key)) {
                 return true;
             }

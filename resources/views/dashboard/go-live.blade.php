@@ -439,7 +439,7 @@
                 class="flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-100 hover:border-opacity-60 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
                 :style="`background:${channel.bg}; border-color:${channel.border};`"
               >
-                <span class="text-2xl" x-text="channel.icon"></span>
+                <span class="flex items-center justify-center w-8 h-8" x-html="socialIcons[channel.id]"></span>
                 <span class="text-xs font-semibold" :style="`color:${channel.color};`" x-text="channel.label"></span>
                 <span class="text-[10px] font-medium px-2 py-0.5 rounded-full"
                   :style="`background:${channel.border}; color:${channel.color};`"
@@ -541,6 +541,16 @@
 @endsection
 
 @push('scripts')
+@php
+    $socialPlatformIconIds = ['instagram', 'whatsapp', 'facebook', 'google', 'tiktok', 'email', 'youtube', 'linkedin', 'twitter', 'pinterest'];
+    $socialPlatformIcons = [];
+    foreach ($socialPlatformIconIds as $platformId) {
+        $socialPlatformIcons[$platformId] = trim(view('partials.social-platform-icon', [
+            'platform' => $platformId,
+            'class' => 'w-7 h-7',
+        ])->render());
+    }
+@endphp
 <script>
 // ── Pre-loaded server data ─────────────────────────────────────────────────
 const _serverData = {
@@ -571,6 +581,7 @@ const _serverData = {
     period:          "{{ now()->format('F Y') }}",
   },
   checklist: @json($checklist),
+  socialIcons: @json($socialPlatformIcons),
 };
 
 // ── Alpine component ───────────────────────────────────────────────────────
@@ -584,6 +595,7 @@ function goLivePage() {
     stats:       { ..._serverData.stats },
     checklist:   { ..._serverData.checklist },
     shareClicks: { ..._serverData.shareClicks },
+    socialIcons: _serverData.socialIcons,
     embedCodes:  { ..._serverData.embedCodes },
     websiteUrl:  _serverData.websiteUrl,
     bookingUrl:  _serverData.bookingUrl,
@@ -596,7 +608,6 @@ function goLivePage() {
       {
         id: 'instagram',
         label: 'Instagram',
-        icon: '📸',
         bg: '#fff0f7',
         border: '#fcd',
         color: '#be185d',
@@ -608,7 +619,6 @@ function goLivePage() {
       {
         id: 'whatsapp',
         label: 'WhatsApp',
-        icon: '💬',
         bg: '#f0fdf4',
         border: '#bbf7d0',
         color: '#15803d',
@@ -623,7 +633,6 @@ function goLivePage() {
       {
         id: 'facebook',
         label: 'Facebook',
-        icon: '👍',
         bg: '#eff6ff',
         border: '#bfdbfe',
         color: '#1d4ed8',
@@ -635,7 +644,6 @@ function goLivePage() {
       {
         id: 'google',
         label: 'Google',
-        icon: '🔍',
         bg: '#fff7ed',
         border: '#fed7aa',
         color: '#c2410c',
@@ -647,7 +655,6 @@ function goLivePage() {
       {
         id: 'tiktok',
         label: 'TikTok',
-        icon: '🎵',
         bg: '#fdf4ff',
         border: '#e9d5ff',
         color: '#7e22ce',
@@ -659,7 +666,6 @@ function goLivePage() {
       {
         id: 'email',
         label: 'Email',
-        icon: '✉️',
         bg: '#f8fafc',
         border: '#e2e8f0',
         color: '#334155',
@@ -673,7 +679,6 @@ function goLivePage() {
       {
         id: 'youtube',
         label: 'YouTube',
-        icon: '▶️',
         bg: '#eff6ff',
         border: '#bfdbfe',
         color: '#1d4ed8',
@@ -685,7 +690,6 @@ function goLivePage() {
       {
         id: 'linkedin',
         label: 'LinkedIn',
-        icon: '💼',
         bg: '#f1f5f9',
         border: '#cbd5e1',
         color: '#0f172a',
@@ -697,7 +701,6 @@ function goLivePage() {
       {
         id: 'twitter',
         label: 'X / Twitter',
-        icon: '🐦',
         bg: '#f8fafc',
         border: '#cbd5e1',
         color: '#334155',
@@ -709,7 +712,6 @@ function goLivePage() {
       {
         id: 'pinterest',
         label: 'Pinterest',
-        icon: '📌',
         bg: '#fff1f2',
         border: '#fecdd3',
         color: '#be123c',

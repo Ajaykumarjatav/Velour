@@ -179,7 +179,7 @@ document.addEventListener('alpine:init', function () {
                                 <a href="{{ route('staff.show', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View profile</a>
                                 <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View schedule</a>
                                 <a href="{{ route('staff.edit', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Edit</a>
-                                <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Leave &amp; blocks</a>
+                                <a href="{{ route('availability.index', ['tab' => 'leave', 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Leave &amp; blocks</a>
                                 <button type="button" @click="openPayroll({{ $member->id }})" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Payroll</button>
                             </div>
                         </div>
@@ -232,8 +232,8 @@ document.addEventListener('alpine:init', function () {
                             @click="openSchedule(JSON.parse($event.currentTarget.dataset.staff))">
                         Schedule
                     </button>
-                    <a href="{{ route('availability.index', ['tab' => 'attendance', 'week' => now()->toDateString()]) }}" class="btn-outline text-center text-xs py-2">Attendance</a>
-                    <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="btn-outline text-center text-xs py-2">Leave</a>
+                    <a href="{{ route('availability.index', ['tab' => 'attendance', 'week' => now()->toDateString(), 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="btn-outline text-center text-xs py-2">Attendance</a>
+                    <a href="{{ route('availability.index', ['tab' => 'leave', 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="btn-outline text-center text-xs py-2">Leave</a>
                 </div>
             </div>
         @empty

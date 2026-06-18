@@ -39,7 +39,7 @@
         <a href="{{ route('clients.edit', $client->id) }}" class="flex-shrink-0 btn-outline">Edit</a>
     </div>
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="stat-card text-center">
             <p class="stat-value">{{ $visitCount }}</p>
             <p class="stat-label mt-1">Visits</p>
@@ -51,6 +51,10 @@
         <div class="stat-card text-center">
             <p class="stat-value">{{ $lastVisit ? $lastVisit->starts_at->format('d M') : '—' }}</p>
             <p class="stat-label mt-1">Last Visit</p>
+        </div>
+        <div class="stat-card text-center {{ $client->loyaltyTier ? 'ring-1 ring-velour-200 dark:ring-velour-700/40' : '' }}">
+            <p class="stat-value text-base">{{ $client->loyaltyTier?->name ?? 'Not sold' }}</p>
+            <p class="stat-label mt-1">Loyalty Plan</p>
         </div>
     </div>
 
@@ -74,7 +78,8 @@
                 <th>Type</th>
                 <th>Details</th>
                 <th class="text-right">Amount</th>
-                <th></th>
+                <th>Status</th>
+                <th class="text-right">Action</th>
             </tr>
             </thead>
             <tbody>
@@ -89,11 +94,19 @@
                 <td class="text-right font-bold text-heading tabular-nums">
                     @money($row['amount'])
                 </td>
+                <td>
+                    @php $displayStatus = $row['display_status'] ?? 'Done'; @endphp
+                    <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $displayStatus === 'Done' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }}">
+                        {{ $displayStatus }}
+                    </span>
+                </td>
                 <td class="text-right">
                     @if($row['url'])
-                    <a href="{{ $row['url'] }}" class="text-xs text-link font-medium">View</a>
+                    <a href="{{ $row['url'] }}" class="inline-flex items-center justify-center min-h-[1.75rem] px-2.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-body hover:bg-white dark:hover:bg-gray-800">
+                        {{ $row['action_label'] ?? 'View' }}
+                    </a>
                     @else
-                    <span class="text-xs text-muted">{{ $row['status'] }}</span>
+                    <span class="text-xs text-muted">—</span>
                     @endif
                 </td>
             </tr>

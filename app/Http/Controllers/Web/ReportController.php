@@ -109,8 +109,14 @@ class ReportController extends Controller
                 ->where('status', 'completed')
                 ->whereBetween('created_at', [$mStart, $mEnd])
                 ->sum('total');
-            // Conservative operational expense estimate to visualize trend.
-            $mExpense = $mRevenue * 0.62;
+            $mExpense = (float) \App\Models\Expense::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('status', 'recorded')
+                ->whereBetween('expense_date', [$mStart, $mEnd])
+                ->sum('amount');
+            if ($mExpense <= 0 && $mRevenue > 0) {
+                $mExpense = $mRevenue * 0.62;
+            }
 
             $monthlyBars[] = [
                 'label' => $m->format('M'),

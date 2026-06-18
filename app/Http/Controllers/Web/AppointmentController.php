@@ -109,24 +109,45 @@ class AppointmentController extends Controller
         ));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $salon    = $this->salon();
         $scopedStaffId = Auth::user()->dashboardScopedStaffId();
         if ($scopedStaffId !== null) {
             abort(403, 'Staff users cannot create appointments from this screen.');
         }
+
+        if ($request->filled('from')) {
+            $sourceAppt = Appointment::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->find((int) $request->query('from'));
+            if ($sourceAppt && \App\Support\AppointmentLifecycle::isPastUnresolved($sourceAppt, $salon)) {
+                return redirect()
+                    ->route('appointments.show', $sourceAppt)
+                    ->with('error', 'This appointment was missed. Mark it as no-show, complete, or cancel it before rebooking.');
+            }
+        }
+
+        $prefillClientId = old('client_id', $request->query('client_id'));
+        $prefillStaffId  = old('staff_id', $request->query('staff_id'));
+        $prefillServices = old('services', []);
+        if ($prefillServices === [] && $request->filled('services')) {
+            $prefillServices = array_values(array_filter(array_map(
+                'intval',
+                explode(',', (string) $request->query('services'))
+            )));
+        }
+
         $clients  = Client::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->limit(30)
             ->get(['id', 'first_name', 'last_name', 'phone']);
-        $oldClientId = old('client_id');
-        if ($oldClientId && ! $clients->firstWhere('id', (int) $oldClientId)) {
+        if ($prefillClientId && ! $clients->firstWhere('id', (int) $prefillClientId)) {
             $extra = Client::withoutGlobalScopes()
                 ->where('salon_id', $salon->id)
-                ->find((int) $oldClientId, ['id', 'first_name', 'last_name', 'phone']);
+                ->find((int) $prefillClientId, ['id', 'first_name', 'last_name', 'phone']);
             if ($extra) {
                 $clients->prepend($extra);
             }
@@ -148,11 +169,12 @@ class AppointmentController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'name']);
 
-        $defaultStaffId = old('staff_id', $scopedStaffId !== null ? (string) $scopedStaffId : '');
+        $defaultStaffId = (string) ($prefillStaffId ?: '');
         if ($scopedStaffId !== null) {
             $defaultStaffId = (string) $scopedStaffId;
         }
         $todayYmd = SalonTime::todayDateString($salon);
+        $isRebookPrefill = $request->hasAny(['client_id', 'services', 'staff_id']);
 
         return view('appointments.create', compact(
             'salon',
@@ -162,7 +184,10 @@ class AppointmentController extends Controller
             'clientQuickCreateLoyaltyTiers',
             'scopedStaffId',
             'defaultStaffId',
-            'todayYmd'
+            'todayYmd',
+            'prefillClientId',
+            'prefillServices',
+            'isRebookPrefill'
         ));
     }
 
@@ -274,27 +299,6 @@ class AppointmentController extends Controller
         $staffMember = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($staffId)->firstOrFail();
 
         $tz = SalonTime::timezone($salon);
-
-        if (SalonTime::isTodayOrTomorrow($salon, $dateStr)) {
-            $blocked = [];
-            $blockedDetails = [];
-
-            if ($isTodayInSalon) {
-                foreach ($slotTimes as $time) {
-                    $start = Carbon::createFromFormat('Y-m-d H:i', $dateStr.' '.$time, $tz);
-                    if ($start->lte($nowInSalon)) {
-                        $blocked[] = $time;
-                        $blockedDetails[$time] = 'That time has already passed. Please choose a later time.';
-                    }
-                }
-            }
-
-            return response()->json([
-                'blocked'                    => $blocked,
-                'blocked_details'            => $blockedDetails,
-                'assumed_duration_minutes'   => $maxMinutes,
-            ]);
-        }
 
         $dayBlock = app(\App\Services\StaffAttendanceService::class)->daySchedulingBlockReason($salon, $staffMember, $dateStr);
         if ($dayBlock !== null) {

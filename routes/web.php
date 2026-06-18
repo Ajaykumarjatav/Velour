@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\ServiceCategoryController;
 use App\Http\Controllers\Billing\BillingController;
 use App\Http\Controllers\Web\CheckoutController;
 use App\Http\Controllers\Web\InventoryController;
+use App\Http\Controllers\Web\ExpenseController;
 use App\Http\Controllers\Web\FacilityController;
 use App\Http\Controllers\Web\PaymentGatewayController;
 use App\Http\Controllers\Web\PosController;
@@ -178,6 +179,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::get('appointments/{appointment}/invoice', [AppointmentController::class, 'invoiceShow'])->name('appointments.invoice.show');
 
         Route::get('clients/export', [ClientController::class, 'export'])->name('clients.export');
+        Route::get('clients/import/sample', [ClientController::class, 'importSample'])->name('clients.import.sample');
         Route::post('clients/import', [ClientController::class, 'import'])->name('clients.import');
         Route::post('quick-create/client', [RelationQuickCreateController::class, 'storeClient'])->name('quick-create.client');
         Route::post('quick-create/staff', [RelationQuickCreateController::class, 'storeStaff'])
@@ -229,6 +231,11 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::resource('inventory', InventoryController::class);
         Route::post('inventory/{item}/adjust', [InventoryController::class, 'adjust'])
              ->name('inventory.adjust');
+
+        Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
+        Route::post('quick-create/expense-category', [ExpenseController::class, 'storeCategory'])
+            ->name('quick-create.expense-category');
+        Route::resource('expenses', ExpenseController::class)->except(['show']);
 
         Route::resource('facilities', FacilityController::class);
 

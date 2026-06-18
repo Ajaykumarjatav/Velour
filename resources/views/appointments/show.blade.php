@@ -11,6 +11,7 @@
     $displayStatusLabel = \App\Support\AppointmentLifecycle::displayStatusLabel($appointment, $salon);
     $isPartialPayment = $appointment->payment_status === \App\Models\Appointment::PAYMENT_PARTIAL
         || ($balanceDue > 0 && (float) $appointment->amount_paid > 0);
+    $canRebook = in_array($appointment->status, ['completed', 'cancelled', 'no_show'], true) && ! $isMissed;
 @endphp
 
 <div class="max-w-2xl space-y-5">
@@ -262,7 +263,7 @@
             @endif
 
             {{-- Rebook (completed or cancelled) --}}
-            @if(in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
+            @if($canRebook)
             <button @click="showRebook = !showRebook; showCancel = false; showReschedule = false"
                     class="px-4 py-2 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors inline-flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -363,21 +364,21 @@
         @endif
 
         {{-- Rebook panel --}}
-        @if(in_array($appointment->status, ['completed', 'cancelled', 'no_show']))
+        @if($canRebook)
         <div x-show="showRebook" x-cloak
              class="border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 bg-indigo-50 dark:bg-indigo-900/10 space-y-3">
             <p class="text-sm font-semibold text-indigo-700 dark:text-indigo-400">Rebook this client</p>
             <p class="text-xs text-indigo-600/80 dark:text-indigo-400/80">Choose what to book for <strong>{{ $appointment->client?->first_name }} {{ $appointment->client?->last_name }}</strong>:</p>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id, 'services' => $appointment->services->pluck('service_id')->join(','), 'staff_id' => $appointment->staff_id]) }}"
+                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id, 'services' => $appointment->services->pluck('service_id')->filter()->join(','), 'staff_id' => $appointment->staff_id, 'from' => $appointment->id]) }}"
                    class="px-4 py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
                     Same services
                 </a>
-                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id, 'services' => $appointment->services->pluck('service_id')->join(','), 'staff_id' => $appointment->staff_id, 'addons' => 1]) }}"
+                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id, 'services' => $appointment->services->pluck('service_id')->filter()->join(','), 'staff_id' => $appointment->staff_id, 'from' => $appointment->id, 'addons' => 1]) }}"
                    class="px-4 py-2.5 text-sm font-semibold rounded-xl border border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
                     Same + add-ons
                 </a>
-                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id]) }}"
+                <a href="{{ route('appointments.create', ['client_id' => $appointment->client_id, 'from' => $appointment->id]) }}"
                    class="px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-body hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                     Different services
                 </a>

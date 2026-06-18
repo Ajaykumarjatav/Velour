@@ -7,6 +7,8 @@
     $occupiedSlotsUrl = route('appointments.occupied-slots');
     $scopedStaffId = $scopedStaffId ?? auth()->user()->dashboardScopedStaffId();
     $defaultStaffId = (string) ($defaultStaffId ?? old('staff_id', ''));
+    $prefillClientId = old('client_id', $prefillClientId ?? '');
+    $prefillServices = old('services', $prefillServices ?? []);
     $lockedStaff = $scopedStaffId ? $staff->firstWhere('id', (int) $scopedStaffId) : null;
 @endphp
 
@@ -19,12 +21,18 @@
               @input="dirty = true"
               @change="dirty = true">
             @csrf
+            @if(!empty($isRebookPrefill))
+            <div class="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/30 px-4 py-3 text-sm text-indigo-900 dark:text-indigo-100">
+                <p class="font-semibold">Rebooking</p>
+                <p class="mt-0.5 text-xs text-indigo-800/90 dark:text-indigo-200/90">Client, staff, and services are pre-filled. Pick a new date and time — unavailable slots for this staff member will be blocked.</p>
+            </div>
+            @endif
             <div class="space-y-0">
                 <div class="flex items-end gap-2">
                     @include('partials.appointment-client-picker', [
                         'selectId' => 'appt-create-client',
                         'clients' => $clients,
-                        'selectedClientId' => old('client_id'),
+                        'selectedClientId' => $prefillClientId,
                     ])
                     @if(auth()->user()->dashboardScopedStaffId() === null)
                     <x-relation-quick-create-trigger type="client" select-id="appt-create-client" :client-loyalty-tiers="$clientQuickCreateLoyaltyTiers ?? collect()" />
@@ -78,7 +86,7 @@
                         <div class="rounded-lg border border-gray-100 dark:border-gray-800 p-2">
                             <label class="flex items-center gap-3 p-1 rounded-lg hover:bg-velour-50 dark:hover:bg-velour-900/20 cursor-pointer">
                                 <input type="checkbox" name="services[]" value="{{ $svc->id }}"
-                                       {{ in_array($svc->id, old('services', [])) ? 'checked' : '' }}
+                                       {{ in_array($svc->id, $prefillServices, false) ? 'checked' : '' }}
                                        class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
                                 <span class="flex-1 text-sm font-medium text-body">{{ $svc->name }}</span>
                                 <span class="text-xs text-muted whitespace-nowrap">{{ $svc->duration_minutes }} min</span>
@@ -226,7 +234,9 @@ function timeslotPicker(occupiedUrl) {
                 this.selectedTime = '';
                 this.fetchBlocked();
             });
-            if (this.staffId && this.selectedDate) this.fetchBlocked();
+            if (this.staffId && this.selectedDate) {
+                this.$nextTick(() => this.fetchBlocked());
+            }
         },
         onDateChange() {
             if (this.selectedDate < this.today) {

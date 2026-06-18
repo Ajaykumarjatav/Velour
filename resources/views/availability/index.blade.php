@@ -20,6 +20,9 @@
         return $wd === null || in_array($d, $wd, true);
     };
     $resourceBaseUrl = rtrim(url('availability/resources'), '/');
+    $staffwiseQuery = (!empty($staffwise) && !empty($staffwiseStaffId))
+        ? ['staff_id' => $staffwiseStaffId, 'staffwise' => 1]
+        : [];
 @endphp
 
 @section('content')
@@ -93,9 +96,9 @@
                    class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab', 'availability') === 'availability' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Availability</a>
                 <a href="{{ route('availability.index', ['tab' => 'resources']) }}"
                    class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'resources' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Resources</a>
-                <a href="{{ route('availability.index', ['tab' => 'leave']) }}"
+                <a href="{{ route('availability.index', array_merge(['tab' => 'leave'], $staffwiseQuery)) }}"
                    class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'leave' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Leave</a>
-                <a href="{{ route('availability.index', ['tab' => 'attendance']) }}"
+                <a href="{{ route('availability.index', array_merge(['tab' => 'attendance'], $staffwiseQuery)) }}"
                    class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'attendance' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Attendance</a>
             </nav>
         </div>
@@ -236,8 +239,20 @@
     @if($tab === 'leave')
         <div class="card p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                <h2 class="text-base sm:text-lg font-bold text-heading">Leave requests</h2>
-                <button type="button" @click="openLeave()" class="btn-primary text-sm">+ New Request</button>
+                <div class="min-w-0">
+                    <h2 class="text-base sm:text-lg font-bold text-heading">Leave requests</h2>
+                    @if(!empty($staffwise) && $lockedStaff)
+                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-velour-100 text-velour-800 dark:bg-velour-900/40 dark:text-velour-200">
+                                <span class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                                      style="background-color: {{ $lockedStaff->color ?: '#7C3AED' }}">{{ $staffInitials($lockedStaff) }}</span>
+                                {{ $lockedStaff->name }}
+                            </span>
+                            <a href="{{ route('availability.index', ['tab' => 'leave']) }}" class="text-xs text-velour-600 hover:underline">View all staff</a>
+                        </div>
+                    @endif
+                </div>
+                <button type="button" @click="openLeave()" class="btn-primary text-sm shrink-0">+ New Request</button>
             </div>
             <ul class="divide-y divide-gray-100 dark:divide-gray-800">
                 @forelse($leaveRequests as $req)
@@ -299,6 +314,17 @@
             <form method="POST" action="{{ route('availability.leave.store') }}" class="space-y-4">
                 @csrf
                 <div class="flex items-end gap-2">
+                    @if(!empty($staffwise) && $staffwiseStaffId && $lockedStaff)
+                        <input type="hidden" name="staff_id" value="{{ $staffwiseStaffId }}">
+                        <div class="flex-1">
+                            <label class="form-label text-xs uppercase tracking-wide">Staff member</label>
+                            <div class="form-select text-sm bg-gray-50 dark:bg-gray-800/60 flex items-center gap-2 cursor-default">
+                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                                      style="background-color: {{ $lockedStaff->color ?: '#7C3AED' }}">{{ $staffInitials($lockedStaff) }}</span>
+                                {{ $lockedStaff->name }}
+                            </div>
+                        </div>
+                    @else
                     <x-searchable-select
                         id="avail-leave-staff"
                         name="staff_id"
@@ -315,6 +341,7 @@
                         @endforeach
                     </x-searchable-select>
                     <x-relation-quick-create-trigger type="staff" select-id="avail-leave-staff" />
+                    @endif
                 </div>
                 <div>
                     <label class="form-label text-xs uppercase tracking-wide">Leave type</label>

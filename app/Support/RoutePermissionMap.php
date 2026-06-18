@@ -21,6 +21,8 @@ final class RoutePermissionMap
         'multi-location.*' => 'multi-location.view',
         'availability.*' => 'staff.view',
         'inventory.*' => 'inventory.view',
+        'expenses.*' => 'expenses.view',
+        'quick-create.expense-category' => 'expenses.create',
         'pos.*' => 'pos.view',
         'marketing.*' => 'marketing.view',
         'reports.*' => 'reports.view',

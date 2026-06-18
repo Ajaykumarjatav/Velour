@@ -88,7 +88,7 @@ final class AuthPanel
 
         $prefixes = [
             'dashboard', 'calendar', 'appointments', 'clients', 'staff', 'services',
-            'service-packages', 'service-categories', 'availability', 'inventory',
+            'service-packages', 'service-categories', 'availability', 'inventory', 'expenses',
             'pos', 'marketing', 'reports', 'revenue', 'reviews', 'settings', 'payments',
             'go-live', 'website-seo', 'customization', 'multi-location', 'tasks',
             'action-items', 'notifications', 'guide', 'deleted-items', 'security-support',
