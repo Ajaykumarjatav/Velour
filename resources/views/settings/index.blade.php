@@ -44,6 +44,22 @@
     .settings-staff-member-row .form-textarea {
         min-width: 0;
     }
+    .settings-main-panel[data-settings-readonly] input:not([type="hidden"]),
+    .settings-main-panel[data-settings-readonly] select,
+    .settings-main-panel[data-settings-readonly] textarea,
+    .settings-main-panel[data-settings-readonly] button[type="button"]:not(.settings-tab-btn):not(.settings-staff-row-toggle),
+    .settings-main-panel[data-settings-readonly] [data-searchable-select-trigger] {
+        pointer-events: none;
+        cursor: default;
+    }
+    .settings-main-panel[data-settings-readonly] .settings-action-btn,
+    .settings-main-panel[data-settings-readonly] #settings-add-staff-member,
+    .settings-main-panel[data-settings-readonly] .settings-staff-remove-btn,
+    .settings-main-panel[data-settings-readonly] #settings-detect-location-btn,
+    .settings-main-panel[data-settings-readonly] .settings-security-actions,
+    .settings-main-panel[data-settings-readonly] .settings-danger-zone {
+        display: none !important;
+    }
 </style>
 @endpush
 
@@ -92,10 +108,12 @@
 
     // One JSON object for Alpine: must use single-quoted HTML attribute (see x-data below) — double-quoted x-data breaks when @json emits "quotes".
     $settingsTabCanEdit = $settingsTabCanEdit ?? [];
+    $settingsAdminBrowse = $settingsAdminBrowse ?? ($adminStoreBrowse ?? false);
     $settingsAlpineData = [
         'tab' => (string) $settingsInitialTab,
         'tabMeta' => $settingsTabMeta,
         'canEdit' => $settingsTabCanEdit,
+        'adminBrowse' => $settingsAdminBrowse,
         'showPasswordModal' => $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation'),
         'open' => [],
         'profileCardOpen' => true,
@@ -183,7 +201,12 @@
         </aside>
 
         {{-- Main panel --}}
-        <div class="settings-main-panel flex-1 min-w-0 w-full">
+        <div class="settings-main-panel flex-1 min-w-0 w-full" @if($settingsAdminBrowse) data-settings-readonly="1" @endif>
+            @if($settingsAdminBrowse)
+            <div class="mb-4 text-sm text-amber-900 dark:text-amber-100 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">
+                Read-only admin view — settings are visible only. Saving, uploads, and security changes are disabled.
+            </div>
+            @endif
 
             @if($settingsPersonalOnly)
             <div class="mb-6 rounded-2xl border border-teal-200/80 bg-teal-50/70 dark:border-teal-900/50 dark:bg-teal-950/30 px-4 py-3.5 text-sm text-teal-950 dark:text-teal-100">
@@ -321,7 +344,7 @@
                         <input type="text" name="postcode" value="{{ old('postcode', $salon->postcode) }}" class="form-input">
                     </div>
                 </div>
-                <button type="submit" class="btn-primary" :disabled="!canEditTab('salon')">Save Changes</button>
+                <button type="submit" x-show="canEditTab('salon')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('salon')">Save Changes</button>
                 </fieldset>
             </form>
         </div>
@@ -342,6 +365,7 @@
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('booking')" class="min-w-0 border-0 p-0 m-0 disabled:opacity-70">
                 <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 divide-y divide-gray-200/80 dark:divide-gray-700/80">
                     @foreach([
                         ['online_booking_enabled', 'Online booking', 'Allow clients to book via your link & widget', (bool) old('online_booking_enabled', $salon->online_booking_enabled)],
@@ -400,8 +424,9 @@
                     </div>
                     @error('cancellation_hours')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
+                </fieldset>
                 <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
-                    <button type="submit" class="btn-primary shrink-0" :disabled="!canEditTab('booking')">Save booking settings</button>
+                    <button type="submit" x-show="canEditTab('booking')" x-cloak class="btn-primary shrink-0 settings-action-btn" :disabled="!canEditTab('booking')">Save booking settings</button>
                 </div>
             </form>
         </div>
@@ -419,6 +444,7 @@
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('booking')" class="min-w-0 border-0 p-0 m-0 disabled:opacity-70">
                 @php
                     $bufferRule = $bufferRule ?? null;
                     $bufferRows = [
@@ -449,8 +475,9 @@
                         </li>
                     @endforeach
                 </ul>
+                </fieldset>
                 <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
-                    <button type="submit" class="btn-primary shrink-0" :disabled="!canEditTab('booking')">Save rules</button>
+                    <button type="submit" x-show="canEditTab('booking')" x-cloak class="btn-primary shrink-0 settings-action-btn" :disabled="!canEditTab('booking')">Save rules</button>
                 </div>
             </form>
             <p class="text-xs text-muted mt-4 leading-relaxed">
@@ -468,6 +495,7 @@
             <form action="{{ route('settings.services') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('services')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
                 @php
                     $selectedTypeIds = array_map('intval', old('business_type_ids', $selectedBusinessTypeIds ?? []));
                     $starterCategoryOld = old('starter_categories', $selectedStarterCategories ?? []);
@@ -667,7 +695,8 @@
                 @if(empty($selectedBusinessTypeSlugs))
                     <p class="text-xs text-amber-600">Select at least one business type in the Business tab first.</p>
                 @endif
-                <button type="submit" class="btn-primary" :disabled="!canEditTab('services')">Save Service Setup</button>
+                </fieldset>
+                <button type="submit" x-show="canEditTab('services')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('services')">Save Service Setup</button>
             </form>
         </div>
     </div>
@@ -680,6 +709,7 @@
             <form action="{{ route('settings.hours') }}" method="POST" class="space-y-3">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('hours')" class="min-w-0 border-0 p-0 m-0 space-y-3 disabled:opacity-70">
                 @php
                     $days    = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
                     $current = $salon->opening_hours ?? [];
@@ -700,8 +730,9 @@
                     <input type="time" name="hours[{{ $day }}][to]" value="{{ $h['to'] ?? '18:00' }}" class="form-input w-auto">
                 </div>
                 @endforeach
+                </fieldset>
                 <div class="pt-2">
-                    <button type="submit" class="btn-primary" :disabled="!canEditTab('hours')">Save Hours</button>
+                    <button type="submit" x-show="canEditTab('hours')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('hours')">Save Hours</button>
                 </div>
             </form>
         </div>
@@ -717,6 +748,7 @@
             <form action="{{ route('settings.social-links') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('social')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
 
                 @php
                 $platforms = [
@@ -762,8 +794,9 @@
                 </div>
                 @endforeach
 
+                </fieldset>
                 <div class="pt-2 flex items-center gap-3">
-                    <button type="submit" class="btn-primary" :disabled="!canEditTab('social')">Save Social Links</button>
+                    <button type="submit" x-show="canEditTab('social')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('social')">Save Social Links</button>
                     <p class="text-xs text-muted">Links appear on your booking page and Go Live &amp; Share panel.</p>
                 </div>
             </form>
@@ -809,6 +842,7 @@
             <form action="{{ route('settings.notifications') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('notifications')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
 
                 @foreach($notificationDefinitions as $id => $def)
                     @php
@@ -928,7 +962,8 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary" :disabled="!canEditTab('notifications')">Save notification settings</button>
+                </fieldset>
+                <button type="submit" x-show="canEditTab('notifications')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('notifications')">Save notification settings</button>
             </form>
         </div>
     </div>
@@ -941,6 +976,8 @@
                 <h2 class="font-semibold text-heading">My Profile</h2>
                 <div class="flex items-center gap-2">
                     <button type="button"
+                            x-show="canEditTab('profile')"
+                            x-cloak
                             @click="showPasswordModal = true"
                             class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
                             title="Change password">
@@ -962,6 +999,7 @@
             <form x-show="profileCardOpen" x-cloak action="{{ route('settings.profile') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('profile')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
                 @if($profileStaff)
                 <div>
                     <label class="form-label">Photo</label>
@@ -1081,7 +1119,8 @@
                     </select>
                     <p class="form-hint">Month and day names in dates follow this setting where supported.</p>
                 </div>
-                <button type="submit" class="btn-primary" :disabled="!canEditTab('profile')">Update Profile</button>
+                </fieldset>
+                <button type="submit" x-show="canEditTab('profile')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('profile')">Update Profile</button>
             </form>
         </div>
     </div>
@@ -1166,6 +1205,7 @@
                             <input type="hidden" name="return_to" value="{{ $returnTo }}">
                             <input type="hidden" name="save_single_team_member" value="1">
                             <input type="hidden" name="staff_members[0][id]" value="{{ $st['id'] ?? '' }}">
+                            <fieldset :disabled="!canEditTab('team')" class="min-w-0 border-0 p-0 m-0 space-y-3 disabled:opacity-70">
                             @php
                                 $avatarUrl = \App\Models\Staff::resolvePublicAvatarUrl($st['avatar'] ?? null);
                                 $nameLabel = trim((string) ($st['name'] ?? ''));
@@ -1268,7 +1308,8 @@
                             @error('staff_members.0.role')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.id')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                             @error('staff_members.0.language_proficiency')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                            <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="!canEditTab('team')">Save this team member</button>
+                            </fieldset>
+                            <button type="submit" x-show="canEditTab('team')" x-cloak class="btn-primary w-full sm:w-auto settings-action-btn" :disabled="!canEditTab('team')">Save this team member</button>
                         </form>
                         </div>
                     </div>
@@ -1295,7 +1336,7 @@
                 <span class="badge-gray px-3 py-1 text-xs font-semibold rounded-xl">Disabled</span>
                 @endif
             </div>
-            <div class="mt-5 flex flex-wrap gap-3">
+            <div class="mt-5 flex flex-wrap gap-3 settings-security-actions">
                 <a href="{{ route('two-factor.setup') }}" class="btn-primary">
                     {{ $user->hasTwoFactorEnabled() ? 'Manage 2FA' : 'Enable 2FA' }}
                 </a>
@@ -1320,7 +1361,7 @@
         </div>
 
         @if(config('billing.subscriptions_enabled'))
-        <div class="card border-red-200 dark:border-red-900/50 p-6">
+        <div class="card border-red-200 dark:border-red-900/50 p-6 settings-danger-zone">
             <h2 class="font-semibold text-heading mb-1">Danger Zone</h2>
             <p class="text-xs text-muted mb-4">Actions here are irreversible. Proceed with caution.</p>
             <a href="{{ route('billing.cancel') }}"
@@ -1336,6 +1377,7 @@
 
 {{-- Password Modal (opened from Profile gear icon) --}}
 <x-modal-overlay show="showPasswordModal"
+     x-show="canEditTab('profile')"
      x-transition.opacity
      @keydown.escape.window="showPasswordModal = false">
     <div class="w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-2xl" @click.stop>
@@ -1782,6 +1824,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('settingsPage', (cfg) => ({
     ...cfg,
     canEditTab(tab) {
+      if (this.adminBrowse) return false;
       return this.canEdit[tab] !== false;
     },
   }));

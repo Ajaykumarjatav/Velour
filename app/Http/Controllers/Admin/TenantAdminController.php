@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\Plan;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Team\InviteTeamMemberRequest;
 use App\Models\Tenant;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Support\AuthPanel;
 use App\Support\PermissionCatalog;
 use App\Support\StaffJobRoles;
 use Spatie\Permission\Models\Permission;
@@ -33,6 +35,13 @@ use Spatie\Permission\PermissionRegistrar;
  */
 class TenantAdminController extends Controller
 {
+    private function abortIfAdminStoreBrowse(): void
+    {
+        if (AuthPanel::isAdminStoreBrowse()) {
+            abort(403, 'Read-only admin view: changes are not allowed.');
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Team Management
     // ─────────────────────────────────────────────────────────────────────────
@@ -67,8 +76,8 @@ class TenantAdminController extends Controller
         foreach (array_keys($permissionRoles) as $roleName) {
             $rolePermissions[$roleName] = PermissionCatalog::permissionKeysForRole($roleName);
         }
-        $canEditPermissions = Auth::user()->salons()->exists()
-            || Auth::user()->hasRole('tenant_admin');
+        $canEditPermissions = ! AuthPanel::isAdminStoreBrowse()
+            && (Auth::user()->salons()->exists() || Auth::user()->hasRole('tenant_admin'));
 
         return view('admin.tenant.team', compact(
             'salon',
@@ -85,6 +94,8 @@ class TenantAdminController extends Controller
 
     public function toggleRolePermission(Request $request)
     {
+        $this->abortIfAdminStoreBrowse();
+
         abort_unless(
             Auth::user()->salons()->exists() || Auth::user()->hasRole('tenant_admin'),
             403
@@ -142,6 +153,8 @@ class TenantAdminController extends Controller
 
     public function updateRolePermissions(Request $request)
     {
+        $this->abortIfAdminStoreBrowse();
+
         abort_unless(
             Auth::user()->salons()->exists() || Auth::user()->hasRole('tenant_admin'),
             403
@@ -180,6 +193,8 @@ class TenantAdminController extends Controller
 
     public function invite(InviteTeamMemberRequest $request)
     {
+        $this->abortIfAdminStoreBrowse();
+
         $salon = $this->currentSalon();
         $data  = $request->validated();
 
@@ -245,6 +260,8 @@ class TenantAdminController extends Controller
 
     public function updateMemberRole(Request $request, int $userId)
     {
+        $this->abortIfAdminStoreBrowse();
+
         $salon = $this->currentSalon();
         $request->validate(['role' => 'required|in:'.implode(',', StaffJobRoles::permissionRoleSlugsForSalon((int) $salon->id))]);
         $user   = User::findOrFail($userId);
@@ -270,6 +287,8 @@ class TenantAdminController extends Controller
 
     public function removeMember(Request $request, int $userId)
     {
+        $this->abortIfAdminStoreBrowse();
+
         $salon = $this->currentSalon();
 
         if ($userId === $salon->owner_id) {
@@ -300,12 +319,13 @@ class TenantAdminController extends Controller
         $user  = Auth::user();
         $salon = $this->currentSalon();
 
-        $plans = [
-            'starter'    => ['name' => 'Starter',    'price' => 29,  'staff' => 2,  'clients' => 200],
-            'growth'     => ['name' => 'Growth',     'price' => 59,  'staff' => 5,  'clients' => 1000],
-            'pro'        => ['name' => 'Pro',         'price' => 99,  'staff' => 15, 'clients' => 5000],
-            'enterprise' => ['name' => 'Enterprise',  'price' => 199, 'staff' => 999, 'clients' => 999999],
-        ];
+        $plans = Plan::all()->mapWithKeys(fn (Plan $plan) => [
+            $plan->key => [
+                'name'   => $plan->name,
+                'price'  => $plan->priceMonthly,
+                'stores' => $plan->limit('stores'),
+            ],
+        ])->all();
 
         return view('admin.tenant.subscription', compact('user', 'salon', 'plans'));
     }

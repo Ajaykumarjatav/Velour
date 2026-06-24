@@ -23,6 +23,7 @@
     $staffwiseQuery = (!empty($staffwise) && !empty($staffwiseStaffId))
         ? ['staff_id' => $staffwiseStaffId, 'staffwise' => 1]
         : [];
+    $readOnlyBrowse = $adminStoreBrowse ?? \App\Support\AuthPanel::isAdminStoreBrowse();
 @endphp
 
 @section('content')
@@ -81,6 +82,7 @@
                     <p class="text-sm text-muted mt-1">Staff schedules, rooms &amp; chairs</p>
                 </div>
                 <div class="flex flex-wrap gap-2 shrink-0">
+                    <x-unless-admin-browse>
                     <button type="button" @click="openLeave()" class="btn-outline inline-flex items-center justify-center gap-2 text-sm px-3 py-2">
                         <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -88,6 +90,7 @@
                         Block / Leave
                     </button>
                     <button type="button" @click="openResourceAdd()" class="btn-primary text-sm px-3 py-2">+ Add Resource</button>
+                    </x-unless-admin-browse>
                 </div>
             </div>
             {{-- Tabs — grouped rail --}}
@@ -109,14 +112,22 @@
         <div class="card p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                 <h2 class="text-base sm:text-lg font-bold text-heading">Weekly availability</h2>
+                @unless($readOnlyBrowse)
                 <div class="flex flex-wrap gap-2">
                     <a href="{{ route('staff.index') }}" class="btn-outline text-sm inline-flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         Edit in Staff
                     </a>
                 </div>
+                @endunless
             </div>
-            <p class="text-xs text-muted mb-3 leading-relaxed">Tap a day to toggle. No days set means all days (same as booking). <a href="{{ route('staff.index') }}" class="text-velour-600 hover:underline">Staff</a> for start/end times.</p>
+            <p class="text-xs text-muted mb-3 leading-relaxed">
+                @if($readOnlyBrowse)
+                    Green = available, red = day off. Start/end times are set per staff member.
+                @else
+                    Tap a day to toggle. No days set means all days (same as booking). <a href="{{ route('staff.index') }}" class="text-velour-600 hover:underline">Staff</a> for start/end times.
+                @endif
+            </p>
             <div class="overflow-x-auto -mx-2 px-2">
                 <table class="w-full text-sm min-w-[640px]">
                     <thead>
@@ -140,6 +151,17 @@
                                 @foreach($days as $d)
                                     @php $open = $staffDayOpen($s, $d); @endphp
                                     <td class="py-2 px-1 text-center">
+                                        @if($readOnlyBrowse)
+                                            <span class="w-9 h-9 rounded-lg mx-auto flex items-center justify-center
+                                                       {{ $open ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-500' }}"
+                                                  title="{{ $d }}">
+                                                @if($open)
+                                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                @else
+                                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                @endif
+                                            </span>
+                                        @else
                                         <form method="POST" action="{{ route('availability.staff.toggle-day', $s) }}" class="inline">
                                             @csrf
                                             <input type="hidden" name="day" value="{{ $d }}">
@@ -154,6 +176,7 @@
                                                 @endif
                                             </button>
                                         </form>
+                                        @endif
                                     </td>
                                 @endforeach
                             </tr>
@@ -205,6 +228,7 @@
                             {{ $r->availability_status === 'available' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200' : 'bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-100' }}">
                             {{ $r->availability_status === 'available' ? 'Available' : 'In use' }}
                         </div>
+                        @unless($readOnlyBrowse)
                         <button type="button" @click="openResourceEdit({{ \Illuminate\Support\Js::from([
                             'id' => $r->id,
                             'name' => $r->name,
@@ -219,15 +243,18 @@
                                 title="Edit">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         </button>
+                        @endunless
                     </div>
                 </div>
             @endforeach
 
+            @unless($readOnlyBrowse)
             <button type="button" @click="openResourceAdd()"
                     class="card p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-2 min-h-[180px] hover:border-velour-400 hover:bg-velour-50/50 dark:hover:bg-velour-900/10 transition-colors text-muted hover:text-velour-600">
                 <span class="text-3xl font-light">+</span>
                 <span class="text-sm font-semibold">Add Resource</span>
             </button>
+            @endunless
         </div>
     @endif
 
@@ -252,7 +279,9 @@
                         </div>
                     @endif
                 </div>
+                @unless($readOnlyBrowse)
                 <button type="button" @click="openLeave()" class="btn-primary text-sm shrink-0">+ New Request</button>
+                @endunless
             </div>
             <ul class="divide-y divide-gray-100 dark:divide-gray-800">
                 @forelse($leaveRequests as $req)
@@ -284,6 +313,7 @@
                                 {{ $req->status }}
                             </span>
                             @if($req->isPending())
+                                @unless($readOnlyBrowse)
                                 <form method="POST" action="{{ route('availability.leave.approve', $req) }}" class="inline">
                                     @csrf
                                     @method('PATCH')
@@ -294,6 +324,7 @@
                                     @method('PATCH')
                                     <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-200">Reject</button>
                                 </form>
+                                @endunless
                             @endif
                         </div>
                     </li>

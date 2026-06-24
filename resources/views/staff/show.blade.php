@@ -25,7 +25,9 @@
                 @endif
             </div>
         </div>
+        @unless($adminStoreBrowse ?? \App\Support\AuthPanel::isAdminStoreBrowse())
         <a href="{{ route('staff.edit', $staff->id) }}" class="flex-shrink-0 btn-outline">Edit</a>
+        @endunless
     </div>
 
     @if(trim((string) ($staff->bio ?? '')) !== '')

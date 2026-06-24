@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\Plan;
 use App\Http\Controllers\Controller;
 use App\Models\Salon;
 use App\Models\TenantPlanOverride;
@@ -36,122 +37,85 @@ class AdminTenantController extends Controller
 
     public function index(Request $request)
     {
-        $query = Salon::withoutGlobalScopes()
-            ->with(['owner:id,name,email,plan'])
-            ->withCount(['staff', 'clients', 'appointments'])
-            ->latest('salons.created_at');
+        $query = User::query()
+            ->whereHas('salons', fn ($q) => $q->withoutGlobalScopes())
+            ->withCount(['salons as stores_count'])
+            ->with(['salons' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'owner_id', 'name', 'is_active')]);
 
-        // Search
         if ($search = $request->search) {
             $query->where(function ($q) use ($search) {
-                $q->where('salons.name',   'like', "%{$search}%")
-                  ->orWhere('slug',        'like', "%{$search}%")
-                  ->orWhere('salons.email','like', "%{$search}%")
-                  ->orWhere('city',        'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhereHas('salons', fn ($s) => $s->withoutGlobalScopes()
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%"));
             });
         }
 
-        // Status filter
-        match ($request->status) {
-            'active'    => $query->where('is_active', true),
-            'suspended' => $query->where('is_active', false),
-            default     => null,
-        };
-
-        // Plan filter (via owner)
         if ($plan = $request->plan) {
-            $query->whereHas('owner', fn ($q) => $q->where('plan', $plan));
+            $query->where('plan', $plan);
         }
 
-        // Sort
+        if ($request->status === 'active') {
+            $query->where('is_active', true)
+                ->whereHas('salons', fn ($q) => $q->withoutGlobalScopes()->where('is_active', true));
+        } elseif ($request->status === 'blocked') {
+            $query->where('is_active', false);
+        } elseif ($request->status === 'suspended') {
+            $query->where('is_active', true)
+                ->whereHas('salons', fn ($q) => $q->withoutGlobalScopes()->where('is_active', false))
+                ->whereDoesntHave('salons', fn ($q) => $q->withoutGlobalScopes()->where('is_active', true));
+        }
+
         match ($request->sort) {
-            'name'       => $query->orderBy('salons.name'),
-            'clients'    => $query->orderByDesc('clients_count'),
-            'staff'      => $query->orderByDesc('staff_count'),
-            'oldest'     => $query->oldest('salons.created_at'),
-            default      => $query->latest('salons.created_at'),
+            'name' => $query->orderBy('name'),
+            'stores' => $query->orderByDesc('stores_count'),
+            'oldest' => $query->oldest('created_at'),
+            default => $query->latest('created_at'),
         };
 
-        // Summary stats (for the stats strip)
         $stats = [
-            'total'     => Salon::withoutGlobalScopes()->count(),
-            'active'    => Salon::withoutGlobalScopes()->where('is_active', true)->count(),
+            'total'     => User::whereHas('salons', fn ($q) => $q->withoutGlobalScopes())->count(),
+            'blocked'   => User::whereHas('salons', fn ($q) => $q->withoutGlobalScopes())->where('is_active', false)->count(),
+            'active'    => Salon::withoutGlobalScopes()->where('is_active', true)->distinct('owner_id')->count('owner_id'),
             'suspended' => Salon::withoutGlobalScopes()->where('is_active', false)->count(),
-            'new_month' => Salon::withoutGlobalScopes()->whereMonth('created_at', now()->month)->count(),
+            'new_month' => User::whereHas('salons', fn ($q) => $q->withoutGlobalScopes()->whereMonth('salons.created_at', now()->month))->count(),
         ];
 
-        $planOptions = ['free', 'starter', 'pro', 'enterprise'];
+        $planOptions = Plan::keys();
 
-        $tenants = $query->paginate(30)->withQueryString();
+        $ownerIds = (clone $query)->pluck('id');
+        $aggregateStats = collect();
 
-        return view('admin.tenants.index', compact('tenants', 'stats', 'planOptions'));
+        if ($ownerIds->isNotEmpty()) {
+            $aggregateStats = DB::table('salons')
+                ->leftJoin('clients', 'clients.salon_id', '=', 'salons.id')
+                ->leftJoin('appointments', 'appointments.salon_id', '=', 'salons.id')
+                ->whereIn('salons.owner_id', $ownerIds)
+                ->whereNull('salons.deleted_at')
+                ->groupBy('salons.owner_id')
+                ->select(
+                    'salons.owner_id',
+                    DB::raw('COUNT(DISTINCT clients.id) as clients_total'),
+                    DB::raw('COUNT(DISTINCT appointments.id) as appointments_total'),
+                    DB::raw('SUM(CASE WHEN salons.is_active = 1 THEN 1 ELSE 0 END) as active_stores')
+                )
+                ->get()
+                ->keyBy('owner_id');
+        }
+
+        $accounts = $query->paginate(30)->withQueryString();
+
+        return view('admin.tenants.index', [
+            'accounts' => $accounts,
+            'aggregateStats' => $aggregateStats,
+            'stats' => $stats,
+            'planOptions' => $planOptions,
+        ]);
     }
 
-    // ── Tenant Detail ─────────────────────────────────────────────────────────
-
-    public function show(int $id)
-    {
-        $salon = Salon::withoutGlobalScopes()
-            ->with(['owner', 'staff', 'services'])
-            ->withCount(['staff', 'clients', 'appointments', 'services'])
-            ->findOrFail($id);
-
-        $owner = $salon->owner;
-
-        // Usage stats
-        $appointmentsThisMonth = DB::table('appointments')
-            ->where('salon_id', $id)
-            ->whereMonth('created_at', now()->month)
-            ->count();
-
-        $revenueThisMonth = DB::table('pos_transactions')
-            ->where('salon_id', $id)
-            ->whereMonth('created_at', now()->month)
-            ->where('status', 'completed')
-            ->sum('total');
-
-        $revenueAllTime = DB::table('pos_transactions')
-            ->where('salon_id', $id)
-            ->where('status', 'completed')
-            ->sum('total');
-
-        // Monthly revenue for last 6 months
-        $monthlyRevenue = DB::table('pos_transactions')
-            ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"), DB::raw('SUM(total) as revenue'))
-            ->where('salon_id', $id)
-            ->where('status', 'completed')
-            ->where('created_at', '>=', now()->subMonths(6))
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('revenue', 'month');
-
-        // Suspension history
-        $suspensions = DB::table('salon_suspensions')
-            ->where('salon_id', $id)
-            ->orderByDesc('suspended_at')
-            ->get();
-
-        // Plan overrides
-        $overrides = TenantPlanOverride::where('salon_id', $id)
-            ->with('appliedBy:id,name')
-            ->latest()
-            ->get();
-
-        // Subscription from Cashier
-        $subscription = $owner?->subscription('default');
-
-        // Recent support tickets
-        $tickets = \App\Models\SupportTicket::where('salon_id', $id)
-            ->latest()
-            ->limit(5)
-            ->get();
-
-        return view('admin.tenants.show', compact(
-            'salon', 'owner', 'appointmentsThisMonth', 'revenueThisMonth',
-            'revenueAllTime', 'monthlyRevenue', 'suspensions', 'overrides',
-            'subscription', 'tickets'
-        ));
-    }
+    // ── Tenant Detail (moved to AdminTenantHubController) ─────────────────────
 
     // ── Suspend ───────────────────────────────────────────────────────────────
 
@@ -187,11 +151,15 @@ class AdminTenantController extends Controller
             ]);
         });
 
-        // Notify owner
+        // Notify owner (non-blocking — SMTP misconfig must not roll back suspend)
         if ($request->boolean('notify_owner', true) && $salon->owner) {
-            $salon->owner->notify(new TenantSuspendedNotification(
-                $salon, $request->reason, $request->customer_message
-            ));
+            try {
+                $salon->owner->notify(new TenantSuspendedNotification(
+                    $salon, $request->reason, $request->customer_message
+                ));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('[TenantSuspend] Notification failed', ['error' => $e->getMessage()]);
+            }
         }
 
         $this->audit->admin('admin.tenant.suspend',
@@ -212,10 +180,14 @@ class AdminTenantController extends Controller
             'customer_message'  => 'nullable|string|max:1000',
         ]);
 
-        $salon = Salon::withoutGlobalScopes()->findOrFail($id);
+        $salon = Salon::withoutGlobalScopes()->with('owner')->findOrFail($id);
 
         if ($salon->is_active) {
             return back()->withErrors(['error' => 'This salon is already active.']);
+        }
+
+        if ($salon->owner && ! $salon->owner->is_active) {
+            return back()->withErrors(['error' => 'Unblock the tenant account before reactivating individual stores.']);
         }
 
         DB::transaction(function () use ($salon, $request) {
@@ -237,9 +209,13 @@ class AdminTenantController extends Controller
         });
 
         if ($request->boolean('notify_owner', true) && $salon->owner) {
-            $salon->owner->notify(new TenantUnsuspendedNotification(
-                $salon, $request->customer_message
-            ));
+            try {
+                $salon->owner->notify(new TenantUnsuspendedNotification(
+                    $salon, $request->customer_message
+                ));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('[TenantUnsuspend] Notification failed', ['error' => $e->getMessage()]);
+            }
         }
 
         $this->audit->admin('admin.tenant.unsuspend',
@@ -297,7 +273,7 @@ class AdminTenantController extends Controller
     {
         $request->validate([
             'override_type'           => 'required|in:plan,trial_extension,custom_limit,discount,feature_flag',
-            'override_plan'           => 'nullable|in:free,starter,pro,enterprise',
+            'override_plan'           => 'nullable|'.Plan::validationRule(),
             'override_staff_limit'    => 'nullable|integer|min:-1',
             'override_client_limit'   => 'nullable|integer|min:-1',
             'override_services_limit' => 'nullable|integer|min:-1',
@@ -396,10 +372,10 @@ class AdminTenantController extends Controller
 
         $callback = function () use ($salons) {
             $h = fopen('php://output', 'w');
-            fputcsv($h, ['ID','Name','Slug','City','Owner','Email','Plan','Staff','Clients','Appointments','Status','Created']);
+            fputcsv($h, ['Name','Slug','City','Owner','Email','Plan','Staff','Clients','Appointments','Status','Created']);
             foreach ($salons as $s) {
                 fputcsv($h, [
-                    $s->id, $s->name, $s->slug, $s->city ?? '',
+                    $s->name, $s->slug, $s->city ?? '',
                     $s->owner?->name, $s->owner?->email, $s->owner?->plan,
                     $s->staff_count, $s->clients_count, $s->appointments_count,
                     $s->is_active ? 'Active' : 'Suspended',

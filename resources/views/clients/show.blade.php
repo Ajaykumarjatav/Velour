@@ -36,7 +36,9 @@
                 <x-marketing-consent-help mode="tooltip" />
             </div>
         </div>
+        @unless($adminStoreBrowse ?? false)
         <a href="{{ route('clients.edit', $client->id) }}" class="flex-shrink-0 btn-outline">Edit</a>
+        @endunless
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -119,7 +121,9 @@
     <div class="table-wrap">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
             <h3 class="font-semibold text-heading">Appointments</h3>
+            @unless($adminStoreBrowse ?? false)
             <a href="{{ route('appointments.create') }}?client_id={{ $client->id }}" class="text-sm text-link font-medium">+ Book</a>
+            @endunless
         </div>
         <table class="data-table">
             <thead>

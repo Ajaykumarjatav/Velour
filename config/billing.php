@@ -2,254 +2,108 @@
 
 /*
 |──────────────────────────────────────────────────────────────────────────────
-| VELOUR — Billing & Subscription Configuration
+| EasyGrox — Billing & Subscription Configuration
 |──────────────────────────────────────────────────────────────────────────────
 |
-| This file is the single source of truth for:
-|   • Plan definitions (name, features, limits)
-|   • Monthly and yearly Stripe Price IDs
-|   • Trial period settings
-|   • Grace period for failed payments
-|
-| Stripe Price IDs MUST be set via environment variables — never hard-code
-| live price IDs. Each price ID corresponds to a recurring price object in
-| your Stripe dashboard.
-|
-| Naming convention for env vars:
-|   STRIPE_PRICE_{PLAN}_{INTERVAL}
-|   e.g.  STRIPE_PRICE_PRO_MONTHLY=price_1OaBC...
-|         STRIPE_PRICE_PRO_YEARLY=price_1OaDE...
+| Three plans:
+|   trial    — 15-day trial, 3 stores, all features (default on registration)
+|   standard — ₹500/mo, 5 stores, all features
+|   premium  — ₹1000/mo, 10 stores, all features
 |
 */
 
-return [
+$allFeatures = [
+    'online_booking'      => true,
+    'marketing'           => true,
+    'reports'             => true,
+    'inventory'           => true,
+    'api_access'          => true,
+    'custom_domain'       => true,
+    'priority_support'    => true,
+    'white_label'         => true,
+    'multi_location'      => true,
+    'remove_branding'     => true,
+];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Subscriptions & plan enforcement (master switch)
-    |--------------------------------------------------------------------------
-    |
-    | When false (default): subscription/billing UI is hidden, plan limits and
-    | subscription feature middleware do not apply. Set SUBSCRIPTIONS_ENABLED=true
-    | in .env to restore paid plans, limits, and /billing routes.
-    |
-    */
+$unlimitedLimits = [
+    'staff'              => -1,
+    'clients'            => -1,
+    'services'           => -1,
+    'appointments_month' => -1,
+    'storage_gb'         => -1,
+];
+
+return [
 
     'subscriptions_enabled' => filter_var(env('SUBSCRIPTIONS_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Trial Period
-    |--------------------------------------------------------------------------
-    |
-    | Number of trial days granted on every new subscription.
-    | Set to 0 to disable trials entirely.
-    |
-    */
-
-    'trial_days' => (int) env('BILLING_TRIAL_DAYS', 14),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Grace Period (days after payment failure before restricting access)
-    |--------------------------------------------------------------------------
-    */
+    'trial_days' => (int) env('BILLING_TRIAL_DAYS', 15),
 
     'grace_period_days' => (int) env('BILLING_GRACE_PERIOD_DAYS', 3),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Currency
-    |--------------------------------------------------------------------------
-    */
-
-    'currency'        => env('BILLING_CURRENCY', 'gbp'),
-    'currency_symbol' => env('BILLING_CURRENCY_SYMBOL', '£'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Yearly Discount (%)
-    |--------------------------------------------------------------------------
-    |
-    | Informational only — the actual discount is baked into the Stripe yearly
-    | price.  Used by the pricing UI to display the saving.
-    |
-    */
+    'currency'        => env('BILLING_CURRENCY', 'inr'),
+    'currency_symbol' => env('BILLING_CURRENCY_SYMBOL', '₹'),
 
     'yearly_discount_percent' => 20,
 
-    /*
-    |--------------------------------------------------------------------------
-    | Plans
-    |--------------------------------------------------------------------------
-    |
-    | Each plan entry defines:
-    |   stripe_monthly  — Stripe Price ID for the monthly billing cycle
-    |   stripe_yearly   — Stripe Price ID for the yearly billing cycle
-    |   trial_days      — Override the global trial period per-plan (optional)
-    |   features        — Boolean feature flags checked by CheckSubscription
-    |   limits          — Numeric resource caps enforced by CheckPlanLimits
-    |
-    */
+    'default_plan' => 'trial',
 
     'plans' => [
 
-        // ── Free ─────────────────────────────────────────────────────────────
-        //
-        // No Stripe subscription required. Enforced by the absence of an
-        // active subscription record rather than a Stripe price.
-        //
-        'free' => [
-            'name'           => 'Free',
-            'tagline'        => 'Get started — no card required',
+        'trial' => [
+            'name'           => '15-Day Trial',
+            'tagline'        => 'Full access for 15 days — up to 3 stores',
             'stripe_monthly' => null,
             'stripe_yearly'  => null,
             'price_monthly'  => 0,
             'price_yearly'   => 0,
-            'trial_days'     => 0,
-            'popular'        => false,
-            'color'          => 'gray',
-            'features' => [
-                'online_booking'      => true,
-                'marketing'           => false,
-                'reports'             => false,
-                'inventory'           => true,
-                'api_access'          => false,
-                'custom_domain'       => false,
-                'priority_support'    => false,
-                'white_label'         => false,
-                'multi_location'      => false,
-                'remove_branding'     => false,
-            ],
-            'limits' => [
-                'staff'               => 1,
-                'clients'             => 50,
-                'services'            => 5,
-                'appointments_month'  => 50,
-                'storage_gb'          => 0.5,
-            ],
-        ],
-
-        // ── Starter ──────────────────────────────────────────────────────────
-
-        'starter' => [
-            'name'           => 'Starter',
-            'tagline'        => 'For solo stylists getting started',
-            'stripe_monthly' => env('STRIPE_PRICE_STARTER_MONTHLY'),
-            'stripe_yearly'  => env('STRIPE_PRICE_STARTER_YEARLY'),
-            'price_monthly'  => 19,
-            'price_yearly'   => 182,   // 19 * 12 * 0.80 = £182.40 → rounded
-            'trial_days'     => (int) env('BILLING_TRIAL_DAYS', 14),
+            'trial_days'     => (int) env('BILLING_TRIAL_DAYS', 15),
             'popular'        => false,
             'color'          => 'blue',
-            'features' => [
-                'online_booking'      => true,
-                'marketing'           => false,
-                'reports'             => false,
-                'inventory'           => true,
-                'api_access'          => false,
-                'custom_domain'       => false,
-                'priority_support'    => false,
-                'white_label'         => false,
-                'multi_location'      => false,
-                'remove_branding'     => false,
-            ],
-            'limits' => [
-                'staff'               => 2,
-                'clients'             => 200,
-                'services'            => 20,
-                'appointments_month'  => 200,
-                'storage_gb'          => 2,
-            ],
+            'features'       => $allFeatures,
+            'limits'         => array_merge($unlimitedLimits, ['stores' => 3]),
         ],
 
-        // ── Pro ──────────────────────────────────────────────────────────────
-
-        'pro' => [
-            'name'           => 'Pro',
-            'tagline'        => 'For growing salons with a full team',
-            'stripe_monthly' => env('STRIPE_PRICE_PRO_MONTHLY'),
-            'stripe_yearly'  => env('STRIPE_PRICE_PRO_YEARLY'),
-            'price_monthly'  => 49,
-            'price_yearly'   => 470,   // 49 * 12 * 0.80
-            'trial_days'     => (int) env('BILLING_TRIAL_DAYS', 14),
+        'standard' => [
+            'name'           => 'Standard',
+            'tagline'        => '₹500/month — up to 5 stores, all features',
+            'cashfree_monthly' => env('CASHFREE_PLAN_STANDARD_MONTHLY', 'velor_standard_monthly'),
+            'cashfree_yearly'  => env('CASHFREE_PLAN_STANDARD_YEARLY', 'velor_standard_yearly'),
+            'stripe_monthly' => null,
+            'stripe_yearly'  => null,
+            'price_monthly'  => 500,
+            'price_yearly'   => 4800,
+            'trial_days'     => 0,
             'popular'        => true,
             'color'          => 'velour',
-            'features' => [
-                'online_booking'      => true,
-                'marketing'           => true,
-                'reports'             => true,
-                'inventory'           => true,
-                'api_access'          => true,
-                'custom_domain'       => false,
-                'priority_support'    => false,
-                'white_label'         => false,
-                'multi_location'      => false,
-                'remove_branding'     => true,
-            ],
-            'limits' => [
-                'staff'               => 15,
-                'clients'             => 5000,
-                'services'            => 100,
-                'appointments_month'  => -1,  // unlimited
-                'storage_gb'          => 20,
-            ],
+            'features'       => $allFeatures,
+            'limits'         => array_merge($unlimitedLimits, ['stores' => 5]),
         ],
 
-        // ── Enterprise ───────────────────────────────────────────────────────
-
-        'enterprise' => [
-            'name'           => 'Enterprise',
-            'tagline'        => 'For multi-location salon groups',
-            'stripe_monthly' => env('STRIPE_PRICE_ENTERPRISE_MONTHLY'),
-            'stripe_yearly'  => env('STRIPE_PRICE_ENTERPRISE_YEARLY'),
-            'price_monthly'  => 149,
-            'price_yearly'   => 1430,  // 149 * 12 * 0.80
-            'trial_days'     => 30,
+        'premium' => [
+            'name'           => 'Premium',
+            'tagline'        => '₹1000/month — up to 10 stores, all features',
+            'cashfree_monthly' => env('CASHFREE_PLAN_PREMIUM_MONTHLY', 'velor_premium_monthly'),
+            'cashfree_yearly'  => env('CASHFREE_PLAN_PREMIUM_YEARLY', 'velor_premium_yearly'),
+            'stripe_monthly' => null,
+            'stripe_yearly'  => null,
+            'price_monthly'  => 1000,
+            'price_yearly'   => 9600,
+            'trial_days'     => 0,
             'popular'        => false,
             'color'          => 'amber',
-            'features' => [
-                'online_booking'      => true,
-                'marketing'           => true,
-                'reports'             => true,
-                'inventory'           => true,
-                'api_access'          => true,
-                'custom_domain'       => true,
-                'priority_support'    => true,
-                'white_label'         => true,
-                'multi_location'      => true,
-                'remove_branding'     => true,
-            ],
-            'limits' => [
-                'staff'               => -1,  // unlimited
-                'clients'             => -1,
-                'services'            => -1,
-                'appointments_month'  => -1,
-                'storage_gb'          => 200,
-            ],
+            'features'       => $allFeatures,
+            'limits'         => array_merge($unlimitedLimits, ['stores' => 10]),
         ],
 
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Stripe Webhook Events
-    |--------------------------------------------------------------------------
-    |
-    | The subset of Stripe webhook events Velour handles.
-    | All others are stored in webhook_calls with status=ignored.
-    |
-    */
-
     'handled_webhook_events' => [
-        'customer.subscription.created',
-        'customer.subscription.updated',
-        'customer.subscription.deleted',
-        'customer.subscription.trial_will_end',
-        'invoice.payment_succeeded',
-        'invoice.payment_failed',
-        'invoice.finalized',
-        'payment_method.attached',
+        'SUBSCRIPTION_STATUS_CHANGED',
+        'SUBSCRIPTION_AUTH_STATUS',
+        'SUBSCRIPTION_PAYMENT_SUCCESS',
+        'SUBSCRIPTION_PAYMENT_FAILED',
+        'SUBSCRIPTION_PAYMENT_CANCELLED',
     ],
 
 ];

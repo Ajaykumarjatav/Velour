@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\SalonBufferRule;
 use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
+use App\Support\AuthPanel;
 use App\Support\LanguageProficiency;
 use App\Support\ProfileCompletion;
 use App\Support\RegistrationStarterServices;
@@ -53,6 +54,10 @@ class SettingsController extends Controller
 
     private function abortUnlessCanEditSettingsTab(string $tab): void
     {
+        if (AuthPanel::isAdminStoreBrowse()) {
+            abort(403, 'Read-only admin view — settings cannot be changed.');
+        }
+
         $user = Auth::user();
         if (! SettingsTabPermissions::userCanEditTab($user, $tab)) {
             $label = SettingsTabPermissions::TABS[$tab]['label'] ?? $tab;
@@ -106,6 +111,10 @@ class SettingsController extends Controller
         $settingsTabCanEdit = [];
         foreach (array_keys($settingsTabLabels) as $tabKey) {
             $settingsTabCanEdit[$tabKey] = SettingsTabPermissions::userCanEditTab($user, $tabKey);
+        }
+        $settingsAdminBrowse = AuthPanel::isAdminStoreBrowse();
+        if ($settingsAdminBrowse) {
+            $settingsTabCanEdit = array_fill_keys(array_keys($settingsTabLabels), false);
         }
         $salonSetupTabs = ['salon', 'booking', 'services', 'hours', 'social'];
         $settingsPersonalOnly = count(array_intersect($allowedTabKeys, $salonSetupTabs)) === 0;
@@ -205,6 +214,7 @@ class SettingsController extends Controller
             'bufferRule',
             'settingsTabLabels',
             'settingsTabCanEdit',
+            'settingsAdminBrowse',
             'settingsPersonalOnly',
             'settingsInitialTab',
             'hideSalonProfileBar'

@@ -53,7 +53,8 @@
 
     @if(in_array($campaign->status, ['draft','scheduled']))
     <div class="flex flex-wrap gap-3">
-        <a href="{{ route('marketing.edit', $campaign) }}" class="btn-outline">Edit</a>
+        <x-unless-admin-browse>
+        <a href="{{ route('marketing.edit', $campaign) }}" class="btn-outline salon-write-ui">Edit</a>
         <form action="{{ route('marketing.send', $campaign->id) }}" method="POST"
               onsubmit="return confirm('Send this campaign now to all eligible clients?')">
             @csrf
@@ -64,6 +65,7 @@
             @csrf @method('DELETE')
             <button type="submit" class="btn border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">Delete</button>
         </form>
+        </x-unless-admin-browse>
         <a href="{{ route('marketing.index') }}" class="btn-outline">Back</a>
     </div>
     @else

@@ -138,7 +138,7 @@
                 {{ $day['is_today'] ? 'bg-velour-50/30 dark:bg-velour-950/15' : '' }}
                 {{ $outsideMonth ? 'bg-gray-50/80 dark:bg-gray-800/30' : '' }}
                 {{ $blocked ? 'bg-gray-100/70 dark:bg-gray-800/45' : (!$outsideMonth ? 'hover:bg-velour-50/40 dark:hover:bg-velour-950/10' : '') }}">
-                @if(!$blocked && empty($blocks))
+                @if(!$blocked && empty($blocks) && !($adminStoreBrowse ?? false))
                 <a href="{{ $cell['create_url'] }}" class="absolute inset-0.5 rounded opacity-0 hover:opacity-100 hover:bg-velour-500/5 transition-opacity" aria-label="Add appointment"></a>
                 @endif
                 @foreach($blocks as $block)

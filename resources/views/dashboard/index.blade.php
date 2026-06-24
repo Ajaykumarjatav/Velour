@@ -262,6 +262,7 @@
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        @unless($adminStoreBrowse ?? \App\Support\AuthPanel::isAdminStoreBrowse())
                         <form method="POST" action="{{ route('availability.leave.approve', $leave) }}" class="inline">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn-primary text-xs py-1.5 px-3">Approve</button>
@@ -270,6 +271,7 @@
                             @csrf @method('PATCH')
                             <button type="submit" class="btn-outline text-xs py-1.5 px-3 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/30">Reject</button>
                         </form>
+                        @endunless
                     </div>
                 </li>
                 @endforeach
@@ -315,6 +317,7 @@
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2 shrink-0">
+                        @unless($adminStoreBrowse ?? \App\Support\AuthPanel::isAdminStoreBrowse())
                         @if($item->status !== 'in_progress')
                         <form method="POST" action="{{ route('action-items.update', $item) }}" class="inline">
                             @csrf @method('PATCH')
@@ -338,6 +341,7 @@
                             <input type="hidden" name="status" value="dismissed">
                             <button type="submit" class="btn-outline text-xs py-1.5 px-3">Dismiss</button>
                         </form>
+                        @endunless
                     </div>
                 </li>
                 @endforeach
@@ -407,9 +411,11 @@
             <div class="empty-state">
                 <p class="empty-state-title">No upcoming appointments</p>
                 <p class="empty-state-sub mt-1 max-w-sm">The <a href="{{ route('calendar') }}" class="text-link">calendar</a> and this list use the same schedule.</p>
+                @unless(\App\Support\AuthPanel::isAdminStoreBrowse())
                 <a href="{{ route('appointments.create') }}" class="mt-3 text-link text-sm font-medium">
                     Book an appointment →
                 </a>
+                @endunless
             </div>
             @endforelse
         </div>

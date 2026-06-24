@@ -12,6 +12,7 @@ use App\Scopes\TenantScope;
 use App\Services\BookingService;
 use App\Services\NotificationService;
 use App\Services\Scheduling\AvailabilityRejectedException;
+use App\Support\PublicSalonAccess;
 use App\Support\SalonTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,9 +30,7 @@ class BookingController extends Controller
     /* ── GET /book/{slug} ───────────────────────────────────────────────── */
     public function info(Request $request, string $salonSlug): JsonResponse
     {
-        $salon = Salon::where('slug', $salonSlug)
-            ->where('is_active', true)
-            ->firstOrFail();
+        $salon = PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         if (! $salon->online_booking_enabled) {
             return response()->json(['message' => 'Online booking is currently unavailable.'], 503);
@@ -55,7 +54,7 @@ class BookingController extends Controller
     /* ── GET /book/{slug}/services ──────────────────────────────────────── */
     public function services(Request $request, string $salonSlug): JsonResponse
     {
-        $salon    = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon    = PublicSalonAccess::findBySlugOrFail($salonSlug);
         $services = Service::withoutGlobalScope(TenantScope::class)
             ->with(['category.businessType', 'staff:id,first_name,last_name,initials,color,avatar'])
             ->where('salon_id', $salon->id)
@@ -79,7 +78,7 @@ class BookingController extends Controller
             'service_ids.*' => ['integer'],
         ]);
 
-        $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon = PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         $ids = array_values(array_unique(array_merge(
             $validated['service_ids'] ?? [],
@@ -122,7 +121,7 @@ class BookingController extends Controller
             return response()->json(['message' => 'Provide service_id or service_ids.'], 422);
         }
 
-        $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon = PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         abort_unless($salon->online_booking_enabled, 503, 'Online booking is unavailable');
 
@@ -186,7 +185,7 @@ class BookingController extends Controller
             'starts_at'         => 'required|date|after:now',
         ]);
 
-        $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon = PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         abort_unless($salon->online_booking_enabled, 503, 'Online booking is unavailable');
 
@@ -245,7 +244,7 @@ class BookingController extends Controller
             'stripe_payment_intent_id' => 'nullable|string',
         ]);
 
-        $salon = Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon = PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         if (! $salon->new_client_booking_enabled) {
             $exists = Client::withoutGlobalScope(TenantScope::class)

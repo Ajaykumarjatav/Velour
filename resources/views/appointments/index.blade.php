@@ -109,10 +109,12 @@
             </div>
         </form>
         @if(!$isScopedStaffPanel)
+            @unless(\App\Support\AuthPanel::isAdminStoreBrowse())
             <a href="{{ route('appointments.create') }}"
                class="btn-primary shrink-0 w-full lg:w-auto text-center whitespace-nowrap lg:min-w-[11rem]">
                 + New Appointment
             </a>
+            @endunless
         @endif
     </div>
 </div>
@@ -121,6 +123,7 @@
      x-data="{
         selectedAppointmentId: @json($firstAppointmentId ? (int) $firstAppointmentId : null),
         isScopedStaff: {{ $isScopedStaffPanel ? 'true' : 'false' }},
+        adminBrowse: {{ ($adminStoreBrowse ?? false) ? 'true' : 'false' }},
         appointments: @js($appointmentRows),
         selectedAppointment() {
             return this.appointments.find(a => a.id === this.selectedAppointmentId) || this.appointments[0] || null;
@@ -234,7 +237,8 @@
 
                     <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 px-3 py-3 sm:px-4">
                         <p class="text-[10px] font-semibold uppercase tracking-wide text-muted mb-2.5">Actions</p>
-                        <div x-show="selectedAppointment().is_missed"
+                        <p x-show="adminBrowse" class="text-xs text-muted mb-2">Read-only admin view — actions are disabled.</p>
+                        <div x-show="!adminBrowse && selectedAppointment().is_missed"
                              class="mb-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-xs text-amber-900 dark:text-amber-100">
                             <p class="font-semibold">No action taken</p>
                             <p class="mt-0.5 text-amber-800/90 dark:text-amber-200/90">This appointment time has passed. Mark as no-show if the client did not arrive, or complete if they were served.</p>
@@ -244,7 +248,7 @@
                                class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-medium rounded-xl border border-gray-300 dark:border-gray-600 text-body hover:bg-white dark:hover:bg-gray-800 whitespace-nowrap">
                                 View
                             </a>
-                            <template x-if="selectedAppointment().is_missed">
+                            <template x-if="!adminBrowse && selectedAppointment().is_missed">
                                 <form :action="selectedAppointment().status_url" method="POST"
                                       onsubmit="return confirm('Mark this appointment as no-show?')">
                                     @csrf
@@ -264,26 +268,26 @@
                                     Invoice
                                 </a>
                             </template>
-                            <template x-if="selectedAppointment().status === 'completed'">
+                            <template x-if="!adminBrowse && selectedAppointment().status === 'completed'">
                                 <a :href="selectedAppointment().invoice_page_url"
                                    class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-medium rounded-xl border border-gray-300 dark:border-gray-600 text-body hover:bg-white dark:hover:bg-gray-800 whitespace-nowrap">
                                     Email / share
                                 </a>
                             </template>
-                            <template x-if="selectedAppointment().can_rebook && selectedAppointment().status === 'completed'">
+                            <template x-if="!adminBrowse && selectedAppointment().can_rebook && selectedAppointment().status === 'completed'">
                                 <a :href="selectedAppointment().rebook_same_url"
                                    class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap">
                                     Rebook
                                 </a>
                             </template>
-                            <template x-if="selectedAppointment().status !== 'completed'">
+                            <template x-if="!adminBrowse && selectedAppointment().status !== 'completed'">
                                 <a x-show="selectedAppointment().payment_status === 'unpaid' && ['confirmed','checked_in','in_progress'].includes(selectedAppointment().status)"
                                    :href="selectedAppointment().pos_url"
                                    class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white whitespace-nowrap">
                                     Collect payment
                                 </a>
                             </template>
-                            <template x-if="selectedAppointment().status !== 'completed'">
+                            <template x-if="!adminBrowse && selectedAppointment().status !== 'completed'">
                                 <a x-show="selectedAppointment().can_rebook && ['cancelled','no_show'].includes(selectedAppointment().status)"
                                    :href="selectedAppointment().rebook_same_url"
                                    class="inline-flex items-center justify-center min-h-[2.25rem] px-3.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap">

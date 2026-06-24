@@ -154,11 +154,12 @@ class AuthController extends Controller
         ]);
 
         $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => Hash::make($data['password']),
-            'plan'     => 'free',
-            'is_active'=> true,
+            'name'          => $data['name'],
+            'email'         => $data['email'],
+            'password'      => Hash::make($data['password']),
+            'plan'          => config('billing.default_plan', 'trial'),
+            'trial_ends_at' => now()->addDays((int) config('billing.trial_days', 15)),
+            'is_active'     => true,
         ]);
 
         // Assign tenant_admin role to salon owners

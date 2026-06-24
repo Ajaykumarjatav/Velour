@@ -58,6 +58,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\MarketingService::class);
         $this->app->singleton(\App\Services\NotificationService::class);
         $this->app->singleton(\App\Services\ReportService::class);
+        $this->app->singleton(\App\Services\Admin\AdminPlanAssignmentService::class);
+        $this->app->singleton(\App\Services\Billing\PlanAccessService::class);
         $this->app->singleton(AuditLogService::class);
     }
 
@@ -103,9 +105,13 @@ class AppServiceProvider extends ServiceProvider
                 try {
                     $user = auth()->user();
                     DisplayFormatter::applyUserLocale($user);
+                    $view->with('adminStoreBrowse', \App\Support\AuthPanel::isAdminStoreBrowse());
+
                     $activeSalonId = (int) session('active_salon_id', 0);
                     $salon = null;
-                    if ($user->salons()->exists()) {
+                    if (\App\Support\AdminStoreBrowse::isActive()) {
+                        $salon = Salon::query()->withoutGlobalScopes()->find(\App\Support\AdminStoreBrowse::salonId());
+                    } elseif ($user->salons()->exists()) {
                         $salon = $activeSalonId > 0
                             ? $user->salons()->where('id', $activeSalonId)->first()
                             : null;
@@ -124,6 +130,8 @@ class AppServiceProvider extends ServiceProvider
                     $view->with('currentSalon', $salon);
                     $view->with('headerProfileCompletion', $salon ? ProfileCompletion::forSalon($salon) : null);
                     $view->with('salonBusinessStatus', $salon ? \App\Support\SalonBusinessStatus::forSalon($salon) : null);
+                    $view->with('planExpired', app(\App\Services\Billing\PlanAccessService::class)->isExpired($user));
+                    $view->with('subscriptionReminder', app(\App\Services\Billing\PlanAccessService::class)->reminderFor($user));
                 } catch (\Throwable) {}
             }
         });
@@ -348,7 +356,7 @@ class AppServiceProvider extends ServiceProvider
          */
         RateLimiter::for('api', function (Request $request) {
             $user  = $request->user();
-            $plan  = $user?->plan ?? 'free';
+            $plan  = $user?->plan ?? config('billing.default_plan', 'trial');
             $limit = config("security.rate_limits.api.{$plan}", 60);
             $key   = 'api:' . ($user?->id ? "u{$user->id}:{$plan}" : 'ip:' . $request->ip());
 
@@ -405,7 +413,7 @@ class AppServiceProvider extends ServiceProvider
          */
         RateLimiter::for('exports', function (Request $request) {
             $user  = $request->user();
-            $plan  = $user?->plan ?? 'free';
+            $plan  = $user?->plan ?? config('billing.default_plan', 'trial');
             $limit = config("security.rate_limits.exports.{$plan}", 5);
             $decay = config('security.rate_limits.exports.decay_minutes', 60);
             $key   = 'exports:' . ($user?->id ? "u{$user->id}:{$plan}" : 'ip:' . $request->ip());

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Admin\AdminPlatformReportExportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -38,13 +39,15 @@ class SuperAdminController extends Controller
         $recentTenants = Tenant::withoutGlobalScopes()
             ->latest()
             ->take(10)
-            ->get(['id','name','subdomain','is_active','created_at']);
+            ->get(['id', 'name', 'subdomain', 'is_active', 'created_at', 'owner_id']);
 
         $recentUsers = User::latest()
             ->take(10)
             ->get(['id','name','email','plan','is_active','created_at']);
 
-        return view('admin.dashboard', compact('stats', 'recentTenants', 'recentUsers'));
+        $platformReports = AdminPlatformReportExportService::TYPES;
+
+        return view('admin.dashboard', compact('stats', 'recentTenants', 'recentUsers', 'platformReports'));
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ use App\Models\PosTransaction;
 use App\Models\Salon;
 use App\Models\SalonPhoto;
 use App\Models\SalonSetting;
+use App\Support\AuthPanel;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
 use App\Models\Service;
@@ -42,6 +43,13 @@ use Illuminate\Support\Facades\Storage;
 class GoLiveController extends Controller
 {
     use ResolvesActiveSalon;
+
+    private function abortIfAdminStoreBrowse(): void
+    {
+        if (AuthPanel::isAdminStoreBrowse()) {
+            abort(403, 'Read-only admin view: changes are not allowed.');
+        }
+    }
 
     public function index(Request $request)
     {
@@ -121,6 +129,8 @@ class GoLiveController extends Controller
 
     public function updateTheme(Request $request): \Illuminate\Http\RedirectResponse
     {
+        $this->abortIfAdminStoreBrowse();
+
         $salon = $this->activeSalon();
         $allowed = array_keys(StorefrontTheme::all());
 
@@ -140,6 +150,8 @@ class GoLiveController extends Controller
 
     public function uploadPhoto(Request $request): \Illuminate\Http\JsonResponse
     {
+        $this->abortIfAdminStoreBrowse();
+
         $salon = $this->activeSalon();
 
         $request->validate([
@@ -168,6 +180,8 @@ class GoLiveController extends Controller
 
     public function uploadLogo(Request $request)
     {
+        $this->abortIfAdminStoreBrowse();
+
         $salon = $this->activeSalon();
 
         $request->validate([
@@ -186,6 +200,8 @@ class GoLiveController extends Controller
 
     public function updateSettings(Request $request): \Illuminate\Http\JsonResponse
     {
+        $this->abortIfAdminStoreBrowse();
+
         $salon = $this->activeSalon();
 
         $data = $request->validate([
@@ -212,6 +228,8 @@ class GoLiveController extends Controller
 
     public function deletePhoto(Request $request, int $photoId): \Illuminate\Http\JsonResponse
     {
+        $this->abortIfAdminStoreBrowse();
+
         $salon = $this->activeSalon();
         $photo = SalonPhoto::where('salon_id', $salon->id)->findOrFail($photoId);
 

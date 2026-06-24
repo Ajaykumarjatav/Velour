@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\ClientPortal;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
-use App\Models\Salon;
+use App\Support\PublicSalonAccess;
 use App\Notifications\ClientResetPasswordNotification;
 use App\Scopes\TenantScope;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +19,7 @@ class ClientPortalAuthController extends Controller
 {
     public function register(Request $request, string $salonSlug): JsonResponse
     {
-        $salon = $request->attributes->get('salon') ?? Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon = $request->attributes->get('salon') ?? PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         $data = $request->validate([
             'first_name'        => 'required|string|max:100',
@@ -93,7 +93,7 @@ class ClientPortalAuthController extends Controller
 
     public function login(Request $request, string $salonSlug): JsonResponse
     {
-        $salon = $request->attributes->get('salon') ?? Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon = $request->attributes->get('salon') ?? PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         $data = $request->validate([
             'login'    => 'required|string|max:150',
@@ -221,7 +221,7 @@ class ClientPortalAuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        $salon = $request->attributes->get('salon') ?? Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon = $request->attributes->get('salon') ?? PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         $client = Client::withoutGlobalScope(TenantScope::class)
             ->where('salon_id', $salon->id)
@@ -245,7 +245,7 @@ class ClientPortalAuthController extends Controller
             'password' => ['required', 'confirmed', PasswordRule::min(8)],
         ]);
 
-        $salon = $request->attributes->get('salon') ?? Salon::where('slug', $salonSlug)->where('is_active', true)->firstOrFail();
+        $salon = $request->attributes->get('salon') ?? PublicSalonAccess::findBySlugOrFail($salonSlug);
 
         $client = Client::withoutGlobalScope(TenantScope::class)
             ->where('salon_id', $salon->id)

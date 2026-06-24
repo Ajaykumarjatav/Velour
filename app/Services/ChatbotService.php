@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Billing\Plan;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\InventoryItem;
@@ -201,16 +202,17 @@ class ChatbotService
         }
 
         // Payment
-        if ($this->has($msg, ['payment','stripe','gateway','charge','pay'])) {
-            $ok = $this->salon->paymentGateway?->isConfigured();
+        if ($this->has($msg, ['payment','cashfree','gateway','charge','pay'])) {
+            $ok = $this->salon->paymentGateway?->isConfigured()
+                && $this->salon->paymentGateway?->provider === 'cashfree';
             return $ok
-                ? $this->reply('Stripe is **connected**. You can charge clients.', 'payments', route('payments.charge'))
-                : $this->reply('Payment gateway **not configured**. Add your Stripe keys.', 'payments', route('payments.gateway'));
+                ? $this->reply('Cashfree is **connected**. You can charge clients.', 'payments', route('payments.charge'))
+                : $this->reply('Payment gateway **not configured**. Add your Cashfree keys.', 'payments', route('payments.gateway'));
         }
 
         // Billing
         if ($this->has($msg, ['billing','subscription','plan','invoice','upgrade'])) {
-            $plan = Auth::user()->plan ?? 'free';
+            $plan = Auth::user()->plan ?? config('billing.default_plan', 'trial');
             return $this->reply("You are on the **".ucfirst($plan)."** plan.", 'billing', route('billing.dashboard'));
         }
 
@@ -259,7 +261,7 @@ class ChatbotService
                         $staff   = Staff::where('salon_id',$salon->id)->where('is_active',true)->count();
                         $status  = $salon->is_active ? 'Active' : 'Suspended';
                         return $this->reply(
-                            "**{$salon->name}** ({$status})\n- Plan: **".ucfirst($salon->owner?->plan ?? 'free')."**\n- Clients: **{$clients}** | Staff: **{$staff}**\n- Appts this month: **{$appts}**\n- Revenue this month: **{$this->adminMoney($revenue)}**",
+                            "**{$salon->name}** ({$status})\n- Plan: **".Plan::labelFor($salon->owner?->plan)."**\n- Clients: **{$clients}** | Staff: **{$staff}**\n- Appts this month: **{$appts}**\n- Revenue this month: **{$this->adminMoney($revenue)}**",
                             'admin', route('admin.tenants.show', $salon->id)
                         );
                     }
@@ -317,7 +319,7 @@ class ChatbotService
                     if ($user) {
                         $salon = $user->salons()->first();
                         return $this->reply(
-                            "**{$user->name}** ({$user->email})\n- Plan: **".ucfirst($user->plan ?? 'free')."**\n- Status: **".($user->is_active?'Active':'Inactive')."**\n- Salon: **".($salon?->name ?? 'None')."**\n- Joined: **{$user->created_at->format('d M Y')}**",
+                            "**{$user->name}** ({$user->email})\n- Plan: **".Plan::labelFor($user->plan)."**\n- Status: **".($user->is_active?'Active':'Inactive')."**\n- Salon: **".($salon?->name ?? 'None')."**\n- Joined: **{$user->created_at->format('d M Y')}**",
                             'admin', route('admin.users.show', $user->id)
                         );
                     }
@@ -373,9 +375,9 @@ class ChatbotService
         // ── Plans ─────────────────────────────────────────────────────────────
         if ($this->has($msg, ['plan','plans','subscription','tier','pricing'])) {
             $breakdown = User::withoutGlobalScopes()->select('plan',DB::raw('count(*) as cnt'))->groupBy('plan')->pluck('cnt','plan')->toArray();
-            $lines = collect($breakdown)->map(fn($c,$p) => "**".ucfirst($p)."**: {$c}")->implode(' | ');
-            $free = $breakdown['free'] ?? 0;
-            $paid = array_sum($breakdown) - $free;
+            $lines = collect($breakdown)->map(fn ($c, $p) => '**'.Plan::labelFor($p)."**: {$c}")->implode(' | ');
+            $trial = $breakdown['trial'] ?? 0;
+            $paid = array_sum($breakdown) - $trial;
             return $this->reply("Plan breakdown — {$lines}\nPaid users: **{$paid}**", 'admin', route('admin.plans'));
         }
 
@@ -424,7 +426,7 @@ class ChatbotService
         }
 
         // ── Billing / Webhooks ────────────────────────────────────────────────
-        if ($this->has($msg, ['billing','webhook','stripe','invoice'])) {
+        if ($this->has($msg, ['billing','webhook','cashfree','invoice'])) {
             $failed = DB::table('webhook_calls')->where('status','failed')->whereDate('created_at',today())->count();
             return $this->reply("**{$failed}** failed webhook(s) today.", 'admin', route('admin.billing.webhooks'));
         }

@@ -13,7 +13,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password'          => bcrypt('Password123'),
             'phone'             => $this->faker->phoneNumber(),
-            'plan'              => 'free',
+            'plan'              => config('billing.default_plan', 'trial'),
             'is_active'         => true,
         ];
     }

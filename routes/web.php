@@ -138,7 +138,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
     // ── Tenant-scoped App Routes ─────────────────────────────────────────────
 
-    Route::middleware(['salon.panel', InitializeTenancyFromDomain::class, 'tenant', 'profile.complete', 'sync.staff.role', 'route.permission'])->group(function () {
+    Route::middleware(['salon.panel', 'plan.access', 'admin.store.browse.readonly-pages', InitializeTenancyFromDomain::class, 'tenant', 'profile.complete', 'sync.staff.role', 'route.permission', 'admin.store.readonly'])->group(function () {
 
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::post('action-items', [SalonActionItemController::class, 'store'])->name('action-items.store');
@@ -202,7 +202,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::resource('service-packages', ServicePackageController::class)->except(['show']);
         Route::middleware('subscription:feature:multi_location')->group(function () {
             Route::get('multi-location', [MultiLocationController::class, 'index'])->name('multi-location.index');
-            Route::post('multi-location', [MultiLocationController::class, 'store'])->name('multi-location.store');
+            Route::post('multi-location', [MultiLocationController::class, 'store'])->name('multi-location.store')->middleware('plan.limit:stores');
             Route::put('multi-location/{location}', [MultiLocationController::class, 'update'])->name('multi-location.update');
             Route::delete('multi-location/{location}', [MultiLocationController::class, 'destroy'])->name('multi-location.destroy');
             Route::post('multi-location/{location}/switch', [MultiLocationController::class, 'switch'])->name('multi-location.switch');
@@ -347,6 +347,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         // Charge / receive money from clients
         Route::get('payments/charge',   [PaymentGatewayController::class, 'showCharge'])->name('payments.charge');
         Route::post('payments/charge',  [PaymentGatewayController::class, 'charge'])->name('payments.charge.process');
+        Route::get('payments/charge/return', [PaymentGatewayController::class, 'chargeReturn'])->name('payments.charge.return');
 
         // Chatbot
         Route::post('chatbot/message', [\App\Http\Controllers\Web\ChatbotController::class, 'message'])->name('chatbot.message');
@@ -413,12 +414,33 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'salon.panel',
 
 // ── Super Admin Panel ─────────────────────────────────────────────────────────
 
+use App\Http\Controllers\Admin\AdminFacilityController;
 use App\Http\Controllers\Admin\AdminTenantController;
 use App\Http\Controllers\Admin\AdminRevenueController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSupportController;
 use App\Http\Controllers\Admin\AdminAnalyticsController;
-use App\Http\Controllers\Admin\AdminFacilityController;
+use App\Http\Controllers\Admin\AdminTenantOwnerController;
+use App\Http\Controllers\Admin\AdminTenantStoresController;
+use App\Http\Controllers\Admin\AdminStoreBrowseController;
+use App\Http\Controllers\Admin\AdminExplorerController;
+use App\Http\Controllers\Admin\AdminPlatformReportController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantHubController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantClientController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantAppointmentController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantStaffController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantPosController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantServiceController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantInventoryController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantExpenseController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantReviewController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantMarketingController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantLeaveController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantAttendanceController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantSettingsController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantAuditController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantDeletedController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantActionsController;
 
 Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin'])
     ->prefix('admin')
@@ -427,6 +449,10 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin']
 
     // ── Dashboard ────────────────────────────────────────────────────────────
     Route::get('/', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('reports/download-all', [AdminPlatformReportController::class, 'exportAll'])->name('reports.export-all');
+    Route::get('reports/{type}', [AdminPlatformReportController::class, 'export'])
+        ->name('reports.export')
+        ->where('type', 'owners|stores|clients|appointments|revenue|staff|services|inventory|expenses');
 
     // ── Facilities (read-only cross-tenant) ───────────────────────────────────
     Route::get('facilities',                 [AdminFacilityController::class, 'index'])->name('facilities');
@@ -434,13 +460,55 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin']
     // ── Tenants (full management) ─────────────────────────────────────────────
     Route::get('tenants',                    [AdminTenantController::class, 'index'])->name('tenants');
     Route::get('tenants/export',             [AdminTenantController::class, 'export'])->name('tenants.export');
-    Route::get('tenants/{id}',               [AdminTenantController::class, 'show'])->name('tenants.show');
-    Route::patch('tenants/{id}/domain',      [AdminTenantController::class, 'updateDomain'])->name('tenants.domain');
-    Route::post('tenants/{id}/suspend',      [AdminTenantController::class, 'suspend'])->name('tenants.suspend');
-    Route::post('tenants/{id}/unsuspend',    [AdminTenantController::class, 'unsuspend'])->name('tenants.unsuspend');
+    Route::get('tenants/owners/{owner}',      [AdminTenantOwnerController::class, 'show'])->name('tenants.owners.show');
+    Route::post('tenants/owners/{owner}/block',   [AdminTenantOwnerController::class, 'block'])->name('tenants.owners.block');
+    Route::post('tenants/owners/{owner}/unblock', [AdminTenantOwnerController::class, 'unblock'])->name('tenants.owners.unblock');
+    Route::post('tenants/owners/{owner}/plan',   [AdminTenantOwnerController::class, 'assignPlan'])->name('tenants.owners.plan');
+    Route::get('tenants/owners/{owner}/stores', [AdminTenantStoresController::class, 'index'])->name('tenants.stores');
+    Route::post('tenants/stores/{salon}/enter', [AdminStoreBrowseController::class, 'enter'])->name('tenants.stores.enter');
+    Route::post('store-browse/exit',          [AdminStoreBrowseController::class, 'exit'])->name('store-browse.exit');
+    Route::get('tenants/stores/{salon}',      [AdminTenantHubController::class, 'show'])->name('tenants.show');
+    Route::patch('tenants/{salon}/domain',      [AdminTenantController::class, 'updateDomain'])->name('tenants.domain');
+    Route::post('tenants/{salon}/suspend',      [AdminTenantController::class, 'suspend'])->name('tenants.suspend');
+    Route::post('tenants/{salon}/unsuspend',    [AdminTenantController::class, 'unsuspend'])->name('tenants.unsuspend');
     Route::post('tenants/bulk-suspend',      [AdminTenantController::class, 'bulkSuspend'])->name('tenants.bulk-suspend');
-    Route::post('tenants/{id}/override',     [AdminTenantController::class, 'applyPlanOverride'])->name('tenants.override');
+    Route::post('tenants/{salon}/override',     [AdminTenantController::class, 'applyPlanOverride'])->name('tenants.override');
     Route::delete('tenants/{salon}/override/{override}', [AdminTenantController::class, 'revokeOverride'])->name('tenants.override.revoke');
+
+    // ── Tenant store data (read-only browse) ─────────────────────────────────
+    Route::prefix('tenants/{salon}')->name('tenants.')->group(function () {
+        Route::get('clients', [AdminTenantClientController::class, 'index'])->name('clients.index');
+        Route::get('clients/{record}', [AdminTenantClientController::class, 'show'])->name('clients.show');
+        Route::get('appointments', [AdminTenantAppointmentController::class, 'index'])->name('appointments.index');
+        Route::get('appointments/{record}', [AdminTenantAppointmentController::class, 'show'])->name('appointments.show');
+        Route::get('staff', [AdminTenantStaffController::class, 'index'])->name('staff.index');
+        Route::get('staff/{record}', [AdminTenantStaffController::class, 'show'])->name('staff.show');
+        Route::get('pos', [AdminTenantPosController::class, 'index'])->name('pos.index');
+        Route::get('pos/{record}', [AdminTenantPosController::class, 'show'])->name('pos.show');
+        Route::get('services', [AdminTenantServiceController::class, 'index'])->name('services.index');
+        Route::get('services/{record}', [AdminTenantServiceController::class, 'show'])->name('services.show');
+        Route::get('inventory', [AdminTenantInventoryController::class, 'index'])->name('inventory.index');
+        Route::get('inventory/{record}', [AdminTenantInventoryController::class, 'show'])->name('inventory.show');
+        Route::get('expenses', [AdminTenantExpenseController::class, 'index'])->name('expenses.index');
+        Route::get('expenses/{record}', [AdminTenantExpenseController::class, 'show'])->name('expenses.show');
+        Route::get('reviews', [AdminTenantReviewController::class, 'index'])->name('reviews.index');
+        Route::get('reviews/{record}', [AdminTenantReviewController::class, 'show'])->name('reviews.show');
+        Route::get('marketing', [AdminTenantMarketingController::class, 'index'])->name('marketing.index');
+        Route::get('marketing/{record}', [AdminTenantMarketingController::class, 'show'])->name('marketing.show');
+        Route::get('leave', [AdminTenantLeaveController::class, 'index'])->name('leave.index');
+        Route::get('leave/{record}', [AdminTenantLeaveController::class, 'show'])->name('leave.show');
+        Route::get('attendance', [AdminTenantAttendanceController::class, 'index'])->name('attendance.index');
+        Route::get('attendance/{record}', [AdminTenantAttendanceController::class, 'show'])->name('attendance.show');
+        Route::get('settings', [AdminTenantSettingsController::class, 'show'])->name('settings');
+        Route::get('audit', [AdminTenantAuditController::class, 'index'])->name('audit.index');
+        Route::get('deleted', [AdminTenantDeletedController::class, 'index'])->name('deleted.index');
+        Route::post('actions/appointments/{appointment}/cancel', [AdminTenantActionsController::class, 'cancelAppointment'])->name('actions.appointment.cancel');
+        Route::post('actions/pos/{transaction}/refund', [AdminTenantActionsController::class, 'refundPos'])->name('actions.pos.refund');
+        Route::post('actions/deleted/{type}/{id}/restore', [AdminTenantActionsController::class, 'restoreDeleted'])->name('actions.deleted.restore');
+    });
+
+    // ── Cross-tenant explorer ─────────────────────────────────────────────────
+    Route::get('explorer', [AdminExplorerController::class, 'index'])->name('explorer');
 
     // ── Users ─────────────────────────────────────────────────────────────────
     Route::get('users',                      [SuperAdminController::class, 'users'])->name('users');
@@ -458,9 +526,9 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin']
 
     // ── Plan Management ───────────────────────────────────────────────────────
     Route::get('plans',                      [AdminPlanController::class, 'index'])->name('plans');
+    Route::post('plans/assign',              [AdminPlanController::class, 'assign'])->name('plans.assign');
     Route::post('plans/migrate',             [AdminPlanController::class, 'migratePlan'])->name('plans.migrate');
     Route::post('plans/bulk-migrate',        [AdminPlanController::class, 'bulkMigrate'])->name('plans.bulk-migrate');
-    Route::patch('plans/overrides/{id}/expire', [AdminPlanController::class, 'expireOverride'])->name('plans.override.expire');
 
     // ── Support Tickets ───────────────────────────────────────────────────────
     Route::get('support',                    [AdminSupportController::class, 'index'])->name('support.index');
@@ -491,7 +559,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin']
 
 
 // ── Onboarding (shown to new users after registration) ────────────────────────
-Route::middleware(['auth', 'verified'])->prefix('onboarding')->name('onboarding.')->group(function () {
+Route::middleware(['auth', 'verified', 'plan.access'])->prefix('onboarding')->name('onboarding.')->group(function () {
     Route::get('/',                    [\App\Http\Controllers\Web\OnboardingController::class, 'index'])->name('index');
     Route::get('/step/{step}',         [\App\Http\Controllers\Web\OnboardingController::class, 'step'])->name('step');
     Route::post('/step/{step}',        [\App\Http\Controllers\Web\OnboardingController::class, 'completeStep'])->name('complete-step');
@@ -530,7 +598,7 @@ Route::prefix('help')->name('help.')->group(function () {
 });
 
 // ── Account Management ────────────────────────────────────────────────────────
-Route::middleware(['auth', 'verified'])->prefix('account')->name('account.')->group(function () {
+Route::middleware(['auth', 'verified', 'plan.access'])->prefix('account')->name('account.')->group(function () {
     Route::get('sessions',                     [\App\Http\Controllers\Web\AccountController::class, 'sessions'])->name('sessions');
     Route::delete('sessions/{id}',             [\App\Http\Controllers\Web\AccountController::class, 'revokeSession'])->name('sessions.revoke');
     Route::delete('sessions',                  [\App\Http\Controllers\Web\AccountController::class, 'revokeAllOtherSessions'])->name('sessions.revoke-all');

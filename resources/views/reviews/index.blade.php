@@ -126,7 +126,8 @@
                     <p class="text-sm text-body">{{ $review->owner_reply }}</p>
                 </div>
                 @else
-                <button @click="replying=!replying" class="mt-3 text-xs text-link font-medium">Reply</button>
+                <x-unless-admin-browse>
+                <button @click="replying=!replying" class="mt-3 text-xs text-link font-medium salon-write-ui">Reply</button>
                 <div x-show="replying" x-cloak class="mt-3">
                     <form action="{{ route('reviews.reply', $review->id) }}" method="POST">
                         @csrf
@@ -137,6 +138,7 @@
                         </div>
                     </form>
                 </div>
+                </x-unless-admin-browse>
                 @endif
             </div>
         </div>

@@ -34,7 +34,7 @@ class CheckPlanLimits
 {
     public function handle(Request $request, Closure $next, string $resource = ''): Response
     {
-        if (! config('billing.subscriptions_enabled')) {
+        if (! config('billing.subscriptions_enabled') && $resource !== 'stores') {
             return $next($request);
         }
 
@@ -60,11 +60,14 @@ class CheckPlanLimits
         }
 
         $salonId = $this->resolveSalonIdForPlanLimits($user);
-        if (! $salonId) {
+
+        $current = $resource === 'stores'
+            ? $this->countStores($user)
+            : ($salonId ? $this->count($resource, $salonId) : 0);
+
+        if ($resource !== 'stores' && ! $salonId) {
             return $next($request);
         }
-
-        $current = $this->count($resource, $salonId);
 
         if ($current >= $limit) {
             $message = "You've reached the {$resource} limit ({$limit}) on the {$plan->name} plan.";
@@ -98,6 +101,15 @@ class CheckPlanLimits
                 'clients'  => Client::withoutGlobalScopes()->where('salon_id', $salonId)->whereNull('deleted_at')->count(),
                 default    => 0,
             };
+        });
+    }
+
+    private function countStores(\App\Models\User $user): int
+    {
+        $cacheKey = "plan_limit_stores_user_{$user->id}";
+
+        return Cache::remember($cacheKey, 60, function () use ($user) {
+            return Salon::withoutGlobalScopes()->where('owner_id', $user->id)->count();
         });
     }
 

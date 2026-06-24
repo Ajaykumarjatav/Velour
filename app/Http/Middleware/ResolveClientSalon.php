@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Client;
 use App\Models\Salon;
+use App\Support\PublicSalonAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,10 +14,10 @@ class ResolveClientSalon
     public function handle(Request $request, Closure $next): Response
     {
         $slug = $request->route('salonSlug');
-        $salon = Salon::where('slug', $slug)->where('is_active', true)->first();
+        $salon = PublicSalonAccess::findBySlug($slug);
 
         if (! $salon) {
-            return response()->json(['message' => 'Salon not found.'], 404);
+            return response()->json(['message' => 'Salon not found or temporarily unavailable.'], 404);
         }
 
         $request->attributes->set('salon', $salon);

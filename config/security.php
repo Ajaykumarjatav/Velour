@@ -36,12 +36,12 @@ return [
 
         'directives' => [
             'default-src'     => ["'self'"],
-            'script-src'      => ["'self'", "'nonce'", 'https://js.stripe.com', 'https://cdn.jsdelivr.net'],
+            'script-src'      => ["'self'", "'nonce'", 'https://sdk.cashfree.com', 'https://cdn.jsdelivr.net'],
             'style-src'       => ["'self'", "'nonce'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
             'font-src'        => ["'self'", 'https://fonts.gstatic.com', 'data:'],
             'img-src'         => ["'self'", 'data:', 'blob:', 'https:', 'https://api.qrserver.com'],
-            'connect-src'     => ["'self'", 'https://api.stripe.com', 'https://vitals.vercel-insights.com'],
-            'frame-src'       => ["'self'", 'https://js.stripe.com', 'https://hooks.stripe.com'],
+            'connect-src'     => ["'self'", 'https://api.cashfree.com', 'https://sandbox.cashfree.com', 'https://vitals.vercel-insights.com'],
+            'frame-src'       => ["'self'", 'https://sdk.cashfree.com', 'https://api.cashfree.com', 'https://sandbox.cashfree.com', 'https://payments.cashfree.com', 'https://payments-test.cashfree.com'],
             'frame-ancestors' => ["'none'"],
             'base-uri'        => ["'self'"],
             'form-action'     => ["'self'"],
@@ -87,7 +87,7 @@ return [
         'magnetometer'        => '()',
         'microphone'          => '()',
         'midi'                => '()',
-        'payment'             => '(self)',     // Required for Stripe
+        'payment'             => '(self)',     // Required for Cashfree checkout
         'picture-in-picture'  => '()',
         'screen-wake-lock'    => '()',
         'sync-xhr'            => '()',
@@ -108,11 +108,10 @@ return [
     'rate_limits' => [
         // API requests per minute per user
         'api' => [
-            'free'       => 30,
-            'starter'    => 60,
-            'pro'        => 120,
-            'enterprise' => 300,
-            'default'    => 60,
+            'trial'    => 60,
+            'standard' => 120,
+            'premium'  => 300,
+            'default'  => 60,
         ],
         // Auth attempts per minute per IP
         'auth' => [
@@ -127,10 +126,9 @@ return [
         ],
         // Data export endpoints (CSV, PDF)
         'exports' => [
-            'free'       => 2,
-            'starter'    => 5,
-            'pro'        => 20,
-            'enterprise' => 100,
+            'trial'    => 5,
+            'standard' => 20,
+            'premium'  => 100,
             'decay_minutes' => 60,   // per hour, not per minute
         ],
         // Campaign sending
@@ -141,7 +139,7 @@ return [
         'admin' => [
             'per_minute' => 60,
         ],
-        // Webhook delivery (from Stripe — not throttled, verified by signature)
+        // Webhook delivery (from Cashfree — not throttled, verified by signature)
         'stripe' => [
             'per_minute' => 200,
         ],

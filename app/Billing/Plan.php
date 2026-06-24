@@ -29,6 +29,8 @@ class Plan
     public readonly string  $tagline;
     public readonly int     $priceMonthly;
     public readonly int     $priceYearly;
+    public readonly ?string $cashfreePlanMonthly;
+    public readonly ?string $cashfreePlanYearly;
     public readonly ?string $stripePriceMonthly;
     public readonly ?string $stripePriceYearly;
     public readonly int     $trialDays;
@@ -44,8 +46,10 @@ class Plan
         $this->tagline            = $config['tagline'];
         $this->priceMonthly       = $config['price_monthly'];
         $this->priceYearly        = $config['price_yearly'];
-        $this->stripePriceMonthly = $config['stripe_monthly'] ?? null;
-        $this->stripePriceYearly  = $config['stripe_yearly']  ?? null;
+        $this->cashfreePlanMonthly = $config['cashfree_monthly'] ?? null;
+        $this->cashfreePlanYearly  = $config['cashfree_yearly'] ?? null;
+        $this->stripePriceMonthly  = $config['stripe_monthly'] ?? null;
+        $this->stripePriceYearly   = $config['stripe_yearly']  ?? null;
         $this->trialDays          = $config['trial_days'] ?? 0;
         $this->popular            = $config['popular'] ?? false;
         $this->color              = $config['color'] ?? 'gray';
@@ -76,7 +80,52 @@ class Plan
             ->map(fn ($config, $key) => new static($key, $config));
     }
 
-    // ── Stripe Price IDs ──────────────────────────────────────────────────────
+    /** @return list<string> */
+    public static function keys(): array
+    {
+        return array_keys(config('billing.plans', []));
+    }
+
+    public static function labelFor(?string $key): string
+    {
+        $resolved = $key ?: (string) config('billing.default_plan', 'trial');
+
+        return static::find($resolved)?->name ?? ucfirst($resolved);
+    }
+
+    public static function validationRule(): string
+    {
+        return 'in:'.implode(',', static::keys());
+    }
+
+    public static function paidValidationRule(): string
+    {
+        $keys = static::all()
+            ->filter(fn (Plan $p) => $p->isPaid())
+            ->pluck('key')
+            ->all();
+
+        return 'in:'.implode(',', $keys);
+    }
+
+    // ── Cashfree plan IDs ─────────────────────────────────────────────────────
+
+    /**
+     * Cashfree plan_id for the given billing interval.
+     */
+    public function cashfreePlanId(string $interval = 'monthly'): string
+    {
+        $configured = $interval === 'yearly' ? $this->cashfreePlanYearly : $this->cashfreePlanMonthly;
+
+        return $configured ?: ('velor_'.$this->key.'_'.$interval);
+    }
+
+    public function hasCashfreePlan(string $interval = 'monthly'): bool
+    {
+        return $this->isPaid();
+    }
+
+    // ── Stripe Price IDs (legacy) ─────────────────────────────────────────────
 
     /**
      * Get the Stripe Price ID for the given billing interval.
@@ -145,13 +194,18 @@ class Plan
      */
     public function isUpgradeFrom(string $otherKey): bool
     {
-        $order = ['free', 'starter', 'pro', 'enterprise'];
-        return array_search($this->key, $order) > array_search($otherKey, $order);
+        $order = ['trial', 'standard', 'premium'];
+        return array_search($this->key, $order, true) > array_search($otherKey, $order, true);
+    }
+
+    public function isTrial(): bool
+    {
+        return $this->key === 'trial';
     }
 
     public function isFree(): bool
     {
-        return $this->key === 'free';
+        return $this->isTrial() || $this->priceMonthly === 0;
     }
 
     public function isPaid(): bool

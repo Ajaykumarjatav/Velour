@@ -66,8 +66,8 @@
       @foreach($planDistribution as $item)
       @php
         $barColor = match($item['plan']->key) {
-          'enterprise' => 'bg-purple-500', 'pro' => 'bg-blue-500',
-          'starter'    => 'bg-green-500',  default => 'bg-gray-600',
+          'premium'  => 'bg-amber-500', 'standard' => 'bg-velour-500',
+          'trial'    => 'bg-blue-500',  default => 'bg-gray-600',
         };
       @endphp
       <div>
@@ -76,7 +76,7 @@
           <div class="flex items-center gap-2 text-xs">
             <span class="text-gray-500">{{ $item['count'] }}</span>
             @if($item['mrr'] > 0)
-              <span class="text-green-400 font-semibold">£{{ number_format($item['mrr']) }}/mo</span>
+              <span class="text-green-400 font-semibold">{{ config('billing.currency_symbol', '₹') }}{{ number_format($item['mrr']) }}/mo</span>
             @endif
           </div>
         </div>

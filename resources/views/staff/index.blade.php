@@ -100,11 +100,13 @@ document.addEventListener('alpine:init', function () {
             <p class="text-xs text-muted mt-1">Full add/edit forms are unchanged — use <strong>View</strong> / <strong>Edit</strong> for profile details.</p>
         </div>
         <div class="flex flex-wrap gap-2 shrink-0">
+            <x-unless-admin-browse>
             <button type="button" @click="openPayroll()" class="btn-outline text-sm inline-flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                 Payroll (All Staff)
             </button>
             <a href="{{ route('staff.create') }}" class="btn-primary text-sm">+ Add Staff</a>
+            </x-unless-admin-browse>
         </div>
     </div>
 
@@ -178,9 +180,10 @@ document.addEventListener('alpine:init', function () {
                                  class="absolute right-0 mt-1 w-44 py-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20 text-sm text-gray-800 dark:text-gray-100">
                                 <a href="{{ route('staff.show', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View profile</a>
                                 <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View schedule</a>
+                                @unless($adminStoreBrowse ?? false)
                                 <a href="{{ route('staff.edit', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Edit</a>
-                                <a href="{{ route('availability.index', ['tab' => 'leave', 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Leave &amp; blocks</a>
                                 <button type="button" @click="openPayroll({{ $member->id }})" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Payroll</button>
+                                @endunless
                             </div>
                         </div>
                     </div>
@@ -220,18 +223,22 @@ document.addEventListener('alpine:init', function () {
                 @endif
 
                 <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                    <a href="{{ route('staff.show', $member) }}" class="btn-outline text-center text-sm py-2">View</a>
+                    <a href="{{ route('staff.show', $member) }}" class="btn-outline text-center text-sm py-2 {{ ($adminStoreBrowse ?? false) ? 'col-span-2' : '' }}">View</a>
+                    @unless($adminStoreBrowse ?? false)
                     <a href="{{ route('staff.edit', $member) }}" class="btn-secondary text-center text-sm py-2">Edit</a>
+                    @endunless
                 </div>
                 <div class="grid grid-cols-2 gap-2 mt-2">
                     <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}"
                        class="btn-primary text-center text-xs py-2">Appointments</a>
+                    @unless($adminStoreBrowse ?? false)
                     <button type="button"
                             class="btn-outline text-center text-xs py-2"
                             data-staff='@json($schedulePayload)'
                             @click="openSchedule(JSON.parse($event.currentTarget.dataset.staff))">
                         Schedule
                     </button>
+                    @endunless
                     <a href="{{ route('availability.index', ['tab' => 'attendance', 'week' => now()->toDateString(), 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="btn-outline text-center text-xs py-2">Attendance</a>
                     <a href="{{ route('availability.index', ['tab' => 'leave', 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="btn-outline text-center text-xs py-2">Leave</a>
                 </div>
@@ -239,7 +246,9 @@ document.addEventListener('alpine:init', function () {
         @empty
             <div class="col-span-full empty-state">
                 <p class="empty-state-title">No staff members yet</p>
+                @unless($adminStoreBrowse ?? false)
                 <a href="{{ route('staff.create') }}" class="btn-primary mt-4">Add your first staff member</a>
+                @endunless
             </div>
         @endforelse
     </div>

@@ -20,10 +20,12 @@
       </a>
     </div>
     @if($unreadCount > 0)
+    <x-unless-admin-browse>
     <form method="POST" action="{{ route('notifications.mark-all-read') }}">
       @csrf
       <button type="submit" class="text-sm font-medium text-link">Mark all read</button>
     </form>
+    </x-unless-admin-browse>
     @endif
   </div>
 
@@ -57,10 +59,12 @@
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         @if(!$notification->is_read)
+        <x-unless-admin-browse>
         <form method="POST" action="{{ route('notifications.read', $notification->id) }}">
           @csrf
           <button type="submit" class="text-xs text-link font-medium whitespace-nowrap">Mark read</button>
         </form>
+        </x-unless-admin-browse>
         @else
         <span class="text-xs text-muted">Read</span>
         @endif

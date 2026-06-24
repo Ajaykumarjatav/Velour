@@ -6,6 +6,7 @@ use App\Models\Staff;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Scopes\TenantScope;
+use App\Support\AdminStoreBrowse;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,6 +57,13 @@ class DomainOrSubdomainTenantFinder extends TenantFinder
 
     private function resolveTenantForUser(User $user, Request $request): ?IsTenant
     {
+        if ($user->isSuperAdmin()) {
+            $browseSalonId = AdminStoreBrowse::salonId();
+            if ($browseSalonId) {
+                return Tenant::query()->withoutGlobalScopes()->find($browseSalonId);
+            }
+        }
+
         if ($user->salons()->exists()) {
             // Multi-location: match Spatie tenant to the branch selected in the session
             // so BelongsToTenant scopes align with ResolvesActiveSalon / active_salon_id.

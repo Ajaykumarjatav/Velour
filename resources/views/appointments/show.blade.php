@@ -113,11 +113,13 @@
             <a href="{{ route('appointments.invoice.pdf', $appointment) }}" target="_blank" rel="noopener" class="btn-primary text-sm">
                 Generate invoice (PDF)
             </a>
+            @unless($adminStoreBrowse ?? false)
             <a href="{{ route('appointments.invoice.show', $appointment) }}" class="btn-outline text-sm">
                 Email / WhatsApp invoice
             </a>
+            @endunless
         </div>
-        @elseif($appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID && in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress'], true))
+        @elseif(!$adminStoreBrowse && $appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID && in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress'], true))
         <div class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800">
             <a href="{{ route('pos.create', ['appointment' => $appointment->id]) }}" class="btn-primary text-sm inline-flex items-center gap-1.5">
                 Collect payment &amp; invoice
@@ -187,6 +189,7 @@
     @endif
 
     {{-- ── Context-aware action buttons ── --}}
+    @unless($adminStoreBrowse ?? false)
     <div class="card p-6 space-y-4" x-data="{ showCancel: false, showReschedule: false, showRebook: false }">
         <h3 class="font-semibold text-heading">Actions</h3>
 
@@ -403,6 +406,12 @@
             <a href="{{ route('appointments.index', ['selected' => $appointment->id]) }}" class="btn text-sm text-muted hover:text-body">← Back to list</a>
         </div>
     </div>
+    @else
+    <div class="card p-6">
+        <p class="text-sm text-muted">Read-only admin view — status changes and edits are disabled.</p>
+        <a href="{{ route('appointments.index', ['selected' => $appointment->id]) }}" class="inline-block mt-3 text-sm text-link">← Back to list</a>
+    </div>
+    @endunless
 
 </div>
 

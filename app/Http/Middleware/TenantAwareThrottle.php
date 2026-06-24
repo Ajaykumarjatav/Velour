@@ -45,8 +45,8 @@ class TenantAwareThrottle
     public function handle(Request $request, Closure $next, string $limiterName = 'api'): Response
     {
         $user  = $request->user();
-        $plan  = $user?->plan ?? 'free';
-        $plan  = $user?->isSuperAdmin() ? 'enterprise' : $plan;
+        $plan  = $user?->plan ?? config('billing.default_plan', 'trial');
+        $plan  = $user?->isSuperAdmin() ? 'premium' : $plan;
 
         $limits    = config("security.rate_limits.{$limiterName}", []);
         $perMinute = $limits[$plan] ?? $limits['default'] ?? 60;

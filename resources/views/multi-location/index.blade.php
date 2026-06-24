@@ -12,7 +12,6 @@
         consolidatedOpen: false,
         selected: null,
         selectedReport: null,
-        toast: @js(session('success') ?: null),
         openEdit(card){ this.selected = card; this.editOpen = true; this.menuOpen = null; },
         openReport(card){ this.selectedReport = card; this.reportOpen = true; this.menuOpen = null; }
      }"
@@ -29,8 +28,10 @@
                 </p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <button type="button" class="btn-outline btn-sm" @click="consolidatedOpen = true">Consolidated Report</button>
-                <button type="button" class="btn-primary btn-sm" @click="addOpen = true">+ Add Location</button>
+                <button type="button" class="btn-outline btn-sm admin-browse-allow" @click="consolidatedOpen = true">Consolidated Report</button>
+                <x-unless-admin-browse>
+                <button type="button" class="btn-primary btn-sm salon-write-ui" @click="addOpen = true">+ Add Location</button>
+                </x-unless-admin-browse>
             </div>
         </div>
     </div>
@@ -105,17 +106,21 @@
                             </button>
                             <div x-show="menuOpen === {{ $card['id'] }}" x-cloak
                                  class="absolute right-0 mt-1 w-44 rounded-xl border border-stone-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl z-50 py-1 text-sm text-gray-800 dark:text-gray-100">
+                                @unless($adminStoreBrowse ?? false)
                                 <form action="{{ route('multi-location.switch', $card['id']) }}" method="POST">@csrf
                                     <button type="submit" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-stone-50 dark:hover:bg-gray-800">Open Dashboard</button>
                                 </form>
+                                @endunless
                                 <a href="{{ route('staff.index') }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-stone-50 dark:hover:bg-gray-800">Manage Staff</a>
                                 <button type="button" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-stone-50 dark:hover:bg-gray-800" @click='openReport(@js($card))'>Branch Report</button>
                                 <a href="{{ route('settings.index') }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-stone-50 dark:hover:bg-gray-800">Settings</a>
+                                @unless($adminStoreBrowse ?? false)
                                 <button type="button" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-stone-50 dark:hover:bg-gray-800" @click='openEdit(@js($card))'>Edit</button>
                                 <form action="{{ route('multi-location.destroy', $card['id']) }}" method="POST" onsubmit="return confirm('Remove this location?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="w-full text-left px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">Remove</button>
                                 </form>
+                                @endunless
                             </div>
                         </div>
                     </div>
@@ -137,17 +142,20 @@
                 </div>
 
                 <div class="mt-4 flex gap-2">
+                    @unless($adminStoreBrowse ?? false)
                     <form action="{{ route('multi-location.switch', $card['id']) }}" method="POST" class="flex-1">
                         @csrf
                         <button type="submit" class="w-full btn-primary btn-sm">Open Dashboard</button>
                     </form>
-                    <button type="button" class="btn-outline btn-sm" @click='openReport(@js($card))'>Report</button>
+                    @endunless
+                    <button type="button" class="btn-outline btn-sm {{ ($adminStoreBrowse ?? false) ? 'w-full' : '' }}" @click='openReport(@js($card))'>Report</button>
                 </div>
             </div>
         @endforeach
     </div>
 
     {{-- Add modal --}}
+    @unless($adminStoreBrowse ?? false)
     <x-modal show="addOpen" max-width="max-w-xl" class="p-6">
             <div class="flex items-start justify-between mb-5">
                 <h3 class="font-semibold text-xl text-heading">Add New Location</h3>
@@ -186,8 +194,10 @@
                 </div>
             </form>
     </x-modal>
+    @endunless
 
     {{-- Edit modal --}}
+    @unless($adminStoreBrowse ?? false)
     <x-modal show="editOpen" max-width="max-w-xl" class="p-6">
             <div class="flex items-start justify-between mb-5">
                 <h3 class="font-semibold text-xl text-heading">Edit Location</h3>
@@ -222,6 +232,7 @@
                 </div>
             </form>
     </x-modal>
+    @endunless
 
     {{-- Branch report modal --}}
     <x-modal show="reportOpen" max-width="max-w-xl" class="p-6">
@@ -255,7 +266,7 @@
             </template>
             <div class="mt-5 flex justify-end gap-2">
                 <button type="button" class="btn-outline" @click="reportOpen=false">Close</button>
-                <button type="button" class="btn-primary" @click="window.print()">Export PDF</button>
+                <button type="button" class="btn-primary admin-browse-allow" @click="window.print()">Export PDF</button>
             </div>
     </x-modal>
 
@@ -273,16 +284,9 @@
             </div>
             <div class="mt-5 flex justify-end gap-2">
                 <button type="button" class="btn-outline" @click="consolidatedOpen=false">Close</button>
-                <button type="button" class="btn-primary" @click="window.print()">Export PDF</button>
+                <button type="button" class="btn-primary admin-browse-allow" @click="window.print()">Export PDF</button>
             </div>
     </x-modal>
-
-    {{-- success toast --}}
-    <template x-teleport="body">
-    <div x-show="toast" x-cloak x-transition class="fixed bottom-6 right-6 z-[260] rounded-xl bg-emerald-600 text-white px-4 py-3 shadow-xl text-sm">
-        <span x-text="toast"></span>
-    </div>
-    </template>
 </div>
 @endsection
 

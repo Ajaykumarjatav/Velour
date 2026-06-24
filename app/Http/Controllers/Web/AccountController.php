@@ -118,7 +118,7 @@ class AccountController extends Controller
         // Cancel active subscription first
         if ($user->subscribed('default')) {
             try {
-                $user->subscription('default')->cancelNow();
+                app(\App\Services\Billing\SubscriptionBillingService::class)->cancel($user, immediately: true);
             } catch (\Throwable $e) {
                 Log::error('Failed to cancel subscription on account deletion', [
                     'user_id' => $user->id,

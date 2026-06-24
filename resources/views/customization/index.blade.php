@@ -16,7 +16,9 @@
                 <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight text-gray-900 dark:text-white leading-tight">Customization &amp; Flexibility</h1>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">White-label, multi-language, custom forms &amp; scalability</p>
             </div>
-            <button type="button" class="btn-primary btn-sm" @click="tab='features'">Request Custom Feature</button>
+            <x-unless-admin-browse>
+            <button type="button" class="btn-primary btn-sm salon-write-ui" @click="tab='features'">Request Custom Feature</button>
+            </x-unless-admin-browse>
         </div>
 
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-6">
@@ -39,7 +41,9 @@
     <div x-show="tab==='white-label'" x-cloak class="card p-0 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <h2 class="text-xl font-semibold text-heading">Brand Identity</h2>
-            <button form="brand-form" type="submit" class="btn-outline btn-sm">+ Save &amp; Publish</button>
+            <x-unless-admin-browse>
+            <button form="brand-form" type="submit" class="btn-outline btn-sm salon-write-ui">+ Save &amp; Publish</button>
+            </x-unless-admin-browse>
         </div>
         <form id="brand-form" method="POST" action="{{ route('customization.brand.update') }}" enctype="multipart/form-data" class="p-6">
             @csrf

@@ -131,7 +131,7 @@ class AdminRevenueController extends Controller
             ->whereHas('subscriptions', fn ($q) =>
                 $q->whereIn('stripe_status', ['active', 'trialing'])
             )
-            ->whereIn('plan', ['starter', 'pro', 'enterprise'])
+            ->whereIn('plan', ['standard', 'premium'])
             ->get(['id', 'name', 'email', 'plan'])
             ->map(function (User $user) use ($plans) {
                 return [

@@ -31,19 +31,23 @@
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <x-unless-admin-browse>
             <button type="button" @click="openScan('')" class="btn-outline btn-sm">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
                 Scan barcode
             </button>
+            </x-unless-admin-browse>
             <a href="{{ route('inventory.export', request()->query()) }}" class="btn-outline btn-sm">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Export
             </a>
+            <x-unless-admin-browse>
             <button type="button" @click="addOpen = true" class="btn-primary btn-sm">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Add product
             </button>
             <a href="{{ route('inventory.create') }}" class="text-xs text-muted hover:text-body underline decoration-dotted">Full form page</a>
+            </x-unless-admin-browse>
         </div>
     </div>
 
@@ -132,7 +136,9 @@
                 <th scope="col" class="!text-right whitespace-nowrap w-16 sm:w-20">Stock</th>
                 <th scope="col" class="hidden lg:table-cell !text-right whitespace-nowrap w-14">Min</th>
                 <th scope="col" class="hidden sm:table-cell !text-left whitespace-nowrap">Status</th>
+                @unless($adminStoreBrowse ?? false)
                 <th scope="col" class="!text-right align-top min-w-[11rem] sm:min-w-[13rem]">Actions</th>
+                @endunless
             </tr>
             </thead>
             <tbody>
@@ -192,6 +198,7 @@
                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap {{ $statusClass }}">{{ $statusLabel }}</span>
                     </td>
                     <td class="relative z-30 align-top sm:align-middle text-right isolate">
+                        @unless($adminStoreBrowse ?? false)
                         <div class="flex flex-col items-stretch sm:items-end gap-1.5 pointer-events-auto">
                             @if($level !== 'in_stock')
                                 <button type="button"
@@ -227,6 +234,9 @@
                                 </form>
                             </div>
                         </div>
+                        @else
+                        <span class="text-xs text-muted">—</span>
+                        @endunless
                     </td>
                 </tr>
             @empty

@@ -318,7 +318,7 @@
             @foreach($columns as $col)
             <div class="day-cal__staff-col {{ ($col['blocked'] ?? false) ? 'day-cal__staff-col--blocked' : '' }}"
                  style="height: {{ $bodyH }}px;">
-                @if(!($col['blocked'] ?? false))
+                @if(!($col['blocked'] ?? false) && !($adminStoreBrowse ?? false))
                 <a href="{{ $col['create_url'] }}"
                    class="absolute inset-0 z-0 opacity-0 hover:opacity-100 hover:bg-velour-500/5 transition-opacity"
                    aria-label="Add appointment for {{ $col['name'] }}"></a>

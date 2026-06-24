@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Salon;
+use App\Support\PublicSalonAccess;
 use App\Support\StorefrontTheme;
 use Illuminate\Http\Response;
 
@@ -11,10 +12,20 @@ class StorefrontController extends Controller
 {
     public function show(string $slug): Response
     {
-        $salon = Salon::query()
-            ->where('slug', $slug)
-            ->where('is_active', true)
-            ->firstOrFail();
+        $salon = Salon::query()->where('slug', $slug)->first();
+
+        if (! $salon || ! PublicSalonAccess::isAccessible($salon)) {
+            if ($salon) {
+                return response()
+                    ->view('booking.unavailable', [
+                        'salon'   => $salon,
+                        'reasons' => PublicSalonAccess::unavailableReasons($salon),
+                    ], 503)
+                    ->header('Content-Type', 'text/html');
+            }
+
+            abort(404);
+        }
 
         $theme = StorefrontTheme::forSalon($salon);
         $index = StorefrontTheme::buildPath($theme);

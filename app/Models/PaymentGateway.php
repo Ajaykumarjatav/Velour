@@ -38,6 +38,12 @@ class PaymentGateway extends Model
         return $this->belongsTo(Salon::class);
     }
 
+    public function isCashfree(): bool
+    {
+        return $this->provider === 'cashfree';
+    }
+
+    /** @deprecated Use isCashfree() */
     public function isStripe(): bool
     {
         return $this->provider === 'stripe';

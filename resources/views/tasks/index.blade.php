@@ -32,9 +32,11 @@
             <p class="mt-1 max-w-xl text-[11px] leading-snug text-gray-400 dark:text-gray-500">Assign and track work across your team. Tasks stay in sync with the dashboard action center.</p>
         </div>
         @if($canManage)
+        <x-unless-admin-browse>
         <button type="button" onclick="document.getElementById('new-task-panel')?.classList.toggle('hidden')" class="btn-primary shrink-0">
             + New task
         </button>
+        </x-unless-admin-browse>
         @endif
     </div>
 
@@ -45,6 +47,7 @@
     @endif
 
     @if($canManage)
+    <x-unless-admin-browse>
     <div id="new-task-panel" class="card hidden overflow-hidden">
         <div class="card-header border-b border-gray-100 dark:border-gray-800">
             <h2 class="section-title text-base">New task</h2>
@@ -101,6 +104,7 @@
             </form>
         </div>
     </div>
+    </x-unless-admin-browse>
     @endif
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -168,6 +172,7 @@
                     <p class="text-[10px] text-muted mt-2">{{ $deskKindLabels[$item->kind] ?? $item->kind }}@if($item->staff) · from {{ $item->staff->name }}@endif</p>
 
                     @if($canManage)
+                    <x-unless-admin-browse>
                     <div class="mt-3 flex flex-wrap items-center gap-2">
                         @if($col['key'] === 'todo')
                             <form method="POST" action="{{ route('action-items.update', $item) }}" class="inline">
@@ -276,6 +281,7 @@
                             </button>
                         </form>
                     </div>
+                    </x-unless-admin-browse>
                     @endif
                 </article>
                 @empty

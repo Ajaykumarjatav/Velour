@@ -5,11 +5,6 @@
 
 <div class="max-w-4xl space-y-5" x-data="{ replyTab: 'reply' }">
 
-  {{-- Flash --}}
-  @if(session('success'))
-  <div class="px-4 py-3 bg-green-900/30 border border-green-800/50 rounded-xl text-sm text-green-300">{{ session('success') }}</div>
-  @endif
-
   {{-- Header --}}
   <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5">
     <div class="flex flex-col sm:flex-row items-start gap-4 justify-between">

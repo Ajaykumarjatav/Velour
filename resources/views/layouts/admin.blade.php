@@ -41,22 +41,155 @@
     *::-webkit-scrollbar-track { background: rgb(3 7 18); border-radius: 4px; }
     *::-webkit-scrollbar-thumb { background: rgb(55 65 81); border-radius: 4px; }
     *::-webkit-scrollbar-thumb:hover { background: rgb(75 85 99); }
+    .nav-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; opacity: 0.9; }
+
+  .admin-shell-sidebar {
+    width: 14rem;
+    transition: width 0.2s ease;
+    overflow: visible;
+  }
+  html.admin-sidebar-is-collapsed .admin-shell-sidebar {
+    width: 4.5rem;
+  }
+  .admin-sidebar-logo-icon {
+    display: none;
+  }
+  html.admin-sidebar-is-collapsed .admin-sidebar-brand {
+    display: none;
+  }
+  html.admin-sidebar-is-collapsed .admin-sidebar-logo-icon {
+    display: block;
+  }
+  html.admin-sidebar-is-collapsed .admin-sidebar-header-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  html.admin-sidebar-is-collapsed .admin-sidebar-header {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  html.admin-sidebar-is-collapsed .admin-sidebar-wrapper nav {
+    display: flex;
+    flex-direction: column;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    align-items: center;
+    overflow: visible;
+  }
+  html.admin-sidebar-is-collapsed .admin-sidebar-wrapper {
+    overflow: visible;
+  }
+  html.admin-sidebar-is-collapsed .admin-nav-link {
+    position: relative;
+    justify-content: center;
+    padding: 0.625rem;
+    border-radius: 0.75rem;
+    width: 2.75rem;
+    overflow: visible;
+    font-size: 0;
+    gap: 0;
+  }
+  html.admin-sidebar-is-collapsed .admin-nav-link .nav-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  html.admin-sidebar-is-collapsed .admin-nav-link::after {
+    content: attr(data-title);
+    position: absolute;
+    left: calc(100% + 0.5rem);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    background: rgb(17 24 39 / 0.95);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 100;
+  }
+  html.admin-sidebar-is-collapsed .admin-nav-link:hover::after {
+    opacity: 1;
+  }
+  html.admin-sidebar-is-collapsed .admin-nav-label,
+  html.admin-sidebar-is-collapsed .admin-nav-badge,
+  html.admin-sidebar-is-collapsed .admin-sidebar-footer-text,
+  html.admin-sidebar-is-collapsed .admin-impersonate-banner {
+    display: none;
+  }
+  html.admin-sidebar-is-collapsed .admin-footer-link {
+    position: relative;
+    justify-content: center;
+    padding: 0.625rem;
+    width: 2.75rem;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 0;
+    gap: 0;
+  }
+  html.admin-sidebar-is-collapsed .admin-footer-link span {
+    display: none;
+  }
+  html.admin-sidebar-is-collapsed .admin-footer-link::after {
+    content: attr(data-title);
+    position: absolute;
+    left: calc(100% + 0.5rem);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    background: rgb(17 24 39 / 0.95);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 100;
+  }
+  html.admin-sidebar-is-collapsed .admin-footer-link:hover::after {
+    opacity: 1;
+  }
+  html.admin-sidebar-is-collapsed .admin-sidebar-footer {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
   </style>
   @stack('styles')
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="h-full min-h-screen flex min-h-0" x-data="{ sidebarOpen: false }">
+<body class="h-full min-h-screen flex min-h-0"
+      x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('admin-sidebar-collapsed') === '1' }"
+      x-init="
+        document.documentElement.classList.toggle('admin-sidebar-is-collapsed', sidebarCollapsed);
+        $watch('sidebarCollapsed', v => {
+          localStorage.setItem('admin-sidebar-collapsed', v ? '1' : '0');
+          document.documentElement.classList.toggle('admin-sidebar-is-collapsed', v);
+        });
+      ">
 
   {{-- Sidebar --}}
-  <aside class="w-56 flex-shrink-0 bg-gray-900 flex flex-col h-screen sticky top-0">
-    <div class="px-5 py-5 border-b border-gray-800">
-      <img src="{{ asset('images/easygrox-logo-dark.png') }}" alt="EasyGrox" class="h-8 w-auto max-w-full">
-      <p class="text-xs text-red-400 font-semibold uppercase tracking-widest mt-0.5">Admin Panel</p>
+  <aside class="admin-shell-sidebar flex-shrink-0 bg-gray-900 flex flex-col h-screen sticky top-0 z-30 border-r border-gray-800/80">
+    <div class="admin-sidebar-wrapper flex flex-col h-full min-h-0 overflow-visible">
+    <div class="admin-sidebar-header border-b border-gray-800 px-5 py-5">
+      <div class="admin-sidebar-header-inner">
+        <div class="admin-sidebar-brand min-w-0">
+          <img src="{{ asset('images/easygrox-logo-dark.png') }}" alt="EasyGrox" class="admin-sidebar-logo-full h-12 w-auto max-w-[11rem]">
+          <p class="admin-sidebar-subtitle text-xs text-red-400 font-semibold uppercase tracking-widest mt-1.5">Admin Panel</p>
+        </div>
+        <img src="{{ asset('images/easygrox-icon.png') }}" alt="EasyGrox" class="admin-sidebar-logo-icon w-9 h-9 object-contain mx-auto" title="EasyGrox Admin">
+      </div>
     </div>
 
     {{-- Impersonation banner --}}
     @if(session('impersonating'))
-    <div class="mx-3 mt-3 px-3 py-2 bg-amber-500/20 border border-amber-500/30 rounded-xl text-xs text-amber-300">
+    <div class="admin-impersonate-banner mx-3 mt-3 px-3 py-2 bg-amber-500/20 border border-amber-500/30 rounded-xl text-xs text-amber-300">
       Impersonating user
       <form method="POST" action="{{ route('admin.impersonate.stop') }}" class="mt-1">
         @csrf
@@ -68,27 +201,35 @@
     <nav class="flex-1 min-h-0 px-3 py-4 space-y-0.5 overflow-y-auto">
       @php
         $nav = [
-          ['route' => 'admin.dashboard',    'icon' => '◼',  'label' => 'Dashboard'],
-          ['route' => 'admin.facilities',   'icon' => '🏢',  'label' => 'Facilities'],
-          ['route' => 'admin.tenants',      'icon' => '🏠',  'label' => 'Tenants'],
-          ['route' => 'admin.users',        'icon' => '👤',  'label' => 'Users'],
-          ['route' => 'admin.revenue',      'icon' => '💰',  'label' => 'Revenue'],
-          ['route' => 'admin.plans',        'icon' => '📦',  'label' => 'Plans'],
-          ['route' => 'admin.support.index','icon' => '🎧',  'label' => 'Support'],
-          ['route' => 'admin.analytics',    'icon' => '📊',  'label' => 'Analytics'],
-          ['route' => 'admin.billing',      'icon' => '💳',  'label' => 'Billing'],
-          ['route' => 'admin.audit.index',  'icon' => '🔐',  'label' => 'Audit Log'],
+          ['route' => 'admin.dashboard',     'icon' => 'dashboard',    'label' => 'Dashboard'],
+          ['route' => 'admin.facilities',    'icon' => 'facilities',   'label' => 'Facilities'],
+          ['route' => 'admin.tenants',       'icon' => 'tenants',      'label' => 'Tenants'],
+          ['route' => 'admin.explorer',      'icon' => 'search',       'label' => 'Explorer'],
+          ['route' => 'admin.users',         'icon' => 'team',         'label' => 'Users'],
+          ['route' => 'admin.revenue',       'icon' => 'revenue',      'label' => 'Revenue'],
+          ['route' => 'admin.plans',         'icon' => 'packages',     'label' => 'Plans'],
+          ['route' => 'admin.support.index', 'icon' => 'support',      'label' => 'Support'],
+          ['route' => 'admin.analytics',     'icon' => 'analytics',    'label' => 'Analytics'],
+          ['route' => 'admin.billing',       'icon' => 'billing',      'label' => 'Billing'],
+          ['route' => 'admin.audit.index',   'icon' => 'audit',        'label' => 'Audit Log'],
         ];
         $openTickets = \App\Models\SupportTicket::whereIn('status',['open','in_progress'])->whereNull('assigned_to')->count();
       @endphp
       @foreach($nav as $item)
+      @php
+        $navTitle = $item['label'];
+        if ($item['route'] === 'admin.support.index' && $openTickets > 0) {
+            $navTitle .= ' ('.$openTickets.' open)';
+        }
+      @endphp
       <a href="{{ route($item['route']) }}"
-         class="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] transition-colors
+         data-title="{{ $navTitle }}"
+         class="admin-nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors
                 {{ request()->routeIs($item['route'].'*') ? 'bg-velour-600 text-white font-semibold' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
-        <span class="text-sm">{{ $item['icon'] }}</span>
-        <span class="flex-1">{{ $item['label'] }}</span>
+        @include('partials.sidebar-nav-icon', ['icon' => $item['icon']])
+        <span class="admin-nav-label flex-1">{{ $item['label'] }}</span>
         @if($item['route'] === 'admin.support.index' && $openTickets > 0)
-          <span class="text-[10px] font-bold bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0">
+          <span class="admin-nav-badge text-[10px] font-bold bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0">
             {{ $openTickets > 9 ? '9+' : $openTickets }}
           </span>
         @endif
@@ -96,29 +237,46 @@
       @endforeach
     </nav>
 
-    <div class="p-3 border-t border-gray-800">
-      <div class="px-3 py-2 text-xs text-gray-500">
+    <div class="admin-sidebar-footer p-3 border-t border-gray-800 mt-auto">
+      <div class="admin-sidebar-footer-text px-3 py-2 text-xs text-gray-500">
         <p class="font-medium text-gray-300 truncate">{{ Auth::user()->name }}</p>
         <p class="text-gray-500 truncate">{{ Auth::user()->email }}</p>
       </div>
       <a href="{{ route('dashboard') }}"
-         class="flex items-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-white rounded-xl hover:bg-gray-800 transition-colors">
-        ← Back to EasyGrox
+         data-title="Back to EasyGrox"
+         class="admin-footer-link flex items-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-white rounded-xl hover:bg-gray-800 transition-colors">
+        <svg class="w-4 h-4 shrink-0 nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <span>← Back to EasyGrox</span>
       </a>
       <form method="POST" action="{{ route('logout') }}">
         @csrf
-        <button type="submit" class="flex items-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-red-400 rounded-xl hover:bg-gray-800 transition-colors w-full">
-          Sign out
+        <button type="submit"
+                data-title="Sign out"
+                class="admin-footer-link flex items-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-red-400 rounded-xl hover:bg-gray-800 transition-colors w-full">
+          <svg class="w-4 h-4 shrink-0 nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          <span>Sign out</span>
         </button>
       </form>
+    </div>
     </div>
   </aside>
 
   {{-- Main --}}
   <main class="flex-1 min-h-0 overflow-y-auto bg-gray-950">
     {{-- Top bar --}}
-    <div class="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-      <h1 class="text-[15px] font-semibold text-white">@yield('page-title', 'Admin')</h1>
+    <div class="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2 min-w-0">
+        <button type="button"
+                @click="sidebarCollapsed = !sidebarCollapsed"
+                class="flex p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 shrink-0 transition-colors"
+                title="Toggle sidebar"
+                aria-label="Toggle sidebar">
+          <svg class="w-4 h-4 transition-transform duration-200" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 class="text-[15px] font-semibold text-white truncate">@yield('page-title', 'Admin')</h1>
+      </div>
       <span class="px-2.5 py-1 text-xs font-bold bg-red-900/50 text-red-300 rounded-lg border border-red-800/50 uppercase tracking-wider">
         Super Admin
       </span>

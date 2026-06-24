@@ -57,7 +57,17 @@ final class AuthPanel
             return true;
         }
 
-        return session('impersonating') === true;
+        return session('impersonating') === true || AdminStoreBrowse::isActive();
+    }
+
+    public static function isAdminStoreBrowse(): bool
+    {
+        return AdminStoreBrowse::isActive();
+    }
+
+    public static function adminStoreBrowseSalonName(): ?string
+    {
+        return AdminStoreBrowse::session()['salon_name'] ?? null;
     }
 
     public static function canAccessUrl(User $user, string $url): bool

@@ -128,7 +128,7 @@ Route::prefix('v1')->middleware(['sanitize'])->group(function () {
         });
 
         /* ── All below require resolved salon context ────────────────────── */
-        Route::middleware(['salon.access', 'cross.tenant', 'audit.request', InitializeTenancyFromDomain::class, 'tenant'])->prefix('salon')->group(function () {
+        Route::middleware(['salon.access', 'plan.access', 'cross.tenant', 'audit.request', InitializeTenancyFromDomain::class, 'tenant'])->prefix('salon')->group(function () {
 
             /* ── Salon profile & settings ───────────────────────────────── */
             Route::get('/',        [SalonController::class, 'show']);

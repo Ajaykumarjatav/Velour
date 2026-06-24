@@ -5,14 +5,6 @@
 
 <div class="space-y-5" x-data="{ suspendModal: false, unsuspendModal: false, overrideModal: false }">
 
-  {{-- Flash --}}
-  @if(session('success'))
-  <div class="px-4 py-3 bg-green-900/30 border border-green-800/50 rounded-xl text-sm text-green-300">{{ session('success') }}</div>
-  @endif
-  @if($errors->any())
-  <div class="px-4 py-3 bg-red-900/30 border border-red-800/50 rounded-xl text-sm text-red-300">{{ $errors->first() }}</div>
-  @endif
-
   {{-- Header --}}
   <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 justify-between">
     <div>
@@ -24,7 +16,7 @@
           <span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-red-900/50 text-red-400 border border-red-800/50">Suspended</span>
         @endif
         <span class="px-2.5 py-1 rounded-xl text-xs font-semibold bg-gray-800 text-gray-400">
-          {{ ucfirst($owner?->plan ?? 'free') }} plan
+          {{ \App\Billing\Plan::labelFor($owner?->plan) }} plan
         </span>
       </div>
       <p class="text-sm text-gray-500 mt-1 font-mono">{{ $salon->slug }}.easygrox.com</p>
@@ -74,6 +66,75 @@
     @endforeach
   </div>
 
+  @include('admin.tenants.partials.context-bar', ['salon' => $salon])
+
+  {{-- Module grid --}}
+  @php use App\Support\AdminTenantModuleRegistry; $hubModules = AdminTenantModuleRegistry::hubModules(); @endphp
+  <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Store data</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+      @foreach($hubModules as $key => $meta)
+        @php
+          $routeName = 'admin.tenants.'.$meta['route'];
+          $count = $meta['count_key'] ? ($counts[$meta['count_key']] ?? null) : null;
+        @endphp
+        @if(Route::has($routeName))
+        <a href="{{ route($routeName, $salon->id) }}"
+           class="block p-4 rounded-xl border border-gray-800 hover:border-velour-700/50 hover:bg-gray-800/50 transition-colors">
+          <p class="text-2xl font-bold text-white">{{ $count !== null ? number_format($count) : '→' }}</p>
+          <p class="text-xs text-gray-500 mt-1">{{ $meta['label'] }}</p>
+        </a>
+        @endif
+      @endforeach
+    </div>
+  </div>
+
+  {{-- Recent activity --}}
+  <div class="grid lg:grid-cols-3 gap-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase mb-3">Recent appointments</h3>
+      <ul class="space-y-2 text-sm">
+        @forelse($recent['appointments'] as $a)
+        <li>
+          <a href="{{ route('admin.tenants.appointments.show', [$salon->id, $a->id]) }}" class="text-gray-300 hover:text-white">
+            {{ $a->starts_at?->format('j M') }} · {{ $a->client?->full_name ?? '—' }}
+          </a>
+        </li>
+        @empty
+        <li class="text-gray-600">None yet</li>
+        @endforelse
+      </ul>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase mb-3">Recent sales</h3>
+      <ul class="space-y-2 text-sm">
+        @forelse($recent['pos'] as $tx)
+        <li>
+          <a href="{{ route('admin.tenants.pos.show', [$salon->id, $tx->id]) }}" class="text-gray-300 hover:text-white">
+            {{ $tx->created_at?->format('j M') }} · £{{ number_format((float)$tx->total, 0) }}
+          </a>
+        </li>
+        @empty
+        <li class="text-gray-600">None yet</li>
+        @endforelse
+      </ul>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase mb-3">New clients</h3>
+      <ul class="space-y-2 text-sm">
+        @forelse($recent['clients'] as $c)
+        <li>
+          <a href="{{ route('admin.tenants.clients.show', [$salon->id, $c->id]) }}" class="text-gray-300 hover:text-white">
+            {{ $c->full_name }}
+          </a>
+        </li>
+        @empty
+        <li class="text-gray-600">None yet</li>
+        @endforelse
+      </ul>
+    </div>
+  </div>
+
   <div class="grid lg:grid-cols-3 gap-5">
 
     {{-- Salon details --}}
@@ -115,7 +176,7 @@
       </div>
       <dl class="space-y-2">
         @foreach([
-          'Plan'    => ucfirst($owner->plan ?? 'free'),
+          'Plan'    => \App\Billing\Plan::labelFor($owner->plan ?? null),
           '2FA'     => $owner->hasTwoFactorEnabled() ? '✓ Enabled' : '✗ Disabled',
           'Verified'=> $owner->hasVerifiedEmail() ? '✓ Yes' : '✗ No',
           'Last login' => $owner->last_login_at?->diffForHumans() ?? 'Never',
@@ -273,7 +334,7 @@
     </form>
   </div>
 
-  <a href="{{ route('admin.tenants') }}" class="inline-block text-sm text-gray-500 hover:text-gray-300">← All tenants</a>
+  <a href="{{ $owner ? route('admin.tenants.stores', $owner->id) : route('admin.tenants') }}" class="inline-block text-sm text-gray-500 hover:text-gray-300">← {{ $owner ? 'Stores' : 'All tenants' }}</a>
 
   {{-- ── Modals ──────────────────────────────────────────────────────────── --}}
 
@@ -369,8 +430,9 @@
         <div x-show="type==='plan'">
           <label class="block text-xs text-gray-400 mb-1.5">Override plan</label>
           <select name="override_plan" class="w-full px-4 py-2.5 text-sm bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
-            <option value="free">Free</option><option value="starter">Starter</option>
-            <option value="pro">Pro</option><option value="enterprise">Enterprise</option>
+            @foreach(\App\Billing\Plan::all() as $p)
+            <option value="{{ $p->key }}">{{ $p->name }}</option>
+            @endforeach
           </select>
         </div>
         <div x-show="type==='trial_extension'">

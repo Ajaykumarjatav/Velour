@@ -4,22 +4,23 @@ namespace App\Http\Controllers\Billing;
 
 use App\Billing\Plan;
 use App\Http\Controllers\Controller;
+use App\Services\Billing\CashfreeService;
+use App\Services\Billing\SubscriptionBillingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Laravel\Cashier\Exceptions\IncompletePayment;
 
 /**
- * BillingController
- *
- * Handles all user-facing subscription actions.
+ * BillingController — Cashfree subscription checkout & management.
  *
  * Routes prefix: /billing
- * Middleware:    auth, verified, 2fa, tenant
  */
 class BillingController extends Controller
 {
-    // ── Pricing page ──────────────────────────────────────────────────────────
+    public function __construct(
+        protected CashfreeService $cashfree,
+        protected SubscriptionBillingService $billing,
+    ) {}
 
     public function plans(Request $request)
     {
@@ -32,78 +33,66 @@ class BillingController extends Controller
         return view('billing.plans', compact('plans', 'interval', 'current', 'sub', 'user'));
     }
 
-    // ── Checkout — new subscription ───────────────────────────────────────────
-
     public function checkout(Request $request)
     {
-        if (! config('cashier.secret')) {
-            return back()->with('error', 'Payment processing is not configured yet. Please contact support.');
+        if (! $this->cashfree->isConfigured()) {
+            return back()->with('error', 'Cashfree is not configured yet. Please contact support.');
         }
 
         $request->validate([
-            'plan'     => 'required|in:starter,pro,enterprise',
+            'plan'     => 'required|'.Plan::paidValidationRule(),
             'interval' => 'required|in:monthly,yearly',
         ]);
 
-        $user     = Auth::user();
-        $plan     = Plan::findOrFail($request->plan);
-        $priceId  = $plan->stripePriceId($request->interval);
+        $user = Auth::user();
+        $plan = Plan::findOrFail($request->plan);
 
-        if (! $priceId) {
-            return back()->withErrors(['plan' => 'This plan is not available. Please contact support.']);
-        }
-
-        // Already subscribed → redirect to upgrade flow
         if ($user->subscribed('default')) {
-            return redirect()->route('billing.change', [
-                'plan'     => $request->plan,
-                'interval' => $request->interval,
-            ]);
+            return redirect()->route('billing.change', $request->only('plan', 'interval'));
         }
 
-        // Build Checkout session
-        $checkout = $user->newSubscription('default', $priceId)
-            ->trialDays($plan->trialDays)
-            ->allowPromotionCodes()
-            ->checkout([
-                'success_url' => route('billing.success') . '?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url'  => route('billing.plans'),
-                'metadata' => [
-                    'plan'     => $plan->key,
-                    'interval' => $request->interval,
-                    'user_id'  => $user->id,
-                ],
-                'subscription_data' => [
-                    'metadata' => [
-                        'plan'     => $plan->key,
-                        'interval' => $request->interval,
-                    ],
-                ],
-                'customer_email' => $user->email,
-            ]);
+        try {
+            $response = $this->cashfree->createSubscription($user, $plan, $request->interval);
+        } catch (\Throwable $e) {
+            Log::error('[Billing] Cashfree checkout failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
-        return redirect($checkout->url);
+            return back()->withErrors(['plan' => 'Could not start checkout. '.$e->getMessage()]);
+        }
+
+        $subscriptionId = (string) ($response['subscription_id'] ?? '');
+        $sessionId      = (string) ($response['subscription_session_id'] ?? '');
+
+        if ($subscriptionId === '' || $sessionId === '') {
+            return back()->withErrors(['plan' => 'Cashfree did not return a checkout session.']);
+        }
+
+        $this->billing->upsertPending($user, $subscriptionId, $plan->key, $request->interval);
+
+        return view('billing.cashfree-checkout', [
+            'sessionId' => $sessionId,
+            'mode'      => $this->cashfree->sdkMode(),
+            'plan'      => $plan,
+            'interval'  => $request->interval,
+        ]);
     }
-
-    // ── Checkout success ──────────────────────────────────────────────────────
 
     public function success(Request $request)
     {
-        // Cashier auto-processes the session via webhooks; just show a page
+        $subscriptionId = (string) $request->query('subscription_id', '');
+
+        if ($subscriptionId !== '') {
+            $this->billing->syncFromApi($subscriptionId);
+        }
+
         return view('billing.success', [
             'plan' => Auth::user()->currentPlan(),
         ]);
     }
 
-    // ── Change plan (upgrade or downgrade) ────────────────────────────────────
-
-    /**
-     * Show the change-plan confirmation page.
-     */
     public function showChangePlan(Request $request)
     {
         $request->validate([
-            'plan'     => 'required|in:starter,pro,enterprise',
+            'plan'     => 'required|'.Plan::paidValidationRule(),
             'interval' => 'required|in:monthly,yearly',
         ]);
 
@@ -116,56 +105,37 @@ class BillingController extends Controller
         return view('billing.upgrade-confirm', compact('targetPlan', 'current', 'interval', 'sub', 'user'));
     }
 
-    // ── Change plan (upgrade or downgrade) — execute ──────────────────────────
-
     public function changePlan(Request $request)
     {
+        if (! $this->cashfree->isConfigured()) {
+            return back()->with('error', 'Cashfree is not configured yet.');
+        }
+
         $request->validate([
-            'plan'     => 'required|in:starter,pro,enterprise',
+            'plan'     => 'required|'.Plan::paidValidationRule(),
             'interval' => 'required|in:monthly,yearly',
         ]);
 
-        $user    = Auth::user();
-        $plan    = Plan::findOrFail($request->plan);
-        $priceId = $plan->stripePriceId($request->interval);
+        $user = Auth::user();
+        $plan = Plan::findOrFail($request->plan);
+        $sub  = $user->subscription('default');
 
-        if (! $priceId) {
-            return back()->withErrors(['plan' => 'This plan configuration is unavailable.']);
-        }
-
-        $sub = $user->subscription('default');
-
-        if (! $sub) {
+        if (! $sub || ! in_array($sub->stripe_status, ['active', 'past_due', 'trialing'], true)) {
             return redirect()->route('billing.checkout', $request->only('plan', 'interval'));
         }
 
-        // If currently on trial, swap immediately (no proration needed)
-        if ($sub->onTrial()) {
-            $sub->swapAndInvoice($priceId);
-            $this->syncPlanToUser($user, $plan->key);
-
-            return redirect()->route('billing.dashboard')
-                ->with('success', "Plan changed to {$plan->name}. Trial continues until " . $sub->trial_ends_at->format('d M Y') . '.');
+        try {
+            $this->billing->changePlan($user, $plan->key, $request->interval);
+        } catch (\Throwable $e) {
+            return back()->withErrors(['plan' => $e->getMessage()]);
         }
 
-        // Upgrade: swap and invoice immediately (user pays the prorated diff now)
-        if ($plan->isUpgradeFrom($user->plan ?? 'free')) {
-            $sub->swapAndInvoice($priceId);
-            $this->syncPlanToUser($user, $plan->key);
+        $message = $plan->isUpgradeFrom($user->plan ?? config('billing.default_plan', 'trial'))
+            ? "Upgraded to {$plan->name}."
+            : "Plan changed to {$plan->name}.";
 
-            return redirect()->route('billing.dashboard')
-                ->with('success', "Upgraded to {$plan->name}. You've been charged the prorated difference.");
-        }
-
-        // Downgrade: swap at end of billing period (no immediate charge)
-        $sub->swap($priceId);
-        $this->syncPlanToUser($user, $plan->key);
-
-        return redirect()->route('billing.dashboard')
-            ->with('success', "Plan changed to {$plan->name}. The change takes effect at your next billing date.");
+        return redirect()->route('billing.dashboard')->with('success', $message);
     }
-
-    // ── Cancel subscription ───────────────────────────────────────────────────
 
     public function showCancel()
     {
@@ -178,9 +148,9 @@ class BillingController extends Controller
         }
 
         return view('billing.cancel', [
-            'user'    => $user,
-            'sub'     => $sub,
-            'endsAt'  => $sub->ends_at ?? now()->endOfMonth(),
+            'user'   => $user,
+            'sub'    => $sub,
+            'endsAt' => $sub->ends_at ?? now()->endOfMonth(),
         ]);
     }
 
@@ -203,121 +173,49 @@ class BillingController extends Controller
             return back()->with('info', 'No active subscription to cancel.');
         }
 
-        // Cancel at end of billing period (not immediate)
-        $sub->cancel();
+        try {
+            $this->billing->cancel($user, immediately: false);
+        } catch (\Throwable $e) {
+            return back()->withErrors(['password' => 'Could not cancel subscription. Please try again.']);
+        }
 
         Log::info('[Billing] Subscription cancelled', [
             'user_id' => $user->id,
             'reason'  => $request->reason,
-            'ends_at' => $sub->ends_at,
         ]);
 
         return redirect()->route('billing.dashboard')
-            ->with('success', 'Subscription cancelled. You have access until ' . $sub->ends_at->format('d M Y') . '.');
+            ->with('success', 'Subscription cancelled. You have access until the end of the current billing period.');
     }
-
-    // ── Resume cancelled subscription ─────────────────────────────────────────
 
     public function resume(Request $request)
     {
-        $user = Auth::user();
-        $sub  = $user->subscription('default');
-
-        if (! $sub || ! $sub->onGracePeriod()) {
-            return back()->with('info', 'Nothing to resume — subscription is already active or fully expired.');
-        }
-
-        $sub->resume();
-
-        return redirect()->route('billing.dashboard')
-            ->with('success', 'Subscription resumed. Billing continues as normal.');
+        return back()->with('info', 'Please contact support to resume a cancelled Cashfree subscription.');
     }
-
-    // ── Stripe Customer Portal ────────────────────────────────────────────────
 
     public function portal(Request $request)
     {
-        if (! config('cashier.secret')) {
-            return redirect()->route('billing.dashboard')
-                ->with('error', 'Payment processing is not configured yet. Please contact support.');
-        }
-
-        $user = Auth::user();
-
-        // Create Stripe customer if they don't have one yet
-        if (! $user->stripe_id) {
-            $user->createAsStripeCustomer([
-                'email' => $user->email,
-                'name'  => $user->name,
-                'metadata' => ['user_id' => $user->id],
-            ]);
-        }
-
-        return $user->redirectToCustomerPortal(
-            route('billing.dashboard')
-        );
+        return redirect()->route('billing.dashboard')
+            ->with('info', 'Manage your plan and payment method from this billing page.');
     }
-
-    // ── Billing dashboard ─────────────────────────────────────────────────────
 
     public function dashboard(Request $request)
     {
-        $user     = Auth::user();
-        $sub      = $user->subscription('default');
-        $current  = $user->currentPlan();
-        $invoices = [];
+        $user    = Auth::user();
+        $sub     = $user->subscription('default');
+        $current = $user->currentPlan();
 
-        if ($user->stripe_id) {
-            try {
-                $invoices = $user->invoices();
-            } catch (\Throwable) {
-                $invoices = [];
-            }
-        }
-
-        return view('billing.dashboard', compact('user', 'sub', 'current', 'invoices'));
+        return view('billing.dashboard', compact('user', 'sub', 'current'));
     }
-
-    // ── Invoice download ──────────────────────────────────────────────────────
 
     public function downloadInvoice(Request $request, string $invoiceId)
     {
-        $user = Auth::user();
-
-        return $user->downloadInvoice($invoiceId, [
-            'vendor'  => 'EasyGrox',
-            'product' => 'Salon Management Subscription',
-            'street'  => '1 EasyGrox Way',
-            'location'=> 'London',
-            'country' => 'United Kingdom',
-            'url'     => config('app.url'),
-        ]);
+        return redirect()->route('billing.dashboard')
+            ->with('info', 'Invoices are sent by Cashfree to your registered email.');
     }
-
-    // ── Apply promo / coupon ──────────────────────────────────────────────────
 
     public function applyPromo(Request $request)
     {
-        $request->validate(['promo_code' => 'required|string|max:50']);
-
-        $user = Auth::user();
-
-        try {
-            $user->applyPromotionCode($request->promo_code);
-            return back()->with('success', 'Promo code applied successfully.');
-        } catch (\Throwable $e) {
-            return back()->withErrors(['promo_code' => 'Invalid or expired promo code.']);
-        }
-    }
-
-    // ── Private ───────────────────────────────────────────────────────────────
-
-    /**
-     * Keep users.plan in sync with the Stripe subscription.
-     * This is the app-side record; Stripe is the source of truth.
-     */
-    private function syncPlanToUser($user, string $planKey): void
-    {
-        $user->update(['plan' => $planKey]);
+        return back()->with('info', 'Promo codes are not available for Cashfree billing yet.');
     }
 }

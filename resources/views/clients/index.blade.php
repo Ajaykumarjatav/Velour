@@ -65,6 +65,7 @@
         </form>
         <div class="flex flex-wrap items-center gap-2 shrink-0 lg:border-l lg:border-gray-200 lg:dark:border-gray-800 lg:pl-3">
             @if(!($isScopedStaffPanel ?? false))
+            <x-unless-admin-browse>
             <button type="button" class="btn-outline whitespace-nowrap" @click="openReviewRequest = true" title="Send email review requests to eligible clients">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
                 Request Reviews
@@ -85,16 +86,19 @@
                     Sample CSV
                 </a>
             </div>
+            </x-unless-admin-browse>
             <a href="{{ route('clients.export') }}" class="btn-outline inline-flex items-center justify-center gap-1.5">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Export
             </a>
             @endif
+            @unless(\App\Support\AuthPanel::isAdminStoreBrowse())
             <a href="{{ route('clients.create') }}" class="btn-primary whitespace-nowrap">+ Add Client</a>
+            @endunless
         </div>
     </div>
 
-    @if(!($isScopedStaffPanel ?? false))
+    @if(!($isScopedStaffPanel ?? false) && !($adminStoreBrowse ?? false))
     <x-modal-overlay show="openReviewRequest" @click.self="openReviewRequest = false">
         <div class="w-full max-w-3xl" @click.stop>
             <div class="card p-6 max-h-[80vh] overflow-y-auto">
@@ -229,6 +233,7 @@
      x-data="{
         selectedClientId: {{ $firstClientId ? (int) $firstClientId : 'null' }},
         isScopedStaff: {{ ($isScopedStaffPanel ?? false) ? 'true' : 'false' }},
+        adminBrowse: {{ ($adminStoreBrowse ?? false) ? 'true' : 'false' }},
         clients: @js($clientRows),
         visibleHistory: [],
         loyaltyOptions: @js(($loyaltyTiers ?? collect())->map(fn($t) => ['id' => (string) $t->id, 'name' => (string) $t->name])->values()),
@@ -407,7 +412,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                        <button x-show="!isScopedStaff" type="button" @click="startEdit()" class="btn-outline btn-sm whitespace-nowrap">Edit</button>
+                        <button x-show="!isScopedStaff && !adminBrowse" type="button" @click="startEdit()" class="btn-outline btn-sm whitespace-nowrap">Edit</button>
                     </div>
                 </div>
 

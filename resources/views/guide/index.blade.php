@@ -50,7 +50,7 @@
                 <span class="font-semibold">6. Add clients</span>
                 <span class="text-muted text-xs block mt-1">Clients list + quick import</span>
             </a>
-            <a href="{{ route('appointments.create') }}" class="sidebar-link !no-underline">
+            <a href="{{ route('appointments.' . (($adminStoreBrowse ?? false) ? 'index' : 'create')) }}" class="sidebar-link !no-underline">
                 <span class="font-semibold">7. Book a test appointment</span>
                 <span class="text-muted text-xs block mt-1">Confirm staff/service availability</span>
             </a>

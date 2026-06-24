@@ -141,16 +141,7 @@ class AdminBillingController extends Controller
         }
 
         try {
-            $payload = json_decode($call->payload, true);
-            $event   = \Stripe\Event::constructFrom($payload);
-
-            app(\App\Http\Controllers\Billing\WebhookController::class)
-                ->handle(new \Illuminate\Http\Request()); // simplified — real replay via Stripe CLI
-
-            DB::table('webhook_calls')->where('id', $id)
-              ->update(['status' => 'processed', 'exception' => null, 'updated_at' => now()]);
-
-            return back()->with('success', "Webhook #{$id} replayed successfully.");
+            return back()->with('info', 'Webhook replay is not supported for Cashfree events yet.');
         } catch (\Throwable $e) {
             return back()->withErrors(['error' => 'Replay failed: ' . $e->getMessage()]);
         }

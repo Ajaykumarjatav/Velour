@@ -8,6 +8,7 @@ use App\Models\Salon;
 use App\Support\RegistrationStaff;
 use App\Support\RegistrationStarterServices;
 use Illuminate\Http\JsonResponse;
+use App\Billing\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -41,7 +42,7 @@ class AuthController extends Controller
             'staff_members.*.commission_rate' => 'nullable|numeric|min:0|max:100',
             'staff_members.*.bio'    => 'nullable|string|max:1000',
             'staff_members.*.color'  => 'nullable|string|max:7',
-            'plan'                 => 'nullable|in:free,starter,pro,enterprise',
+            'plan'                 => 'nullable|'.Plan::validationRule(),
         ]);
 
         $typeIds = array_values(array_unique(array_map('intval', $data['business_type_ids'])));
@@ -86,7 +87,8 @@ class AuthController extends Controller
             'name'     => $data['name'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
-            'plan'     => $data['plan'] ?? 'free',
+            'plan'     => $data['plan'] ?? config('billing.default_plan', 'trial'),
+            'trial_ends_at' => now()->addDays((int) config('billing.trial_days', 15)),
         ]);
 
         $slug = Str::slug($data['salon_name']);

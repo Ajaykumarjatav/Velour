@@ -11,7 +11,16 @@
     @endif
   @endforeach
 
-  @if($user->onTrial())
+  @if($planExpired ?? false)
+  <div class="rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-5 py-4 text-sm text-red-800 dark:text-red-200">
+    <p class="font-semibold text-base mb-1">Your plan has expired</p>
+    <p>Choose a plan below to restore access to your salon dashboard, appointments, POS, and all other modules.</p>
+  </div>
+  @elseif($current->isTrial() && $user->trial_ends_at?->isFuture())
+  <div class="alert-info">
+    <span>You're on the <strong>15-day trial</strong> — ends <strong>{{ $user->trial_ends_at->format('d M Y') }}</strong>. Upgrade to a paid plan to keep all stores after the trial.</span>
+  </div>
+  @elseif($user->onTrial())
   <div class="alert-info">
     <span>You're on a <strong>free trial</strong> — ends <strong>{{ $user->subscription('default')?->trial_ends_at?->format('d M Y') }}</strong>. Add a payment method to continue after the trial.</span>
   </div>
@@ -42,7 +51,7 @@
     </div>
   </div>
 
-  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
     @foreach($plans as $plan)
     @php
       $isCurrent   = $current->key === $plan->key;
@@ -64,15 +73,15 @@
             @if($plan->priceMonthly === 0)
             <p class="text-4xl font-black">Free</p>
             @else
-            <p class="text-4xl font-black">{{ config('billing.currency_symbol','£') }}{{ $plan->priceMonthly }}<span class="text-base font-normal opacity-75">/mo</span></p>
+            <p class="text-4xl font-black">{{ config('billing.currency_symbol','₹') }}{{ $plan->priceMonthly }}<span class="text-base font-normal opacity-75">/mo</span></p>
             @endif
           </div>
           <div x-show="interval==='yearly'" x-cloak>
             @if($plan->priceYearly === 0)
             <p class="text-4xl font-black">Free</p>
             @else
-            <p class="text-4xl font-black">{{ config('billing.currency_symbol','£') }}{{ $plan->priceYearly }}<span class="text-base font-normal opacity-75">/yr</span></p>
-            <p class="text-xs opacity-75 mt-1">{{ config('billing.currency_symbol','£') }}{{ number_format($plan->monthlyEquivalentYearly(), 0) }}/mo</p>
+            <p class="text-4xl font-black">{{ config('billing.currency_symbol','₹') }}{{ $plan->priceYearly }}<span class="text-base font-normal opacity-75">/yr</span></p>
+            <p class="text-xs opacity-75 mt-1">{{ config('billing.currency_symbol','₹') }}{{ number_format($plan->monthlyEquivalentYearly(), 0) }}/mo</p>
             @endif
           </div>
         </div>
@@ -81,7 +90,10 @@
       <div class="px-6 py-5 flex-1">
         @php
           $featureLabels = ['online_booking'=>'Online booking','marketing'=>'Email & SMS marketing','reports'=>'Advanced reports','api_access'=>'API access','custom_domain'=>'Custom domain','priority_support'=>'Priority support','white_label'=>'White-label','multi_location'=>'Multi-location','remove_branding'=>'Remove EasyGrox branding'];
-          $limits = ['staff'=>$plan->isUnlimited('staff') ? 'Unlimited staff' : $plan->limit('staff').' staff','clients'=>$plan->isUnlimited('clients') ? 'Unlimited clients' : number_format($plan->limit('clients')).' clients','services'=>$plan->isUnlimited('services') ? 'Unlimited services' : $plan->limit('services').' services'];
+          $limits = [
+            $plan->limit('stores').' store'.($plan->limit('stores') === 1 ? '' : 's'),
+            'All features included',
+          ];
         @endphp
         <ul class="space-y-2.5 mb-4">
           @foreach($limits as $limitLabel)
@@ -103,8 +115,8 @@
       <div class="px-6 pb-6">
         @if($isCurrent)
           <div class="w-full py-2.5 text-center text-sm font-semibold rounded-2xl bg-gray-100 dark:bg-gray-800 text-muted cursor-default">Current plan</div>
-        @elseif($plan->isFree())
-          <div class="w-full py-2.5 text-center text-sm font-medium rounded-2xl border border-gray-200 dark:border-gray-700 text-muted cursor-not-allowed">Default on cancellation</div>
+        @elseif($plan->isTrial())
+          <div class="w-full py-2.5 text-center text-sm font-medium rounded-2xl border border-gray-200 dark:border-gray-700 text-muted cursor-not-allowed">Default for new accounts</div>
         @else
           <div x-show="interval==='monthly'">
             <form method="POST" action="{{ route('billing.checkout') }}">@csrf
@@ -131,7 +143,7 @@
     @endforeach
   </div>
 
-  @if($user->stripe_id)
+  @if($user->subscribed('default'))
   <p class="text-center text-sm text-muted">
     Manage your subscription and invoices in the
     <a href="{{ route('billing.dashboard') }}" class="text-link font-medium">billing dashboard</a>

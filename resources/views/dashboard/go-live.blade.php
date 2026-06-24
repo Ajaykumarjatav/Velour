@@ -56,21 +56,26 @@
     </div>
 
     {{-- Master on/off toggle --}}
-    <div class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl px-5 py-3 shadow-sm">
+    <div class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl px-5 py-3 shadow-sm"
+         :class="readOnly ? 'opacity-80' : ''">
       <div>
         <p class="text-sm font-semibold text-gray-800 dark:text-white">Online Booking</p>
         <p class="text-xs text-gray-400 dark:text-gray-500" x-text="salon.online_booking_enabled ? 'Clients can book right now' : 'Booking page is hidden'"></p>
+        <p x-show="readOnly" x-cloak class="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">View-only — cannot be changed</p>
       </div>
       <div class="flex flex-col items-end gap-1">
         <button
           type="button"
-          @click="toggleBooking()"
-          :class="salon.online_booking_enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
-          class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50"
+          @click="!readOnly && toggleBooking()"
+          class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50"
+          :class="[
+            salon.online_booking_enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600',
+            readOnly ? 'cursor-not-allowed' : 'cursor-pointer',
+          ]"
           :aria-checked="salon.online_booking_enabled"
           role="switch"
           aria-label="Toggle online booking"
-          :disabled="saving"
+          :disabled="saving || readOnly"
         >
           <span
             :class="salon.online_booking_enabled ? 'translate-x-6' : 'translate-x-1'"
@@ -361,6 +366,7 @@
               'themes' => $themes,
               'themeSlug' => $themeSlug,
               'themeLabel' => $themeLabel,
+              'readOnly' => $adminStoreBrowse ?? false,
             ])
           </div>
 
@@ -402,9 +408,9 @@
               Advanced: UTM link builder
             </summary>
             <div class="mt-3 grid sm:grid-cols-3 gap-2" x-data="{ source:'', medium:'', campaign:'' }">
-              <input x-model="source"   placeholder="utm_source (e.g. instagram)"  class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none">
-              <input x-model="medium"   placeholder="utm_medium (e.g. bio)"        class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none">
-              <input x-model="campaign" placeholder="utm_campaign (e.g. summer25)"  class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none">
+              <input x-model="source"   placeholder="utm_source (e.g. instagram)"  class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none {{ ($adminStoreBrowse ?? false) ? 'opacity-60 cursor-not-allowed' : '' }}" @if($adminStoreBrowse ?? false) readonly @endif>
+              <input x-model="medium"   placeholder="utm_medium (e.g. bio)"        class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none {{ ($adminStoreBrowse ?? false) ? 'opacity-60 cursor-not-allowed' : '' }}" @if($adminStoreBrowse ?? false) readonly @endif>
+              <input x-model="campaign" placeholder="utm_campaign (e.g. summer25)"  class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none {{ ($adminStoreBrowse ?? false) ? 'opacity-60 cursor-not-allowed' : '' }}" @if($adminStoreBrowse ?? false) readonly @endif>
               <div class="sm:col-span-3 flex gap-2 mt-1">
                 <div class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-lg px-3 py-2 text-xs text-gray-500 dark:text-gray-400 truncate font-mono"
                      x-text="bookingUrl + (source||medium||campaign ? '?utm_source='+encodeURIComponent(source)+'&utm_medium='+encodeURIComponent(medium)+'&utm_campaign='+encodeURIComponent(campaign) : '')">
@@ -435,7 +441,7 @@
               <a
                 :href="channel.href"
                 target="_blank" rel="noopener noreferrer"
-                @click="trackClick(channel.id)"
+                @click="!readOnly && trackClick(channel.id)"
                 class="flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-100 hover:border-opacity-60 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
                 :style="`background:${channel.bg}; border-color:${channel.border};`"
               >
@@ -455,7 +461,7 @@
               <span>🔗</span>
               <span class="font-medium">Copy booking link</span>
             </div>
-            <button @click="copyUrl(bookingUrl, 'social'); trackClick('copy_link')"
+            <button @click="copyUrl(bookingUrl, 'social'); !readOnly && trackClick('copy_link')"
               class="copy-btn border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-amber-300 hover:text-amber-600">
               <span x-text="copied.social ? '✅ Copied!' : '📋 Copy'"></span>
             </button>
@@ -483,7 +489,7 @@
             <pre class="embed-code" x-show="embedTab === 'js'"     x-text="embedCodes.js"    x-cloak></pre>
             <pre class="embed-code" x-show="embedTab === 'react'"  x-text="embedCodes.react"  x-cloak></pre>
             <button
-              @click="copyUrl(embedCodes[embedTab], 'embed'); trackClick('embed')"
+              @click="copyUrl(embedCodes[embedTab], 'embed'); !readOnly && trackClick('embed')"
               class="absolute top-3 right-3 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs px-3 py-1.5 rounded-lg transition opacity-0 group-hover:opacity-100">
               <span x-text="copied.embed ? '✅ Copied' : '📋 Copy'"></span>
             </button>
@@ -512,7 +518,7 @@
           </div>
           <div class="w-full space-y-2">
             <a :href="qrUrl + '&format=png'" download="velour-booking-qr.png"
-              @click="trackClick('qr_download')"
+              @click="!readOnly && trackClick('qr_download')"
               class="flex items-center justify-center gap-2 w-full bg-gray-900 dark:bg-gray-700 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-600 transition">
               ⬇ Download PNG
             </a>
@@ -587,6 +593,7 @@ const _serverData = {
 // ── Alpine component ───────────────────────────────────────────────────────
 function goLivePage() {
   return {
+    readOnly: @json($adminStoreBrowse ?? false),
     // State
     loading:     true,
     saving:      false,
@@ -760,10 +767,12 @@ function goLivePage() {
 
     // ── Actions ──────────────────────────────────────────────────────────
     async toggleBooking() {
+      if (this.readOnly) return;
       await this.saveSetting('online_booking_enabled', !this.salon.online_booking_enabled);
     },
 
     async saveSetting(key, value) {
+      if (this.readOnly) return;
       const previousValue = this.salon[key];
       this.saving = true;
       this.saveOk = false;
@@ -793,6 +802,7 @@ function goLivePage() {
     },
 
     async trackClick(platform) {
+      if (this.readOnly) return;
       this.shareClicks[platform] = (this.shareClicks[platform] ?? 0) + 1; // optimistic
       try {
         await fetch('/api/v1/salon/share/track-click', {

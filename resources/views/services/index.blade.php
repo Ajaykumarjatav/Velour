@@ -149,11 +149,13 @@
                     Categories
                 </a>
             </div>
+            <x-unless-admin-browse>
             <a href="{{ route('services.create') }}"
                class="btn-primary inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl shadow-md shadow-velour-600/20 dark:shadow-velour-900/25 active:scale-[0.97] transition-transform duration-150 shrink-0">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Service</span>
             </a>
+            </x-unless-admin-browse>
         </div>
     </div>
 
@@ -221,16 +223,24 @@
                                             {{ $svc->duration_minutes }} min
                                         </span>
                                         @if($vCount > 0)
+                                            @if($adminStoreBrowse ?? false)
+                                            <span class="text-xs font-medium">{{ $vCount }} {{ Str::plural('variant', $vCount) }}</span>
+                                            @else
                                             <button type="button" class="text-velour-600 dark:text-velour-400 hover:underline font-medium text-xs"
                                                     @click="openVariants({{ \Illuminate\Support\Js::from(route('services.variants', $svc)) }}, {{ \Illuminate\Support\Js::from($svc->name) }}, {{ \Illuminate\Support\Js::from($vList) }}, {{ \Illuminate\Support\Js::from($aList) }})">
                                                 {{ $vCount }} {{ Str::plural('variant', $vCount) }}
                                             </button>
+                                            @endif
                                         @endif
                                         @if($aCount > 0)
+                                            @if($adminStoreBrowse ?? false)
+                                            <span class="text-xs font-medium">{{ $aCount }} add-on{{ $aCount !== 1 ? 's' : '' }}</span>
+                                            @else
                                             <button type="button" class="text-velour-600 dark:text-velour-400 hover:underline font-medium text-xs"
                                                     @click="openVariants({{ \Illuminate\Support\Js::from(route('services.variants', $svc)) }}, {{ \Illuminate\Support\Js::from($svc->name) }}, {{ \Illuminate\Support\Js::from($vList) }}, {{ \Illuminate\Support\Js::from($aList) }})">
                                                 {{ $aCount }} add-on{{ $aCount !== 1 ? 's' : '' }}
                                             </button>
+                                            @endif
                                         @endif
                                     </div>
                                 </div>
@@ -244,6 +254,7 @@
                             </div>
 
                             <div class="flex items-center justify-end gap-2 lg:pl-2">
+                                @unless($adminStoreBrowse ?? false)
                                 <button type="button"
                                         class="svc-icon-btn svc-icon-btn--blue"
                                         title="Variants"
@@ -264,6 +275,7 @@
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     </button>
                                 </form>
+                                @endunless
                             </div>
                         </div>
                     @endforeach
@@ -301,9 +313,11 @@
                                 @endif
                             </div>
                             <div class="flex justify-end">
+                                @unless($adminStoreBrowse ?? false)
                                 <a href="{{ route('services.edit', $svc->id) }}" class="svc-icon-btn svc-icon-btn--neutral" title="Edit" aria-label="Edit service">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </a>
+                                @endunless
                             </div>
                         </div>
                     @endforeach
@@ -315,7 +329,9 @@
             <div class="card">
                 <div class="empty-state">
                     <p class="empty-state-title">No services yet</p>
+                    @unless($adminStoreBrowse ?? false)
                     <a href="{{ route('services.create') }}" class="btn-primary mt-4">Add your first service</a>
+                    @endunless
                 </div>
             </div>
         @elseif($categories->isEmpty() && $uncategorised->isEmpty())

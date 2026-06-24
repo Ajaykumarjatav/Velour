@@ -23,12 +23,14 @@ class Salon extends Model
         'stripe_account_id','online_booking_enabled','home_services_enabled','new_client_booking_enabled',
         'deposit_required','deposit_percentage','instant_confirmation',
         'booking_advance_days','cancellation_hours','opening_hours','is_active',
+        'suspension_reason','suspended_at','suspended_by',
     ];
     protected $casts = [
         'social_links'=>'array','opening_hours'=>'array',
         'online_booking_enabled'=>'boolean','home_services_enabled'=>'boolean','new_client_booking_enabled'=>'boolean',
         'deposit_required'=>'boolean','instant_confirmation'=>'boolean','is_active'=>'boolean',
         'deposit_percentage'=>'decimal:2','latitude'=>'decimal:7','longitude'=>'decimal:7',
+        'suspended_at'=>'datetime',
     ];
     public function owner()                { return $this->belongsTo(User::class,'owner_id'); }
 

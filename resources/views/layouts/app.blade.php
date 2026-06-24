@@ -459,11 +459,46 @@
         .text-body   { @apply text-gray-700 dark:text-gray-300; }
         .text-heading{ @apply text-gray-900 dark:text-white; }
         .text-link   { @apply text-velour-600 dark:text-velour-400 hover:underline; }
+
+        /* Admin store browse: salon panel is view-only (exports still allowed) */
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) input:not([type="hidden"]):not([readonly]),
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) select,
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) textarea {
+            pointer-events: none;
+            opacity: 0.72;
+        }
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) button[type="submit"],
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) input[type="submit"] {
+            display: none !important;
+        }
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) button[type="button"]:not(.admin-browse-allow) {
+            pointer-events: none;
+            opacity: 0.72;
+        }
+        .admin-store-browse-mode main a.btn-primary[href*="/create"]:not(.admin-browse-allow),
+        .admin-store-browse-mode main a.btn-primary[href*="/edit"]:not(.admin-browse-allow),
+        .admin-store-browse-mode main a[href*="/create"].btn-primary:not(.admin-browse-allow),
+        .admin-store-browse-mode main a[href*="/create"]:not(.admin-browse-allow):not([target="_blank"]),
+        .admin-store-browse-mode main a[href*="/edit"]:not(.admin-browse-allow):not([target="_blank"]),
+        .admin-store-browse-mode main .salon-write-ui {
+            display: none !important;
+        }
+
+        /* Admin store browse: slim full-width accent + header chip (no awkward main-only banner) */
+        .admin-browse-accent {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            z-index: 80;
+            background: linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #7c3aed 100%);
+        }
     </style>
     @stack('styles')
 </head>
 
-<body class="h-full bg-gray-50 dark:bg-gray-950 transition-colors duration-200"
+<body class="h-full bg-gray-50 dark:bg-gray-950 transition-colors duration-200 {{ ($adminStoreBrowse ?? false) ? 'admin-store-browse-mode' : '' }}"
       x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === '1' }"
       x-init="
         document.documentElement.classList.toggle('sidebar-is-collapsed', sidebarCollapsed);
@@ -472,6 +507,9 @@
             document.documentElement.classList.toggle('sidebar-is-collapsed', v);
         });
       ">
+@if(\App\Support\AuthPanel::isAdminStoreBrowse())
+<div class="admin-browse-accent" aria-hidden="true"></div>
+@endif
 <div class="flex h-full min-h-0">
 
     {{-- Desktop sidebar --}}
@@ -498,7 +536,7 @@
         <header class="sticky top-0 z-50 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
                        bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800
                        transition-colors duration-200 py-2 sm:py-0 isolate">
-            <div class="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 {{-- Mobile: open sidebar --}}
                 <button @click="sidebarOpen=true"
                         class="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0">
@@ -516,7 +554,26 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
                     </svg>
                 </button>
-                <h1 class="text-[15px] sm:text-base font-semibold tracking-tight text-gray-900 dark:text-white truncate">
+                @if(\App\Support\AuthPanel::isAdminStoreBrowse())
+                <div class="hidden md:flex items-center gap-2 shrink-0 pl-1 pr-2.5 py-1 rounded-lg border border-velour-200/70 dark:border-velour-800/60 bg-velour-50/80 dark:bg-velour-950/35 max-w-[14rem] lg:max-w-xs"
+                     title="Super admin browse — changes are disabled">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-md bg-velour-100 dark:bg-velour-900/50 text-velour-600 dark:text-velour-300 shrink-0" aria-hidden="true">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </span>
+                    <div class="min-w-0 leading-tight">
+                        <p class="text-[10px] font-semibold uppercase tracking-wide text-velour-600/90 dark:text-velour-400/90">Admin browse</p>
+                        <p class="text-xs font-medium text-gray-800 dark:text-gray-100 truncate">{{ \App\Support\AuthPanel::adminStoreBrowseSalonName() }}</p>
+                    </div>
+                    <span class="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-white/90 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700">View</span>
+                </div>
+                @endif
+                @if(\App\Support\AuthPanel::isAdminStoreBrowse())
+                <span class="md:hidden shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border border-velour-200 dark:border-velour-800 text-velour-600 dark:text-velour-400 bg-velour-50 dark:bg-velour-950/40">View</span>
+                @endif
+                <h1 class="text-[15px] sm:text-base font-semibold tracking-tight text-gray-900 dark:text-white truncate min-w-0">
                     @yield('page-title', 'Dashboard')
                 </h1>
             </div>
@@ -528,6 +585,23 @@
             @endif
 
             <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                @if(\App\Support\AuthPanel::isAdminStoreBrowse())
+                <form method="POST" action="{{ route('admin.store-browse.exit') }}" class="shrink-0">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold
+                                   text-velour-700 dark:text-velour-300
+                                   border border-velour-200 dark:border-velour-800
+                                   bg-white dark:bg-gray-900
+                                   hover:bg-velour-50 dark:hover:bg-velour-950/50 transition-colors">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        <span class="hidden sm:inline">Exit browse</span>
+                        <span class="sm:hidden">Exit</span>
+                    </button>
+                </form>
+                @endif
                 {{-- Theme toggle --}}
                 <button @click="$store.theme.toggle()"
                         class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -656,6 +730,7 @@
                                 Login activity logs
                             </a>
                         </div>
+                        @unless($adminStoreBrowse ?? \App\Support\AuthPanel::isAdminStoreBrowse())
                         <hr class="border-gray-100 dark:border-gray-800">
                         <div class="py-1">
                             <form action="{{ route('logout') }}" method="POST">
@@ -666,10 +741,13 @@
                                 </button>
                             </form>
                         </div>
+                        @endunless
                     </div>
                 </div>
             </div>
         </header>
+
+        @include('partials.subscription-reminder-bar')
 
         @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar) && !session('hide_profile_bar') && request()->routeIs('dashboard', 'settings.*'))
         @php

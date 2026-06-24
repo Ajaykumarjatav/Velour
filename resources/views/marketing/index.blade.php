@@ -21,7 +21,9 @@
             @endforeach
         </select>
     </form>
-    <a href="{{ route('marketing.create') }}" class="btn-primary flex-shrink-0 w-full sm:w-auto text-center">+ New Campaign</a>
+    <x-unless-admin-browse>
+    <a href="{{ route('marketing.create') }}" class="btn-primary flex-shrink-0 w-full sm:w-auto text-center salon-write-ui">+ New Campaign</a>
+    </x-unless-admin-browse>
 </div>
 
 <div class="table-wrap">
@@ -56,10 +58,12 @@
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('marketing.show', $campaign->id) }}" class="text-xs text-link font-medium">View</a>
                     @if(in_array($campaign->status, ['draft','scheduled']))
+                    <x-unless-admin-browse>
                     <form action="{{ route('marketing.send', $campaign->id) }}" method="POST" onsubmit="return confirm('Send this campaign now?')">
                         @csrf
                         <button type="submit" class="text-xs text-green-600 dark:text-green-400 hover:text-green-700 font-medium">Send</button>
                     </form>
+                    </x-unless-admin-browse>
                     @endif
                 </div>
             </td>

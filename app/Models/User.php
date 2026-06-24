@@ -40,7 +40,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected static function supportIdOffset(): int { return 20001; }
 
     protected $fillable = [
-        'name', 'email', 'email_verified_at', 'password', 'force_password_change', 'avatar', 'phone', 'experience', 'language_proficiency', 'timezone', 'locale', 'plan',
+        'name', 'email', 'email_verified_at', 'password', 'force_password_change', 'avatar', 'phone', 'experience', 'language_proficiency', 'timezone', 'locale', 'plan', 'trial_ends_at',
         'system_role', 'is_active', 'last_login_at',
         'two_factor_secret', 'two_factor_recovery_codes',
         'two_factor_confirmed_at', 'two_factor_method',
@@ -54,6 +54,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $casts = [
         'email_verified_at'           => 'datetime',
+        'trial_ends_at'               => 'datetime',
         'last_login_at'               => 'datetime',
         'two_factor_confirmed_at'     => 'datetime',
         'two_factor_expires_at'       => 'datetime',
@@ -206,11 +207,13 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Resolve the user's current Plan value object.
-     * Falls back to 'free' when no active subscription exists.
+     * Falls back to trial when no active subscription exists.
      */
     public function currentPlan(): Plan
     {
-        return Plan::find($this->plan ?? 'free') ?? Plan::findOrFail('free');
+        $default = (string) config('billing.default_plan', 'trial');
+
+        return Plan::find($this->plan ?? $default) ?? Plan::findOrFail($default);
     }
 
     /**

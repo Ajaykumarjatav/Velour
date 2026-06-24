@@ -4,132 +4,119 @@ namespace App\Http\Controllers\Admin;
 
 use App\Billing\Plan;
 use App\Http\Controllers\Controller;
-use App\Models\TenantPlanOverride;
 use App\Models\User;
+use App\Services\Admin\AdminPlanAssignmentService;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-/**
- * AdminPlanController
- *
- * Plan management for super-admins:
- *   • View all plans with subscriber counts and MRR
- *   • Change a tenant's plan (plan migration — bypasses Stripe, updates DB)
- *   • View and manage all active plan overrides
- *   • Expire overrides
- *   • Bulk migrate tenants to a new plan
- *
- * Note: Config-based plans (config/billing.php) cannot be created/deleted here;
- * that requires a deploy. This controller manages per-tenant overrides and
- * direct plan column changes.
- *
- * Routes prefix: /admin/plans
- * Guard: auth, verified, 2fa, super_admin
- */
 class AdminPlanController extends Controller
 {
-    public function __construct(protected AuditLogService $audit) {}
-
-    // ── Plan Overview ─────────────────────────────────────────────────────────
+    public function __construct(
+        protected AuditLogService $audit,
+        protected AdminPlanAssignmentService $assignment,
+    ) {}
 
     public function index()
     {
         $plans = Plan::all();
 
-        // Subscriber counts and MRR per plan
-        $planStats = User::select('plan', DB::raw('count(*) as count'))
+        $planStats = User::query()
+            ->whereHas('salons')
             ->whereNotNull('plan')
+            ->select('plan', DB::raw('count(*) as count'))
             ->groupBy('plan')
             ->pluck('count', 'plan');
 
         $planData = $plans->map(function (Plan $plan) use ($planStats) {
             $count = $planStats[$plan->key] ?? 0;
+
             return [
-                'plan'     => $plan,
-                'count'    => $count,
-                'mrr'      => $count * $plan->priceMonthly,
-                'arr'      => $count * $plan->priceMonthly * 12,
-                'yearly'   => $count * $plan->priceYearly,
+                'plan'  => $plan,
+                'count' => $count,
+                'mrr'   => $count * $plan->priceMonthly,
+                'arr'   => $count * $plan->priceMonthly * 12,
+                'yearly' => $count * $plan->priceYearly,
             ];
         });
 
-        // Active overrides
-        $overrides = TenantPlanOverride::active()
-            ->with(['salon:id,name,slug', 'appliedBy:id,name'])
-            ->latest()
-            ->paginate(20, ['*'], 'overrides_page');
+        $tenants = User::query()
+            ->whereHas('salons')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'plan', 'trial_ends_at']);
 
-        // Recently migrated (plan changes in last 30 days via audit log)
-        $recentMigrations = \App\Models\AuditLog::where('event', 'billing.plan_changed')
+        $recentAssignments = \App\Models\AuditLog::query()
+            ->where('event', 'billing.plan_changed')
             ->recent(24 * 30)
             ->latest('occurred_at')
-            ->limit(10)
+            ->limit(15)
             ->get();
 
-        return view('admin.plans.index', compact('planData', 'overrides', 'recentMigrations'));
+        return view('admin.plans.index', compact('planData', 'tenants', 'recentAssignments'));
     }
 
-    // ── Migrate Tenant Plan ───────────────────────────────────────────────────
-
-    public function migratePlan(Request $request)
+    public function assign(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
-            'plan'    => 'required|in:free,starter,pro,enterprise',
-            'reason'  => 'required|string|max:500',
+            'user_id'    => 'required|integer|exists:users,id',
+            'plan'       => 'required|'.Plan::validationRule(),
+            'trial_days' => 'nullable|integer|min:1|max:365',
+            'note'       => 'nullable|string|max:500',
         ]);
 
-        $user    = User::findOrFail($request->user_id);
-        $oldPlan = $user->plan;
+        $user = User::query()
+            ->whereHas('salons')
+            ->findOrFail($request->integer('user_id'));
 
-        $user->update(['plan' => $request->plan]);
-
-        $this->audit->billing(
-            'billing.plan_changed',
-            "Admin migrated {$user->email} from {$oldPlan} → {$request->plan}",
+        $this->assignment->assign(
             $user,
-            ['old_plan' => $oldPlan, 'new_plan' => $request->plan, 'reason' => $request->reason]
+            $request->string('plan')->toString(),
+            $request->filled('trial_days') ? $request->integer('trial_days') : null,
+            $request->input('note'),
         );
 
-        return back()->with('success', "{$user->name} moved from {$oldPlan} → {$request->plan}.");
+        $label = Plan::labelFor($request->plan);
+
+        return back()->with('success', "{$user->name} is now on {$label}. No payment required — access is active immediately.");
     }
 
-    // ── Expire Override ───────────────────────────────────────────────────────
-
-    public function expireOverride(int $id)
+    /** @deprecated Use assign() — kept for old form posts */
+    public function migratePlan(Request $request)
     {
-        $override = TenantPlanOverride::findOrFail($id);
-        $override->update(['is_active' => false, 'expires_at' => now()]);
+        $request->merge([
+            'user_id' => $request->input('user_id'),
+            'note'    => $request->input('reason'),
+        ]);
 
-        $this->audit->admin('admin.override.expired', "Expired plan override #{$id}");
-
-        return back()->with('success', 'Override expired.');
+        return $this->assign($request);
     }
-
-    // ── Bulk Plan Migration ───────────────────────────────────────────────────
 
     public function bulkMigrate(Request $request)
     {
         $request->validate([
-            'from_plan' => 'required|in:free,starter,pro,enterprise',
-            'to_plan'   => 'required|in:free,starter,pro,enterprise|different:from_plan',
-            'reason'    => 'required|string|max:500',
+            'from_plan' => 'required|'.Plan::validationRule(),
+            'to_plan'   => 'required|'.Plan::validationRule().'|different:from_plan',
             'confirm'   => 'required|accepted',
         ]);
 
-        $count = User::where('plan', $request->from_plan)->count();
+        $owners = User::query()
+            ->whereHas('salons')
+            ->where('plan', $request->from_plan)
+            ->get();
 
-        User::where('plan', $request->from_plan)
-            ->update(['plan' => $request->to_plan]);
+        foreach ($owners as $owner) {
+            $this->assignment->assign($owner, $request->string('to_plan')->toString(), null, 'Bulk migration');
+        }
 
-        $this->audit->admin('admin.bulk_plan_migrate',
-            "Bulk migrated {$count} users from {$request->from_plan} → {$request->to_plan}",
+        $count = $owners->count();
+
+        $this->audit->admin(
+            'admin.bulk_plan_migrate',
+            "Bulk assigned {$count} tenants from {$request->from_plan} → {$request->to_plan}",
             null,
-            ['from' => $request->from_plan, 'to' => $request->to_plan, 'count' => $count, 'reason' => $request->reason]
+            ['from' => $request->from_plan, 'to' => $request->to_plan, 'count' => $count]
         );
 
-        return back()->with('success', "{$count} users migrated from {$request->from_plan} to {$request->to_plan}.");
+        return back()->with('success', "{$count} tenant(s) moved to ".Plan::labelFor($request->to_plan).'.');
     }
 }

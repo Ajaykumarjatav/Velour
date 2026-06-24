@@ -40,8 +40,10 @@
                         </a>
                     @endforeach
                 </div>
-                <button type="button" class="btn-outline btn-sm" onclick="window.print()">Export PDF</button>
-                <button type="button" class="btn-primary btn-sm" @click="customOpen = true">Custom Report</button>
+                <button type="button" class="btn-outline btn-sm admin-browse-allow" onclick="window.print()">Export PDF</button>
+                <x-unless-admin-browse>
+                <button type="button" class="btn-primary btn-sm salon-write-ui" @click="customOpen = true">Custom Report</button>
+                </x-unless-admin-browse>
             </div>
         </div>
     </div>
@@ -311,7 +313,7 @@
             </template>
             <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-2">
                 <button type="button" class="btn-outline" @click="staffReportOpen=false">Close</button>
-                <button type="button" class="btn-primary" onclick="window.print()">Export PDF</button>
+                <button type="button" class="btn-primary admin-browse-allow" onclick="window.print()">Export PDF</button>
             </div>
         </div>
     </x-modal-overlay>

@@ -131,10 +131,9 @@
         'paused'   => 'bg-amber-900/50 text-amber-400',
       ];
       $planColors = [
-        'free'       => 'text-gray-500',
-        'starter'    => 'text-blue-400',
-        'pro'        => 'text-velour-400',
-        'enterprise' => 'text-amber-400',
+        'trial'    => 'text-blue-400',
+        'standard' => 'text-velour-400',
+        'premium'  => 'text-amber-400',
       ];
     @endphp
     <tr class="hover:bg-gray-800/30 transition-colors">
@@ -146,7 +145,7 @@
       </td>
       <td class="px-4 py-3.5 hidden md:table-cell">
         <span class="text-sm font-semibold {{ $planColors[$sub->plan] ?? 'text-gray-400' }}">
-          {{ ucfirst($sub->plan ?? 'free') }}
+          {{ \App\Billing\Plan::labelFor($sub->plan) }}
         </span>
       </td>
       <td class="px-4 py-3.5">

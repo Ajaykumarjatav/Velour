@@ -44,7 +44,9 @@
       <a href="{{ route('vouchers.index') }}" class="btn-outline">Clear</a>
     </div>
   </form>
-  <a href="{{ route('vouchers.create') }}" class="btn-primary flex-shrink-0 w-full sm:w-auto text-center">+ New Voucher</a>
+  <x-unless-admin-browse>
+  <a href="{{ route('vouchers.create') }}" class="btn-primary flex-shrink-0 w-full sm:w-auto text-center salon-write-ui">+ New Voucher</a>
+  </x-unless-admin-browse>
 </div>
 
 <div class="table-wrap">

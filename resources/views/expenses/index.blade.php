@@ -35,16 +35,8 @@
 @endphp
 
 <div class="space-y-5 pb-20 print:pb-0"
-     x-data="{ exportOpen: false, rangeOpen: false, saved: {{ session('expense_saved') ? 'true' : 'false' }} }"
-     x-init="if (saved) { setTimeout(() => saved = false, 4000) }"
+     x-data="{ exportOpen: false, rangeOpen: false }"
      @click.outside="exportOpen = false; rangeOpen = false">
-
-    @if(session('success'))
-        <div x-show="saved" x-cloak x-transition
-             class="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 flex items-center gap-2 text-sm font-semibold">
-            <span class="text-lg">✓</span> {{ session('success') }}
-        </div>
-    @endif
 
     <div class="sticky top-14 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5
                 bg-[#F7F5F2]/90 dark:bg-[#0f0f0f]/90 backdrop-blur-md
@@ -68,10 +60,12 @@
                         <button type="button" onclick="window.print()" class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">PDF / Print</button>
                     </div>
                 </div>
+                <x-unless-admin-browse>
                 <a href="{{ route('expenses.create') }}" class="btn-primary btn-sm inline-flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Add expense
                 </a>
+                </x-unless-admin-browse>
             </div>
         </div>
     </div>
@@ -138,7 +132,9 @@
                         <th class="px-4 py-3 text-left">Category</th>
                         <th class="px-4 py-3 text-left">Vendor</th>
                         <th class="px-4 py-3 text-right">Amount</th>
+                        @unless($adminStoreBrowse ?? false)
                         <th class="px-4 py-3 text-right w-28">Actions</th>
+                        @endunless
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -156,15 +152,19 @@
                             </td>
                             <td class="px-4 py-3 text-muted">{{ $expense->vendor ?? '—' }}</td>
                             <td class="px-4 py-3 text-right font-bold">@money($expense->amount)</td>
+                            @unless($adminStoreBrowse ?? false)
                             <td class="px-4 py-3 text-right">
                                 <a href="{{ route('expenses.edit', $expense) }}" class="text-velour-600 text-xs font-semibold">Edit</a>
                             </td>
+                            @endunless
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-16 text-center">
+                            <td colspan="{{ ($adminStoreBrowse ?? false) ? 5 : 6 }}" class="px-4 py-16 text-center">
                                 <h3 class="text-lg font-semibold text-heading">No expenses found</h3>
+                                @unless($adminStoreBrowse ?? false)
                                 <a href="{{ route('expenses.create') }}" class="btn-primary mt-4 inline-flex">Add expense</a>
+                                @endunless
                             </td>
                         </tr>
                     @endforelse
@@ -176,10 +176,12 @@
         @endif
     </div>
 
+    @unless($adminStoreBrowse ?? false)
     <a href="{{ route('expenses.create') }}"
        class="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-velour-600 hover:bg-velour-700 text-white shadow-lg flex items-center justify-center print:hidden"
        title="Add expense">
         <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
     </a>
+    @endunless
 </div>
 @endsection

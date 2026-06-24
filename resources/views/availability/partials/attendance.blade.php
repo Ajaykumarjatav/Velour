@@ -67,6 +67,7 @@
             'clockOut' => preg_replace('/\/\d+\//', '/__STAFF__/', route('availability.attendance.clock-out', ['staff' => $sampleStaffId])),
         ];
         $state['period'] = $period;
+        $state['readonly_browse'] = \App\Support\AuthPanel::isAdminStoreBrowse();
     }
 @endphp
 
@@ -359,6 +360,7 @@ document.addEventListener('alpine:init', () => {
             return document.querySelector('meta[name="csrf-token"]')?.content || '';
         },
         get showQuickClock() {
+            if (initial.readonly_browse) return false;
             if (this.period !== 'week' || !this.days.length) return false;
             const first = this.days[0].ymd;
             const last = this.days[this.days.length - 1].ymd;
@@ -369,6 +371,7 @@ document.addEventListener('alpine:init', () => {
             return row?.cells?.[key] || {};
         },
         canEdit(staffId, key) {
+            if (initial.readonly_browse) return false;
             if (this.period === 'year') return false;
             const c = this.cell(staffId, key);
             return !c.readonly;

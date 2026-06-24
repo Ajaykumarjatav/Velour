@@ -49,6 +49,9 @@
          }">
         <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
             <h2 class="text-xl font-semibold text-heading">Security Settings</h2>
+            @if($adminStoreBrowse ?? false)
+            <p class="text-xs text-amber-700 dark:text-amber-300 mt-1">Read-only admin browse — settings cannot be changed.</p>
+            @endif
         </div>
         <form method="POST" action="{{ route('security-support.security.update') }}">
             @csrf
@@ -86,7 +89,7 @@
                     </div>
                 @endforeach
             </div>
-            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-end salon-write-ui">
                 <button type="submit" class="btn-primary">Save Security Settings</button>
             </div>
         </form>
@@ -96,7 +99,7 @@
         <h2 class="text-xl font-semibold text-heading mb-3">Privacy Controls</h2>
         <p class="text-sm text-muted mb-4">Manage customer data export, retention and request handling.</p>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('clients.export') }}" class="btn-outline btn-sm">Export client data</a>
+            <a href="{{ route('clients.export') }}" class="btn-outline btn-sm admin-browse-allow">Export client data</a>
             <a href="{{ route('settings.index') }}" class="btn-outline btn-sm">Data retention settings</a>
         </div>
     </div>

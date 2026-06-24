@@ -42,7 +42,9 @@
                 <th>Type</th>
                 <th>Name</th>
                 <th class="hidden sm:table-cell">Deleted</th>
+                @unless($adminStoreBrowse ?? false)
                 <th class="text-right">Actions</th>
+                @endunless
             </tr>
         </thead>
         <tbody>
@@ -55,6 +57,7 @@
                 </td>
                 <td class="font-medium text-heading">{{ $item['name'] }}</td>
                 <td class="hidden sm:table-cell text-muted text-[12px]">{{ $item['deleted_at'] }}</td>
+                @unless($adminStoreBrowse ?? false)
                 <td class="text-right">
                     <div class="inline-flex items-center gap-2 justify-end">
                         @if($item['can_restore'])
@@ -76,10 +79,11 @@
                         @endif
                     </div>
                 </td>
+                @endunless
             </tr>
             @empty
             <tr>
-                <td colspan="4" class="px-5 py-12 text-center">
+                <td colspan="{{ ($adminStoreBrowse ?? false) ? 3 : 4 }}" class="px-5 py-12 text-center">
                     <div class="empty-state py-6">
                         <svg class="empty-state-icon w-10 h-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 01-1 1v3M4 7h16"/>

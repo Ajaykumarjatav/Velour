@@ -29,7 +29,33 @@
                    class="text-gray-500 dark:text-gray-400 hover:text-velour-600 dark:hover:text-velour-300 transition-colors tabular-nums">
                     {{ $salonBusinessStatus['setup_percent'] }}% Setup Complete
                 </a>
+                @if(config('billing.subscriptions_enabled') && ($subscriptionReminder ?? null) && !($planExpired ?? false))
+                <span class="text-gray-400 dark:text-gray-600" aria-hidden="true">·</span>
+                @php
+                  $sbDays = $subscriptionReminder['days_remaining'] ?? null;
+                  $sbKind = $subscriptionReminder['kind'] ?? 'trial';
+                @endphp
+                <a href="{{ $subscriptionReminder['renew_url'] ?? route('billing.plans') }}"
+                   class="font-medium tabular-nums {{ ($subscriptionReminder['urgent'] ?? false) ? 'text-red-600 dark:text-red-400' : (($subscriptionReminder['warning'] ?? false) ? 'text-amber-600 dark:text-amber-400' : 'text-velour-600 dark:text-velour-400') }} hover:underline">
+                  @if($sbDays === null)
+                    {{ $subscriptionReminder['plan_label'] ?? 'Plan' }}
+                  @elseif($sbDays === 0)
+                    {{ $sbKind === 'trial' ? 'Trial ends today' : 'Plan ends today' }}
+                  @else
+                    {{ $sbDays }}d {{ $sbKind === 'trial' ? 'trial' : 'plan' }} left
+                  @endif
+                </a>
+                @endif
             </div>
+            @if($adminStoreBrowse ?? false)
+            <p class="mt-1.5 text-[10px] font-medium text-velour-600 dark:text-velour-400 flex items-center gap-1">
+                <svg class="w-3 h-3 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                Admin view · read-only
+            </p>
+            @endif
             <button type="button"
                     class="absolute top-0 right-0 p-1 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     title="Copy booking link"
@@ -57,6 +83,22 @@
 
     {{-- Nav --}}
     <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2.5 py-3 space-y-1">
+
+        @if($planExpired ?? false)
+        <div class="px-1 pb-3 mb-2 border-b border-amber-200/80 dark:border-amber-800/50">
+            <p class="text-[11px] text-amber-700 dark:text-amber-300 font-medium mb-2 px-2">Plan expired — renew to unlock</p>
+            <a href="{{ route('billing.plans') }}"
+               class="sidebar-link {{ request()->routeIs('billing.plans', 'billing.checkout', 'billing.success', 'billing.change*') ? 'active' : '' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'subscription'])
+                Renew subscription
+            </a>
+            <a href="{{ route('billing.dashboard') }}"
+               class="sidebar-link {{ request()->routeIs('billing.dashboard', 'billing.portal', 'billing.cancel', 'billing.invoice*') ? 'active' : '' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'billing'])
+                Billing
+            </a>
+        </div>
+        @else
 
         @if($navShow('dashboard'))
         <a href="{{ route('dashboard') }}"
@@ -270,13 +312,12 @@
             @include('partials.sidebar-nav-icon', ['icon' => 'billing'])
             <span class="flex-1">Billing</span>
             @php
-              $planKey = Auth::user()->plan ?? 'free';
+              $planKey = Auth::user()->plan ?? config('billing.default_plan', 'trial');
               $planBadge = [
-                'free'       => ['Free',       'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'],
-                'starter'    => ['Starter',    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'],
-                'pro'        => ['Pro',        'bg-velour-100 text-velour-700 dark:bg-velour-900/40 dark:text-velour-300'],
-                'enterprise' => ['Enterprise', 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'],
-              ][$planKey] ?? ['Free', 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'];
+                'trial'    => ['Trial',    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'],
+                'standard' => ['Standard', 'bg-velour-100 text-velour-700 dark:bg-velour-900/40 dark:text-velour-300'],
+                'premium'  => ['Premium',  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'],
+              ][$planKey] ?? [ucfirst($planKey), 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'];
             @endphp
             <span class="ml-auto px-1.5 py-0.5 text-[10px] font-bold rounded {{ $planBadge[1] }}">{{ $planBadge[0] }}</span>
         </a>
@@ -447,6 +488,7 @@
         @endif
         @endif
 
+        @endif
     </nav>
 
     {{-- Footer --}}

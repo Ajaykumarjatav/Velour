@@ -172,7 +172,7 @@ class WebhookController extends Controller
         $user = $this->userByCustomer($s->customer);
         if (! $user) return;
 
-        $user->update(['plan' => 'free', 'trial_ends_at' => null]);
+        $user->update(['plan' => config('billing.default_plan', 'trial'), 'trial_ends_at' => null]);
 
         Log::info('[Webhook] Subscription deleted → free', ['user' => $user->id]);
         $user->notify(new SubscriptionCancelledNotification());
@@ -281,7 +281,7 @@ class WebhookController extends Controller
         }
 
         $priceId = $sub->items->data[0]->price->id ?? null;
-        return $priceId ? $this->priceIdToPlanKey($priceId) : 'starter';
+        return $priceId ? $this->priceIdToPlanKey($priceId) : 'standard';
     }
 
     private function planKeyFromInvoice(object $inv): ?string
@@ -297,6 +297,6 @@ class WebhookController extends Controller
                 return $key;
             }
         }
-        return 'starter';
+        return 'standard';
     }
 }

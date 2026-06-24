@@ -62,7 +62,7 @@
             <div class="flex items-center gap-3 shrink-0 xl:ml-auto w-full sm:w-auto justify-end sm:justify-start pb-0.5">
                 <a href="{{ route('reports.index') }}" class="text-sm text-link font-medium whitespace-nowrap">← All reports</a>
                 <a href="{{ route('reports.revenue.export', array_filter(['from' => $from, 'to' => $to, 'staff_id' => $staffId ?? null, 'payment_method' => $paymentMethod ?? null])) }}"
-                   class="btn-outline btn-sm whitespace-nowrap">Export CSV</a>
+                   class="btn-outline btn-sm whitespace-nowrap admin-browse-allow">Export CSV</a>
             </div>
         </div>
     </form>

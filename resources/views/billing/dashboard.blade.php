@@ -37,28 +37,15 @@
       </div>
     </div>
     <div class="px-6 py-5 space-y-4">
-      @php $resources = ['staff'=>'Staff', 'clients'=>'Clients', 'services'=>'Services']; @endphp
-      <div class="grid grid-cols-3 gap-4">
-        @foreach($resources as $key => $label)
-        @php $lim = $current->limit($key); @endphp
+      @php $storeLimit = $current->limit('stores'); @endphp
+      <div class="grid grid-cols-1 gap-4">
         <div class="text-center bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-4">
-          <p class="text-xl font-black text-heading">{{ $lim === -1 ? 'inf' : number_format($lim) }}</p>
-          <p class="stat-label mt-0.5">{{ $label }}</p>
+          <p class="text-xl font-black text-heading">{{ $storeLimit === -1 ? '∞' : $storeLimit }}</p>
+          <p class="stat-label mt-0.5">Stores allowed</p>
         </div>
-        @endforeach
       </div>
-      @if($user->pm_type)
-      <div class="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-800">
-        <div class="flex items-center gap-3 text-sm text-body">
-          <span class="text-xl">{{ $user->pm_type === 'card' ? 'card' : 'bank' }}</span>
-          <span>{{ Str::title(str_replace('_', ' ', $user->pm_type)) }} {{ $user->pm_last_four ? '....' . $user->pm_last_four : '' }}</span>
-        </div>
-        <a href="{{ route('billing.portal') }}" class="text-sm text-link font-medium">Update</a>
-      </div>
-      @endif
       <div class="flex flex-wrap gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
         <a href="{{ route('billing.plans') }}" class="btn-primary">{{ $sub && !$sub->cancelled() ? 'Change plan' : 'View plans' }}</a>
-        <a href="{{ route('billing.portal') }}" class="btn-outline">Stripe Customer Portal</a>
         @if($sub && $sub->onGracePeriod())
         <form method="POST" action="{{ route('billing.resume') }}">@csrf
           <button type="submit" class="btn border border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20">Resume subscription</button>
@@ -95,26 +82,9 @@
     </div>
   </div>
 
-  @if(count($invoices))
-  <div class="table-wrap">
-    <h2 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Invoices</h2>
-    <table class="data-table">
-      <thead><tr><th>Date</th><th class="text-right">Amount</th><th>Status</th><th class="text-right w-[1%] whitespace-nowrap">Actions</th></tr></thead>
-      <tbody>
-        @foreach($invoices as $invoice)
-        <tr>
-          <td class="text-body">{{ $invoice->date()->format('d M Y') }}</td>
-          <td class="font-semibold text-heading text-right">{{ $invoice->total() }}</td>
-          <td><span class="{{ $invoice->paid ? 'badge-green' : 'badge-yellow' }}">{{ $invoice->paid ? 'Paid' : 'Open' }}</span></td>
-          <td class="text-right"><a href="{{ route('billing.invoice.download', $invoice->id) }}" class="text-sm text-link font-medium">PDF</a></td>
-        </tr>
-        @endforeach
-      </tbody>
-    </table>
+  <div class="card p-8 text-center">
+    <p class="text-muted text-sm">Payment receipts are sent by Cashfree to your registered email.</p>
   </div>
-  @else
-  <div class="card p-8 text-center"><p class="text-muted text-sm">No invoices yet.</p></div>
-  @endif
 
   <div class="card p-6" x-data="{ open: false }">
     <button @click="open=!open" class="text-sm text-muted hover:text-body font-medium flex items-center gap-2">

@@ -61,7 +61,8 @@ class AuditLogService
     public function admin(string $event, string $description, ?Model $subject = null, array $meta = []): void
     {
         if (! config('security.audit.admin', true)) return;
-        $this->write('admin', $event, 'warning', $description, $subject, $meta);
+        $salonId = isset($meta['salon_id']) ? (int) $meta['salon_id'] : null;
+        $this->write('admin', $event, 'warning', $description, $subject, $meta, null, $salonId);
     }
 
     public function security(string $event, string $description, ?Model $subject = null, array $meta = []): void

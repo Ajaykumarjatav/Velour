@@ -67,9 +67,11 @@
             <a href="{{ route('pos.index') }}" class="btn-outline btn-sm shrink-0">Clear</a>
         </div>
     </form>
+    @unless(\App\Support\AuthPanel::isAdminStoreBrowse())
     <a href="{{ route('pos.create') }}" class="btn-primary btn-sm flex-shrink-0 w-full sm:w-auto text-center whitespace-nowrap">
         + New Sale
     </a>
+    @endunless
 </div>
 
 <div class="table-wrap">

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Salon;
+use App\Support\PublicSalonAccess;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Review;
@@ -73,7 +73,7 @@ class ReviewController extends Controller
     // Public: GET /api/v1/salons/{slug}/reviews
     public function public(Request $request, string $salonSlug): JsonResponse
     {
-        $salon = \App\Models\Salon::where('slug', $salonSlug)->firstOrFail();
+        $salon = PublicSalonAccess::findBySlugOrFail($salonSlug);
         $reviews = Review::with(['client:id,first_name'])
             ->where('salon_id', $salon->id)
             ->where('is_public', true)

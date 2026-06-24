@@ -11,7 +11,8 @@
 <div class="max-w-5xl space-y-6">
 
   {{-- Invite member --}}
-  <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 p-6 shadow-sm dark:shadow-none" x-data="{ open: false }">
+  <x-unless-admin-browse>
+  <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 p-6 shadow-sm dark:shadow-none salon-write-ui" x-data="{ open: false }">
     <div class="flex items-center justify-between mb-1">
       <h2 class="font-semibold text-heading">Invite a team member</h2>
       <button @click="open=!open"
@@ -74,6 +75,7 @@
       @endif
     </div>
   </div>
+  </x-unless-admin-browse>
 
   {{-- Team members --}}
   <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/50 overflow-hidden shadow-sm dark:shadow-none">
@@ -101,7 +103,8 @@
           <p class="text-sm text-muted">{{ $member->email }}</p>
         </div>
         @if($member->id !== $salon->owner_id)
-        <div class="flex items-center gap-2 flex-shrink-0">
+        @unless($adminStoreBrowse ?? false)
+        <div class="flex items-center gap-2 flex-shrink-0 salon-write-ui">
           <div x-show="!editRole">
             <button @click="editRole=true" class="text-xs text-velour-600 dark:text-velour-400 font-medium">Edit role</button>
           </div>
@@ -123,6 +126,7 @@
             <button type="submit" class="text-xs text-red-500 font-medium">Remove</button>
           </form>
         </div>
+        @endunless
         @endif
       </div>
       @endforeach
@@ -228,7 +232,9 @@
         <div>
           <h2 class="font-semibold text-heading">Permissions</h2>
           <p class="text-sm text-muted mt-1 max-w-2xl">
-            @if($canEditPermissions ?? false)
+            @if($adminStoreBrowse ?? false)
+              View-only: you are browsing this salon in read-only admin mode.
+            @elseif($canEditPermissions ?? false)
               Click an action to turn it on or off for each role. Changes save instantly.
             @else
               View-only: you do not have permission to edit role access.

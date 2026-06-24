@@ -12,10 +12,6 @@
     @endif
 </div>
 
-@if(session('success'))
-<div class="mb-4 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm">{{ session('success') }}</div>
-@endif
-
 @if($assignedBusinessTypes->isEmpty())
 <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
     Add at least one business type under <a href="{{ route('settings.index') }}?tab=salon" class="font-medium underline">Settings → Salon</a> before you can create service categories.

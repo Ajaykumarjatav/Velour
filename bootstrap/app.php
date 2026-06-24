@@ -18,9 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         then: function () {
-            // Stripe webhooks — loaded bare (no CSRF, no session middleware)
+            // Cashfree webhooks — loaded bare (no CSRF, no session middleware)
             Route::middleware('throttle:stripe')
-                ->group(base_path('routes/stripe.php'));
+                ->group(base_path('routes/cashfree.php'));
         },
         apiPrefix: 'api',
         health: '/up',
@@ -76,6 +76,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription'    => \App\Http\Middleware\CheckSubscription::class,
             'plan.limit'      => \App\Http\Middleware\CheckPlanLimits::class,
             'subscriptions.enabled' => \App\Http\Middleware\RedirectUnlessSubscriptionsEnabled::class,
+            'plan.access'       => \App\Http\Middleware\EnsureActivePlanAccess::class,
             // ── Security & Audit ───────────────────────────────────────────
             'throttle.tenant'  => \App\Http\Middleware\TenantAwareThrottle::class,
             'audit.request'    => \App\Http\Middleware\AuditRequestMiddleware::class,
@@ -83,6 +84,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'idempotency'      => \App\Http\Middleware\IdempotencyKey::class,
             'account.lockout'  => \App\Http\Middleware\AccountLockout::class,
             'profile.complete' => \App\Http\Middleware\EnsureSalonProfileComplete::class,
+            'admin.store.readonly' => \App\Http\Middleware\EnsureAdminStoreBrowseReadOnly::class,
+            'admin.store.browse.readonly-pages' => \App\Http\Middleware\RedirectAdminBrowseWritePages::class,
             'client.auth'      => \App\Http\Middleware\AuthenticateClientToken::class,
             'client.portal'    => \App\Http\Middleware\EnsureClientPortalAuth::class,
             'client.salon'     => \App\Http\Middleware\ResolveClientSalon::class,
