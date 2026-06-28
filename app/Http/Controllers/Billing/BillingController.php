@@ -94,6 +94,20 @@ class BillingController extends Controller
             ]);
         }
 
+        if (! $this->cashfree->isValidReturnRequest($request, $subscriptionId)) {
+            $sub = $this->billing->findByMerchantSubscriptionId($subscriptionId);
+            if ($sub?->user) {
+                $this->billing->restoreSessionForUser($sub->user);
+            }
+
+            return view('billing.failed', [
+                'message'        => 'This payment link is invalid or has expired. Open Billing to check your plan or start checkout again.',
+                'plan'           => null,
+                'scheduled_plan' => null,
+                'activates_at'   => null,
+            ]);
+        }
+
         $result = $this->billing->handlePaymentReturn($subscriptionId, $request->all());
 
         if ($result['user']) {

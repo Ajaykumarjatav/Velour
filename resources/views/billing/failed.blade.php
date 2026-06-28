@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.auth')
 @section('title', 'Payment failed')
 @section('page-title', 'Payment failed')
 @section('content')

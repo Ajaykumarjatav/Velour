@@ -53,6 +53,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'billing/return',
         ]);
 
+        // Cashfree may append status fields when redirecting back to return_url.
+        $middleware->validateSignatures(except: [
+            'cf_subReferenceId',
+            'cf_subscriptionId',
+            'cf_authAmount',
+            'cf_referenceId',
+            'cf_status',
+            'cf_message',
+            'cf_checkoutStatus',
+            'cf_mode',
+            'cf_subscriptionPaymentId',
+            'cf_umrn',
+            'cf_umn',
+        ]);
+
         // Tenancy is initialised on routes that require it, *after* `auth` (see web.php /
         // api.php). Running it globally before `auth` leaves `Auth::check()` false and
         // breaks staff dashboard (TenantMiddleware → 404).

@@ -382,8 +382,8 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 //    ->middleware('subscription:pro')     → pro or enterprise only
 //    ->middleware('subscription:feature:marketing') → feature flag
 
-// Cashfree redirects back via POST without session cookie — use signed URL + no auth.
-Route::middleware(['subscriptions.enabled', 'signed'])
+// Cashfree redirects back via POST without session cookie — token-validated, no auth.
+Route::middleware(['subscriptions.enabled'])
     ->prefix('billing')
     ->name('billing.')
     ->group(function () {

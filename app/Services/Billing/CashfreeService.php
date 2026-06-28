@@ -4,9 +4,10 @@ namespace App\Services\Billing;
 
 use App\Billing\Plan;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class CashfreeService
@@ -193,6 +194,9 @@ class CashfreeService
 
         $subscriptionId = 'velor_'.$user->id.'_'.Str::lower(Str::random(10));
         $amount         = $interval === 'yearly' ? $plan->priceYearly : $plan->priceMonthly;
+        $returnToken    = Str::random(64);
+
+        $this->storeReturnToken($subscriptionId, $returnToken);
 
         $payload = [
             'subscription_id' => $subscriptionId,
@@ -207,11 +211,7 @@ class CashfreeService
                 'authorization_amount_refund' => true,
             ],
             'subscription_meta' => [
-                'return_url' => URL::temporarySignedRoute(
-                    'billing.return',
-                    now()->addDays(3),
-                    ['subscription_id' => $subscriptionId],
-                ),
+                'return_url' => $this->subscriptionReturnUrl($subscriptionId, $returnToken),
             ],
             'subscription_expiry_time' => now()->addYears(5)->toIso8601String(),
         ];
@@ -376,5 +376,94 @@ class CashfreeService
         }
 
         return implode('; ', $parts);
+    }
+
+    /**
+     * Validate the browser return from Cashfree (token or legacy signed URL).
+     */
+    public function isValidReturnRequest(Request $request, string $subscriptionId): bool
+    {
+        if ($subscriptionId === '') {
+            return false;
+        }
+
+        $returnToken = $request->input('return_token');
+        if (is_string($returnToken) && $returnToken !== '' && $this->validateReturnToken($subscriptionId, $returnToken)) {
+            return true;
+        }
+
+        if (! $request->has('signature')) {
+            return false;
+        }
+
+        if ($request->hasValidRelativeSignature()) {
+            return true;
+        }
+
+        return $this->hasValidAbsoluteReturnSignature($request);
+    }
+
+    protected function storeReturnToken(string $subscriptionId, string $token): void
+    {
+        Cache::put(
+            "billing_return:{$subscriptionId}",
+            hash('sha256', $token),
+            now()->addDays(3),
+        );
+    }
+
+    protected function validateReturnToken(string $subscriptionId, string $token): bool
+    {
+        $stored = Cache::get("billing_return:{$subscriptionId}");
+
+        return is_string($stored) && hash_equals($stored, hash('sha256', $token));
+    }
+
+    /**
+     * Cashfree return URL with a one-time token (no Laravel signed-route middleware).
+     */
+    protected function subscriptionReturnUrl(string $subscriptionId, string $returnToken): string
+    {
+        $query = http_build_query([
+            'subscription_id' => $subscriptionId,
+            'return_token'    => $returnToken,
+        ]);
+
+        return rtrim((string) config('app.url'), '/').'/billing/return?'.$query;
+    }
+
+    /**
+     * Legacy absolute signed URLs generated before subdirectory-safe return handling.
+     */
+    protected function hasValidAbsoluteReturnSignature(Request $request): bool
+    {
+        $expires = $request->query('expires');
+        $subscriptionId = $request->query('subscription_id');
+
+        if ($expires === null || $subscriptionId === null) {
+            return false;
+        }
+
+        if (! is_numeric($expires) || (int) $expires < now()->getTimestamp()) {
+            return false;
+        }
+
+        $base = rtrim((string) config('app.url'), '/');
+        $unsigned = $base.'/billing/return?'.http_build_query([
+            'expires'         => $expires,
+            'subscription_id' => $subscriptionId,
+        ]);
+
+        $key = config('app.key');
+        $keys = is_array($key) ? $key : [$key];
+        $provided = (string) $request->query('signature', '');
+
+        foreach ($keys as $keyValue) {
+            if (hash_equals(hash_hmac('sha256', $unsigned, $keyValue), $provided)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
