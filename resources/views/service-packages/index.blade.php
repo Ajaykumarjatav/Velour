@@ -9,12 +9,6 @@
 
 <div class="space-y-8 pb-8" x-data="{ tierModal: null, openTier(m) { this.tierModal = m } }" x-on:keydown.escape.window="tierModal=null">
 
-    @if(session('success'))
-    <div class="px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
-        {{ session('success') }}
-    </div>
-    @endif
-
     {{-- Hero --}}
     <div class="relative overflow-hidden rounded-2xl border border-velour-200/60 dark:border-velour-800/80 bg-gradient-to-br from-velour-50 via-white to-violet-50/90 dark:from-gray-900 dark:via-gray-900/95 dark:to-velour-950/40 px-6 py-8 sm:px-10 sm:py-10 shadow-sm dark:shadow-none">
         <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">

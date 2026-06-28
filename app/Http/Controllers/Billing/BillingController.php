@@ -76,17 +76,44 @@ class BillingController extends Controller
         ]);
     }
 
-    public function success(Request $request)
+    public function paymentReturn(Request $request)
     {
-        $subscriptionId = (string) $request->query('subscription_id', '');
+        $subscriptionId = (string) (
+            $request->input('subscription_id')
+            ?? $request->query('subscription_id')
+            ?? $request->input('cf_subscription_id')
+            ?? ''
+        );
 
-        if ($subscriptionId !== '') {
-            $this->billing->syncFromApi($subscriptionId);
+        if ($subscriptionId === '') {
+            return view('billing.failed', [
+                'message'        => 'Missing payment reference. If money was deducted, contact support.',
+                'plan'           => null,
+                'scheduled_plan' => null,
+                'activates_at'   => null,
+            ]);
         }
 
-        return view('billing.success', [
-            'plan' => Auth::user()->currentPlan(),
-        ]);
+        $result = $this->billing->handlePaymentReturn($subscriptionId, $request->all());
+
+        if ($result['user']) {
+            $this->billing->restoreSessionForUser($result['user']);
+        }
+
+        if ($result['outcome'] === 'success') {
+            return view('billing.success', $result);
+        }
+
+        if ($result['outcome'] === 'pending') {
+            return view('billing.pending', $result);
+        }
+
+        return view('billing.failed', $result);
+    }
+
+    public function success(Request $request)
+    {
+        return redirect()->route('billing.dashboard');
     }
 
     public function showChangePlan(Request $request)
@@ -142,7 +169,7 @@ class BillingController extends Controller
         $user = Auth::user();
         $sub  = $user->subscription('default');
 
-        if (! $sub || $sub->cancelled()) {
+        if (! $sub || $sub->canceled()) {
             return redirect()->route('billing.dashboard')
                 ->with('info', 'You do not have an active subscription to cancel.');
         }
@@ -169,7 +196,7 @@ class BillingController extends Controller
 
         $sub = $user->subscription('default');
 
-        if (! $sub || $sub->cancelled()) {
+        if (! $sub || $sub->canceled()) {
             return back()->with('info', 'No active subscription to cancel.');
         }
 
@@ -201,11 +228,21 @@ class BillingController extends Controller
 
     public function dashboard(Request $request)
     {
-        $user    = Auth::user();
+        $this->billing->activateDueScheduledPlans();
+
+        $user    = Auth::user()->fresh();
         $sub     = $user->subscription('default');
         $current = $user->currentPlan();
+        $scheduledPlan = $user->scheduled_plan ? Plan::find($user->scheduled_plan) : null;
+        $transactions = $user->billingTransactions()->latest()->limit(50)->get();
 
-        return view('billing.dashboard', compact('user', 'sub', 'current'));
+        return view('billing.dashboard', compact(
+            'user',
+            'sub',
+            'current',
+            'scheduledPlan',
+            'transactions',
+        ));
     }
 
     public function downloadInvoice(Request $request, string $invoiceId)

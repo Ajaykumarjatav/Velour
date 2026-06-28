@@ -5,12 +5,6 @@
 
 <div x-data="{ interval: '{{ $interval }}' }" class="space-y-8">
 
-  @foreach(['success','warning','info'] as $f)
-    @if(session($f))
-    <div class="{{ $f==='success' ? 'alert-success' : ($f==='warning' ? 'alert-warning' : 'alert-info') }}">{{ session($f) }}</div>
-    @endif
-  @endforeach
-
   @if($planExpired ?? false)
   <div class="rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-5 py-4 text-sm text-red-800 dark:text-red-200">
     <p class="font-semibold text-base mb-1">Your plan has expired</p>

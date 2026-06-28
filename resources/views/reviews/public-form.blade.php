@@ -11,12 +11,6 @@
     <p class="text-sm text-gray-500 mb-4">You are reviewing your experience with this business.</p>
     @endif
 
-    @if(session('success'))
-    <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-        {{ session('success') }}
-    </div>
-    @endif
-
     <form action="{{ route('reviews.public.submit', $reviewLink->token) }}" method="POST" class="space-y-4 mt-4">
         @csrf
         <div>

@@ -5,10 +5,6 @@
 
 <div class="max-w-lg space-y-5">
 
-  @if(session('success'))
-  <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">{{ session('success') }}</div>
-  @endif
-
   <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5">
     <p class="text-sm font-semibold text-amber-800 mb-1">⚠ Save these codes now</p>
     <p class="text-sm text-amber-700">Each code can only be used once. Store them in a password manager or print them. If you use a code, your 2FA will be disabled and you'll need to re-enrol.</p>

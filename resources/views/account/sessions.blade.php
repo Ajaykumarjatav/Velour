@@ -12,12 +12,6 @@
     <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your active sessions and API tokens</p>
   </div>
 
-  @if(session('success'))
-  <div class="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3 text-sm mb-6">
-    ✅ {{ session('success') }}
-  </div>
-  @endif
-
   @if($errors->has('password'))
   <div class="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm mb-6">
     {{ $errors->first('password') }}

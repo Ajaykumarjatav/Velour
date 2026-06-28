@@ -48,6 +48,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 Request::HEADER_X_FORWARDED_PROTO
         );
 
+        // Cashfree subscription checkout redirects back via POST (no CSRF token).
+        $middleware->validateCsrfTokens(except: [
+            'billing/return',
+        ]);
+
         // Tenancy is initialised on routes that require it, *after* `auth` (see web.php /
         // api.php). Running it globally before `auth` leaves `Auth::check()` false and
         // breaks staff dashboard (TenantMiddleware → 404).

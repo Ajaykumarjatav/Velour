@@ -13,6 +13,7 @@ use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use App\Billing\Plan;
+use App\Models\BillingTransaction;
 use App\Models\Salon;
 use App\Models\Tenant;
 use App\Notifications\VerifyEmailNotification;
@@ -41,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $fillable = [
         'name', 'email', 'email_verified_at', 'password', 'force_password_change', 'avatar', 'phone', 'experience', 'language_proficiency', 'timezone', 'locale', 'plan', 'trial_ends_at',
+        'scheduled_plan', 'scheduled_plan_interval', 'scheduled_plan_starts_at',
         'system_role', 'is_active', 'last_login_at',
         'two_factor_secret', 'two_factor_recovery_codes',
         'two_factor_confirmed_at', 'two_factor_method',
@@ -55,6 +57,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at'           => 'datetime',
         'trial_ends_at'               => 'datetime',
+        'scheduled_plan_starts_at'    => 'datetime',
         'last_login_at'               => 'datetime',
         'two_factor_confirmed_at'     => 'datetime',
         'two_factor_expires_at'       => 'datetime',
@@ -204,6 +207,11 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     // ── Billing / Plan Helpers ────────────────────────────────────────────────
+
+    public function billingTransactions()
+    {
+        return $this->hasMany(BillingTransaction::class);
+    }
 
     /**
      * Resolve the user's current Plan value object.

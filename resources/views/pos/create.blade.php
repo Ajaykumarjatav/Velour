@@ -475,6 +475,16 @@
                     </button>
                 </div>
 
+                <div x-show="cartHasServices" class="space-y-1">
+                    <label for="pos-staff-select" class="text-[10px] font-semibold uppercase tracking-wide text-muted">Staff member</label>
+                    <select id="pos-staff-select" name="staff_id" form="pos-form" x-model="saleStaffId"
+                            class="form-select w-full text-xs !py-2 !min-h-[36px]">
+                        <template x-for="s in staffList" :key="s.id">
+                            <option :value="String(s.id)" x-text="s.name"></option>
+                        </template>
+                    </select>
+                </div>
+
                 <div class="flex gap-1.5 items-center">
                     <x-searchable-select
                         id="pos-client-select"
@@ -585,6 +595,8 @@ const POS_SERVICE_CATEGORIES = @json($serviceCategories);
 const POS_RETAIL_CATEGORIES  = @json($retailCategories);
 const POS_SERVICE_CAT_COUNTS = @json($serviceCategoryCounts);
 const POS_RETAIL_CAT_COUNTS  = @json($retailCategoryCounts);
+const POS_STAFF              = @json($staffMembers->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values());
+const POS_DEFAULT_STAFF_ID   = @json($defaultStaffId);
 
 function posApp() {
     return {
@@ -606,6 +618,8 @@ function posApp() {
         pickItem:        null,
         pickVariantName: '',
         pickAddonNames:  [],
+        staffList:       POS_STAFF,
+        saleStaffId:     POS_DEFAULT_STAFF_ID ? String(POS_DEFAULT_STAFF_ID) : (POS_STAFF[0] ? String(POS_STAFF[0].id) : ''),
 
         formatMoney(n) {
             const x = Number(n);
@@ -667,6 +681,10 @@ function posApp() {
             return groups;
         },
 
+        get cartHasServices() {
+            return this.cart.some(i => i.type === 'service');
+        },
+
         get taxModeLabel() {
             return this.taxMode === 'included' ? 'GST included' : 'GST excluded';
         },
@@ -713,6 +731,9 @@ function posApp() {
             });
 
             this.$nextTick(() => {
+                if (POS_PREFILL && POS_PREFILL.staff_id) {
+                    this.saleStaffId = String(POS_PREFILL.staff_id);
+                }
                 if (POS_PREFILL && Array.isArray(POS_PREFILL.lines) && POS_PREFILL.lines.length && this.cart.length === 0) {
                     for (const line of POS_PREFILL.lines) {
                         const cat = POS_ITEMS.find((i) => i.type === line.type && i.id === line.id);
@@ -861,6 +882,15 @@ function posApp() {
             if (this.cart.length === 0) return;
             if (!this.paymentReceived) {
                 alert('Confirm payment received before completing the sale.');
+                return;
+            }
+            const missingStaff = this.cartHasServices && !this.saleStaffId;
+            if (missingStaff) {
+                alert('Select staff for this sale.');
+                return;
+            }
+            if (this.staffList.length === 0 && this.cart.some(i => i.type === 'service')) {
+                alert('Add at least one active staff member before selling services.');
                 return;
             }
             document.getElementById('pos-form').submit();

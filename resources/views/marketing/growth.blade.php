@@ -88,12 +88,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
-            {{ session('success') }}
-        </div>
-    @endif
-
     {{-- Campaigns tab --}}
     @if($tab === 'campaigns')
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

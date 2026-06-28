@@ -132,6 +132,12 @@ class PlanAccessService
 
         $daysRemaining = max(0, (int) now()->startOfDay()->diffInDays($endsAt->copy()->startOfDay(), false));
 
+        $message = null;
+        if ($account->scheduled_plan && $account->scheduled_plan_starts_at?->isFuture()) {
+            $scheduled = \App\Billing\Plan::find($account->scheduled_plan);
+            $message = ($scheduled?->name ?? 'Paid plan').' starts '.$account->scheduled_plan_starts_at->format('d M Y');
+        }
+
         return [
             'kind'           => $kind,
             'plan_label'     => $plan->name,
@@ -140,6 +146,7 @@ class PlanAccessService
             'urgent'         => $daysRemaining <= 3,
             'warning'        => $daysRemaining <= 7,
             'renew_url'      => $kind === 'grace' ? route('billing.dashboard') : $this->renewalUrl(),
+            'scheduled_note' => $message,
         ];
     }
 

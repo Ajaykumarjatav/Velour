@@ -46,6 +46,12 @@ Schedule::command('velour:prune-stale-data')
     ->name('prune-stale-data')
     ->withoutOverlapping();
 
+// ── Activate scheduled paid plans (after trial end) ─────────────────────
+Schedule::command('velour:activate-scheduled-plans')
+    ->hourly()
+    ->name('activate-scheduled-plans')
+    ->withoutOverlapping();
+
 // ── Billing reconciliation (1st of each month) ────────────────────────────
 Schedule::command('velour:reconcile-billing')
     ->monthlyOn(1, '06:00')

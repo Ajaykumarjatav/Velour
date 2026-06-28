@@ -1,50 +1,38 @@
-@extends('layouts.auth')
-@section('title', 'Subscription Active')
+@extends('layouts.app')
+@section('title', 'Payment successful')
+@section('page-title', 'Payment successful')
 @section('content')
 
-<div class="max-w-md w-full mx-auto text-center">
-  <div class="bg-white rounded-3xl border border-gray-200 p-10 space-y-6">
-
-    {{-- Animated checkmark --}}
-    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100">
+<div class="max-w-lg mx-auto space-y-6 py-4">
+  <div class="card p-8 text-center space-y-5">
+    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30">
       <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
       </svg>
     </div>
 
     <div>
-      <h1 class="text-2xl font-black text-gray-900">You're all set! 🎉</h1>
-      <p class="text-gray-500 mt-2 text-sm">
-        Your <strong class="text-gray-800">{{ $plan->name }}</strong> subscription is now active.
-        @if($plan->trialDays)
-        Your {{ $plan->trialDays }}-day free trial has started.
-        @endif
-      </p>
+      <h1 class="text-2xl font-black text-heading">Payment successful</h1>
+      <p class="text-sm text-muted mt-2">{{ $message }}</p>
     </div>
 
-    <div class="bg-velour-50 rounded-2xl p-4 text-left space-y-2.5">
-      <p class="text-xs font-semibold text-velour-700 uppercase tracking-wider">What's included</p>
-      @foreach(['online_booking'=>'Online booking widget','marketing'=>'Email & SMS marketing','reports'=>'Advanced reports','api_access'=>'API access'] as $f => $label)
-      @if($plan->allows($f))
-      <div class="flex items-center gap-2 text-sm text-velour-700">
-        <span class="text-green-500 font-bold">✓</span> {{ $label }}
-      </div>
-      @endif
-      @endforeach
+    @if($scheduled_plan && $activates_at)
+    <div class="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-left text-sm">
+      <p class="font-semibold text-heading">Current plan</p>
+      <p class="text-body">{{ $plan?->name ?? 'Trial' }} — active now</p>
+      <p class="font-semibold text-heading mt-3">Paid plan starts</p>
+      <p class="text-body">{{ $scheduled_plan->name }} on {{ $activates_at->format('d M Y') }}</p>
     </div>
-
-    <div class="flex flex-col gap-3">
-      <a href="{{ route('dashboard') }}"
-         class="w-full px-6 py-3 font-semibold rounded-2xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
-        Open my dashboard →
-      </a>
-      <a href="{{ route('billing.dashboard') }}"
-         class="w-full px-6 py-3 text-sm font-medium rounded-2xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors">
-        View billing & invoices
-      </a>
+    @elseif($plan)
+  <div class="rounded-2xl bg-velour-50 dark:bg-velour-950/30 px-4 py-3 text-sm text-body">
+      Active plan: <strong class="text-heading">{{ $plan->name }}</strong>
     </div>
+    @endif
 
+    <div class="flex flex-col gap-3 pt-2">
+      <a href="{{ route('billing.dashboard') }}" class="btn-primary w-full">View billing details</a>
+      <a href="{{ route('dashboard') }}" class="btn border border-gray-200 dark:border-gray-700 w-full">Go to dashboard</a>
+    </div>
   </div>
 </div>
-
 @endsection

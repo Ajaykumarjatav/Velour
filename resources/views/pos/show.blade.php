@@ -38,14 +38,6 @@
 @endpush
 
 @section('content')
-<div class="max-w-3xl space-y-6 no-print">
-    @if(session('success'))
-        <div class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/90 dark:bg-emerald-950/40 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100">
-            {{ session('success') }}
-        </div>
-    @endif
-</div>
-
 <div class="max-w-3xl mx-auto space-y-6">
     {{-- Printable invoice --}}
     <article class="invoice-sheet rounded-2xl border border-gray-200/90 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm overflow-hidden text-gray-900 dark:text-gray-100">

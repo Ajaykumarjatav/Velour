@@ -33,7 +33,7 @@
           <span class="px-3 py-1.5 bg-white/20 border border-white/30 text-white text-sm font-bold rounded-xl">
             Trial · {{ $sub->trial_ends_at->diffForHumans() }}
           </span>
-          @elseif($sub->cancelled())
+          @elseif($sub->canceled())
           <span class="px-3 py-1.5 bg-red-500/30 border border-red-300/30 text-white text-sm font-bold rounded-xl">
             Cancelled · ends {{ $sub->ends_at?->format('d M Y') }}
           </span>
@@ -139,7 +139,7 @@
          class="px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors">
         Billing dashboard
       </a>
-      @if($sub && !$sub->cancelled())
+      @if($sub && !$sub->canceled())
       <a href="{{ route('billing.cancel') }}"
          class="px-5 py-2.5 text-sm font-medium rounded-xl border border-red-200 hover:bg-red-50 text-red-600 transition-colors">
         Cancel subscription

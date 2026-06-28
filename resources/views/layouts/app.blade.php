@@ -847,6 +847,19 @@
             </div>
             @endif
 
+            @if(session('info'))
+            <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm
+                        bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">
+                <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/>
+                </svg>
+                <span class="flex-1">{{ session('info') }}</span>
+                <button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100 flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            @endif
+
             @if($errors->any())
             <div data-flash class="mb-4 px-4 py-3 rounded-xl text-sm
                         bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">

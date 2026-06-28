@@ -16,12 +16,6 @@
     </p>
 </div>
 
-@if(session('success'))
-    <div class="mb-5 rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/95 to-teal-50/40 px-4 py-3 text-sm text-emerald-900 shadow-sm">
-        {{ session('success') }}
-    </div>
-@endif
-
 @if(session('email_error'))
     <div class="mb-5 rounded-2xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950 shadow-sm" role="alert">
         {{ session('email_error') }}

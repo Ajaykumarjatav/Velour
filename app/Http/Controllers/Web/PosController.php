@@ -13,6 +13,7 @@ use App\Models\InventoryItem;
 use App\Models\Staff;
 use App\Mail\PosTransactionInvoiceMail;
 use App\Models\Tenant;
+use App\Services\PosWalkInAppointmentService;
 use App\Support\SalonTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -72,6 +73,7 @@ class PosController extends Controller
     public function create(Request $request)
     {
         $salon    = $this->activeSalon();
+        $user     = Auth::user();
         $clients  = Client::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->orderBy('first_name')
@@ -121,11 +123,13 @@ class PosController extends Controller
                         'type' => 'service',
                         'id' => $svcId,
                         'qty' => 1,
+                        'staff_id' => $appt->staff_id,
                     ];
                 }
 
                 $prefillFromAppointment = [
                     'client_id' => $appt->client_id,
+                    'staff_id' => $appt->staff_id,
                     'lines' => $lines,
                 ];
 
@@ -159,6 +163,26 @@ class PosController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'name']);
 
+        $staffMembers = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->withName()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['id', 'first_name', 'last_name']);
+
+        $defaultStaffId = $user?->dashboardScopedStaffId();
+        if (! $defaultStaffId) {
+            $defaultStaffId = Staff::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('user_id', (int) ($user?->id ?? 0))
+                ->where('is_active', true)
+                ->value('id');
+        }
+        if (! $defaultStaffId && $staffMembers->isNotEmpty()) {
+            $defaultStaffId = $staffMembers->first()->id;
+        }
+
         return view('pos.create', compact(
             'salon',
             'clients',
@@ -167,7 +191,9 @@ class PosController extends Controller
             'categories',
             'recentTransactions',
             'clientQuickCreateLoyaltyTiers',
-            'prefillFromAppointment'
+            'prefillFromAppointment',
+            'staffMembers',
+            'defaultStaffId',
         ));
     }
 
@@ -184,6 +210,7 @@ class PosController extends Controller
             'items.*.qty'       => ['required', 'integer', 'min:1'],
             'items.*.price'     => ['required', 'numeric', 'min:0'],
             'items.*.name'      => ['required', 'string', 'max:200'],
+            'staff_id'          => ['nullable', 'integer', 'exists:staff,id'],
             'payment_method'    => ['required', 'in:cash,card,bank_transfer,voucher'],
             'payment_received'  => ['accepted'],
             'discount_amount'   => ['nullable', 'numeric', 'min:0'],
@@ -208,8 +235,10 @@ class PosController extends Controller
 
         // Catalogue prices only — do not trust browser-submitted line prices.
         $resolvedItems = [];
+        $hasServices   = false;
         foreach ($data['items'] as $idx => $line) {
             if ($line['type'] === 'service') {
+                $hasServices = true;
                 $svc = Service::withoutGlobalScopes()
                     ->where('salon_id', $salon->id)
                     ->whereKey($line['id'])
@@ -270,7 +299,27 @@ class PosController extends Controller
             $tax = round($taxable * ($taxRate / 100), 2);
             $total = $taxable + $tax;
         }
-        $staffId = $user?->dashboardScopedStaffId();
+        $staffId = $hasServices ? (int) ($data['staff_id'] ?? 0) : 0;
+        if ($hasServices && empty($data['appointment_id']) && $staffId <= 0) {
+            throw ValidationException::withMessages([
+                'staff_id' => __('Select staff for this sale.'),
+            ]);
+        }
+        if ($staffId > 0) {
+            $staffOk = Staff::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->whereKey($staffId)
+                ->where('is_active', true)
+                ->exists();
+            if (! $staffOk) {
+                throw ValidationException::withMessages([
+                    'staff_id' => __('The selected staff member is not valid for this salon.'),
+                ]);
+            }
+        }
+        if ($staffId <= 0) {
+            $staffId = $user?->dashboardScopedStaffId();
+        }
         if (! $staffId) {
             $staffId = Staff::withoutGlobalScopes()
                 ->where('salon_id', $salon->id)
@@ -288,6 +337,13 @@ class PosController extends Controller
         }
         if (! $staffId) {
             return back()->withErrors(['status' => 'No active staff member found for this sale.'])->withInput();
+        }
+
+        // Ensure service lines without explicit staff inherit the sale staff.
+        foreach ($resolvedItems as $i => $item) {
+            if ($item['type'] === 'service' && empty($item['staff_id'])) {
+                $resolvedItems[$i]['staff_id'] = (int) $staffId;
+            }
         }
 
         $paymentMethod = match ($data['payment_method']) {
@@ -313,6 +369,7 @@ class PosController extends Controller
 
             foreach ($resolvedItems as $item) {
                 $itemableClass = $item['type'] === 'service' ? Service::class : InventoryItem::class;
+                $lineStaffId = $item['type'] === 'service' ? (int) ($item['staff_id'] ?? $staffId) : null;
                 $tx->items()->create([
                     'itemable_id'   => $item['id'],
                     'itemable_type' => $itemableClass,
@@ -321,6 +378,7 @@ class PosController extends Controller
                     'quantity'      => $item['qty'],
                     'unit_price'    => $item['price'],
                     'total'         => $item['qty'] * $item['price'],
+                    'staff_id'      => $lineStaffId,
                 ]);
 
                 if ($item['type'] === 'product') {
@@ -340,6 +398,15 @@ class PosController extends Controller
                 if ($client) {
                     Client::withoutAuditLog(fn () => $client->recalculateTotalSpent());
                 }
+            }
+
+            if (empty($data['appointment_id'])) {
+                PosWalkInAppointmentService::createAppointmentsForWalkInSale(
+                    $salon,
+                    $tx,
+                    $resolvedItems,
+                    $data['client_id'] ?? null,
+                );
             }
 
             return $tx;

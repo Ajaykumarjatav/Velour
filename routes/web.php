@@ -382,6 +382,14 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 //    ->middleware('subscription:pro')     → pro or enterprise only
 //    ->middleware('subscription:feature:marketing') → feature flag
 
+// Cashfree redirects back via POST without session cookie — use signed URL + no auth.
+Route::middleware(['subscriptions.enabled', 'signed'])
+    ->prefix('billing')
+    ->name('billing.')
+    ->group(function () {
+        Route::match(['get', 'post'], 'return', [BillingController::class, 'paymentReturn'])->name('return');
+    });
+
 Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'salon.panel', 'subscriptions.enabled'])
     ->prefix('billing')
     ->name('billing.')
@@ -390,7 +398,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'salon.panel',
     // Pricing & checkout
     Route::get('/',            [BillingController::class, 'plans'])->name('plans');
     Route::post('checkout',    [BillingController::class, 'checkout'])->name('checkout');
-    Route::get('success',      [BillingController::class, 'success'])->name('success');
+    Route::get('success', fn () => redirect()->route('billing.dashboard'))->name('success');
 
     // Change plan (upgrade / downgrade)
     Route::get('change',       [BillingController::class, 'showChangePlan'])->name('change.show');

@@ -20,15 +20,6 @@
     </p>
   </div>
 
-  @foreach(['success','info','warning'] as $f)
-    @if(session($f))
-    <div class="mb-4 px-4 py-3 rounded-xl text-sm
-      {{ $f === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : ($f === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200') }}">
-      {{ session($f) }}
-    </div>
-    @endif
-  @endforeach
-
   {{-- TOTP / Email OTP challenge --}}
   <div x-show="!showRecovery" class="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
     <form method="POST" action="{{ route('two-factor.challenge') }}">

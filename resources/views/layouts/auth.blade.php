@@ -202,6 +202,18 @@
                             <div>{{ session('success') }}</div>
                         </div>
                     @endif
+                    @if(session('warning'))
+                        <div class="mb-6 flex gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/95 px-4 py-3 text-sm text-amber-950 shadow-sm dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+                            <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            <div>{{ session('warning') }}</div>
+                        </div>
+                    @endif
+                    @if(session('info'))
+                        <div class="mb-6 flex gap-3 rounded-2xl border border-blue-200/80 bg-blue-50/95 px-4 py-3 text-sm text-blue-950 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200">
+                            <svg class="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>
+                            <div>{{ session('info') }}</div>
+                        </div>
+                    @endif
                     @php
                         $authInlineErrorFields = ['email', 'password', 'name', 'password_confirmation', 'cf-turnstile-response', 'code', 'recovery_code'];
                         $authBannerErrors = collect($errors->getMessages())->except($authInlineErrorFields)->flatten();
