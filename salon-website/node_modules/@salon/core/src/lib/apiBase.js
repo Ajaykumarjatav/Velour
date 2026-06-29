@@ -1,8 +1,7 @@
 /**
  * Laravel API root (no trailing slash).
  * - Dev (Vite :5173): empty → /api is proxied to Laravel in vite.config.js
- * - Production on /vellor/public/s/{slug}: derived from URL path
- * - Override anytime with VITE_API_BASE in salon-website/.env
+ * - Production: meta api-base from Laravel, or derived from /s/{slug} URL
  */
 function apiBaseFromMeta() {
   if (typeof document === 'undefined') return ''
@@ -20,7 +19,6 @@ export function getApiBase() {
   const host = window.location.hostname
   const onLocalhost = host === 'localhost' || host === '127.0.0.1'
 
-  // Build was made with localhost API but app runs on live — ignore baked localhost
   if (fromEnv && /localhost|127\.0\.0\.1/i.test(fromEnv) && !onLocalhost) {
     fromEnv = ''
   }
@@ -39,8 +37,9 @@ export function getApiBase() {
   }
 
   const m = window.location.pathname.match(/^(.*)\/s\/[^/]+/)
-  if (m?.[1]) {
-    return window.location.origin + m[1]
+  if (m) {
+    const prefix = m[1] || ''
+    return window.location.origin + prefix + '/admin'
   }
 
   return ''

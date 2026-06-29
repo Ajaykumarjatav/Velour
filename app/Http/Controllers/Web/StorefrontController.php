@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Salon;
 use App\Support\PublicSalonAccess;
 use App\Support\StorefrontTheme;
+use App\Support\StorefrontUrl;
 use Illuminate\Http\Response;
 
 class StorefrontController extends Controller
@@ -55,22 +56,38 @@ class StorefrontController extends Controller
      */
     private function renderStorefrontHtml(string $html, string $theme): Response
     {
-        $assetPath = parse_url(asset('website/' . $theme . '/'), PHP_URL_PATH) ?: StorefrontTheme::assetBase($theme);
-        $assetPath = '/' . trim((string) $assetPath, '/') . '/';
+        $apiBase = StorefrontUrl::laravelBaseUrl();
+        $assetBase = StorefrontUrl::themeAssetBase($theme);
+        $assetPath = parse_url($assetBase, PHP_URL_PATH) ?: StorefrontTheme::assetBase($theme);
+        if (! str_ends_with((string) $assetPath, '/')) {
+            $assetPath .= '/';
+        }
 
+        // Baked builds may use /vellor/admin/website/... or /website/... — normalize for this server.
         $html = preg_replace(
             '#(?:https?://[^"\'\s]+)?/?[^"\'\s]*/website/' . preg_quote($theme, '#') . '/#',
             $assetPath,
             $html
         ) ?? $html;
 
-        $apiBase = rtrim((string) config('app.url'), '/');
-        $assetBase = rtrim(asset('website/' . $theme . '/'), '/') . '/';
-
         $html = $this->upsertMeta($html, 'api-base', $apiBase);
         $html = $this->upsertMeta($html, 'storefront-asset-base', $assetBase);
+        $html = $this->injectBootScript($html, $apiBase);
 
         return response($html)->header('Content-Type', 'text/html');
+    }
+
+    /** Ensure API calls hit Laravel /admin even before theme bundles are rebuilt. */
+    private function injectBootScript(string $html, string $apiBase): string
+    {
+        $json = json_encode($apiBase, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+        $script = '<script>(function(){var b='.$json.';var o=window.fetch;window.fetch=function(i,n){var u=typeof i==="string"?i:(i&&i.url?i.url:"");if(u&&u.indexOf("/api/")!==-1&&u.indexOf(b)!==0){var p=u.replace(/^https?:\\/\\/[^/]+/,"");if(p.charAt(0)==="/"){return o(b+p,n)}}return o(i,n)};})();</script>';
+
+        if (str_contains($html, '</head>')) {
+            return str_replace('</head>', $script.'</head>', $html);
+        }
+
+        return $script.$html;
     }
 
     private function upsertMeta(string $html, string $name, string $content): string

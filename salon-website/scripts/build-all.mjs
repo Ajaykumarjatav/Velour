@@ -28,18 +28,18 @@ function resolveAssetRoot() {
     const appUrl = env.match(/^APP_URL=(.+)$/m)?.[1]?.trim().replace(/^["']|["']$/g, '')
     if (appUrl) {
       try {
-        const appPath = new URL(appUrl).pathname.replace(/\/$/, '') || ''
-        const assetPath = `${appPath}/website/`.replace(/\/{2,}/g, '/')
-        if (assetPath !== '/website/') {
-          return assetPath
+        let appPath = new URL(appUrl).pathname.replace(/\/$/, '') || ''
+        if (!appPath.toLowerCase().endsWith('/admin')) {
+          appPath += '/admin'
         }
+        return `${appPath}/website/`.replace(/\/{2,}/g, '/')
       } catch {
         // ignore invalid APP_URL
       }
     }
   }
 
-  return '/website/'
+  return '/admin/website/'
 }
 
 const assetRoot = resolveAssetRoot().replace(/\/?$/, '/')
