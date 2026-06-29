@@ -3,9 +3,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # 301: strip /public/ from admin URLs
+    # 301: strip /public/ from admin URLs (skip index.php — avoids LiteSpeed 500 on /admin/index.php)
     RewriteCond %{ENV:REDIRECT_STATUS} ^$
     RewriteCond %{THE_REQUEST} \s[^\s]*/admin/public/([^\s?]*) [NC]
+    RewriteCond %1 !^index\.php$ [NC]
     RewriteRule ^admin/public/(.*)$ admin/$1 [R=301,L,NE]
 
     # Laravel admin
