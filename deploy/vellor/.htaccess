@@ -1,18 +1,18 @@
 # Staging: samarthinfoservices.com/vellor/
-# Marketing → dist/ · Laravel → admin/ · Storefront → /s/{slug}
+# Laravel lives at /vellor/ (app/, public/). URL /vellor/admin/ → public/
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteBase /vellor/
 
-    # 301: strip /public/ from admin URLs (skip index.php — avoids LiteSpeed 500 on /admin/index.php)
     RewriteCond %{ENV:REDIRECT_STATUS} ^$
     RewriteCond %{THE_REQUEST} \s[^\s]*/admin/public/([^\s?]*) [NC]
     RewriteCond %1 !^index\.php$ [NC]
     RewriteRule ^admin/public/(.*)$ admin/$1 [R=301,L,NE]
 
-    RewriteRule ^admin/?$ admin/public/index.php [L]
-    RewriteRule ^admin/(.*)$ admin/public/$1 [L]
+    RewriteRule ^admin/?$ public/index.php [L]
+    RewriteRule ^admin/(.*)$ public/$1 [L]
 
-    RewriteRule ^s(/.*)?$ admin/public/index.php [L]
+    RewriteRule ^s(/.*)?$ public/index.php [L]
 
     RewriteCond %{DOCUMENT_ROOT}/vellor/dist/$1 -f
     RewriteRule ^(.+)$ dist/$1 [L]
