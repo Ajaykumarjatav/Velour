@@ -1,0 +1,26 @@
+# Production: public_html root (easygrox.com)
+# Marketing SPA at / · Laravel admin at /admin · Salon storefront at /s/{slug}
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 301: strip /public/ from admin URLs
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteCond %{THE_REQUEST} \s[^\s]*/admin/public/([^\s?]*) [NC]
+    RewriteRule ^admin/public/(.*)$ admin/$1 [R=301,L,NE]
+
+    # Laravel admin
+    RewriteRule ^admin/?$ admin/public/index.php [L]
+    RewriteRule ^admin/(.*)$ admin/public/$1 [L]
+
+    # Salon storefront (React themes) — /s/{slug}
+    RewriteRule ^s(/.*)?$ admin/public/index.php [L]
+
+    # Marketing SPA — existing files first, then index.html
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/admin(/|$) [NC]
+    RewriteCond %{REQUEST_URI} !^/s(/|$) [NC]
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+DirectoryIndex index.html

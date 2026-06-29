@@ -51,6 +51,18 @@ class StorefrontController extends Controller
         return $this->renderStorefrontHtml((string) file_get_contents($index), $theme);
     }
 
+    /** Serve built theme JS/CSS when the web server does not map /website/* as static files. */
+    public function themeAsset(string $theme, string $asset): Response
+    {
+        $theme = StorefrontTheme::normalizeSlug($theme);
+        $asset = str_replace(['..', '\\'], '', $asset);
+        $path = public_path('website/'.$theme.'/assets/'.$asset);
+
+        abort_unless(is_file($path), 404, 'Theme asset missing. Run npm run build:all in salon-website and deploy admin/public/website.');
+
+        return response()->file($path, ['Cache-Control' => 'public, max-age=604800']);
+    }
+
     /**
      * Rewrite baked Vite asset paths and inject API base so production works on any APP_URL.
      */

@@ -1,0 +1,25 @@
+# Staging / subdirectory install (e.g. samarthinfoservices.com/vellor/)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteCond %{THE_REQUEST} \s[^\s]*/admin/public/([^\s?]*) [NC]
+    RewriteRule ^admin/public/(.*)$ admin/$1 [R=301,L,NE]
+
+    RewriteRule ^admin/?$ admin/public/index.php [L]
+    RewriteRule ^admin/(.*)$ admin/public/$1 [L]
+
+    RewriteRule ^s(/.*)?$ admin/public/index.php [L]
+
+    RewriteCond %{DOCUMENT_ROOT}/dist/$1 -f
+    RewriteRule ^(.+)$ dist/$1 [L]
+
+    RewriteCond %{DOCUMENT_ROOT}/dist/$1 -d
+    RewriteRule ^(.+)$ dist/$1 [L]
+
+    RewriteCond %{REQUEST_URI} !/admin(/|$) [NC]
+    RewriteCond %{REQUEST_URI} !/s(/|$) [NC]
+    RewriteRule ^ dist/index.html [L]
+</IfModule>
+
+DirectoryIndex dist/index.html

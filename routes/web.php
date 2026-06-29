@@ -576,6 +576,10 @@ Route::middleware(['auth', 'verified', 'plan.access'])->prefix('onboarding')->na
 });
 
 // ── Public salon website (React build in public/website) ───────────────────────
+Route::get('website/{theme}/assets/{asset}', [\App\Http\Controllers\Web\StorefrontController::class, 'themeAsset'])
+    ->where('theme', '[a-z0-9\-]+')
+    ->where('asset', '.+')
+    ->name('storefront.theme.asset');
 Route::get('s/{slug}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])->name('storefront.show');
 Route::get('s/{slug}/{path}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])
     ->where('path', '.*')

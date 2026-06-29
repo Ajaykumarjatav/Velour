@@ -79,3 +79,8 @@ if (fs.existsSync(path.join(glowRoseDir, 'index.html'))) {
 
 if (failed) process.exit(1)
 console.log('\nAll theme builds completed.')
+console.log('\nDeploy: commit public/website/, push, then on the server:')
+console.log('  - git pull in admin/')
+console.log('  - Live (easygrox.com): copy deploy/public_html/.htaccess → site root .htaccess')
+console.log('  - Live: copy deploy/public_html/s/ → site root s/')
+console.log('  - Staging (/vellor): copy deploy/vellor/.htaccess → vellor/.htaccess')
