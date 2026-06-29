@@ -23,7 +23,7 @@ class SalonSeeder extends Seeder
                 'name'      => 'Isabelle Laurent',
                 'password'  => Hash::make('password'),
                 'phone'     => '+44 7700 900456',
-                'plan'      => 'pro',
+                'plan'      => 'standard',
                 'is_active' => true,
             ]
         );
