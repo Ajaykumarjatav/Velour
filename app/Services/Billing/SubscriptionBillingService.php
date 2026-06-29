@@ -88,19 +88,39 @@ class SubscriptionBillingService
             $user->refresh();
         }
 
-        $status = strtoupper((string) (
-            $cashfreeData['subscription_status']
-            ?? $returnPayload['subscription_status']
-            ?? $returnPayload['status']
-            ?? $sub->stripe_status
-        ));
+        if ($this->paymentSucceeded($cashfreeData, $returnPayload, $sub)) {
+            if ($sub->stripe_status !== 'active') {
+                $sub->update(['stripe_status' => 'active']);
+            }
+
+            $this->activatePaidSubscription($sub, $cashfreeData, $returnPayload);
+            $sub->refresh();
+            $user->refresh();
+
+            [$planKey] = explode(':', (string) $sub->stripe_price, 2);
+            $plan = $planKey !== '' ? Plan::find($planKey) : null;
+
+            $transaction = BillingTransaction::query()
+                ->where('cashfree_subscription_id', $subscriptionId)
+                ->latest('id')
+                ->first();
+
+            return $this->returnOutcome(
+                'success',
+                $this->successMessage($user, $plan),
+                $user,
+                $transaction,
+            );
+        }
+
+        $status = strtoupper($this->resolvePaymentStatus($cashfreeData, $returnPayload, $sub));
 
         $transaction = BillingTransaction::query()
             ->where('cashfree_subscription_id', $subscriptionId)
             ->latest('id')
             ->first();
 
-        if (in_array($status, ['ACTIVE', 'ACTIVATED'], true)) {
+        if (in_array($status, ['ACTIVE', 'ACTIVATED', 'BANK_APPROVAL_PENDING'], true)) {
             [$planKey] = explode(':', (string) $sub->stripe_price, 2);
             $plan = $planKey !== '' ? Plan::find($planKey) : null;
 
@@ -112,7 +132,7 @@ class SubscriptionBillingService
             );
         }
 
-        if (in_array($status, ['INITIALIZED', 'BANK_APPROVAL_PENDING', 'INCOMPLETE', 'INCOMPLETE_EXPIRED'], true)) {
+        if (in_array($status, ['INITIALIZED', 'INCOMPLETE', 'INCOMPLETE_EXPIRED'], true)) {
             return $this->returnOutcome(
                 'pending',
                 'Your payment is being processed. We will update your plan once Cashfree confirms the mandate.',
@@ -196,6 +216,48 @@ class SubscriptionBillingService
             });
 
         return $count;
+    }
+
+    /**
+     * Sync Cashfree state and apply any paid plan that should already be active.
+     */
+    public function reconcileBillingState(User $user): void
+    {
+        $this->activateDueScheduledPlans();
+
+        $sub = $user->subscription('default');
+        if ($sub?->stripe_id) {
+            $this->syncFromApi($sub->stripe_id);
+            $user->refresh();
+            $sub->refresh();
+        }
+
+        $transaction = BillingTransaction::query()
+            ->where('user_id', $user->id)
+            ->where('status', BillingTransaction::STATUS_SUCCESS)
+            ->where(function ($query) {
+                $query->whereNull('activates_at')
+                    ->orWhere('activates_at', '<=', now());
+            })
+            ->latest('id')
+            ->first();
+
+        if (! $transaction || ! $user->currentPlan()->isTrial()) {
+            return;
+        }
+
+        $user->update([
+            'plan'                      => $transaction->plan_key,
+            'trial_ends_at'             => null,
+            'scheduled_plan'            => null,
+            'scheduled_plan_interval'   => null,
+            'scheduled_plan_starts_at' => null,
+        ]);
+
+        $sub?->update([
+            'stripe_status' => 'active',
+            'ends_at'       => null,
+        ]);
     }
 
     public function applyScheduledPlan(User $user): void
@@ -326,6 +388,11 @@ class SubscriptionBillingService
             'scheduled_plan_interval'   => null,
             'scheduled_plan_starts_at' => null,
         ]);
+
+        $sub->update([
+            'stripe_status' => 'active',
+            'ends_at'       => null,
+        ]);
     }
 
     protected function resolveActivationDate(User $user): Carbon
@@ -334,12 +401,50 @@ class SubscriptionBillingService
             return $user->trial_ends_at->copy();
         }
 
+        if (! app(PlanAccessService::class)->hasActiveAccess($user)) {
+            return now();
+        }
+
         $sub = $user->subscription('default');
-        if ($sub?->ends_at?->isFuture()) {
+        if ($sub?->onGracePeriod() && $sub->ends_at?->isFuture()) {
             return $sub->ends_at->copy();
         }
 
         return now();
+    }
+
+    protected function paymentSucceeded(array $cashfreeData, array $returnPayload, Subscription $sub): bool
+    {
+        if ($this->isCheckoutSuccessful($returnPayload)) {
+            return true;
+        }
+
+        $status = strtoupper($this->resolvePaymentStatus($cashfreeData, $returnPayload, $sub));
+
+        return in_array($status, ['ACTIVE', 'ACTIVATED', 'BANK_APPROVAL_PENDING'], true);
+    }
+
+    protected function resolvePaymentStatus(array $cashfreeData, array $returnPayload, Subscription $sub): string
+    {
+        return (string) (
+            $cashfreeData['subscription_status']
+            ?? $cashfreeData['status']
+            ?? $returnPayload['cf_status']
+            ?? $returnPayload['subscription_status']
+            ?? $returnPayload['status']
+            ?? $sub->stripe_status
+        );
+    }
+
+    protected function isCheckoutSuccessful(array $returnPayload): bool
+    {
+        $checkout = strtoupper((string) ($returnPayload['cf_checkoutStatus'] ?? ''));
+
+        return in_array($checkout, [
+            'SUCCESS',
+            'SUCCESS_DEBIT_PENDING',
+            'SUCCESS_TOKENIZATION_PENDING',
+        ], true);
     }
 
     protected function successMessage(User $user, ?Plan $plan): string

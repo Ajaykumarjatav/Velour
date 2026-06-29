@@ -49,11 +49,27 @@ class PlanAccessService
             return true;
         }
 
+        if ($account->currentPlan()->isPaid() && $this->hasActivatedPaidPlan($account)) {
+            return true;
+        }
+
         if ($account->trial_ends_at?->isFuture()) {
             return true;
         }
 
         return false;
+    }
+
+    private function hasActivatedPaidPlan(User $account): bool
+    {
+        return \App\Models\BillingTransaction::query()
+            ->where('user_id', $account->id)
+            ->where('status', \App\Models\BillingTransaction::STATUS_SUCCESS)
+            ->where(function ($query) {
+                $query->whereNull('activates_at')
+                    ->orWhere('activates_at', '<=', now());
+            })
+            ->exists();
     }
 
     public function isExpired(User $user): bool

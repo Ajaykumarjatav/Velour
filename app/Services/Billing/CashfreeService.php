@@ -50,8 +50,8 @@ class CashfreeService
     public static function mapSubscriptionStatus(string $status): string
     {
         return match (strtoupper($status)) {
-            'ACTIVE' => 'active',
-            'INITIALIZED', 'BANK_APPROVAL_PENDING' => 'incomplete',
+            'ACTIVE', 'ACTIVATED', 'BANK_APPROVAL_PENDING' => 'active',
+            'INITIALIZED' => 'incomplete',
             'ON_HOLD' => 'past_due',
             'CUSTOMER_PAUSED' => 'paused',
             'CUSTOMER_CANCELLED', 'CANCELLED', 'COMPLETED', 'EXPIRED', 'LINK_EXPIRED', 'CARD_EXPIRED' => 'canceled',

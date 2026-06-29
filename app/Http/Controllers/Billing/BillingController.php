@@ -24,7 +24,10 @@ class BillingController extends Controller
 
     public function plans(Request $request)
     {
-        $user     = Auth::user();
+        $user = Auth::user();
+        $this->billing->reconcileBillingState($user);
+
+        $user     = $user->fresh();
         $plans    = Plan::all();
         $interval = $request->get('interval', 'monthly');
         $current  = $user->currentPlan();
@@ -112,6 +115,9 @@ class BillingController extends Controller
 
         if ($result['user']) {
             $this->billing->restoreSessionForUser($result['user']);
+            $this->billing->reconcileBillingState($result['user']);
+            $result['user'] = $result['user']->fresh();
+            $result['plan'] = $result['user']->currentPlan();
         }
 
         if ($result['outcome'] === 'success') {
@@ -242,7 +248,7 @@ class BillingController extends Controller
 
     public function dashboard(Request $request)
     {
-        $this->billing->activateDueScheduledPlans();
+        $this->billing->reconcileBillingState(Auth::user());
 
         $user    = Auth::user()->fresh();
         $sub     = $user->subscription('default');

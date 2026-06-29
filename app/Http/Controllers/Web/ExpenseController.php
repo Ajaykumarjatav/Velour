@@ -77,15 +77,8 @@ class ExpenseController extends Controller
             'expense_date' => $request->query('expense_date'),
         ]);
 
-        $categoriesJson = $categories->map(fn ($c) => [
-            'id' => $c->id,
-            'name' => $c->name,
-            'slug' => $c->slug,
-            'meta' => ExpenseCategoryUi::meta($c->slug, $c->name),
-        ])->values();
-
         return view('expenses.create', compact(
-            'salon', 'categories', 'categoriesJson', 'staffList',
+            'salon', 'categories', 'staffList',
             'vendorSuggestions', 'recentExpenses', 'prefill'
         ));
     }
