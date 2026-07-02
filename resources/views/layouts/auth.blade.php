@@ -232,6 +232,11 @@
                 <p class="text-center text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
                     © {{ date('Y') }} EasyGrox · Encrypted session
                 </p>
+                <p class="text-center text-[12px] text-slate-500 dark:text-slate-400">
+                    Developed and managed by
+                    <a href="https://samarthinfoservices.com/" target="_blank" rel="noopener noreferrer"
+                       class="ml-1 inline-flex items-center rounded-full border border-velour-300/70 bg-velour-50/80 px-2.5 py-0.5 font-semibold text-velour-700 transition-colors hover:border-velour-400 hover:bg-velour-100 dark:border-velour-700/60 dark:bg-velour-900/30 dark:text-velour-300 dark:hover:bg-velour-900/50">SamarthInfo Services</a>
+                </p>
             </div>
         </div>
     </div>

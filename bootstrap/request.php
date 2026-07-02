@@ -19,7 +19,10 @@ function vellor_normalize_request_uri(): void
     $bases = [];
 
     $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-    if ($script !== '') {
+    // Storefront fallback (public_html/s/index.php) must not strip /s from the URI.
+    $isStorefrontBootstrap = (bool) preg_match('#/s/index\.php$#', $script);
+
+    if ($script !== '' && ! $isStorefrontBootstrap) {
         $dir = rtrim(dirname($script), '/');
         if ($dir !== '' && $dir !== '.') {
             $bases[] = $dir;
