@@ -62,13 +62,15 @@ vellor/
    npm install
    npm run dev
    ```
-9. Public salon website (optional):
+9. Public salon website (optional — only needed when changing theme CSS in `salon-website/`):
    ```bash
    cd salon-website
    npm install
-   npm run dev
+   npm run build:all
+   cd ..
+   php scripts/sync-storefront-assets.php
    ```
-   Build for production: `npm run build` (outputs to `public/website/`).
+   Storefronts are server-rendered Blade by default (`STOREFRONT_ENGINE=blade`). Verify: `php deploy/verify-storefront.php`.
 
 ## URLs
 
@@ -77,7 +79,7 @@ vellor/
 | `{APP_URL}/` | Redirects to dashboard when logged in |
 | `{APP_URL}/login` | Salon staff login |
 | `{APP_URL}/book/{slug}` | Legacy/public booking blade |
-| `{APP_URL}/s/{slug}` | React marketing + booking site |
+| `{APP_URL}/s/{slug}` | Blade marketing site + Alpine booking (`#book`) |
 | `{APP_URL}/admin` | Super-admin (requires `super_admin`) |
 
 ## First login

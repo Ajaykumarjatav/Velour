@@ -575,7 +575,7 @@ Route::middleware(['auth', 'verified', 'plan.access'])->prefix('onboarding')->na
     Route::get('/skip',                [\App\Http\Controllers\Web\OnboardingController::class, 'skip'])->name('skip');
 });
 
-// ── Public salon website (React build in public/website) ───────────────────────
+// ── Public salon website (Blade themes + legacy React fallback) ───────────────
 Route::get('website/{theme}/assets/{asset}', [\App\Http\Controllers\Web\StorefrontController::class, 'themeAsset'])
     ->where('theme', '[a-z0-9\-]+')
     ->where('asset', '.+')

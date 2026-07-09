@@ -1,4 +1,4 @@
-# Public website (React)
+# Public website (Blade)
 
 ## Purpose
 
@@ -7,37 +7,49 @@ Marketing storefront per salon: hero, services, staff, testimonials, packages, a
 ## Architecture
 
 ```
-Browser → GET /s/{slug} → StorefrontController → public/website/index.html
+Browser → GET /s/{slug} → StorefrontController
                 ↓
-         SalonContext fetches GET /api/v1/salon/{slug}/website
+         SalonWebsitePayloadService builds payload
                 ↓
-         SalonWebsitePayloadService builds JSON
+         Blade theme (storefront.themes.{slug}.show)
                 ↓
-         React sections OR BookingFlow (#book)
+         Alpine.js booking overlay (#book) → /api/v1/book/{slug}/*
 ```
+
+Legacy React SPA remains available with `STOREFRONT_ENGINE=react` in `.env`.
 
 ## Key files
 
 | Path | Role |
 |------|------|
-| `salon-website/src/App.jsx` | Root layout |
-| `salon-website/src/context/SalonContext.jsx` | Data loading |
-| `salon-website/src/lib/api.js` | Website API |
-| `salon-website/src/lib/bookingApi.js` | Booking API |
-| `app/Http/Controllers/Api/SalonWebsiteController.php` | API endpoint |
+| `resources/views/storefront/layouts/theme.blade.php` | HTML shell, theme CSS, Alpine |
+| `resources/views/storefront/themes/{slug}/show.blade.php` | Theme composer |
+| `resources/views/storefront/partials/booking-flow.blade.php` | Alpine booking (same APIs as React) |
+| `resources/views/storefront/partials/dynamic/*.blade.php` | Shared data-driven sections |
+| `app/Support/StorefrontAssets.php` | CSS URL, asset URLs, theme tokens |
+| `config/storefront-themes.php` | Per-theme tokens and asset filenames |
 | `app/Services/SalonWebsitePayloadService.php` | Payload builder |
-| `app/Http/Controllers/Web/StorefrontController.php` | Serves SPA |
-| `app/Http/Controllers/Web/WebsiteSeoController.php` | SEO meta publish |
+| `app/Http/Controllers/Web/StorefrontController.php` | Serves Blade (or legacy React) |
+| `scripts/sync-storefront-assets.php` | Copy theme CSS/images to `public/storefront/` |
 
 ## Build and deploy
 
 ```bash
-cd salon-website
-npm install
-npm run build   # output: ../public/website/
+# Sync theme CSS + static images (run after theme CSS changes)
+php scripts/sync-storefront-assets.php
+
+# Verify all 7 themes
+php deploy/verify-storefront.php
 ```
 
-Set `APP_URL` correctly so asset URLs resolve. API base in production points to Laravel `/api/v1`.
+Set `STOREFRONT_ENGINE=blade` (default). Set `APP_URL` correctly so asset URLs resolve.
+
+To refresh theme CSS from Vite (only when salon-website styles change):
+
+```bash
+cd salon-website && npm run build:all
+php scripts/sync-storefront-assets.php
+```
 
 ## SEO
 
@@ -50,11 +62,3 @@ Set `APP_URL` correctly so asset URLs resolve. API base in production points to 
 ## Staff images on website
 
 Payload uses `Staff::resolvePublicAvatarUrl()` — same rules as admin UI; sync `storage/app/public` on server.
-
-## Local dev
-
-```bash
-cd salon-website && npm run dev
-```
-
-Vite proxy: `VITE_API_PROXY_TARGET` → Laravel public URL.

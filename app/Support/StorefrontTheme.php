@@ -88,6 +88,26 @@ final class StorefrontTheme
         return public_path('website/' . $slug . '/index.html');
     }
 
+    public static function viewName(string $slug): string
+    {
+        $slug = self::normalizeSlug($slug);
+
+        return 'storefront.themes.'.$slug.'.show';
+    }
+
+    public static function hasBladeView(string $slug): bool
+    {
+        $slug = self::normalizeSlug($slug);
+        $path = resource_path('views/storefront/themes/'.$slug.'/show.blade.php');
+
+        return is_file($path);
+    }
+
+    public static function staticAssetPath(string $slug, string $asset): ?string
+    {
+        return StorefrontAssets::staticAssetPath($slug, $asset);
+    }
+
     public static function previewImagePath(string $slug): ?string
     {
         $slug = self::normalizeSlug($slug);

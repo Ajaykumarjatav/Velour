@@ -16,4 +16,11 @@ return [
     |--------------------------------------------------------------------------
     */
     'asset_base' => env('STOREFRONT_ASSET_BASE', '/website/'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storefront rendering engine: blade (default) or react (legacy fallback)
+    |--------------------------------------------------------------------------
+    */
+    'engine' => env('STOREFRONT_ENGINE', 'blade'),
 ];

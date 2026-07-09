@@ -2,64 +2,71 @@
 <?php
 
 /**
- * Verify salon storefront theme builds exist under public/website/.
- * Run after: cd salon-website && npm run build:all
+ * Verify Blade storefront themes and synced assets under public/storefront/.
  *
  * Usage: php deploy/verify-storefront.php
  */
 
-$publicWebsite = dirname(__DIR__).'/public/website';
+$adminRoot = dirname(__DIR__);
+$config = require $adminRoot.'/config/storefront-themes.php';
+$themes = array_keys($config['themes'] ?? []);
 
-if (! is_dir($publicWebsite)) {
-    fwrite(STDERR, "Missing directory: {$publicWebsite}\n");
-    fwrite(STDERR, "Run: cd salon-website && npm run build:all\n");
-    exit(1);
-}
-
-$themesDir = dirname(__DIR__).'/salon-website/themes';
-$themes = is_dir($themesDir)
-    ? array_values(array_filter(scandir($themesDir) ?: [], fn ($d) => $d !== '.' && $d !== '..' && is_dir($themesDir.'/'.$d)))
-    : [];
-
-if ($themes === []) {
-    fwrite(STDERR, "No themes in salon-website/themes/. Run npm run build:all\n");
-    exit(1);
-}
-
+$engine = env('STOREFRONT_ENGINE', 'blade');
 $ok = true;
 
-foreach ($themes as $theme) {
-    $index = $publicWebsite.'/'.$theme.'/index.html';
-    $assetsDir = $publicWebsite.'/'.$theme.'/assets';
+echo "Storefront engine: {$engine}\n\n";
 
-    if (! is_file($index)) {
-        fwrite(STDERR, "[{$theme}] missing index.html\n");
+foreach ($themes as $theme) {
+    $view = $adminRoot.'/resources/views/storefront/themes/'.$theme.'/show.blade.php';
+    $css = $adminRoot.'/public/storefront/'.$theme.'/theme.css';
+    $assetsDir = $adminRoot.'/public/storefront/'.$theme.'/assets';
+
+    if (! is_file($view)) {
+        fwrite(STDERR, "[{$theme}] missing Blade view: resources/views/storefront/themes/{$theme}/show.blade.php\n");
         $ok = false;
-        continue;
+    }
+
+    if (! is_file($css)) {
+        fwrite(STDERR, "[{$theme}] missing theme.css — run: php scripts/sync-storefront-assets.php\n");
+        $ok = false;
     }
 
     if (! is_dir($assetsDir)) {
-        fwrite(STDERR, "[{$theme}] missing assets/\n");
+        fwrite(STDERR, "[{$theme}] missing public/storefront/{$theme}/assets/\n");
         $ok = false;
         continue;
     }
 
-    $assets = array_values(array_filter(scandir($assetsDir) ?: [], fn ($f) => ! in_array($f, ['.', '..'], true)));
-    $js = array_filter($assets, fn ($f) => str_ends_with($f, '.js'));
-    $css = array_filter($assets, fn ($f) => str_ends_with($f, '.css'));
+    $assetCount = count(array_filter(scandir($assetsDir) ?: [], fn ($f) => ! in_array($f, ['.', '..'], true)));
 
-    if ($js === [] || $css === []) {
-        fwrite(STDERR, "[{$theme}] expected at least one .js and .css in assets/\n");
-        $ok = false;
-        continue;
+    if ($ok) {
+        echo "[{$theme}] OK — Blade view, theme.css, {$assetCount} asset(s)\n";
     }
-
-    echo "[{$theme}] OK — ".count($assets)." asset file(s)\n";
 }
 
 if (! $ok) {
     exit(1);
 }
 
-echo "\nStorefront builds look good. Commit public/website/ and deploy.\n";
-echo "Live site: also copy deploy/public_html/.htaccess and deploy/public_html/s/ to document root.\n";
+echo "\nBlade storefront looks good. Deploy with STOREFRONT_ENGINE=blade (default).\n";
+echo "Legacy React fallback: set STOREFRONT_ENGINE=react in .env\n";
+
+function env(string $key, mixed $default = null): mixed
+{
+    $adminRoot = dirname(__DIR__);
+    $envFile = $adminRoot.'/.env';
+    if (! is_file($envFile)) {
+        return $default;
+    }
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+        if (! str_contains($line, '=') || str_starts_with(trim($line), '#')) {
+            continue;
+        }
+        [$k, $v] = explode('=', $line, 2);
+        if (trim($k) === $key) {
+            return trim($v, " \t\"'");
+        }
+    }
+
+    return $default;
+}
