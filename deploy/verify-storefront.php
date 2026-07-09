@@ -48,8 +48,7 @@ if (! $ok) {
     exit(1);
 }
 
-echo "\nBlade storefront looks good. Deploy with STOREFRONT_ENGINE=blade (default).\n";
-echo "Legacy React fallback: set STOREFRONT_ENGINE=react in .env\n";
+echo "\nBlade storefront looks good.\n";
 
 function env(string $key, mixed $default = null): mixed
 {

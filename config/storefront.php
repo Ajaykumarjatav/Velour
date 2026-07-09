@@ -3,24 +3,15 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Salon website (React) — local dev preview
+    | Storefront rendering — Blade only (React SPA removed from production)
     |--------------------------------------------------------------------------
-    | When set (e.g. http://localhost:5173), Go Live "Preview" opens the Vite
-    | dev server. Run: cd salon-website && npm run dev
     */
-    'dev_url' => env('SALON_WEBSITE_DEV_URL'),
+    'engine' => 'blade',
 
     /*
     |--------------------------------------------------------------------------
-    | Built asset base path (Vite `base` — must match salon-website build)
+    | Theme static asset route base (public/storefront/{theme}/assets/)
     |--------------------------------------------------------------------------
     */
     'asset_base' => env('STOREFRONT_ASSET_BASE', '/website/'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Storefront rendering engine: blade (default) or react (legacy fallback)
-    |--------------------------------------------------------------------------
-    */
-    'engine' => env('STOREFRONT_ENGINE', 'blade'),
 ];
