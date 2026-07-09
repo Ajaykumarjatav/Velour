@@ -13,8 +13,8 @@
     RewriteRule ^admin/?$ admin/public/index.php [L]
     RewriteRule ^admin/(.*)$ admin/public/$1 [L]
 
-    # Salon storefront (React themes) — /s/{slug}
-    RewriteRule ^s(/.*)?$ admin/public/index.php [L]
+    # Salon storefront (Blade themes) — /s/{slug} via s/index.php bootstrap
+    RewriteRule ^s(/.*)?$ s/index.php [L]
 
     # Marketing SPA — existing files first, then index.html
     RewriteCond %{REQUEST_FILENAME} !-f

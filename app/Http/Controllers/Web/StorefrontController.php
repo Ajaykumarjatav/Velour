@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Salon;
 use App\Services\SalonWebsitePayloadService;
 use App\Support\PublicSalonAccess;
 use App\Support\StorefrontAssets;
@@ -16,7 +15,7 @@ class StorefrontController extends Controller
 {
     public function show(string $slug, ?string $path = null): Response|View
     {
-        $salon = Salon::query()->where('slug', $slug)->first();
+        $salon = PublicSalonAccess::findBySlug($slug);
 
         if (! $salon || ! PublicSalonAccess::isAccessible($salon)) {
             if ($salon) {

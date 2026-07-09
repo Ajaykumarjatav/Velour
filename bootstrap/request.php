@@ -16,6 +16,22 @@ function vellor_normalize_request_uri(): void
     $query = parse_url($uri, PHP_URL_QUERY);
     $suffix = $query !== null && $query !== '' ? '?'.$query : '';
 
+    // Root .htaccess on easygrox.com rewrites /s/{slug} → admin/public/index.php.
+    // LiteSpeed often leaves REQUEST_URI as /admin/public/index.php; recover /s/... from redirect env.
+    $storefrontPath = vellor_storefront_redirect_path();
+    if ($storefrontPath !== null) {
+        $_SERVER['REQUEST_URI'] = $storefrontPath.$suffix;
+
+        return;
+    }
+
+    // Already the public storefront path — do not strip /s via admin base prefixes.
+    if (preg_match('#^/s/.+#', $path)) {
+        $_SERVER['REQUEST_URI'] = $path.$suffix;
+
+        return;
+    }
+
     $bases = [];
 
     $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
@@ -67,4 +83,21 @@ function vellor_normalize_request_uri(): void
     }
 
     $_SERVER['REQUEST_URI'] = $path.$suffix;
+}
+
+function vellor_storefront_redirect_path(): ?string
+{
+    foreach (['REDIRECT_URL', 'REDIRECT_URI'] as $key) {
+        $raw = $_SERVER[$key] ?? '';
+        if ($raw === '') {
+            continue;
+        }
+
+        $candidate = parse_url($raw, PHP_URL_PATH) ?? '';
+        if (preg_match('#^/s/.+#', $candidate)) {
+            return $candidate;
+        }
+    }
+
+    return null;
 }

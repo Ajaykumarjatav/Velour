@@ -9,7 +9,7 @@
  *   cd domains/easygrox.com/public_html/admin
  *   php scripts/publish-easygrox-root-routing.php
  *
- * This enables /s/{slug} → Laravel Blade storefront (required once per server).
+ * Enables https://easygrox.com/s/{slug} → Laravel Blade storefront.
  */
 
 $adminRoot = dirname(__DIR__);
@@ -21,32 +21,58 @@ if (! is_dir($source)) {
     exit(1);
 }
 
+echo "Admin:  {$adminRoot}\n";
+echo "Target: {$target}\n\n";
+
 $copies = [
-    '.htaccess' => '.htaccess',
-    's/.htaccess' => 's/.htaccess',
-    's/index.php' => 's/index.php',
+    '.htaccess'     => '.htaccess',
+    's/.htaccess'   => 's/.htaccess',
+    's/index.php'   => 's/index.php',
 ];
+
+$ok = true;
 
 foreach ($copies as $relSrc => $relDst) {
     $from = $source.'/'.$relSrc;
     $to = $target.'/'.$relDst;
 
     if (! is_file($from)) {
-        fwrite(STDERR, "Skip missing source: {$relSrc}\n");
+        fwrite(STDERR, "[FAIL] Missing source: {$relSrc}\n");
+        $ok = false;
         continue;
     }
 
     $dir = dirname($to);
-    if (! is_dir($dir)) {
-        mkdir($dir, 0755, true);
+    if (! is_dir($dir) && ! mkdir($dir, 0755, true)) {
+        fwrite(STDERR, "[FAIL] Cannot create directory: {$dir}\n");
+        $ok = false;
+        continue;
     }
 
-    if (copy($from, $to)) {
-        echo "Published {$relDst}\n";
-    } else {
-        fwrite(STDERR, "Failed to copy {$relSrc} → {$relDst}\n");
-        exit(1);
+    if (! copy($from, $to)) {
+        fwrite(STDERR, "[FAIL] Copy {$relSrc} → {$relDst}\n");
+        $ok = false;
+        continue;
     }
+
+    echo "[OK] Published {$relDst}\n";
 }
 
-echo "\nDone. Test: https://easygrox.com/s/{salon-slug}\n";
+if (! $ok) {
+    exit(1);
+}
+
+// Verify root .htaccess contains /s/ rule
+$htaccess = (string) file_get_contents($target.'/.htaccess');
+if (! str_contains($htaccess, 'RewriteRule ^s(')) {
+    fwrite(STDERR, "[WARN] Root .htaccess may be missing /s/ rewrite rule.\n");
+}
+
+if (! is_file($target.'/s/index.php')) {
+    fwrite(STDERR, "[FAIL] s/index.php missing after publish.\n");
+    exit(1);
+}
+
+echo "\nRouting published successfully.\n";
+echo "Test: curl -I https://easygrox.com/s/ak-salon\n";
+echo "Expected: HTTP 200 (not 404)\n";

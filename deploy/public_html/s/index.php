@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Storefront fallback when root .htaccess does not route /s/* to Laravel.
- * Copy admin/deploy/public_html/s/ → public_html/s/
+ * Storefront bootstrap for public_html/s/ — routes /s/{slug} into Laravel.
+ * Copy: admin/deploy/public_html/s/ → public_html/s/
  */
 define('LARAVEL_START', microtime(true));
 
@@ -14,5 +14,11 @@ if (! is_file($adminPublic.'/index.php')) {
     echo 'Salon storefront is not configured (admin/public/index.php missing).';
     exit(1);
 }
+
+// LiteSpeed/Apache set SCRIPT_NAME to /s/index.php; Laravel then resolves the path as
+// /ak-salon instead of /s/ak-salon. Point SCRIPT_NAME at the real front controller.
+$_SERVER['SCRIPT_NAME'] = '/admin/public/index.php';
+$_SERVER['SCRIPT_FILENAME'] = $adminPublic.'/index.php';
+$_SERVER['PHP_SELF'] = '/admin/public/index.php';
 
 require $adminPublic.'/index.php';
