@@ -31,9 +31,9 @@ class OnboardingController extends Controller
     public function index()
     {
         $user    = Auth::user();
-        $salon   = Salon::where('owner_id', $user->id)->first();
+        $salon = \App\Support\DefaultSalonProvisioner::ensure($user);
         if (! $salon) {
-            return redirect()->route('dashboard');
+            return redirect()->route('billing.plans');
         }
         $this->syncProgressFromData($user->id, $salon);
         $progress = $this->getProgress($user->id, $salon->id);

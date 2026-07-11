@@ -362,7 +362,7 @@
 
           <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
             @include('partials.storefront-theme-picker', [
-              'action' => route('go-live.theme'),
+              'action' => parse_url(route('go-live.theme'), PHP_URL_PATH) ?: route('go-live.theme'),
               'themes' => $themes,
               'themeSlug' => $themeSlug,
               'themeLabel' => $themeLabel,

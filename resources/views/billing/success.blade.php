@@ -31,7 +31,7 @@
 
     <div class="flex flex-col gap-3 pt-2">
       <a href="{{ route('billing.dashboard') }}" class="btn-primary w-full">View billing details</a>
-      <a href="{{ route('dashboard') }}" class="btn border border-gray-200 dark:border-gray-700 w-full">Go to dashboard</a>
+      <a href="{{ auth()->check() ? \App\Support\AuthPanel::homeUrl(auth()->user()) : route('login') }}" class="btn border border-gray-200 dark:border-gray-700 w-full">Go to dashboard</a>
     </div>
   </div>
 </div>

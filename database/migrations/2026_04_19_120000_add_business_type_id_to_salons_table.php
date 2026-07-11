@@ -9,7 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $defaultId = DB::table('business_types')->where('slug', 'salon')->value('id');
+        $defaultId = DB::table('business_types')->where('slug', 'salon')->value('id')
+            ?? DB::table('business_types')->where('slug', 'unisex')->value('id');
         if (! $defaultId) {
             throw new RuntimeException('business_types must be seeded before adding salons.business_type_id. Run: php artisan db:seed --class=Database\\Seeders\\BusinessTypeSeeder');
         }

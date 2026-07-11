@@ -9,6 +9,7 @@ use App\Models\Salon;
 use App\Models\SalonSetting;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -54,7 +55,7 @@ class WebsiteSeoController extends Controller
         return view('website-seo.index', compact('salon', 'websiteUrl', 'bookingUrl', 'widgetUrl', 'stats', 'themes', 'themeSlug'));
     }
 
-    public function updateTheme(Request $request): RedirectResponse
+    public function updateTheme(Request $request): RedirectResponse|JsonResponse
     {
         $salon = $this->salon();
         $allowed = array_keys(StorefrontTheme::all());
@@ -68,9 +69,20 @@ class WebsiteSeoController extends Controller
             ['value' => $validated['theme'], 'type' => 'string']
         );
 
+        $message = 'Website theme updated to ' . StorefrontTheme::label($validated['theme']) . '.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok'    => true,
+                'theme' => $validated['theme'],
+                'label' => StorefrontTheme::label($validated['theme']),
+                'message' => $message,
+            ]);
+        }
+
         return redirect()
             ->route('website-seo.index')
-            ->with('success', 'Website theme updated to ' . StorefrontTheme::label($validated['theme']) . '.');
+            ->with('success', $message);
     }
 
     public function publish(Request $request): RedirectResponse

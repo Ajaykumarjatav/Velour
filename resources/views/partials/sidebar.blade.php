@@ -82,7 +82,8 @@
     @endphp
 
     {{-- Nav --}}
-    <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2.5 py-3 space-y-1">
+    <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2.5 py-3 space-y-1"
+         x-data="{ openMenu: null }">
 
         @if($planExpired ?? false)
         <div class="px-1 pb-3 mb-2 border-b border-amber-200/80 dark:border-amber-800/50">
@@ -142,350 +143,332 @@
         </a>
         @endif
 
-        {{-- MANAGE --}}
-        @if(\App\Support\SidebarNav::showManageHeading(auth()->user()))
-        <p class="nav-section-title">Business</p>
+        {{-- BUSINESS --}}
+        @php
+            $businessMenuActive = request()->routeIs(
+                'staff.*', 'services.*', 'service-packages.*', 'multi-location.*',
+                'availability.*', 'inventory.*', 'expenses.*', 'pos.*'
+            );
+        @endphp
+        @if(\App\Support\SidebarNav::showBusinessGroup(auth()->user()))
+        <x-sidebar-nav-submenu name="business" label="Business" icon="business" :open="$businessMenuActive" :active="$businessMenuActive">
+            @if($navShow('staff'))
+            <a href="{{ route('staff.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('staff.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'staff', 'small' => true])
+                Staff &amp; HR
+            </a>
+            @endif
+            @if($navShow('services'))
+            <a href="{{ route('services.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('services.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'services', 'small' => true])
+                Services
+            </a>
+            @endif
+            @if($navShow('service_packages'))
+            <a href="{{ route('service-packages.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('service-packages.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'packages', 'small' => true])
+                Plans/Packages
+            </a>
+            @endif
+            @if($navShow('multi_location'))
+            <a href="{{ route('multi-location.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('multi-location.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'location', 'small' => true])
+                Multi-Location
+            </a>
+            @endif
+            @if($navShow('availability'))
+            <a href="{{ route('availability.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('availability.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'availability', 'small' => true])
+                Availability &amp; Resources
+            </a>
+            @endif
+            @if($navShow('inventory'))
+            <a href="{{ route('inventory.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('inventory.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'inventory', 'small' => true])
+                Inventory &amp; Retail
+            </a>
+            @endif
+            @if($navShow('expenses'))
+            <a href="{{ route('expenses.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('expenses.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'expenses', 'small' => true])
+                Expenses
+            </a>
+            @endif
+            @if($navShow('pos'))
+            <a href="{{ route('pos.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('pos.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'pos', 'small' => true])
+                Point of Sale
+            </a>
+            @endif
+        </x-sidebar-nav-submenu>
         @endif
 
-        @if($navShow('staff'))
-        <a href="{{ route('staff.index') }}"
-           class="sidebar-link {{ request()->routeIs('staff.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'staff'])
-            Staff &amp; HR
-        </a>
-        @endif
-
-        @if($navShow('services'))
-        <a href="{{ route('services.index') }}"
-           class="sidebar-link {{ request()->routeIs('services.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'services'])
-            Services
-        </a>
-        @endif
-
-        @if($navShow('service_packages'))
-        <a href="{{ route('service-packages.index') }}"
-           class="sidebar-link {{ request()->routeIs('service-packages.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'packages'])
-            Plans/Packages
-        </a>
-        @endif
-
-        @if($navShow('multi_location'))
-        <a href="{{ route('multi-location.index') }}"
-           class="sidebar-link {{ request()->routeIs('multi-location.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'location'])
-            Multi-Location
-        </a>
-        @endif
-
-        @if($navShow('availability'))
-        <a href="{{ route('availability.index') }}"
-           class="sidebar-link {{ request()->routeIs('availability.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'availability'])
-            Availability &amp; Resources
-        </a>
-        @endif
-
-        @if($navShow('inventory'))
-        <a href="{{ route('inventory.index') }}"
-           class="sidebar-link {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'inventory'])
-            Inventory &amp; Retail
-        </a>
-        @endif
-
-        @if($navShow('expenses'))
-        <a href="{{ route('expenses.index') }}"
-           class="sidebar-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'expenses'])
-            Expenses
-        </a>
-        @endif
-
-        @if($navShow('pos'))
-        <a href="{{ route('pos.index') }}"
-           class="sidebar-link {{ request()->routeIs('pos.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'pos'])
-            Point of Sale
-        </a>
-        @endif
-
-        {{-- GROW --}}
-        @if(\App\Support\SidebarNav::showGrowHeading(auth()->user()))
-        <p class="nav-section-title">Insights</p>
-        @endif
-
-        @if($navShow('go_live'))
-        <a href="{{ route('go-live') }}"
-           class="sidebar-link {{ request()->routeIs('go-live') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'go_live'])
-            Go Live &amp; Share
-        </a>
-        @endif
-
-        @if($navShow('website_seo'))
-        <a href="{{ route('website-seo.index') }}"
-           class="sidebar-link {{ request()->routeIs('website-seo.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'website'])
-            Website &amp; SEO
-        </a>
-        @endif
-
-        @if($navShow('customization'))
-        <a href="{{ route('customization.index') }}"
-           class="sidebar-link {{ request()->routeIs('customization.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'customization'])
-            Customization
-        </a>
-        @endif
-
-        @if($navShow('marketing'))
-        <a href="{{ route('marketing.growth') }}"
-           class="sidebar-link {{ request()->routeIs('marketing.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'marketing'])
-            Marketing
-        </a>
-        @endif
-
-        @if($navShow('reviews'))
-        <a href="{{ route('reviews.index') }}"
-           class="sidebar-link {{ request()->routeIs('reviews.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'reviews'])
-            Reviews
-        </a>
-        @endif
-
+        {{-- GROWTH --}}
         @php
             $isAnalyticsActive = request()->routeIs('reports.analytics');
-            $isReportsMenuActive = request()->routeIs('reports.index')
-                || request()->routeIs('reports.show')
-                || request()->routeIs('revenue.index');
+            $isReportsMenuActive = request()->routeIs('reports.index', 'reports.show', 'revenue.index');
+            $growthMenuActive = request()->routeIs(
+                'go-live', 'website-seo.*', 'customization.*', 'marketing.*',
+                'reviews.*', 'reports.analytics', 'reports.index', 'reports.show',
+                'revenue.index', 'reports.growth-tips'
+            );
+            $reportsOpen = $isReportsMenuActive;
         @endphp
-        @if($navShow('analytics'))
-        <a href="{{ route('reports.analytics') }}"
-           class="sidebar-link {{ $isAnalyticsActive ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'analytics'])
-            Analytics
-        </a>
-        @endif
-
-        {{-- Reports sub-menu --}}
-        @if($navShow('reports_menu'))
-        @php $reportsOpen = $isReportsMenuActive; @endphp
-        <div x-data="{ open: {{ $reportsOpen ? 'true' : 'false' }} }">
-            <button @click="open = !open"
-                    class="sidebar-link w-full {{ $reportsOpen ? 'active' : '' }}">
-                @include('partials.sidebar-nav-icon', ['icon' => 'reports'])
-                <span class="flex-1 text-left">Reports</span>
-                <svg class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </button>
-            <div x-show="open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="ml-4 mt-0.5 space-y-0.5">
-                @foreach(\App\Support\ReportCatalog::forUser(auth()->user()) as $report)
-                @php $key = $report['key']; $label = $report['label']; @endphp
-                <a href="{{ route('reports.show', $key) }}"
-                   class="sidebar-sub-link
-                          {{ request()->routeIs('reports.show') && request()->route('type') === $key
-                             ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold'
-                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
-                    <svg class="w-3.5 h-3.5 flex-shrink-0 {{ request()->routeIs('reports.show') && request()->route('type') === $key ? 'text-velour-600 dark:text-velour-300' : 'text-gray-400 dark:text-gray-500' }}"
-                         fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        @include('reports._nav-icon', ['key' => $key])
+        @if(\App\Support\SidebarNav::showGrowthGroup(auth()->user()))
+        <x-sidebar-nav-submenu name="growth" label="Growth" icon="growth" :open="$growthMenuActive" :active="$growthMenuActive">
+            @if($navShow('go_live'))
+            <a href="{{ route('go-live') }}"
+               class="sidebar-sub-link {{ request()->routeIs('go-live') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'go_live', 'small' => true])
+                Go Live &amp; Share
+            </a>
+            @endif
+            @if($navShow('website_seo'))
+            <a href="{{ route('website-seo.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('website-seo.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'website', 'small' => true])
+                Website &amp; SEO
+            </a>
+            @endif
+            @if($navShow('customization'))
+            <a href="{{ route('customization.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('customization.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'customization', 'small' => true])
+                Customization
+            </a>
+            @endif
+            @if($navShow('marketing'))
+            <a href="{{ route('marketing.growth') }}"
+               class="sidebar-sub-link {{ request()->routeIs('marketing.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'marketing', 'small' => true])
+                Marketing
+            </a>
+            @endif
+            @if($navShow('reviews'))
+            <a href="{{ route('reviews.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('reviews.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'reviews', 'small' => true])
+                Reviews
+            </a>
+            @endif
+            @if($navShow('analytics'))
+            <a href="{{ route('reports.analytics') }}"
+               class="sidebar-sub-link {{ $isAnalyticsActive ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'analytics', 'small' => true])
+                Analytics
+            </a>
+            @endif
+            @if($navShow('growth_tips'))
+            <a href="{{ route('reports.growth-tips') }}"
+               class="sidebar-sub-link {{ request()->routeIs('reports.growth-tips') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'growth', 'small' => true])
+                Growth Tips
+            </a>
+            @endif
+            @php $reportsForUser = \App\Support\ReportCatalog::forUser(auth()->user()); @endphp
+            @if($navShow('reports_menu') && count($reportsForUser) > 0)
+            <div x-data="{ reportsOpen: {{ $reportsOpen ? 'true' : 'false' }} }" class="space-y-0.5">
+                <button type="button"
+                        @click.stop="reportsOpen = !reportsOpen"
+                        class="sidebar-sub-link w-full text-left {{ $isReportsMenuActive ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                    @include('partials.sidebar-nav-icon', ['icon' => 'reports', 'small' => true])
+                    <span class="flex-1">Reports</span>
+                    <svg class="w-3 h-3 flex-shrink-0 transition-transform duration-200" :class="reportsOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                     </svg>
-                    {{ $label }}
-                </a>
-                @endforeach
+                </button>
+                <div x-show="reportsOpen" x-transition class="ml-3 space-y-0.5">
+                    @foreach($reportsForUser as $report)
+                    @php
+                        $key = $report['key'];
+                        $label = $report['label'];
+                        $reportIcon = in_array($key, ['revenue', 'appointments', 'staff', 'clients', 'services', 'inventory', 'marketing'], true) ? $key : 'reports';
+                    @endphp
+                    <a href="{{ route('reports.show', $key) }}"
+                       class="sidebar-sub-link text-sm {{ request()->routeIs('reports.show') && request()->route('type') === $key ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                        @include('partials.sidebar-nav-icon', ['icon' => $reportIcon, 'small' => true])
+                        {{ $label }}
+                    </a>
+                    @endforeach
+                </div>
             </div>
-        </div>
+            @endif
+        </x-sidebar-nav-submenu>
         @endif
 
         {{-- ACCOUNT --}}
-        @if($navShow('billing') || $navShow('settings') || $navShow('security_support') || $navShow('notifications') || $navShow('growth_tips') || $navShow('support') || $navShow('guide') || \App\Support\SidebarNav::showDeletedItems(auth()->user()))
-        <p class="nav-section-title">Account</p>
-        @endif
-
-        @if(config('billing.subscriptions_enabled') && $navShow('billing'))
-        <a href="{{ route('billing.dashboard') }}"
-           class="sidebar-link {{ request()->routeIs('billing.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'billing'])
-            <span class="flex-1">Billing</span>
-            @php
-              $planKey = Auth::user()->plan ?? config('billing.default_plan', 'trial');
-              $planBadge = [
-                'trial'    => ['Trial',    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'],
-                'standard' => ['Standard', 'bg-velour-100 text-velour-700 dark:bg-velour-900/40 dark:text-velour-300'],
-                'premium'  => ['Premium',  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'],
-              ][$planKey] ?? [ucfirst($planKey), 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'];
-            @endphp
-            <span class="ml-auto px-1.5 py-0.5 text-[10px] font-bold rounded {{ $planBadge[1] }}">{{ $planBadge[0] }}</span>
-        </a>
-
-        @if(Auth::user()->onTrial())
-        <a href="{{ route('billing.plans') }}"
-           class="mx-1 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium
-                  bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300
-                  hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-            ⏳ Trial ending — upgrade
-        </a>
-        @endif
-
-        @if(Auth::user()->isPastDue())
-        <a href="{{ route('billing.portal') }}"
-           class="mx-1 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium
-                  bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300
-                  hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-            ⚠️ Payment failed
-        </a>
-        @endif
-        @endif
-
-        @if($navShow('settings'))
-        <a href="{{ route('settings.index') }}"
-           class="sidebar-link {{ request()->routeIs('settings.*') && !request()->routeIs('two-factor.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'settings'])
-            Settings
-        </a>
-        @endif
-
-        @if($navShow('security_support'))
-        <a href="{{ route('security-support.index') }}"
-           class="sidebar-link {{ request()->routeIs('security-support.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'security'])
-            <span class="flex-1">Security &amp; 2FA</span>
-            @if(auth()->user()->hasTwoFactorEnabled())
-            <span class="ml-auto w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></span>
+        @php
+            $supportMenuActive = request()->routeIs('guide.*');
+            $accountMenuActive = request()->routeIs(
+                'billing.*', 'settings.*', 'two-factor.*', 'security-support.*',
+                'notifications.*', 'deleted-items.*', 'guide.*'
+            );
+        @endphp
+        @if(\App\Support\SidebarNav::showAccountGroup(auth()->user()))
+        <x-sidebar-nav-submenu name="account" label="Account" icon="settings" :open="$accountMenuActive" :active="$accountMenuActive">
+            @if(config('billing.subscriptions_enabled') && $navShow('billing'))
+            <a href="{{ route('billing.dashboard') }}"
+               class="sidebar-sub-link {{ request()->routeIs('billing.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'billing', 'small' => true])
+                <span class="flex-1">Billing</span>
+                @php
+                  $planKey = Auth::user()->plan ?? config('billing.default_plan', 'trial');
+                  $planBadge = [
+                    'trial'    => ['Trial',    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'],
+                    'standard' => ['Standard', 'bg-velour-100 text-velour-700 dark:bg-velour-900/40 dark:text-velour-300'],
+                    'premium'  => ['Premium',  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'],
+                  ][$planKey] ?? [ucfirst($planKey), 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'];
+                @endphp
+                <span class="ml-auto px-1.5 py-0.5 text-[10px] font-bold rounded {{ $planBadge[1] }}">{{ $planBadge[0] }}</span>
+            </a>
+            @if(Auth::user()->onTrial())
+            <a href="{{ route('billing.plans') }}"
+               class="sidebar-sub-link text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                @include('partials.sidebar-nav-icon', ['icon' => 'warning', 'small' => true])
+                Trial ending — upgrade
+            </a>
             @endif
-        </a>
-        @endif
+            @if(Auth::user()->isPastDue())
+            <a href="{{ route('billing.portal') }}"
+               class="sidebar-sub-link text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20">
+                @include('partials.sidebar-nav-icon', ['icon' => 'warning', 'small' => true])
+                Payment failed — fix
+            </a>
+            @endif
+            @endif
 
-        @if($navShow('notifications'))
-        <a href="{{ route('notifications.index') }}"
-           class="sidebar-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'notifications'])
-            <span class="flex-1">Notifications</span>
+            @if($navShow('settings'))
+            <a href="{{ route('settings.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('settings.*') && !request()->routeIs('two-factor.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'settings', 'small' => true])
+                Settings
+            </a>
+            @endif
+
+            @if($navShow('security_support'))
+            <a href="{{ route('security-support.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('security-support.*', 'two-factor.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'security', 'small' => true])
+                <span class="flex-1">Security &amp; 2FA</span>
+                @if(auth()->user()->hasTwoFactorEnabled())
+                <span class="ml-auto w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></span>
+                @endif
+            </a>
+            @endif
+
+            @if($navShow('notifications'))
+            <a href="{{ route('notifications.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('notifications.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'notifications', 'small' => true])
+                <span class="flex-1">Notifications</span>
+                @php
+                    try {
+                        $sidebarSalon  = $currentSalon ?? auth()->user()->salons()->first();
+                        $sidebarUnread = $sidebarSalon
+                            ? \App\Models\SalonNotification::where('salon_id', $sidebarSalon->id)->where('is_read', false)->count()
+                            : 0;
+                    } catch (\Throwable) { $sidebarUnread = 0; }
+                @endphp
+                @if($sidebarUnread > 0)
+                <span class="sidebar-nav-badge bg-red-500 text-white">
+                    {{ $sidebarUnread > 9 ? '9+' : $sidebarUnread }}
+                </span>
+                @endif
+            </a>
+            @endif
+
+            @if(\App\Support\SidebarNav::showDeletedItems(auth()->user()))
             @php
                 try {
-                    $sidebarSalon  = $currentSalon ?? auth()->user()->salons()->first();
-                    $sidebarUnread = $sidebarSalon
-                        ? \App\Models\SalonNotification::where('salon_id', $sidebarSalon->id)->where('is_read', false)->count()
+                    $deletedItemsCount = ($currentSalon ?? auth()->user()->salons()->first())
+                        ? \App\Support\DeletedItemsRegistry::countForSalon(
+                            (int) ($currentSalon ?? auth()->user()->salons()->first())->id,
+                            auth()->user()
+                        )
                         : 0;
-                } catch (\Throwable) { $sidebarUnread = 0; }
+                } catch (\Throwable) {
+                    $deletedItemsCount = 0;
+                }
             @endphp
-            @if($sidebarUnread > 0)
-            <span class="sidebar-nav-badge bg-red-500 text-white">
-                {{ $sidebarUnread > 9 ? '9+' : $sidebarUnread }}
-            </span>
+            <a href="{{ route('deleted-items.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('deleted-items.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'trash', 'small' => true])
+                <span class="flex-1">Deleted Items</span>
+                @if($deletedItemsCount > 0)
+                <span class="sidebar-nav-badge bg-amber-400/90 text-amber-950 dark:bg-amber-500/90 dark:text-amber-950">
+                    {{ $deletedItemsCount > 99 ? '99+' : $deletedItemsCount }}
+                </span>
+                @endif
+            </a>
             @endif
-        </a>
-        @endif
 
-        @if(\App\Support\SidebarNav::showDeletedItems(auth()->user()))
-        @php
-            try {
-                $deletedItemsCount = ($currentSalon ?? auth()->user()->salons()->first())
-                    ? \App\Support\DeletedItemsRegistry::countForSalon(
-                        (int) ($currentSalon ?? auth()->user()->salons()->first())->id,
-                        auth()->user()
-                    )
-                    : 0;
-            } catch (\Throwable) {
-                $deletedItemsCount = 0;
-            }
-        @endphp
-        <a href="{{ route('deleted-items.index') }}"
-           class="sidebar-link {{ request()->routeIs('deleted-items.*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'trash'])
-            <span class="flex-1">Deleted Items</span>
-            @if($deletedItemsCount > 0)
-            <span class="sidebar-nav-badge bg-amber-400/90 text-amber-950 dark:bg-amber-500/90 dark:text-amber-950">
-                {{ $deletedItemsCount > 99 ? '99+' : $deletedItemsCount }}
-            </span>
-            @endif
-        </a>
-        @endif
-
-        @if($navShow('growth_tips'))
-        <a href="{{ route('reports.growth-tips') }}"
-           class="sidebar-link {{ request()->routeIs('reports.growth-tips') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'growth'])
-            Growth Tips
-        </a>
-        @endif
-
-        {{-- Support sub-menu --}}
-        @if($navShow('support') || $navShow('guide'))
-        @php $supportMenuActive = request()->routeIs('guide.*'); @endphp
-        <div x-data="{ open: {{ $supportMenuActive ? 'true' : 'false' }}, chatUnread: false }"
-             x-init="window.addEventListener('velour-chat-unread', e => chatUnread = e.detail)">
-            <button type="button"
-                    @click="open = !open"
-                    class="sidebar-link relative w-full {{ $supportMenuActive ? 'active' : '' }}"
-                    data-title="Support">
-                @include('partials.sidebar-nav-icon', ['icon' => 'support'])
-                <span x-show="chatUnread"
-                      class="absolute left-6 top-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#16161f]"
-                      aria-hidden="true"></span>
-                <span class="flex-1 text-left">Support</span>
-                <svg class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </button>
-            <div x-show="open"
-                 x-transition:enter="transition ease-out duration-150"
-                 x-transition:enter-start="opacity-0 -translate-y-1"
-                 x-transition:enter-end="opacity-100 translate-y-0"
-                 class="ml-4 mt-0.5 space-y-0.5">
-                @if($navShow('support'))
+            @if($navShow('support') || $navShow('guide'))
+            <div x-data="{ supportOpen: {{ $supportMenuActive ? 'true' : 'false' }}, chatUnread: false }"
+                 x-init="window.addEventListener('velour-chat-unread', e => chatUnread = e.detail)"
+                 class="space-y-0.5">
                 <button type="button"
-                        class="sidebar-sub-link w-full text-left
-                               text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                        @click="window.dispatchEvent(new CustomEvent('velour-chat-open'))"
-                        aria-label="Open EasyGrox Assistant"
-                        data-title="EasyGrox Assistant">
-                    <svg class="w-3.5 h-3.5 flex-shrink-0 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                        @click.stop="supportOpen = !supportOpen"
+                        class="sidebar-sub-link w-full text-left {{ $supportMenuActive ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                    @include('partials.sidebar-nav-icon', ['icon' => 'support', 'small' => true])
+                    <span class="flex-1">Support</span>
+                    <span x-show="chatUnread" class="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" aria-hidden="true"></span>
+                    <svg class="w-3 h-3 flex-shrink-0 transition-transform duration-200" :class="supportOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                     </svg>
-                    <span class="flex-1">EasyGrox Assistant</span>
-                    <span x-show="chatUnread"
-                          class="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"
-                          aria-hidden="true"></span>
                 </button>
-                @endif
-                @if($navShow('guide'))
-                <a href="{{ route('guide.index') }}"
-                   class="sidebar-sub-link
-                          {{ request()->routeIs('guide.*')
-                             ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold'
-                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}"
-                   data-title="Guide &amp; Setup">
-                    <svg class="w-3.5 h-3.5 flex-shrink-0 {{ request()->routeIs('guide.*') ? 'text-velour-600 dark:text-velour-300' : 'text-gray-400 dark:text-gray-500' }}"
-                         fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253a3 3 0 11.001 5.999A3 3 0 0112 6.253zm-7.5 6.5h15M9 18h6"/>
-                    </svg>
-                    Guide &amp; Setup
-                </a>
-                @endif
+                <div x-show="supportOpen" x-transition class="ml-3 space-y-0.5">
+                    @if($navShow('support'))
+                    <button type="button"
+                            class="sidebar-sub-link w-full text-left text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            @click="window.dispatchEvent(new CustomEvent('velour-chat-open'))"
+                            aria-label="Open EasyGrox Assistant">
+                        @include('partials.sidebar-nav-icon', ['icon' => 'assistant', 'small' => true])
+                        <span class="flex-1">EasyGrox Assistant</span>
+                        <span x-show="chatUnread" class="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" aria-hidden="true"></span>
+                    </button>
+                    @endif
+                    @if($navShow('guide'))
+                    <a href="{{ route('guide.index') }}"
+                       class="sidebar-sub-link text-sm {{ request()->routeIs('guide.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                        @include('partials.sidebar-nav-icon', ['icon' => 'guide', 'small' => true])
+                        Guide &amp; Setup
+                    </a>
+                    @endif
+                </div>
             </div>
-        </div>
+            @endif
+        </x-sidebar-nav-submenu>
         @endif
 
-        @if(\App\Support\SidebarNav::showAccountTeam(auth()->user()) || auth()->user()->isSuperAdmin())
-        <p class="nav-section-title">Admin</p>
-        <a href="{{ route('salon-admin.team') }}"
-           class="sidebar-link {{ request()->routeIs('salon-admin.team*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'team'])
-            Team
-        </a>
-        @if(config('billing.subscriptions_enabled') && ($navShow('billing') || auth()->user()->salons()->exists()))
-        <a href="{{ route('salon-admin.subscription') }}"
-           class="sidebar-link {{ request()->routeIs('salon-admin.subscription*') ? 'active' : '' }}">
-            @include('partials.sidebar-nav-icon', ['icon' => 'subscription'])
-            Subscription
-        </a>
-        @endif
+        {{-- ADMIN --}}
+        @php
+            $adminMenuActive = request()->routeIs('salon-admin.*');
+        @endphp
+        @if(\App\Support\SidebarNav::showAdminGroup(auth()->user()))
+        <x-sidebar-nav-submenu name="admin" label="Admin" icon="team" :open="$adminMenuActive" :active="$adminMenuActive">
+            @if(\App\Support\SidebarNav::showAccountTeam(auth()->user()) || auth()->user()->isSuperAdmin())
+            <a href="{{ route('salon-admin.team') }}"
+               class="sidebar-sub-link {{ request()->routeIs('salon-admin.team*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'team', 'small' => true])
+                Team
+            </a>
+            @endif
+            @if(config('billing.subscriptions_enabled') && ($navShow('billing') || auth()->user()->salons()->exists()))
+            <a href="{{ route('salon-admin.subscription') }}"
+               class="sidebar-sub-link {{ request()->routeIs('salon-admin.subscription*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'subscription', 'small' => true])
+                Subscription
+            </a>
+            @endif
+        </x-sidebar-nav-submenu>
         @endif
 
         @endif

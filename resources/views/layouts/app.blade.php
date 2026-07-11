@@ -114,6 +114,7 @@
                    dark:bg-velour-950/40 dark:text-velour-300 dark:hover:bg-velour-950/40;
         }
         .nav-icon { @apply w-5 h-5 flex-shrink-0 opacity-90; }
+        .sub-nav-icon { @apply w-3.5 h-3.5 flex-shrink-0 opacity-80; }
         .nav-section-title {
             @apply px-3 pt-5 pb-2 text-[10px] font-bold text-gray-400 dark:text-[#64748b] uppercase tracking-[0.14em];
         }
@@ -148,6 +149,81 @@
             font-size: 0;
             gap: 0;
         }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link > span {
+            display: none;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link > svg:not(.nav-icon) {
+            display: none;
+        }
+        .sidebar-submenu-flyout-title {
+            display: none;
+        }
+        html.sidebar-is-collapsed .sidebar-nav-group {
+            position: relative;
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-panel {
+            position: absolute;
+            left: calc(100% + 0.5rem);
+            top: 0;
+            margin-left: 0;
+            margin-top: 0;
+            min-width: 13rem;
+            max-width: 16rem;
+            max-height: min(70vh, 24rem);
+            overflow-y: auto;
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            background: #fff;
+            border: 1px solid rgb(229 231 235);
+            box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            z-index: 200;
+            color: rgb(55 65 81);
+        }
+        html.dark.sidebar-is-collapsed .sidebar-submenu-panel {
+            background: #1e1e2a;
+            border-color: rgb(55 65 81 / 0.8);
+            box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.45), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+            color: rgb(226 232 240);
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-panel .sidebar-sub-link:not(.font-semibold) {
+            color: rgb(75 85 99);
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-panel .sidebar-sub-link:not(.font-semibold):hover {
+            color: rgb(17 24 39);
+            background: rgb(243 244 246);
+        }
+        html.dark.sidebar-is-collapsed .sidebar-submenu-panel .sidebar-sub-link:not(.font-semibold) {
+            color: rgb(203 213 225);
+        }
+        html.dark.sidebar-is-collapsed .sidebar-submenu-panel .sidebar-sub-link:not(.font-semibold):hover {
+            color: rgb(248 250 252);
+            background: rgb(55 65 81 / 0.5);
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-panel .sub-nav-icon {
+            opacity: 1;
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-flyout-title {
+            display: block;
+            padding: 0.375rem 0.5rem 0.5rem;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgb(107 114 128);
+        }
+        html.dark.sidebar-is-collapsed .sidebar-submenu-flyout-title {
+            color: rgb(148 163 184);
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-flyout-items .ml-3,
+        html.sidebar-is-collapsed .sidebar-submenu-flyout-items .ml-4 {
+            margin-left: 0.5rem;
+        }
+        html.sidebar-is-collapsed .sidebar-nav-group .sidebar-link::after {
+            display: none;
+        }
+        html.sidebar-is-collapsed .sidebar-link.sidebar-flyout-trigger-open {
+            @apply bg-velour-50 text-velour-800 dark:bg-velour-950/40 dark:text-velour-300;
+        }
         html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
             width: 1.25rem;
             height: 1.25rem;
@@ -171,7 +247,7 @@
             transition: opacity 0.15s;
             z-index: 100;
         }
-        .dark html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link::after {
+        html.dark.sidebar-is-collapsed .sidebar-wrapper .sidebar-link::after {
             background: rgb(255 255 255 / 0.95);
             color: #111;
         }

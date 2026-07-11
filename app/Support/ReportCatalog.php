@@ -108,6 +108,10 @@ class ReportCatalog
 
     public static function visibleTo(User $user, array $def): bool
     {
+        if ($user->isSuperAdmin() || $user->ownsCurrentSalon()) {
+            return true;
+        }
+
         if (! $user->can('reports.view')) {
             return false;
         }

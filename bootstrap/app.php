@@ -53,6 +53,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'billing/return',
         ]);
 
+        $middleware->web(append: [
+            \App\Http\Middleware\ForgetLegacySessionCookies::class,
+        ]);
+
         // Cashfree may append status fields when redirecting back to return_url.
         $middleware->validateSignatures(except: [
             'cf_subReferenceId',

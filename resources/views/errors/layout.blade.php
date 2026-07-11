@@ -44,7 +44,7 @@
         {{-- Actions --}}
         <div class="flex flex-col sm:flex-row gap-3 justify-center">
             @if(auth()->check())
-            <a href="{{ route('dashboard') }}"
+            <a href="{{ \App\Support\AuthPanel::homeUrl(auth()->user()) }}"
                class="px-6 py-3 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
                 Back to Dashboard
             </a>

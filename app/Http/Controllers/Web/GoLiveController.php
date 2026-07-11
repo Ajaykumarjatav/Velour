@@ -15,6 +15,8 @@ use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
 use App\Models\Service;
 use App\Models\Staff;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -127,7 +129,7 @@ class GoLiveController extends Controller
         ));
     }
 
-    public function updateTheme(Request $request): \Illuminate\Http\RedirectResponse
+    public function updateTheme(Request $request): RedirectResponse|JsonResponse
     {
         $this->abortIfAdminStoreBrowse();
 
@@ -143,9 +145,20 @@ class GoLiveController extends Controller
             ['value' => $validated['theme'], 'type' => 'string']
         );
 
+        $message = 'Website theme updated to ' . StorefrontTheme::label($validated['theme']) . '.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok'    => true,
+                'theme' => $validated['theme'],
+                'label' => StorefrontTheme::label($validated['theme']),
+                'message' => $message,
+            ]);
+        }
+
         return redirect()
             ->route('go-live')
-            ->with('success', 'Website theme updated to ' . StorefrontTheme::label($validated['theme']) . '.');
+            ->with('success', $message);
     }
 
     public function uploadPhoto(Request $request): \Illuminate\Http\JsonResponse

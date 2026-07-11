@@ -30,8 +30,8 @@ class TenantAdminMiddleware
             return $next($request);
         }
 
-        // Check for tenant_admin role
-        if ($user->hasRole('tenant_admin')) {
+        // Salon owners and explicit tenant admins
+        if ($user->ownsCurrentSalon() || $user->hasRole('tenant_admin')) {
             return $next($request);
         }
 
