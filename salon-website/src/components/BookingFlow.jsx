@@ -174,7 +174,7 @@ export default function BookingFlow() {
   const [loading, setLoading] = useState(true)
   const [globalError, setGlobalError] = useState('')
   const [allServices, setAllServices] = useState([])
-  const [activeCategoryId, setActiveCategoryId] = useState(null)
+  const [bookPackages, setBookPackages] = useState([])
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [slots, setSlots] = useState([])
   const [combinedInfo, setCombinedInfo] = useState(null)
@@ -203,7 +203,10 @@ export default function BookingFlow() {
     if (!slug) return
     setLoading(true)
     fetchBookServices(slug)
-      .then(setAllServices)
+      .then(({ categories, packages }) => {
+        setAllServices(categories)
+        setBookPackages(packages)
+      })
       .catch(() => setGlobalError('Failed to load services. Please refresh the page.'))
       .finally(() => setLoading(false))
   }, [slug])
@@ -215,41 +218,66 @@ export default function BookingFlow() {
     [allServices],
   )
 
-  useEffect(() => {
-    if (bookCategories.length === 0) {
-      setActiveCategoryId(null)
-      return
+  const flatServices = useMemo(
+    () => bookCategories.flatMap((cat) => cat.services ?? []),
+    [bookCategories],
+  )
+
+  const packageServiceIds = useCallback(
+    (pkg) => pkg.service_ids ?? (pkg.services ?? []).map((s) => s.id),
+    [],
+  )
+
+  const isPackageSelected = useCallback(
+    (pkg) => {
+      const ids = packageServiceIds(pkg)
+      return ids.length > 0 && ids.every((id) => selected.services.some((s) => s.id === id))
+    },
+    [packageServiceIds, selected.services],
+  )
+
+  const togglePackage = (pkg) => {
+    const ids = new Set(packageServiceIds(pkg))
+    const svcs = flatServices.filter((s) => ids.has(s.id))
+    if (svcs.length === 0) return
+    setSelected((prev) => {
+      const allSelected = [...ids].every((id) => prev.services.some((s) => s.id === id))
+      let services
+      if (allSelected) {
+        services = prev.services.filter((s) => !ids.has(s.id))
+      } else {
+        const existing = new Set(prev.services.map((s) => s.id))
+        services = [...prev.services]
+        svcs.forEach((s) => {
+          if (!existing.has(s.id)) services.push(s)
+        })
+      }
+      return { ...prev, services, staff: null, date: '', slot: null }
+    })
+    setSlots([])
+    setCombinedInfo(null)
+  }
+
+  const totalPrice = useCallback(() => {
+    let total = 0
+    const packageServiceIdSet = new Set()
+    for (const pkg of bookPackages) {
+      if (!isPackageSelected(pkg)) continue
+      total += parseFloat(pkg.price || 0)
+      packageServiceIds(pkg).forEach((id) => packageServiceIdSet.add(id))
     }
-    if (activeCategoryId === null || !bookCategories.some((c) => c.id === activeCategoryId)) {
-      setActiveCategoryId(bookCategories[0].id)
+    for (const s of selected.services) {
+      if (!packageServiceIdSet.has(s.id)) total += parseFloat(s.price || 0)
     }
-  }, [bookCategories, activeCategoryId])
-
-  const activeCategory = useMemo(
-    () => bookCategories.find((c) => c.id === activeCategoryId) ?? null,
-    [bookCategories, activeCategoryId],
-  )
-
-  const activeCategoryServices = useMemo(
-    () => activeCategory?.services ?? [],
-    [activeCategory],
-  )
-
-  const totalPrice = useCallback(
-    () => selected.services.reduce((a, s) => a + parseFloat(s.price || 0), 0),
-    [selected.services],
-  )
+    return total
+  }, [bookPackages, isPackageSelected, packageServiceIds, selected.services])
 
   const toggleService = (svc) => {
     setSelected((prev) => {
       const idx = prev.services.findIndex((s) => s.id === svc.id)
-      let services
-      if (idx >= 0) {
-        if (prev.services.length <= 1) return prev
-        services = prev.services.filter((s) => s.id !== svc.id)
-      } else {
-        services = [...prev.services, svc]
-      }
+      const services = idx >= 0
+        ? prev.services.filter((s) => s.id !== svc.id)
+        : [...prev.services, svc]
       return { ...prev, services, staff: null, date: '', slot: null }
     })
     setSlots([])
@@ -479,75 +507,112 @@ export default function BookingFlow() {
           <div className="space-y-6">
             <div className="rounded-2xl border border-white/10 bg-[#1a1f2e] p-5 sm:p-6">
               <h2 className="font-manrope font-bold text-base text-white mb-4">Select Services</h2>
-              {bookCategories.length === 0 ? (
+              {bookCategories.length === 0 && bookPackages.length === 0 ? (
                 <p className="text-white/50 text-sm py-8 text-center">No services available for booking.</p>
               ) : (
-                <>
-                  <BookingCategorySlider
-                    categories={bookCategories}
-                    activeCategoryId={activeCategoryId}
-                    onSelect={setActiveCategoryId}
-                  />
-
-                  {activeCategory ? (
-                    <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
-                      <div className="min-w-0">
-                        <h3 className="font-manrope font-semibold text-base text-white leading-snug">
-                          {activeCategory.name}
-                        </h3>
-                        {activeCategory.business_type ? (
-                          <p className="text-xs text-white/50 mt-0.5">{activeCategory.business_type}</p>
-                        ) : null}
+                <div
+                  className="overflow-y-auto scrollbar-none -mx-1 px-1 space-y-6"
+                  style={{ maxHeight: 'min(60vh, 28rem)' }}
+                >
+                  {bookPackages.length > 0 ? (
+                    <div>
+                      <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
+                        <div className="min-w-0">
+                          <h3 className="font-manrope font-semibold text-base text-white leading-snug">Packages</h3>
+                          <p className="text-xs text-white/50 mt-0.5">Bundle deals — select a package or pick individual services below</p>
+                        </div>
+                        <span className="shrink-0 inline-flex items-center rounded-full bg-white/10 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/70 tabular-nums">
+                          {bookPackages.length} {bookPackages.length === 1 ? 'package' : 'packages'}
+                        </span>
                       </div>
-                      <span className="shrink-0 inline-flex items-center rounded-full bg-white/10 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/70 tabular-nums">
-                        {activeCategoryServices.length} {activeCategoryServices.length === 1 ? 'service' : 'services'}
-                      </span>
+                      <div className="divide-y divide-white/10">
+                        {bookPackages.map((pkg) => {
+                          const on = isPackageSelected(pkg)
+                          return (
+                            <label
+                              key={`pkg-${pkg.id}`}
+                              className={`flex items-center gap-3 py-3.5 cursor-pointer group transition-colors rounded-lg px-1 -mx-1
+                                ${on ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={on}
+                                onChange={() => togglePackage(pkg)}
+                                className="h-4 w-4 shrink-0 rounded border-white/30 bg-transparent text-teal-500 focus:ring-teal-500/40 focus:ring-offset-0 accent-teal-500"
+                              />
+                              <span className="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-amber-500/90 to-orange-700/90 flex items-center justify-center text-white shadow-sm text-lg">
+                                📦
+                              </span>
+                              <span className="flex-1 min-w-0">
+                                <span className="block font-semibold text-sm text-white leading-snug">{pkg.name}</span>
+                                <span className="mt-0.5 block text-xs text-white/50">
+                                  {(pkg.services ?? []).map((s) => s.name).join(' · ')}
+                                </span>
+                                <span className="mt-0.5 flex items-center gap-1.5 text-xs text-white/50">
+                                  <ServiceClockIcon />
+                                  {pkg.duration_minutes} min
+                                </span>
+                              </span>
+                              <span className="shrink-0 text-sm font-semibold text-white tabular-nums">
+                                {formatServicePrice(pkg.price, currency)}
+                              </span>
+                            </label>
+                          )
+                        })}
+                      </div>
                     </div>
                   ) : null}
 
-                  {activeCategoryServices.length === 0 ? (
-                    <p className="text-white/50 text-sm py-6 text-center">No services in this category.</p>
-                  ) : (
-                    <div
-                      className="divide-y divide-white/10 overflow-y-auto scrollbar-none -mx-1 px-1"
-                      style={{ maxHeight: 'min(55vh, 24rem)' }}
-                      role="tabpanel"
-                    >
-                      {activeCategoryServices.map((svc) => {
-                        const on = selected.services.some((s) => s.id === svc.id)
-                        return (
-                          <label
-                            key={svc.id}
-                            className={`flex items-center gap-3 py-3.5 cursor-pointer group transition-colors rounded-lg px-1 -mx-1
-                              ${on ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={on}
-                              onChange={() => toggleService(svc)}
-                              className="h-4 w-4 shrink-0 rounded border-white/30 bg-transparent text-teal-500 focus:ring-teal-500/40 focus:ring-offset-0 accent-teal-500"
-                            />
-                            <span className="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/90 to-purple-800/90 flex items-center justify-center text-white shadow-sm">
-                              <ServiceScissorsIcon />
-                            </span>
-                            <span className="flex-1 min-w-0">
-                              <span className="block font-semibold text-sm text-white leading-snug group-hover:text-white">
-                                {svc.name}
+                  {bookCategories.map((cat) => (
+                    <div key={cat.id}>
+                      <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
+                        <div className="min-w-0">
+                          <h3 className="font-manrope font-semibold text-base text-white leading-snug">{cat.name}</h3>
+                          {cat.business_type ? (
+                            <p className="text-xs text-white/50 mt-0.5">{cat.business_type}</p>
+                          ) : null}
+                        </div>
+                        <span className="shrink-0 inline-flex items-center rounded-full bg-white/10 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/70 tabular-nums">
+                          {(cat.services?.length ?? 0)} {(cat.services?.length ?? 0) === 1 ? 'service' : 'services'}
+                        </span>
+                      </div>
+                      <div className="divide-y divide-white/10">
+                        {(cat.services ?? []).map((svc) => {
+                          const on = selected.services.some((s) => s.id === svc.id)
+                          return (
+                            <label
+                              key={svc.id}
+                              className={`flex items-center gap-3 py-3.5 cursor-pointer group transition-colors rounded-lg px-1 -mx-1
+                                ${on ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={on}
+                                onChange={() => toggleService(svc)}
+                                className="h-4 w-4 shrink-0 rounded border-white/30 bg-transparent text-teal-500 focus:ring-teal-500/40 focus:ring-offset-0 accent-teal-500"
+                              />
+                              <span className="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/90 to-purple-800/90 flex items-center justify-center text-white shadow-sm">
+                                <ServiceScissorsIcon />
                               </span>
-                              <span className="mt-0.5 flex items-center gap-1.5 text-xs text-white/50">
-                                <ServiceClockIcon />
-                                {svc.duration_minutes} min
+                              <span className="flex-1 min-w-0">
+                                <span className="block font-semibold text-sm text-white leading-snug group-hover:text-white">
+                                  {svc.name}
+                                </span>
+                                <span className="mt-0.5 flex items-center gap-1.5 text-xs text-white/50">
+                                  <ServiceClockIcon />
+                                  {svc.duration_minutes} min
+                                </span>
                               </span>
-                            </span>
-                            <span className="shrink-0 text-sm font-semibold text-white tabular-nums">
-                              {formatServicePrice(svc.price, currency)}
-                            </span>
-                          </label>
-                        )
-                      })}
+                              <span className="shrink-0 text-sm font-semibold text-white tabular-nums">
+                                {formatServicePrice(svc.price, currency)}
+                              </span>
+                            </label>
+                          )
+                        })}
+                      </div>
                     </div>
-                  )}
-                </>
+                  ))}
+                </div>
               )}
             </div>
             {selected.services.length > 0 ? (

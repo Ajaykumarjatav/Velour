@@ -15,5 +15,4 @@
 @include('storefront.partials.dynamic.testimonials')
 @include('storefront.themes.tattoo.partials.footer-info-cards')
 @include('storefront.themes.tattoo.partials.footer')
-@include('storefront.partials.booking-flow')
 @endsection

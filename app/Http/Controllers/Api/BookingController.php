@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Salon;
 use App\Models\Service;
+use App\Models\ServicePackage;
 use App\Models\Staff;
 use App\Models\Appointment;
 use App\Models\Client;
@@ -66,7 +67,39 @@ class BookingController extends Controller
             ->get()
             ->groupBy('category_id');
 
-        return response()->json(['services' => $services]);
+        $packages = ServicePackage::withoutGlobalScope(TenantScope::class)
+            ->with(['services' => function ($q) use ($salon): void {
+                $q->withoutGlobalScope(TenantScope::class)
+                    ->where('services.salon_id', $salon->id)
+                    ->where('status', 'active')
+                    ->where('online_bookable', true)
+                    ->where('show_in_menu', true)
+                    ->eligibleForPublicBooking($salon);
+            }])
+            ->where('salon_id', $salon->id)
+            ->where('status', 'active')
+            ->where('online_bookable', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->filter(fn (ServicePackage $pkg) => $pkg->services->isNotEmpty())
+            ->map(fn (ServicePackage $pkg) => [
+                'id'               => $pkg->id,
+                'name'             => $pkg->name,
+                'description'      => $pkg->description,
+                'price'            => (float) $pkg->price,
+                'duration_minutes' => $pkg->totalSpanMinutesForAppointment(),
+                'service_ids'      => $pkg->orderedServiceIds(),
+                'components_total' => $pkg->componentsTotalPrice(),
+                'services'         => $pkg->services->map(fn (Service $s) => [
+                    'id'               => $s->id,
+                    'name'             => $s->name,
+                    'duration_minutes' => $s->duration_minutes,
+                    'price'            => (float) $s->price,
+                ])->values()->all(),
+            ])
+            ->values();
+
+        return response()->json(['services' => $services, 'packages' => $packages]);
     }
 
     /* ── GET /book/{slug}/staff ─────────────────────────────────────────── */

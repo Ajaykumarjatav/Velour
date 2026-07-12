@@ -15,5 +15,4 @@
 @include('storefront.partials.dynamic.testimonials')
 @include('storefront.themes.spa.partials.footer-info-cards')
 @include('storefront.themes.spa.partials.footer')
-@include('storefront.partials.booking-flow')
 @endsection

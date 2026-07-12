@@ -15,5 +15,4 @@
 @include('storefront.partials.dynamic.testimonials')
 @include('storefront.themes.glow-rose.partials.footer-info-cards')
 @include('storefront.themes.glow-rose.partials.footer')
-@include('storefront.partials.booking-flow')
 @endsection

@@ -49,8 +49,13 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         // Cashfree subscription checkout redirects back via POST (no CSRF token).
+        // Public guest booking widget posts from /vellor/s/* (session path is /vellor/admin).
         $middleware->validateCsrfTokens(except: [
             'billing/return',
+            'api/v1/book/*/hold',
+            'api/v1/book/*/confirm',
+            'api/v1/book/*/cancel/*',
+            'api/v1/book/*/reschedule/*',
         ]);
 
         $middleware->web(append: [

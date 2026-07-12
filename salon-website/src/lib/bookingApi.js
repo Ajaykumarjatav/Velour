@@ -23,7 +23,10 @@ export async function fetchBookServices(slug) {
     })
   }
   cats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-  return cats
+  return {
+    categories: cats,
+    packages: Array.isArray(data.packages) ? data.packages : [],
+  }
 }
 
 export async function fetchBookStaff(slug, serviceIds) {
@@ -53,10 +56,23 @@ export async function fetchBookSlots(slug, { date, serviceIds, staffId }) {
   return res.json()
 }
 
+function bookHeaders() {
+  const csrf = typeof document !== 'undefined'
+    ? document.querySelector('meta[name="csrf-token"]')?.content ?? ''
+    : ''
+  return {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+  }
+}
+
 export async function holdSlot(slug, body) {
   const res = await fetch(`${bookBase(slug)}/hold`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'same-origin',
+    headers: bookHeaders(),
     body: JSON.stringify(body),
   })
   const data = await res.json()
@@ -67,7 +83,8 @@ export async function holdSlot(slug, body) {
 export async function confirmBooking(slug, body) {
   const res = await fetch(`${bookBase(slug)}/confirm`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'same-origin',
+    headers: bookHeaders(),
     body: JSON.stringify(body),
   })
   const data = await res.json()
