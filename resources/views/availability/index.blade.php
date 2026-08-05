@@ -32,6 +32,7 @@
 </div>
 <div class="space-y-5 max-w-6xl mx-auto w-full"
      x-data="{
+        tab: @js($tab),
         leaveOpen: false,
         resourceOpen: false,
         resourceEditId: null,
@@ -42,6 +43,31 @@
         resourceBookable: true,
         resourceStatus: 'active',
         resourceAvailability: 'available',
+        staffwiseQuery: @js($staffwiseQuery),
+        init() {
+            window.addEventListener('popstate', () => {
+                const u = new URL(window.location.href);
+                const next = u.searchParams.get('tab') || 'availability';
+                if (['availability','resources','leave','attendance'].includes(next)) {
+                    this.tab = next;
+                }
+            });
+        },
+        setTab(name) {
+            if (!['availability','resources','leave','attendance'].includes(name)) return;
+            this.tab = name;
+            const url = new URL(@js(route('availability.index')), window.location.origin);
+            url.searchParams.set('tab', name);
+            Object.entries(this.staffwiseQuery || {}).forEach(([k, v]) => {
+                if (v !== null && v !== '' && v !== undefined) url.searchParams.set(k, v);
+            });
+            history.pushState({ tab: name }, '', url.pathname + url.search);
+        },
+        tabClass(name) {
+            return this.tab === name
+                ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600'
+                : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40';
+        },
         openLeave() { this.leaveOpen = true; },
         closeLeave() { this.leaveOpen = false; },
         openResourceAdd() {
@@ -93,22 +119,22 @@
                     </x-unless-admin-browse>
                 </div>
             </div>
-            {{-- Tabs — grouped rail --}}
+            {{-- Tabs — client-side switch (no full page reload) --}}
             <nav class="flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100/90 dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/80" aria-label="Availability sections">
-                <a href="{{ route('availability.index', ['tab' => 'availability']) }}"
-                   class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab', 'availability') === 'availability' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Availability</a>
-                <a href="{{ route('availability.index', ['tab' => 'resources']) }}"
-                   class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'resources' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Resources</a>
-                <a href="{{ route('availability.index', array_merge(['tab' => 'leave'], $staffwiseQuery)) }}"
-                   class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'leave' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Leave</a>
-                <a href="{{ route('availability.index', array_merge(['tab' => 'attendance'], $staffwiseQuery)) }}"
-                   class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors {{ request('tab') === 'attendance' ? 'bg-white dark:bg-gray-900 text-velour-700 dark:text-velour-300 shadow-sm ring-1 ring-gray-200/80 dark:ring-gray-600' : 'text-muted hover:text-body hover:bg-white/60 dark:hover:bg-gray-900/40' }}">Attendance</a>
+                <button type="button" @click="setTab('availability')" :class="tabClass('availability')"
+                        class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors">Availability</button>
+                <button type="button" @click="setTab('resources')" :class="tabClass('resources')"
+                        class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors">Resources</button>
+                <button type="button" @click="setTab('leave')" :class="tabClass('leave')"
+                        class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors">Leave</button>
+                <button type="button" @click="setTab('attendance')" :class="tabClass('attendance')"
+                        class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors">Attendance</button>
             </nav>
         </div>
     </div>
 
     {{-- Availability --}}
-    @if($tab === 'availability')
+    <div x-show="tab === 'availability'" x-cloak>
         <div class="card p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                 <h2 class="text-base sm:text-lg font-bold text-heading">Weekly availability</h2>
@@ -189,10 +215,10 @@
                 </table>
             </div>
         </div>
-    @endif
+    </div>
 
     {{-- Resources --}}
-    @if($tab === 'resources')
+    <div x-show="tab === 'resources'" x-cloak>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             @foreach($resources as $r)
                 @php
@@ -256,14 +282,14 @@
             </button>
             @endunless
         </div>
-    @endif
+    </div>
 
-    @if($tab === 'attendance')
+    <div x-show="tab === 'attendance'" x-cloak>
         @include('availability.partials.attendance')
-    @endif
+    </div>
 
     {{-- Leave --}}
-    @if($tab === 'leave')
+    <div x-show="tab === 'leave'" x-cloak>
         <div class="card p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                 <div class="min-w-0">
@@ -333,8 +359,7 @@
                 @endforelse
             </ul>
         </div>
-    @endif
-
+    </div>
     {{-- Modal: Leave --}}
     <x-modal-overlay show="leaveOpen" @keydown.escape.window="leaveOpen = false">
         <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4" @click.outside="leaveOpen = false">

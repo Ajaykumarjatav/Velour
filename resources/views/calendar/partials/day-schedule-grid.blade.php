@@ -318,6 +318,13 @@
             @foreach($columns as $col)
             <div class="day-cal__staff-col {{ ($col['blocked'] ?? false) ? 'day-cal__staff-col--blocked' : '' }}"
                  style="height: {{ $bodyH }}px;">
+                @if(($col['blocked'] ?? false) && ($col['off_label'] ?? null))
+                <div class="absolute inset-x-1 top-1 z-10 pointer-events-none">
+                    <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-rose-700 dark:text-rose-300 bg-rose-100/90 dark:bg-rose-900/50">
+                        {{ $col['off_label'] }}
+                    </span>
+                </div>
+                @endif
                 @if(!($col['blocked'] ?? false) && !($adminStoreBrowse ?? false))
                 <a href="{{ $col['create_url'] }}"
                    class="absolute inset-0 z-0 opacity-0 hover:opacity-100 hover:bg-velour-500/5 transition-opacity"

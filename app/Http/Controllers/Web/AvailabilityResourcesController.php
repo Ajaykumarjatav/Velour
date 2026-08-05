@@ -92,56 +92,55 @@ class AvailabilityResourcesController extends Controller
             $attendanceStaffId = $staffwiseStaffId;
         }
         $attendanceAnchor = now();
-        if ($tab === 'attendance') {
-            $attendancePeriod = in_array($request->query('period'), ['week', 'month', 'year'], true)
-                ? $request->query('period')
-                : 'week';
 
-            if ($attendanceStaffId && ! $staff->contains('id', $attendanceStaffId)) {
-                $attendanceStaffId = null;
-            }
+        $attendancePeriod = in_array($request->query('period'), ['week', 'month', 'year'], true)
+            ? $request->query('period')
+            : 'week';
 
-            try {
-                $attendanceAnchor = match ($attendancePeriod) {
-                    'month' => Carbon::parse($request->query('month', now()->format('Y-m')) . '-01'),
-                    'year' => Carbon::parse($request->query('year', now()->format('Y')) . '-01-01'),
-                    default => Carbon::parse($request->query('week', now()->toDateString())),
-                };
-            } catch (\Throwable) {
-                $attendanceAnchor = now();
-            }
-
-            if ($attendancePeriod === 'week') {
-                $attendanceAnchor = $attendanceAnchor->copy()->startOfWeek(Carbon::MONDAY);
-                $attendanceWeek = $attendanceAnchor->copy();
-            }
-
-            $attendanceGrid = $this->attendanceService->buildAttendanceGrid(
-                $salon,
-                $attendancePeriod,
-                $attendanceAnchor,
-                $staff,
-                $attendanceStaffId
-            );
-
-            $attendanceState = [
-                'period'      => $attendanceGrid['period'],
-                'days'        => $attendanceGrid['days'],
-                'week_start'  => $attendanceGrid['range_start'],
-                'week_end'    => $attendanceGrid['range_end'],
-                'range_start' => $attendanceGrid['range_start'],
-                'range_end'   => $attendanceGrid['range_end'],
-                'today'       => now()->toDateString(),
-                'rows'        => collect($attendanceGrid['rows'])->map(fn (array $row) => [
-                    'staff_id'   => $row['staff']->id,
-                    'staff_name' => $row['staff']->name,
-                    'avatar_url' => $row['staff']->avatar_url,
-                    'initials'   => $row['staff']->display_initials,
-                    'color'      => $row['staff']->color ?: '#7C3AED',
-                    'cells'      => $row['cells'],
-                ])->values()->all(),
-            ];
+        if ($attendanceStaffId && ! $staff->contains('id', $attendanceStaffId)) {
+            $attendanceStaffId = null;
         }
+
+        try {
+            $attendanceAnchor = match ($attendancePeriod) {
+                'month' => Carbon::parse($request->query('month', now()->format('Y-m')).'-01'),
+                'year' => Carbon::parse($request->query('year', now()->format('Y')).'-01-01'),
+                default => Carbon::parse($request->query('week', now()->toDateString())),
+            };
+        } catch (\Throwable) {
+            $attendanceAnchor = now();
+        }
+
+        if ($attendancePeriod === 'week') {
+            $attendanceAnchor = $attendanceAnchor->copy()->startOfWeek(Carbon::MONDAY);
+            $attendanceWeek = $attendanceAnchor->copy();
+        }
+
+        $attendanceGrid = $this->attendanceService->buildAttendanceGrid(
+            $salon,
+            $attendancePeriod,
+            $attendanceAnchor,
+            $staff,
+            $attendanceStaffId
+        );
+
+        $attendanceState = [
+            'period'      => $attendanceGrid['period'],
+            'days'        => $attendanceGrid['days'],
+            'week_start'  => $attendanceGrid['range_start'],
+            'week_end'    => $attendanceGrid['range_end'],
+            'range_start' => $attendanceGrid['range_start'],
+            'range_end'   => $attendanceGrid['range_end'],
+            'today'       => now()->toDateString(),
+            'rows'        => collect($attendanceGrid['rows'])->map(fn (array $row) => [
+                'staff_id'   => $row['staff']->id,
+                'staff_name' => $row['staff']->name,
+                'avatar_url' => $row['staff']->avatar_url,
+                'initials'   => $row['staff']->display_initials,
+                'color'      => $row['staff']->color ?: '#7C3AED',
+                'cells'      => $row['cells'],
+            ])->values()->all(),
+        ];
 
         return view('availability.index', compact(
             'salon',

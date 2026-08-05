@@ -21,7 +21,20 @@ class CashfreeService
         $this->clientId     = $this->clientId ?? (string) config('cashfree.client_id');
         $this->clientSecret = $this->clientSecret ?? (string) config('cashfree.client_secret');
         $this->apiVersion   = $this->apiVersion ?? (string) config('cashfree.api_version', '2025-01-01');
-        $this->environment  = $this->environment ?? (string) config('cashfree.environment', 'sandbox');
+        $this->environment  = $this->normalizeEnvironment(
+            $this->environment ?? (string) config('cashfree.environment', 'sandbox')
+        );
+    }
+
+    /** Accept common aliases: prod → production, test → sandbox. */
+    protected function normalizeEnvironment(string $env): string
+    {
+        $env = strtolower(trim($env));
+
+        return match ($env) {
+            'prod', 'live', 'production' => 'production',
+            default => 'sandbox',
+        };
     }
 
     public static function forSalonGateway(string $clientId, string $clientSecret): self

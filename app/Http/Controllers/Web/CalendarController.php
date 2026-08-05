@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\Staff;
+use App\Models\StaffAttendanceRecord;
+use App\Models\StaffLeaveRequest;
 use App\Support\SalonTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -124,6 +126,7 @@ class CalendarController extends Controller
 
         [$hourStart, $hourEnd] = $this->resolveHourBounds($salon, $selectedStaff);
         $availabilityByDate = $this->buildAvailabilityByDate($start, $end, $salon, $selectedStaff, $tz);
+        $staffOffByDate = $this->buildStaffOffByDate($salon->id, $staff, $start, $end);
 
         $staffPage = max(1, (int) $request->get('staff_page', 1));
 
@@ -137,7 +140,8 @@ class CalendarController extends Controller
                 $filterStaffId,
                 $availabilityByDate,
                 $view,
-                $view === 'month' ? $date : null
+                $view === 'month' ? $date : null,
+                $staffOffByDate
             )
             : null;
 
@@ -152,7 +156,8 @@ class CalendarController extends Controller
                 $hourStart,
                 $hourEnd,
                 $staffPage,
-                $salon
+                $salon,
+                $staffOffByDate
             )
             : null;
 
@@ -189,7 +194,8 @@ class CalendarController extends Controller
         int $hourStart,
         int $hourEnd,
         int $staffPage,
-        $salon
+        $salon,
+        array $staffOffByDate = []
     ): array {
         $sidebar = $this->buildStaffSidebarGrid(
             $staff,
@@ -200,7 +206,8 @@ class CalendarController extends Controller
             $filterStaffId,
             $availabilityByDate,
             'day',
-            null
+            null,
+            $staffOffByDate
         );
 
         $ymd = $date->toDateString();
@@ -269,6 +276,9 @@ class CalendarController extends Controller
             $bookedSlots = 0;
             $staffMember = $row['id'] ? $staff->firstWhere('id', $row['id']) : null;
             $totalSlots = $this->daySlotCountForStaff($staffMember, $date, $dayAvail, $slotMinutes, $salon);
+            if (! empty($cell['blocked'])) {
+                $totalSlots = 0;
+            }
 
             foreach ($cell['blocks'] as $block) {
                 $startsLocal = Carbon::parse($block['start'])->timezone($tz);
@@ -306,6 +316,7 @@ class CalendarController extends Controller
                 'slots_label'  => $totalSlots > 0 ? "{$bookedSlots}/{$totalSlots}" : (string) $bookedSlots,
                 'blocks'      => $positioned,
                 'blocked'     => (bool) ($cell['blocked'] ?? false),
+                'off_label'   => $cell['off_label'] ?? null,
                 'create_url'  => $cell['create_url'] ?? '#',
             ];
         }
@@ -389,7 +400,7 @@ class CalendarController extends Controller
      * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $appointments
      * @param  \Illuminate\Database\Eloquent\Collection<int, Staff>  $staff
      */
-    private function buildStaffSidebarGrid($staff, $appointments, Carbon $start, Carbon $end, string $tz, ?int $filterStaffId, array $availabilityByDate, string $view, ?Carbon $focusMonth = null): array
+    private function buildStaffSidebarGrid($staff, $appointments, Carbon $start, Carbon $end, string $tz, ?int $filterStaffId, array $availabilityByDate, string $view, ?Carbon $focusMonth = null, array $staffOffByDate = []): array
     {
         $salonTodayYmd = Carbon::now($tz)->toDateString();
         $days = [];
@@ -439,7 +450,8 @@ class CalendarController extends Controller
                 $tz,
                 $availabilityByDate,
                 null,
-                $layout
+                $layout,
+                $staffOffByDate
             );
         }
 
@@ -457,7 +469,8 @@ class CalendarController extends Controller
                 $tz,
                 $availabilityByDate,
                 $member,
-                $layout
+                $layout,
+                $staffOffByDate
             );
         }
 
@@ -484,7 +497,8 @@ class CalendarController extends Controller
         string $tz,
         array $availabilityByDate,
         ?Staff $staffModel = null,
-        string $layout = 'week'
+        string $layout = 'week',
+        array $staffOffByDate = []
     ): array {
         $totalMinutes = 0;
         $cells = [];
@@ -519,9 +533,22 @@ class CalendarController extends Controller
                 ->values()
                 ->all();
 
+            $offMeta = ($staffId && isset($staffOffByDate[$staffId][$ymd]))
+                ? $staffOffByDate[$staffId][$ymd]
+                : null;
+            $offLabel = null;
+            if (! $salonOpen) {
+                $offLabel = 'Closed';
+            } elseif (! $staffWorks) {
+                $offLabel = 'Off';
+            } elseif (is_array($offMeta)) {
+                $offLabel = $offMeta['label'] ?? 'Off';
+            }
+
             $cells[$ymd] = [
                 'blocks'     => $dayBlocks,
-                'blocked'    => ! $salonOpen || ! $staffWorks,
+                'blocked'    => $offLabel !== null,
+                'off_label'  => $offLabel,
                 'create_url' => route('appointments.create', array_filter([
                     'date'     => $ymd,
                     'staff_id' => $staffId,
@@ -539,6 +566,80 @@ class CalendarController extends Controller
             'week_hours_label' => $this->formatDurationLabel($totalMinutes),
             'cells'            => $cells,
         ];
+    }
+
+    /**
+     * Attendance absent/leave + approved leave → calendar "Off" markers per staff/day.
+     *
+     * @param  \Illuminate\Support\Collection<int, Staff>  $staff
+     * @return array<int, array<string, array{label: string, reason: string}>>
+     */
+    private function buildStaffOffByDate(int $salonId, $staff, Carbon $start, Carbon $end): array
+    {
+        $from = $start->toDateString();
+        $to = $end->toDateString();
+        $staffIds = $staff->pluck('id')->map(fn ($id) => (int) $id)->all();
+        if ($staffIds === []) {
+            return [];
+        }
+
+        $map = [];
+
+        $attendance = StaffAttendanceRecord::withoutGlobalScopes()
+            ->where('salon_id', $salonId)
+            ->whereIn('staff_id', $staffIds)
+            ->whereBetween('attendance_date', [$from, $to])
+            ->whereIn('status', [
+                StaffAttendanceRecord::STATUS_ABSENT,
+                StaffAttendanceRecord::STATUS_ON_LEAVE,
+                StaffAttendanceRecord::STATUS_HALF_DAY,
+            ])
+            ->get(['staff_id', 'attendance_date', 'status']);
+
+        foreach ($attendance as $record) {
+            $ymd = $record->attendance_date->toDateString();
+            $sid = (int) $record->staff_id;
+            $map[$sid][$ymd] = match ($record->status) {
+                StaffAttendanceRecord::STATUS_ON_LEAVE => ['label' => 'Leave', 'reason' => 'attendance_leave'],
+                StaffAttendanceRecord::STATUS_HALF_DAY => ['label' => '½ day', 'reason' => 'half_day'],
+                default => ['label' => 'Off', 'reason' => 'absent'],
+            };
+        }
+
+        $leaves = StaffLeaveRequest::withoutGlobalScopes()
+            ->where('salon_id', $salonId)
+            ->whereIn('staff_id', $staffIds)
+            ->where('status', 'approved')
+            ->where('blocks_slots', true)
+            ->whereDate('start_date', '<=', $to)
+            ->whereDate('end_date', '>=', $from)
+            ->get(['staff_id', 'start_date', 'end_date']);
+
+        foreach ($leaves as $leave) {
+            $sid = (int) $leave->staff_id;
+            $cursor = $leave->start_date->copy()->startOfDay();
+            $leaveEnd = $leave->end_date->copy()->startOfDay();
+            $rangeStart = Carbon::parse($from)->startOfDay();
+            $rangeEnd = Carbon::parse($to)->startOfDay();
+            if ($cursor->lt($rangeStart)) {
+                $cursor = $rangeStart->copy();
+            }
+            if ($leaveEnd->gt($rangeEnd)) {
+                $leaveEnd = $rangeEnd->copy();
+            }
+            while ($cursor->lte($leaveEnd)) {
+                $ymd = $cursor->toDateString();
+                // Leave / Off from attendance wins if already set; otherwise mark Leave
+                if (! isset($map[$sid][$ymd])) {
+                    $map[$sid][$ymd] = ['label' => 'Leave', 'reason' => 'approved_leave'];
+                } elseif (($map[$sid][$ymd]['reason'] ?? '') === 'absent') {
+                    // keep Off for absent; approved leave still blocked
+                }
+                $cursor->addDay();
+            }
+        }
+
+        return $map;
     }
 
     private function staffInitials(Staff $member): string

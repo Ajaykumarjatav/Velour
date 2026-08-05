@@ -918,11 +918,19 @@
                                                   placeholder="SMS text">{{ old("notification_templates.$id.sms_body", $tpl['sms_body'] ?? '') }}</textarea>
                                     </div>
                                 @endif
+                                @if(in_array('whatsapp', $def['channels'] ?? [], true))
+                                    <div>
+                                        <label class="form-label text-xs">WhatsApp message</label>
+                                        <textarea name="notification_templates[{{ $id }}][whatsapp_body]" rows="4"
+                                                  class="form-textarea text-sm font-mono"
+                                                  placeholder="WhatsApp text">{{ old("notification_templates.$id.whatsapp_body", $tpl['whatsapp_body'] ?? '') }}</textarea>
+                                    </div>
+                                @endif
                                 @if(!empty($def['variables']))
-                                    <p class="text-xs text-muted">
+                                    <p class="text-xs text-muted flex flex-wrap items-center gap-1.5">
                                         <span class="font-medium text-body">Placeholders:</span>
                                         @foreach($def['variables'] as $v)
-                                            <code class="ml-1 px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-[11px]">{!! '{{'.$v.'}}' !!}</code>
+                                            <code class="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-[11px] text-heading">{{ '{'.'{'.$v.'}'.'}' }}</code>
                                         @endforeach
                                     </p>
                                 @endif

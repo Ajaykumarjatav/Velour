@@ -269,16 +269,21 @@ document.addEventListener('alpine:init', function () {
                         <thead>
                             <tr class="bg-gray-50 dark:bg-gray-800/80 text-left text-xs uppercase text-muted">
                                 <th class="px-3 py-2">Staff</th>
+                                <th class="px-3 py-2">Days</th>
+                                <th class="px-3 py-2">Appts</th>
                                 <th class="px-3 py-2">Base</th>
                                 <th class="px-3 py-2">Commission</th>
                                 <th class="px-3 py-2">Tax</th>
                                 <th class="px-3 py-2">Net pay</th>
+                                <th class="px-3 py-2"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach($payrollRows as $row)
                                 <tr x-show="!payrollStaffId || payrollStaffId === {{ $row['staff']->id }}" x-cloak>
                                     <td class="px-3 py-2 font-medium text-body">{{ $row['staff']->name }}</td>
+                                    <td class="px-3 py-2 text-muted whitespace-nowrap">{{ $row['worked_days'] }} / {{ $row['scheduled_days'] }}</td>
+                                    <td class="px-3 py-2 text-muted">{{ $row['appointments'] }}</td>
                                     <td class="px-3 py-2">
                                         <form method="POST" action="{{ route('staff.base-salary', $row['staff']) }}" class="flex flex-wrap items-center gap-1">
                                             @csrf
@@ -287,16 +292,33 @@ document.addEventListener('alpine:init', function () {
                                                    class="form-input w-24 text-xs py-1 px-2">
                                             <button type="submit" class="text-[10px] font-semibold text-velour-600 hover:underline">Save</button>
                                         </form>
+                                        @if(($row['base_payable'] ?? 0) != ($row['base'] ?? 0))
+                                            <p class="text-[10px] text-muted mt-0.5">Payable {{ $fmtMoney($row['base_payable']) }}</p>
+                                        @endif
                                     </td>
                                     <td class="px-3 py-2 text-emerald-600 dark:text-emerald-400">+{{ $fmtMoney($row['commission']) }}</td>
                                     <td class="px-3 py-2 text-rose-600 dark:text-rose-400">−{{ $fmtMoney($row['tax']) }}</td>
                                     <td class="px-3 py-2 font-bold text-heading">{{ $fmtMoney($row['net']) }}</td>
+                                    <td class="px-3 py-2">
+                                        @if($salaryCategoryId)
+                                        <a href="{{ route('expenses.create', [
+                                            'category_id' => $salaryCategoryId,
+                                            'staff_id' => $row['staff']->id,
+                                            'title' => $row['suggested_title'],
+                                            'amount' => $row['suggested_amount'],
+                                            'expense_date' => now()->toDateString(),
+                                        ]) }}"
+                                           class="text-[11px] font-semibold text-velour-600 dark:text-velour-400 hover:underline whitespace-nowrap">
+                                            Record salary →
+                                        </a>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-                <p class="text-xs text-muted mt-3">Base salary is stored per staff (not on the classic add/edit forms). Commission follows each member’s % × completed revenue this month.</p>
+                <p class="text-xs text-muted mt-3">Pay = attendance-prorated base + commission (% × completed revenue). Record salary creates a Staff Salary expense linked to that person.</p>
             </div>
             <div class="px-5 py-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap justify-end gap-2 bg-gray-50/80 dark:bg-gray-900/50">
                 <button type="button" class="btn-outline text-sm" @click="closePayroll()">Close</button>

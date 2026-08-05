@@ -479,6 +479,9 @@ class SettingsController extends Controller
             if (in_array('sms', $def['channels'] ?? [], true)) {
                 $rules["notification_templates.{$id}.sms_body"] = ['nullable', 'string', 'max:640'];
             }
+            if (in_array('whatsapp', $def['channels'] ?? [], true)) {
+                $rules["notification_templates.{$id}.whatsapp_body"] = ['nullable', 'string', 'max:5000'];
+            }
         }
 
         $request->validate($rules);
@@ -514,6 +517,9 @@ class SettingsController extends Controller
             }
             if (in_array('sms', $def['channels'] ?? [], true) && array_key_exists('sms_body', $tplIn)) {
                 $tplOut['sms_body'] = (string) $tplIn['sms_body'];
+            }
+            if (in_array('whatsapp', $def['channels'] ?? [], true) && array_key_exists('whatsapp_body', $tplIn)) {
+                $tplOut['whatsapp_body'] = (string) $tplIn['whatsapp_body'];
             }
             if ($tplOut !== []) {
                 $payload['templates'][$id] = $tplOut;

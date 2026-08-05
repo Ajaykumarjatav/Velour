@@ -128,16 +128,17 @@
 
             @foreach($days as $dayIndex => $day)
             @php
-                $cell = $row['cells'][$day['ymd']] ?? ['blocks' => [], 'blocked' => false, 'create_url' => '#'];
+                $cell = $row['cells'][$day['ymd']] ?? ['blocks' => [], 'blocked' => false, 'create_url' => '#', 'off_label' => null];
                 $blocks = $cell['blocks'] ?? [];
                 $blocked = (bool) ($cell['blocked'] ?? false);
+                $offLabel = $cell['off_label'] ?? null;
                 $outsideMonth = !($day['is_current_month'] ?? true);
             @endphp
             <div class="border-b border-l border-gray-100 dark:border-gray-800 p-1 min-h-[3.5rem] relative
                 {{ ($dayIndex % 7) === 0 && $isMonth ? 'staff-cal__cell-week-start' : '' }}
                 {{ $day['is_today'] ? 'bg-velour-50/30 dark:bg-velour-950/15' : '' }}
                 {{ $outsideMonth ? 'bg-gray-50/80 dark:bg-gray-800/30' : '' }}
-                {{ $blocked ? 'bg-gray-100/70 dark:bg-gray-800/45' : (!$outsideMonth ? 'hover:bg-velour-50/40 dark:hover:bg-velour-950/10' : '') }}">
+                {{ $blocked ? 'bg-rose-50/70 dark:bg-rose-950/25' : (!$outsideMonth ? 'hover:bg-velour-50/40 dark:hover:bg-velour-950/10' : '') }}">
                 @if(!$blocked && empty($blocks) && !($adminStoreBrowse ?? false))
                 <a href="{{ $cell['create_url'] }}" class="absolute inset-0.5 rounded opacity-0 hover:opacity-100 hover:bg-velour-500/5 transition-opacity" aria-label="Add appointment"></a>
                 @endif
@@ -156,7 +157,15 @@
                 </a>
                 @endforeach
                 @if($blocked && empty($blocks))
-                    <span class="text-[10px] text-muted px-0.5">—</span>
+                    <span class="inline-flex items-center justify-center w-full min-h-[2.25rem] rounded-md text-[10px] font-bold uppercase tracking-wide
+                        {{ $offLabel === 'Closed' ? 'text-muted bg-gray-200/60 dark:bg-gray-700/40' : 'text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-900/40' }}"
+                          title="{{ $offLabel === 'Leave' ? 'On leave / time off' : ($offLabel === 'Closed' ? 'Salon closed' : 'Staff day off') }}">
+                        {{ $offLabel ?: 'Off' }}
+                    </span>
+                @elseif($blocked && !empty($blocks) && $offLabel)
+                    <span class="absolute top-0.5 right-0.5 z-10 px-1 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide text-rose-700 dark:text-rose-300 bg-rose-100/90 dark:bg-rose-900/60">
+                        {{ $offLabel }}
+                    </span>
                 @endif
             </div>
             @endforeach

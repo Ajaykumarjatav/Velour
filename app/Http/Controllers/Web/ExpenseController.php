@@ -75,11 +75,28 @@ class ExpenseController extends Controller
             'category_id' => $request->query('category_id'),
             'staff_id' => $request->query('staff_id'),
             'expense_date' => $request->query('expense_date'),
-        ]);
+            'title' => $request->query('title'),
+            'amount' => $request->query('amount'),
+        ], fn ($v) => $v !== null && $v !== '');
+
+        $categoryMeta = [];
+        foreach ($categories as $cat) {
+            $categoryMeta[(string) $cat->id] = array_merge(
+                ExpenseCategoryUi::meta($cat->slug, $cat->name),
+                ExpenseCategoryUi::smartDefaults($cat->slug),
+                ['slug' => $cat->slug, 'name' => $cat->name]
+            );
+        }
+
+        $payrollPreview = app(\App\Services\StaffPayrollCalculator::class)
+            ->forStaffCollection($salon, $staffList, now()->startOfMonth());
+
+        $salaryCategoryId = (string) ($categories->firstWhere('slug', 'salary')?->id ?? '');
 
         return view('expenses.create', compact(
             'salon', 'categories', 'staffList',
-            'vendorSuggestions', 'recentExpenses', 'prefill'
+            'vendorSuggestions', 'recentExpenses', 'prefill',
+            'categoryMeta', 'payrollPreview', 'salaryCategoryId'
         ));
     }
 
@@ -264,7 +281,14 @@ class ExpenseController extends Controller
             ->where('salon_id', $salonId)
             ->where('is_active', true)
             ->orderBy('first_name')
-            ->get(['id', 'first_name', 'last_name']);
+            ->get([
+                'id',
+                'first_name',
+                'last_name',
+                'working_days',
+                'base_salary',
+                'commission_rate',
+            ]);
     }
 
     private function vendorSuggestions(int $salonId)

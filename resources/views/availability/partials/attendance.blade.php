@@ -76,7 +76,7 @@
 @else
 <div class="space-y-5"
      x-data="attendanceHub(@js($state))"
-     @attendance-updated.window="toast = $event.detail.message">
+     x-on:attendance-updated.window="toast = $event.detail.message">
     <div class="card p-4 sm:p-6">
         <div class="flex flex-col gap-4 mb-4">
             <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
@@ -214,14 +214,16 @@
                         <tr>
                             <td class="py-2 pr-3 sticky left-0 bg-white dark:bg-gray-900 z-10">
                                 <div class="flex items-center gap-2 min-w-0">
-                                    <template x-if="row.avatar_url">
-                                        <img :src="row.avatar_url" alt="" class="w-8 h-8 rounded-full object-cover ring-2 ring-white dark:ring-gray-900 shrink-0">
-                                    </template>
-                                    <template x-if="!row.avatar_url">
-                                        <span class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 ring-2 ring-white dark:ring-gray-900"
+                                    <div class="relative w-8 h-8 shrink-0">
+                                        <span class="absolute inset-0 rounded-full flex items-center justify-center text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-900"
                                               :style="'background-color:' + row.color"
                                               x-text="row.initials"></span>
-                                    </template>
+                                        <template x-if="row.avatar_url">
+                                            <img :src="row.avatar_url" alt=""
+                                                 class="absolute inset-0 w-8 h-8 rounded-full object-cover ring-2 ring-white dark:ring-gray-900"
+                                                 x-on:error="$el.remove()">
+                                        </template>
+                                    </div>
                                     <span class="font-medium text-body truncate text-xs sm:text-sm" x-text="row.staff_name"></span>
                                 </div>
                             </td>

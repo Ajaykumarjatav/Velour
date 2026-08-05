@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
-use App\Support\LanguageProficiency;
-use App\Support\StaffJobRoles;
+use App\Models\ExpenseCategory;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
+use App\Services\ExpenseCategoryDefaults;
 use App\Services\StaffAttendanceService;
+use App\Services\StaffPayrollCalculator;
+use App\Support\LanguageProficiency;
+use App\Support\StaffJobRoles;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Support\PublicStorage;
@@ -23,6 +26,7 @@ class StaffController extends Controller
 
     public function __construct(
         private readonly StaffAttendanceService $attendanceService,
+        private readonly StaffPayrollCalculator $payrollCalculator,
     ) {}
 
     private function salon()
@@ -69,6 +73,8 @@ class StaffController extends Controller
             ->groupBy('staff_id')
             ->pluck('c', 'staff_id');
 
+        $payrollByStaff = $this->payrollCalculator->forStaffCollection($salon, $staff, $monthStart, $taxRate);
+
         $payrollRows = [];
         $chart       = [];
 
@@ -79,19 +85,21 @@ class StaffController extends Controller
             $onLeave = StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $m->id, $todayStr)
                 || $todayAttendance === \App\Models\StaffAttendanceRecord::STATUS_ON_LEAVE;
 
-            $base          = (float) ($m->base_salary ?? 0);
-            $commPct       = (float) ($m->commission_rate ?? 0);
-            $commissionAmt = round($rev * $commPct / 100, 2);
-            $gross         = $base + $commissionAmt;
-            $tax           = round($gross * $taxRate, 2);
-            $net           = round($gross - $tax, 2);
+            $pay = $payrollByStaff[(int) $m->id] ?? $this->payrollCalculator->forStaff($salon, $m, $monthStart, $taxRate);
 
             $payrollRows[] = [
-                'staff'       => $m,
-                'base'        => $base,
-                'commission'  => $commissionAmt,
-                'tax'         => $tax,
-                'net'         => $net,
+                'staff'          => $m,
+                'base'           => $pay['base_salary'],
+                'base_payable'   => $pay['base_payable'],
+                'commission'     => $pay['commission'],
+                'tax'            => $pay['tax'],
+                'net'            => $pay['net'],
+                'worked_days'    => $pay['worked_days'],
+                'scheduled_days' => $pay['scheduled_days'],
+                'appointments'   => $pay['appointments'],
+                'revenue'        => $pay['revenue'],
+                'suggested_title'=> $pay['suggested_title'],
+                'suggested_amount' => $pay['suggested_amount'],
             ];
             $chart[] = ['name' => $m->name, 'revenue' => $rev];
 
@@ -105,6 +113,12 @@ class StaffController extends Controller
         $totalTeam = $staff->count();
         $onDuty    = $staff->filter(fn ($m) => $m->is_active && $this->attendanceService->isOnDutyToday($salon, $m))->count();
 
+        ExpenseCategoryDefaults::ensureForSalon($salon->id);
+        $salaryCategoryId = ExpenseCategory::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('slug', 'salary')
+            ->value('id');
+
         return view('staff.index', compact(
             'salon',
             'staff',
@@ -114,7 +128,8 @@ class StaffController extends Controller
             'monthStart',
             'totalTeam',
             'onDuty',
-            'taxRate'
+            'taxRate',
+            'salaryCategoryId'
         ));
     }
 
@@ -176,38 +191,37 @@ class StaffController extends Controller
             abort(404);
         }
 
-        $revenueByStaff = Appointment::withoutGlobalScopes()
-            ->where('salon_id', $salon->id)
-            ->where('status', 'completed')
-            ->whereBetween('starts_at', [$monthStart, $monthEnd])
-            ->selectRaw('staff_id, COALESCE(SUM(total_price),0) as rev')
-            ->groupBy('staff_id')
-            ->pluck('rev', 'staff_id');
+        $payrollByStaff = $this->payrollCalculator->forStaffCollection($salon, $staff, $monthStart, $taxRate);
 
         $staffSlug = $staff->count() === 1
             ? '-' . \Illuminate\Support\Str::slug($staff->first()->name)
             : '';
         $filename = 'payroll-' . $month . $staffSlug . '.csv';
 
-        return response()->streamDownload(function () use ($staff, $revenueByStaff, $taxRate) {
+        return response()->streamDownload(function () use ($staff, $payrollByStaff) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Staff', 'Base', 'Commission', 'Tax', 'Net pay']);
+            fputcsv($out, [
+                'Staff', 'Appointments', 'Revenue', 'Scheduled days', 'Worked days',
+                'Base salary', 'Base payable', 'Commission', 'Tax', 'Net pay',
+            ]);
 
             foreach ($staff as $m) {
-                $rev           = (float) ($revenueByStaff[$m->id] ?? 0);
-                $base          = (float) ($m->base_salary ?? 0);
-                $commPct       = (float) ($m->commission_rate ?? 0);
-                $commissionAmt = round($rev * $commPct / 100, 2);
-                $gross         = $base + $commissionAmt;
-                $tax           = round($gross * $taxRate, 2);
-                $net           = round($gross - $tax, 2);
+                $pay = $payrollByStaff[(int) $m->id] ?? null;
+                if (! $pay) {
+                    continue;
+                }
 
                 fputcsv($out, [
                     $m->name,
-                    number_format($base, 2, '.', ''),
-                    number_format($commissionAmt, 2, '.', ''),
-                    number_format($tax, 2, '.', ''),
-                    number_format($net, 2, '.', ''),
+                    $pay['appointments'],
+                    number_format($pay['revenue'], 2, '.', ''),
+                    $pay['scheduled_days'],
+                    $pay['worked_days'],
+                    number_format($pay['base_salary'], 2, '.', ''),
+                    number_format($pay['base_payable'], 2, '.', ''),
+                    number_format($pay['commission'], 2, '.', ''),
+                    number_format($pay['tax'], 2, '.', ''),
+                    number_format($pay['net'], 2, '.', ''),
                 ]);
             }
 

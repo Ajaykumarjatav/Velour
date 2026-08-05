@@ -12,7 +12,8 @@ return [
     |
     */
 
-    'environment' => env('CASHFREE_ENVIRONMENT', 'sandbox'), // sandbox | production
+    // sandbox | production (aliases prod/live → production, test → sandbox)
+    'environment' => env('CASHFREE_ENVIRONMENT', 'sandbox'),
 
     'client_id'     => env('CASHFREE_CLIENT_ID'),
     'client_secret' => env('CASHFREE_CLIENT_SECRET'),
@@ -21,6 +22,8 @@ return [
 
     'webhook_secret' => env('CASHFREE_WEBHOOK_SECRET'),
 
-    'sdk_mode' => env('CASHFREE_ENVIRONMENT', 'sandbox') === 'production' ? 'production' : 'sandbox',
+    'sdk_mode' => in_array(strtolower((string) env('CASHFREE_ENVIRONMENT', 'sandbox')), ['production', 'prod', 'live'], true)
+        ? 'production'
+        : 'sandbox',
 
 ];
