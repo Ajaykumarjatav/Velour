@@ -309,7 +309,7 @@
             $supportMenuActive = request()->routeIs('guide.*');
             $accountMenuActive = request()->routeIs(
                 'billing.*', 'settings.*', 'two-factor.*', 'security-support.*',
-                'notifications.*', 'deleted-items.*', 'guide.*'
+                'notifications.*', 'deleted-items.*', 'guide.*', 'activity.*'
             );
         @endphp
         @if(\App\Support\SidebarNav::showAccountGroup(auth()->user()))
@@ -408,6 +408,13 @@
                 </span>
                 @endif
             </a>
+            @can('view-activity-log')
+            <a href="{{ route('activity.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('activity.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'guide', 'small' => true])
+                <span class="flex-1">Activity log</span>
+            </a>
+            @endcan
             @endif
 
             @if($navShow('support') || $navShow('guide'))

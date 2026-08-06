@@ -4,14 +4,20 @@ namespace App\Services;
 
 use App\Jobs\SendWhatsAppNotification;
 use App\Mail\ClientBookingConfirmationMail;
+use App\Mail\StaffAlertMail;
 use App\Mail\TenantCancellationMail;
 use App\Mail\TenantNewBookingMail;
 use App\Mail\TenantRescheduleMail;
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\Expense;
 use App\Models\MarketingCampaign;
 use App\Models\Salon;
+use App\Models\SalonActionItem;
 use App\Models\SalonNotification;
+use App\Models\Staff;
+use App\Models\StaffLeaveRequest;
+use App\Support\SalonUrl;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -334,6 +340,225 @@ class NotificationService
         $this->createNotification($salonId, $type, ['title' => $message, 'body' => null]);
     }
 
+    /**
+     * Email + in-app when a desk task is assigned to a staff member.
+     */
+    public function notifyStaffTaskAssigned(SalonActionItem $item, ?int $previousAssigneeId = null): void
+    {
+        $item->loadMissing(['assignedStaff.user', 'salon']);
+        $staff = $item->assignedStaff;
+        if (! $staff || ! $item->assigned_staff_id) {
+            return;
+        }
+
+        if ($previousAssigneeId !== null && (int) $previousAssigneeId === (int) $staff->id) {
+            return;
+        }
+
+        $salon = $item->salon;
+        $kind = SalonActionItem::kindLabels()[$item->kind] ?? $item->kind;
+        $due = $item->due_at ? $item->due_at->timezone(\App\Support\SalonTime::timezone($salon))->format('D j M Y') : 'No due date';
+        $tasksUrl = route('tasks.index', ['store' => SalonUrl::key($salon)]);
+
+        $this->createNotification((int) $item->salon_id, 'task', [
+            'title' => 'New task assigned to you',
+            'body'  => $item->title,
+            'staff_id' => $staff->id,
+            'action_url' => $tasksUrl,
+            'data'  => ['task_id' => $item->id, 'action_label' => 'tasks'],
+        ]);
+
+        $this->mailStaff($staff, $salon, new StaffAlertMail(
+            staffName: $staff->name,
+            salonName: $salon->name,
+            subjectLine: "Task assigned: {$item->title}",
+            headline: '✅ New task assigned',
+            lines: array_values(array_filter([
+                "Type: {$kind}",
+                "Priority: ".ucfirst((string) $item->priority),
+                "Due: {$due}",
+                $item->body ? 'Details: '.$item->body : null,
+            ])),
+            actionUrl: $tasksUrl,
+            actionLabel: 'View tasks',
+        ));
+    }
+
+    /**
+     * Email assigned staff about a new booking on their calendar.
+     * (In-app row is already created by notifyTenantNewBooking with staff_id.)
+     */
+    public function notifyStaffBookingAssigned(Appointment $appointment): void
+    {
+        $appointment->loadMissing(['client', 'staff.user', 'services', 'salon']);
+        $staff = $appointment->staff;
+        if (! $staff) {
+            return;
+        }
+
+        $salon = $appointment->salon;
+        $client = trim(($appointment->client?->first_name ?? '').' '.($appointment->client?->last_name ?? '')) ?: 'Client';
+        $when = $appointment->starts_at->timezone(\App\Support\SalonTime::timezone($salon))->format('D j M Y, g:ia');
+        $services = $appointment->services->pluck('service_name')->filter()->implode(', ') ?: 'Appointment';
+        $url = route('appointments.show', ['appointment' => $appointment->id, 'store' => SalonUrl::key($salon)]);
+
+        $this->mailStaff($staff, $salon, new StaffAlertMail(
+            staffName: $staff->name,
+            salonName: $salon->name,
+            subjectLine: "New booking: {$client} — {$when}",
+            headline: '📅 Booking assigned to you',
+            lines: [
+                "Client: {$client}",
+                "When: {$when}",
+                "Service: {$services}",
+            ],
+            actionUrl: $url,
+            actionLabel: 'Open appointment',
+        ));
+    }
+
+    public function notifyStaffLeaveApproved(StaffLeaveRequest $leave): void
+    {
+        $leave->loadMissing(['staff.user', 'salon']);
+        $staff = $leave->staff;
+        if (! $staff) {
+            return;
+        }
+
+        $salon = $leave->salon;
+        $from = $leave->start_date->format('j M Y');
+        $to = $leave->end_date->format('j M Y');
+        $url = route('availability.index', ['store' => SalonUrl::key($salon), 'tab' => 'leave']);
+
+        $this->createNotification((int) $leave->salon_id, 'leave', [
+            'title' => 'Leave approved',
+            'body'  => "{$leave->leave_type}: {$from} → {$to}",
+            'staff_id' => $staff->id,
+            'action_url' => $url,
+            'data'  => ['leave_id' => $leave->id, 'action_label' => 'leave'],
+        ]);
+
+        $this->mailStaff($staff, $salon, new StaffAlertMail(
+            staffName: $staff->name,
+            salonName: $salon->name,
+            subjectLine: "Leave approved: {$leave->leave_type}",
+            headline: '🏖 Leave approved',
+            lines: [
+                "Type: {$leave->leave_type}",
+                "From: {$from}",
+                "To: {$to}",
+                $leave->blocks_slots ? 'Your appointment slots are blocked for these dates.' : 'Slots were not blocked for this leave.',
+            ],
+            actionUrl: $url,
+            actionLabel: 'View leave',
+        ));
+    }
+
+    public function notifyStaffSalaryRecorded(Expense $expense): void
+    {
+        $expense->loadMissing(['staff.user', 'salon', 'category']);
+        if (! $expense->staff_id || $expense->category?->slug !== 'salary') {
+            return;
+        }
+
+        $staff = $expense->staff;
+        $salon = $expense->salon;
+        if (! $staff || ! $salon) {
+            return;
+        }
+
+        $amount = \App\Helpers\CurrencyHelper::format((float) $expense->amount, $salon->currency ?? 'INR');
+        $url = route('expenses.index', ['store' => SalonUrl::key($salon)]);
+
+        $this->createNotification((int) $expense->salon_id, 'salary', [
+            'title' => 'Salary recorded',
+            'body'  => "{$expense->title} — {$amount}",
+            'staff_id' => $staff->id,
+            'action_url' => $url,
+            'data'  => ['expense_id' => $expense->id, 'action_label' => 'salary'],
+        ]);
+
+        $this->mailStaff($staff, $salon, new StaffAlertMail(
+            staffName: $staff->name,
+            salonName: $salon->name,
+            subjectLine: "Salary recorded — {$amount}",
+            headline: '💰 Salary payment recorded',
+            lines: [
+                "Title: {$expense->title}",
+                "Amount: {$amount}",
+                'Date: '.$expense->expense_date->format('j M Y'),
+            ],
+            actionUrl: $url,
+            actionLabel: 'Open expenses',
+        ));
+    }
+
+    public function notifyStaffAttendanceMarked(Staff $staff, Salon $salon, string $dateYmd, string $status): void
+    {
+        $label = match ($status) {
+            'absent' => 'Absent',
+            'on_leave' => 'On leave',
+            'half_day' => 'Half day',
+            default => null,
+        };
+        if ($label === null) {
+            return;
+        }
+
+        $staff->loadMissing('user');
+        $url = route('availability.index', ['store' => SalonUrl::key($salon), 'tab' => 'attendance']);
+        $this->createNotification((int) $salon->id, 'attendance', [
+            'title' => "Attendance: {$label}",
+            'body'  => "Marked {$label} for {$dateYmd}",
+            'staff_id' => $staff->id,
+            'action_url' => $url,
+            'data'  => ['action_label' => 'attendance'],
+        ]);
+
+        $this->mailStaff($staff, $salon, new StaffAlertMail(
+            staffName: $staff->name,
+            salonName: $salon->name,
+            subjectLine: "Attendance marked: {$label} ({$dateYmd})",
+            headline: '📋 Attendance update',
+            lines: [
+                "Date: {$dateYmd}",
+                "Status: {$label}",
+            ],
+            actionUrl: $url,
+            actionLabel: 'View attendance',
+        ));
+    }
+
+    private function mailStaff(Staff $staff, Salon $salon, StaffAlertMail $mail): void
+    {
+        $email = $this->resolveStaffEmail($staff);
+        if (! $email) {
+            Log::info('Staff alert email skipped — no email on staff/user', [
+                'staff_id' => $staff->id,
+                'salon_id' => $salon->id,
+            ]);
+
+            return;
+        }
+
+        try {
+            Mail::to($email)->queue($mail);
+        } catch (\Throwable $e) {
+            Log::error('Staff alert email failed', [
+                'staff_id' => $staff->id,
+                'error'    => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function resolveStaffEmail(Staff $staff): ?string
+    {
+        $staff->loadMissing('user');
+        $email = trim((string) ($staff->email ?: $staff->user?->email ?: ''));
+
+        return $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null;
+    }
+
     public function sendDirectMessage(Client $client, array $data): void
     {
         // Route to Twilio (SMS) or Mailgun (email) via queued job
@@ -378,6 +603,9 @@ class NotificationService
             'staff_id' => $appointment->staff_id,
             'data'  => ['appointment_id' => $appointment->id],
         ]);
+
+        // 1b. Email assigned staff (if different channel / they have an email)
+        $this->notifyStaffBookingAssigned($appointment);
 
         // 2. Email to tenant
         $recipient = $this->resolveTenantEmail($appointment);
@@ -509,12 +737,13 @@ class NotificationService
     private function createNotification(int $salonId, string $type, array $payload): void
     {
         SalonNotification::create([
-            'salon_id' => $salonId,
-            'staff_id' => isset($payload['staff_id']) ? (int) $payload['staff_id'] : null,
-            'type'     => $type,
-            'title'    => $payload['title'],
-            'body'     => $payload['body'] ?? null,
-            'data'     => $payload['data'] ?? null,
+            'salon_id'   => $salonId,
+            'staff_id'   => isset($payload['staff_id']) ? (int) $payload['staff_id'] : null,
+            'type'       => $type,
+            'title'      => $payload['title'],
+            'body'       => $payload['body'] ?? null,
+            'data'       => $payload['data'] ?? null,
+            'action_url' => $payload['action_url'] ?? null,
         ]);
     }
 }

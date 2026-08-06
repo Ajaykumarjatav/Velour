@@ -212,6 +212,7 @@
           ['route' => 'admin.analytics',     'icon' => 'analytics',    'label' => 'Analytics'],
           ['route' => 'admin.billing',       'icon' => 'billing',      'label' => 'Billing'],
           ['route' => 'admin.audit.index',   'icon' => 'audit',        'label' => 'Audit Log'],
+          ['route' => 'admin.user-activity.index', 'icon' => 'audit', 'label' => 'User activity'],
         ];
         $openTickets = \App\Models\SupportTicket::whereIn('status',['open','in_progress'])->whereNull('assigned_to')->count();
       @endphp

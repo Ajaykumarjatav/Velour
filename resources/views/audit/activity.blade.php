@@ -1,151 +1,123 @@
 @extends('layouts.app')
 @section('title', 'Activity Log')
 @section('page-title', 'Activity Log')
+
 @section('content')
-
-<div class="space-y-5">
-
-  {{-- Filters --}}
-  <form method="GET" action="{{ route('activity.index') }}"
-        class="bg-white border border-gray-200 rounded-2xl p-4 flex flex-wrap gap-3">
-
-    <select name="subject_type"
-            class="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
-      <option value="">All resource types</option>
-      @foreach($subjectTypes as $type)
-      <option value="{{ $type }}" {{ request('subject_type')===$type?'selected':'' }}>{{ $type }}</option>
-      @endforeach
-    </select>
-
-    <select name="event"
-            class="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
-      <option value="">All events</option>
-      @foreach(['created','updated','deleted','restored'] as $ev)
-      <option value="{{ $ev }}" {{ request('event')===$ev?'selected':'' }}>{{ ucfirst($ev) }}</option>
-      @endforeach
-    </select>
-
-    <div class="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[14rem] sm:max-w-xs shrink-0 overflow-visible">
-      <label class="form-label text-xs mb-0">Date range</label>
-      <x-date-range-picker
-          :from-value="request('from')"
-          :to-value="request('to')"
-          class="w-full" />
-    </div>
-
-    <div class="flex gap-2">
-      <a href="{{ route('activity.index') }}"
-         class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Clear</a>
-      <button type="submit"
-              class="px-4 py-2 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
-        Filter
-      </button>
-    </div>
-  </form>
-
-  {{-- Activity timeline --}}
-  @if($activities->isEmpty())
-  <div class="bg-white border border-gray-200 rounded-2xl p-12 text-center">
-    <p class="text-gray-400 text-sm">No activity recorded yet.</p>
-  </div>
-  @else
-  <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-    <div class="divide-y divide-gray-100">
-      @foreach($activities as $activity)
-      @php
-        $eventColor = match($activity->event) {
-          'created'  => 'bg-green-100 text-green-700 border-green-200',
-          'updated'  => 'bg-blue-100 text-blue-700 border-blue-200',
-          'deleted'  => 'bg-red-100 text-red-700 border-red-200',
-          'restored' => 'bg-amber-100 text-amber-700 border-amber-200',
-          default    => 'bg-gray-100 text-gray-700 border-gray-200',
-        };
-        $props  = $activity->properties;
-        $old    = $props['old'] ?? [];
-        $new    = $props['new'] ?? [];
-        $hasDiff = !empty($old) || !empty($new);
-        $causer = $activity->causer;
-      @endphp
-      <div class="px-5 py-4 hover:bg-gray-50 transition-colors" x-data="{ open: false }">
-        <div class="flex items-start justify-between gap-4">
-
-          <div class="flex items-start gap-3 min-w-0">
-            {{-- Event badge --}}
-            <span class="mt-0.5 px-2 py-0.5 text-xs font-bold rounded border {{ $eventColor }} flex-shrink-0">
-              {{ strtoupper($activity->event) }}
-            </span>
-
-            <div class="min-w-0">
-              {{-- Subject --}}
-              <p class="text-sm font-medium text-gray-900">
-                {{ class_basename($activity->subject_type ?? '') }}
-                @if($activity->subject_id)
-                  <span class="text-gray-400 font-normal">#{{ $activity->subject_id }}</span>
-                @endif
-              </p>
-
-              {{-- By whom --}}
-              <p class="text-xs text-gray-500 mt-0.5">
-                by
-                <span class="font-medium text-gray-700">
-                  {{ $causer?->name ?? 'System' }}
-                </span>
-                ·
-                {{ $activity->created_at->diffForHumans() }}
-                @if($props['ip'] ?? null)
-                  · <span class="font-mono">{{ $props['ip'] }}</span>
-                @endif
-              </p>
-            </div>
-          </div>
-
-          @if($hasDiff)
-          <button @click="open=!open"
-                  class="flex-shrink-0 text-xs text-velour-600 font-medium hover:text-velour-700"
-                  x-text="open ? 'Hide changes' : 'Show changes'">
-          </button>
-          @endif
+<div class="space-y-5 max-w-5xl mx-auto pb-10">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+            <h1 class="font-serif text-2xl text-heading tracking-tight">Activity log</h1>
+            <p class="text-sm text-muted mt-1">
+                See who used the app and when — kept for {{ $retentionDays }} days (default view: last 30 days).
+            </p>
         </div>
+    </div>
 
-        {{-- Diff viewer --}}
-        @if($hasDiff)
-        <div x-show="open" x-cloak class="mt-4 border border-gray-100 rounded-xl overflow-hidden">
-          <table class="w-full text-xs">
-            <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
-              <th class="text-left px-4 py-2 font-semibold text-gray-400 uppercase tracking-wider">Field</th>
-              @if($old)<th class="text-left px-4 py-2 font-semibold text-red-400 uppercase tracking-wider">Before</th>@endif
-              @if($new)<th class="text-left px-4 py-2 font-semibold text-green-500 uppercase tracking-wider">After</th>@endif
-            </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-            @foreach($new ?: $old as $field => $value)
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-2 font-mono text-gray-600 font-semibold">{{ $field }}</td>
-              @if($old)
-              <td class="px-4 py-2 font-mono text-red-600 bg-red-50 max-w-[200px] truncate">
-                {{ is_array($old[$field] ?? null) ? json_encode($old[$field]) : ($old[$field] ?? '—') }}
-              </td>
-              @endif
-              @if($new)
-              <td class="px-4 py-2 font-mono text-green-700 bg-green-50 max-w-[200px] truncate">
-                {{ is_array($new[$field] ?? null) ? json_encode($new[$field]) : ($new[$field] ?? '—') }}
-              </td>
-              @endif
-            </tr>
+    <form method="GET" action="{{ route('activity.index') }}" class="card p-4 flex flex-wrap gap-3 items-end">
+        <div class="min-w-[10rem]">
+            <label class="form-label text-xs">User</label>
+            <select name="user_id" class="form-select text-sm">
+                <option value="">All users</option>
+                @foreach($teamUsers as $u)
+                    <option value="{{ $u->id }}" @selected((string) $filterUserId === (string) $u->id)>
+                        {{ $u->name }} ({{ $u->email }})
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="min-w-[8rem]">
+            <label class="form-label text-xs">Type</label>
+            <select name="action" class="form-select text-sm">
+                <option value="">All</option>
+                <option value="writes" @selected(request('action') === 'writes')>Changes only</option>
+                <option value="views" @selected(request('action') === 'views')>Page views</option>
+            </select>
+        </div>
+        <div class="flex-1 min-w-[12rem]">
+            <label class="form-label text-xs">Search</label>
+            <input type="search" name="q" value="{{ request('q') }}" placeholder="Label, email, path…" class="form-input text-sm">
+        </div>
+        <div class="w-full sm:w-auto sm:min-w-[14rem]">
+            <label class="form-label text-xs">Date range</label>
+            <x-date-range-picker :from-value="$from" :to-value="$to" class="w-full" />
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ route('activity.index') }}" class="btn-outline text-sm">Reset (30 days)</a>
+            <button type="submit" class="btn-primary text-sm">Filter</button>
+        </div>
+    </form>
+
+    @if($activities->isEmpty())
+        <div class="card p-12 text-center text-muted text-sm">
+            No activity in this range yet. Browse the app or make changes — usage will appear here.
+        </div>
+    @else
+        <div class="space-y-6">
+            @foreach($grouped as $date => $rows)
+                <section class="card overflow-hidden">
+                    <header class="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/40 flex items-center justify-between">
+                        <h2 class="text-sm font-semibold text-heading">
+                            {{ \Carbon\Carbon::parse($date)->format('l, j F Y') }}
+                        </h2>
+                        <span class="text-xs text-muted">{{ $rows->count() }} events</span>
+                    </header>
+                    <ul class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @foreach($rows as $row)
+                            @php
+                                $isWrite = $row->action === 'action.write';
+                            @endphp
+                            <li class="px-4 py-3 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 hover:bg-gray-50/60 dark:hover:bg-gray-800/30">
+                                <div class="w-16 shrink-0 text-xs font-mono text-muted tabular-nums pt-0.5">
+                                    {{ $row->occurred_at->format('H:i') }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded
+                                            {{ $isWrite ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200' }}">
+                                            {{ $isWrite ? 'Change' : 'View' }}
+                                        </span>
+                                        <p class="text-sm font-medium text-heading">{{ $row->label }}</p>
+                                    </div>
+                                    <p class="text-xs text-muted mt-0.5">
+                                        <span class="font-medium text-body">{{ $row->user_name ?: 'User' }}</span>
+                                        @if($row->user_email)
+                                            · {{ $row->user_email }}
+                                        @endif
+                                        @if($row->method)
+                                            · <span class="font-mono">{{ $row->method }}</span>
+                                        @endif
+                                        @if($row->ip_address)
+                                            · {{ $row->ip_address }}
+                                        @endif
+                                    </p>
+                                    @if($row->path)
+                                        <p class="text-[11px] text-muted font-mono mt-0.5 truncate" title="{{ $row->path }}">{{ $row->path }}</p>
+                                    @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
             @endforeach
-            </tbody>
-          </table>
         </div>
-        @endif
-      </div>
-      @endforeach
-    </div>
-  </div>
 
-  <div>{{ $activities->links() }}</div>
-  @endif
+        <div class="mt-4">{{ $activities->links() }}</div>
+    @endif
 
+    @if($modelChanges->isNotEmpty())
+        <div class="card p-4 sm:p-5 mt-8">
+            <h2 class="text-sm font-semibold text-heading mb-3">Record changes (same period)</h2>
+            <p class="text-xs text-muted mb-3">Created / updated / deleted rows from the data audit trail.</p>
+            <ul class="divide-y divide-gray-100 dark:divide-gray-800">
+                @foreach($modelChanges as $activity)
+                    <li class="py-2.5 flex flex-wrap gap-2 text-sm">
+                        <span class="text-xs font-bold uppercase text-muted w-20">{{ $activity->event }}</span>
+                        <span class="text-body">{{ class_basename($activity->subject_type ?? 'Record') }} #{{ $activity->subject_id }}</span>
+                        <span class="text-xs text-muted">by {{ $activity->causer?->name ?? 'System' }} · {{ $activity->created_at->diffForHumans() }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 </div>
-
 @endsection

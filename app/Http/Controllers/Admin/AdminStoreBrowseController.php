@@ -43,7 +43,7 @@ class AdminStoreBrowseController extends Controller
         );
 
         return redirect()
-            ->route('dashboard')
+            ->route('dashboard', ['store' => \App\Support\SalonUrl::key($salonModel)])
             ->with('info', "Viewing {$salonModel->name} in read-only mode.");
     }
 

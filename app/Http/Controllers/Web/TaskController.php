@@ -143,6 +143,8 @@ class TaskController extends Controller
             $dueAt = Carbon::parse($data['due_at'], $tz)->endOfDay()->utc();
         }
 
+        $previousAssignee = $actionItem->assigned_staff_id;
+
         $actionItem->update([
             'kind' => $data['kind'],
             'title' => $data['title'],
@@ -152,6 +154,13 @@ class TaskController extends Controller
             'due_at' => $dueAt,
             'assigned_staff_id' => $data['assigned_staff_id'] ?? null,
         ]);
+
+        if (! empty($data['assigned_staff_id'])) {
+            app(\App\Services\NotificationService::class)->notifyStaffTaskAssigned(
+                $actionItem->fresh(['assignedStaff.user', 'salon']),
+                $previousAssignee ? (int) $previousAssignee : null
+            );
+        }
 
         return redirect()->route('tasks.index')->with('success', 'Task updated.');
     }

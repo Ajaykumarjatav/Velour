@@ -28,8 +28,10 @@ class SuperAdminMiddleware
 
             $user = $request->user();
             if ($user && AuthPanel::canAccessSalonPanel($user)) {
+                $key = \App\Support\SalonUrl::keyForUser($user);
+
                 return redirect()
-                    ->route('dashboard')
+                    ->to($key ? route('dashboard', ['store' => $key]) : AuthPanel::homeUrl($user))
                     ->with('error', 'That area is for platform administrators only.');
             }
 

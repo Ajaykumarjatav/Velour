@@ -85,6 +85,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'salon.panel'     => \App\Http\Middleware\EnsureSalonPanel::class,
             'salon.access'    => \App\Http\Middleware\EnsureSalonAccess::class,
+            'store.path'      => \App\Http\Middleware\ResolveStorePath::class,
             'sanitize'        => \App\Http\Middleware\SanitizeInput::class,
             'throttle'        => \Illuminate\Routing\Middleware\ThrottleRequests::class,
             'role'            => \Spatie\Permission\Middleware\RoleMiddleware::class,
@@ -115,6 +116,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'profile.complete' => \App\Http\Middleware\EnsureSalonProfileComplete::class,
             'admin.store.readonly' => \App\Http\Middleware\EnsureAdminStoreBrowseReadOnly::class,
             'admin.store.browse.readonly-pages' => \App\Http\Middleware\RedirectAdminBrowseWritePages::class,
+            'user.activity'    => \App\Http\Middleware\LogUserActivity::class,
             'client.auth'      => \App\Http\Middleware\AuthenticateClientToken::class,
             'client.portal'    => \App\Http\Middleware\EnsureClientPortalAuth::class,
             'client.salon'     => \App\Http\Middleware\ResolveClientSalon::class,

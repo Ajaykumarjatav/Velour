@@ -3,70 +3,7 @@
 @section('page-title', 'Appointments')
 @section('content')
 @php
-    use App\Support\AppointmentDisplayLines;
-    use App\Support\AppointmentLifecycle;
     $isScopedStaffPanel = auth()->user()?->dashboardScopedStaffId() !== null;
-    $currency = $salon->currency ?? 'GBP';
-    $appointmentRows = $appointments->getCollection()->map(function (\App\Models\Appointment $apt) use ($salon, $currency, $isScopedStaffPanel) {
-        $st = $apt->status;
-        $isMissed = AppointmentLifecycle::isPastUnresolved($apt, $salon);
-        $displayStatus = AppointmentLifecycle::displayStatusKey($apt, $salon);
-        $pay = $apt->payment_status ?? \App\Models\Appointment::PAYMENT_UNPAID;
-        $serviceLines = AppointmentDisplayLines::serviceLines($apt);
-        $balanceDue = max(0, round((float) $apt->total_price - (float) $apt->amount_paid, 2));
-        $isCompleted = $st === 'completed';
-
-        return [
-            'id' => (int) $apt->id,
-            'client_name' => trim(($apt->client?->first_name ?? '') . ' ' . ($apt->client?->last_name ?? '')),
-            'reference' => (string) $apt->reference,
-            'service_summary' => $serviceLines->first()['name'] ?? ($apt->services->first()?->service_name ?? '—'),
-            'service_extra' => max(0, $serviceLines->count() - 1),
-            'staff_name' => $apt->staff?->name ?? '—',
-            'starts_clock' => \App\Support\DisplayFormatter::businessClock($salon, $apt->starts_at),
-            'starts_date' => \App\Support\DisplayFormatter::businessDate($salon, $apt->starts_at),
-            'time_range' => \App\Support\DisplayFormatter::businessTimeRange($salon, $apt->starts_at, $apt->ends_at),
-            'amount' => \App\Helpers\CurrencyHelper::format((float) $apt->total_price, $currency),
-            'amount_paid' => \App\Helpers\CurrencyHelper::format((float) $apt->amount_paid, $currency),
-            'balance_due' => \App\Helpers\CurrencyHelper::format($balanceDue, $currency),
-            'has_balance' => $balanceDue > 0,
-            'is_partial_payment' => $pay === \App\Models\Appointment::PAYMENT_PARTIAL || ($balanceDue > 0 && (float) $apt->amount_paid > 0),
-            'deposit_paid' => (float) $apt->deposit_paid > 0
-                ? \App\Helpers\CurrencyHelper::format((float) $apt->deposit_paid, $currency)
-                : null,
-            'invoice_pdf_url' => $isCompleted ? route('appointments.invoice.pdf', $apt) : null,
-            'invoice_page_url' => $isCompleted ? route('appointments.invoice.show', $apt) : null,
-            'status' => $st,
-            'display_status' => $displayStatus,
-            'is_missed' => $isMissed,
-            'status_label' => AppointmentLifecycle::displayStatusLabel($apt, $salon),
-            'status_url' => route('appointments.status', $apt->id),
-            'source' => (string) ($apt->source ?? 'manual'),
-            'source_label' => \App\Models\Appointment::sourceLabel($apt->source),
-            'payment_status' => $pay,
-            'payment_label' => \App\Models\Appointment::paymentStatusLabel($pay),
-            'booked_at' => \App\Support\DisplayFormatter::businessDateTime($salon, $apt->created_at),
-            'duration_minutes' => (int) $apt->duration_minutes,
-            'client_notes' => $apt->client_notes,
-            'internal_notes' => $isScopedStaffPanel ? null : $apt->internal_notes,
-            'show_url' => route('appointments.show', $apt->id),
-            'pos_url' => route('pos.create', ['appointment' => $apt->id]),
-            'rebook_url' => route('appointments.create', ['client_id' => $apt->client_id, 'from' => $apt->id]),
-            'rebook_same_url' => route('appointments.create', [
-                'client_id' => $apt->client_id,
-                'services' => $apt->services->pluck('service_id')->filter()->join(','),
-                'staff_id' => $apt->staff_id,
-                'from' => $apt->id,
-            ]),
-            'can_rebook' => in_array($st, ['completed', 'cancelled', 'no_show'], true) && ! $isMissed,
-            'services' => $serviceLines->map(fn ($line) => [
-                'name' => $line['name'],
-                'price' => \App\Helpers\CurrencyHelper::format((float) $line['price'], $currency),
-                'duration' => $line['duration'],
-                'source' => $line['source'],
-            ])->values()->all(),
-        ];
-    })->values();
     $firstAppointmentId = $initialSelectedAppointmentId ?? optional($appointments->first())->id;
 @endphp
 
@@ -119,17 +56,31 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-5 xl:gap-6"
-     x-data="{
+<div x-data="{
         selectedAppointmentId: @json($firstAppointmentId ? (int) $firstAppointmentId : null),
         isScopedStaff: {{ $isScopedStaffPanel ? 'true' : 'false' }},
         adminBrowse: {{ ($adminStoreBrowse ?? false) ? 'true' : 'false' }},
         appointments: @js($appointmentRows),
+        paginationHtml: @js($paginationHtml),
+        loading: false,
         selectedAppointment() {
             return this.appointments.find(a => a.id === this.selectedAppointmentId) || this.appointments[0] || null;
         },
         selectAppointment(id) {
             this.selectedAppointmentId = id;
+        },
+        statusBadgeClass(s) {
+            const m = {
+                confirmed: 'badge-blue',
+                checked_in: 'badge-blue',
+                in_progress: 'badge-purple',
+                completed: 'badge-green',
+                cancelled: 'badge-red',
+                no_show: 'badge-yellow',
+                missed: 'badge-yellow',
+                pending: 'badge-gray',
+            };
+            return m[s] || 'badge-gray';
         },
         statusPillClass(s) {
             const m = {
@@ -144,8 +95,49 @@
             };
             return m[s] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
         },
+        onPagerClick(event) {
+            const link = event.target.closest('a[href]');
+            if (!link || !event.currentTarget.contains(link)) return;
+            event.preventDefault();
+            this.loadPage(link.href, true);
+        },
+        async loadPage(url, pushHistory = true) {
+            if (this.loading) return;
+            this.loading = true;
+            try {
+                const requestUrl = new URL(url, window.location.origin);
+                requestUrl.searchParams.set('ajax', '1');
+                const res = await fetch(requestUrl.toString(), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                });
+                if (!res.ok) throw new Error('Unable to load appointments');
+                const data = await res.json();
+                this.appointments = data.appointments || [];
+                this.selectedAppointmentId = data.selected_id ?? (this.appointments[0]?.id ?? null);
+                this.paginationHtml = data.pagination_html || '';
+                const cleanUrl = new URL(url, window.location.origin);
+                cleanUrl.searchParams.delete('ajax');
+                if (pushHistory) {
+                    history.pushState({ appointmentsAjax: true }, '', cleanUrl.toString());
+                }
+            } catch (e) {
+                window.location.href = url;
+            } finally {
+                this.loading = false;
+            }
+        },
+        init() {
+            this._onPopState = () => this.loadPage(window.location.href, false);
+            window.addEventListener('popstate', this._onPopState);
+        },
      }">
-    <div class="table-wrap [&_thead_th]:py-3 [&_thead_th]:px-5 [&_tbody_td]:py-2.5 [&_tbody_td]:px-5 [&_thead_th:last-child]:pr-6 [&_tbody_td:last-child]:pr-6 min-w-0 overflow-x-auto">
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-5 xl:gap-6">
+    <div class="table-wrap [&_thead_th]:py-3 [&_thead_th]:px-5 [&_tbody_td]:py-2.5 [&_tbody_td]:px-5 [&_thead_th:last-child]:pr-6 [&_tbody_td:last-child]:pr-6 min-w-0 overflow-x-auto"
+         :class="{ 'opacity-60 pointer-events-none': loading }">
         <table class="data-table min-w-[36rem] w-full">
             <thead>
             <tr>
@@ -158,54 +150,42 @@
             </tr>
             </thead>
             <tbody>
-            @forelse($appointments as $apt)
-            <tr @click="selectAppointment({{ (int) $apt->id }})"
-                :class="selectedAppointmentId === {{ (int) $apt->id }}
-                    ? 'bg-velour-50/95 dark:bg-velour-950/35 ring-1 ring-inset ring-velour-200/80 dark:ring-velour-500/25 hover:bg-velour-100/85 dark:hover:bg-velour-950/45'
-                    : 'hover:bg-gray-50/90 dark:hover:bg-gray-800/40'"
-                class="cursor-pointer transition-colors">
-                <td>
-                    <div class="flex flex-col gap-0 leading-snug">
-                        <p class="font-semibold text-heading">{{ $apt->client?->first_name }} {{ $apt->client?->last_name }}</p>
-                        <p class="text-xs text-muted">{{ $apt->reference }}</p>
-                    </div>
-                </td>
-                <td class="hidden md:table-cell text-body max-w-[150px]">
-                    @php $aptServiceLines = AppointmentDisplayLines::serviceLines($apt); @endphp
-                    <div class="flex flex-col gap-0 leading-snug max-w-full">
-                        <span class="truncate">{{ $aptServiceLines->first()['name'] ?? '—' }}</span>
-                        @if($aptServiceLines->count() > 1)<span class="text-xs text-muted">+{{ $aptServiceLines->count() - 1 }}</span>@endif
-                    </div>
-                </td>
-                <td class="hidden sm:table-cell text-body">{{ $apt->staff?->name ?? '—' }}</td>
-                <td>
-                    <div class="flex flex-col gap-0 leading-snug">
-                        <p class="font-medium text-body">@bizclock($apt->starts_at)</p>
-                        <p class="text-xs text-muted">@bizdate($apt->starts_at)</p>
-                    </div>
-                </td>
-                <td class="hidden lg:table-cell font-semibold text-heading text-right tabular-nums">@money($apt->total_price)</td>
-                <td class="text-center whitespace-nowrap min-w-[7.25rem]">
-                    @php
-                        $displayKey = AppointmentLifecycle::displayStatusKey($apt, $salon);
-                        $colors = [
-                            'confirmed'   => 'badge-blue',
-                            'checked_in'  => 'badge-blue',
-                            'in_progress' => 'badge-purple',
-                            'completed'   => 'badge-green',
-                            'cancelled'   => 'badge-red',
-                            'no_show'     => 'badge-yellow',
-                            'missed'      => 'badge-yellow',
-                            'pending'     => 'badge-gray',
-                        ];
-                        $cls = $colors[$displayKey] ?? 'badge-gray';
-                    @endphp
-                    <span class="{{ $cls }} whitespace-nowrap shrink-0">{{ AppointmentLifecycle::displayStatusLabel($apt, $salon) }}</span>
-                </td>
+            <template x-for="apt in appointments" :key="apt.id">
+                <tr @click="selectAppointment(apt.id)"
+                    :class="selectedAppointmentId === apt.id
+                        ? 'bg-velour-50/95 dark:bg-velour-950/35 ring-1 ring-inset ring-velour-200/80 dark:ring-velour-500/25 hover:bg-velour-100/85 dark:hover:bg-velour-950/45'
+                        : 'hover:bg-gray-50/90 dark:hover:bg-gray-800/40'"
+                    class="cursor-pointer transition-colors">
+                    <td>
+                        <div class="flex flex-col gap-0 leading-snug">
+                            <p class="font-semibold text-heading" x-text="apt.client_name"></p>
+                            <p class="text-xs text-muted" x-text="apt.reference"></p>
+                        </div>
+                    </td>
+                    <td class="hidden md:table-cell text-body max-w-[150px]">
+                        <div class="flex flex-col gap-0 leading-snug max-w-full">
+                            <span class="truncate" x-text="apt.service_summary"></span>
+                            <span class="text-xs text-muted" x-show="apt.service_extra > 0" x-text="'+' + apt.service_extra"></span>
+                        </div>
+                    </td>
+                    <td class="hidden sm:table-cell text-body" x-text="apt.staff_name"></td>
+                    <td>
+                        <div class="flex flex-col gap-0 leading-snug">
+                            <p class="font-medium text-body" x-text="apt.starts_clock"></p>
+                            <p class="text-xs text-muted" x-text="apt.starts_date"></p>
+                        </div>
+                    </td>
+                    <td class="hidden lg:table-cell font-semibold text-heading text-right tabular-nums" x-text="apt.amount"></td>
+                    <td class="text-center whitespace-nowrap min-w-[7.25rem]">
+                        <span class="whitespace-nowrap shrink-0"
+                              :class="statusBadgeClass(apt.display_status)"
+                              x-text="apt.status_label"></span>
+                    </td>
+                </tr>
+            </template>
+            <tr x-show="appointments.length === 0">
+                <td colspan="6" class="px-6 py-14 text-center text-sm text-muted">No appointments found</td>
             </tr>
-            @empty
-            <tr><td colspan="6" class="px-6 py-14 text-center text-sm text-muted">No appointments found</td></tr>
-            @endforelse
             </tbody>
         </table>
     </div>
@@ -401,5 +381,11 @@
     </div>
 </div>
 
-<div class="mt-6 flex justify-center sm:justify-end">{{ $appointments->links() }}</div>
+    <div class="mt-6"
+         x-show="paginationHtml"
+         x-cloak
+         x-html="paginationHtml"
+         :class="{ 'opacity-60 pointer-events-none': loading }"
+         @click="onPagerClick($event)"></div>
+</div>
 @endsection

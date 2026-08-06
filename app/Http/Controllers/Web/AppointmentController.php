@@ -18,16 +18,21 @@ use App\Services\NotificationService;
 use App\Models\PosTransaction;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\Scheduling\AvailabilityRejectedException;
+use App\Helpers\CurrencyHelper;
 use App\Support\AppointmentDisplayLines;
+use App\Support\DisplayFormatter;
 use App\Support\SalonTime;
 use App\Support\AppointmentLifecycle;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
@@ -40,7 +45,7 @@ class AppointmentController extends Controller
         return $this->activeSalon();
     }
 
-    public function index(Request $request)
+    public function index(Request $request): View|JsonResponse
     {
         $salon   = $this->salon();
         $search  = $request->get('search');
@@ -82,11 +87,12 @@ class AppointmentController extends Controller
         }
 
         $appointments = $query->paginate(20)->withQueryString();
-        $staffQuery   = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true);
-        if ($scopedStaffId !== null) {
-            $staffQuery->whereKey($scopedStaffId);
-        }
-        $staff = $staffQuery->withName()->get();
+        $isScopedStaffPanel = $scopedStaffId !== null;
+        $appointmentRows = $this->buildAppointmentIndexRows(
+            $appointments->getCollection(),
+            $salon,
+            $isScopedStaffPanel
+        );
 
         $selectedQuery = (int) $request->input('selected', 0);
         $firstApptId = $appointments->first()?->id;
@@ -97,9 +103,29 @@ class AppointmentController extends Controller
                 : (int) $firstApptId;
         }
 
+        $paginationHtml = $appointments->hasPages()
+            ? (string) $appointments->links()
+            : '';
+
+        if ($request->boolean('ajax') || $request->wantsJson()) {
+            return response()->json([
+                'appointments' => $appointmentRows,
+                'selected_id' => $initialSelectedAppointmentId,
+                'pagination_html' => $paginationHtml,
+            ]);
+        }
+
+        $staffQuery = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true);
+        if ($scopedStaffId !== null) {
+            $staffQuery->whereKey($scopedStaffId);
+        }
+        $staff = $staffQuery->withName()->get();
+
         return view('appointments.index', compact(
             'salon',
             'appointments',
+            'appointmentRows',
+            'paginationHtml',
             'staff',
             'search',
             'status',
@@ -107,6 +133,76 @@ class AppointmentController extends Controller
             'staffId',
             'initialSelectedAppointmentId'
         ));
+    }
+
+    /**
+     * @param  Collection<int, Appointment>  $appointments
+     * @return list<array<string, mixed>>
+     */
+    private function buildAppointmentIndexRows(Collection $appointments, $salon, bool $isScopedStaffPanel): array
+    {
+        $currency = $salon->currency ?? 'GBP';
+
+        return $appointments->map(function (Appointment $apt) use ($salon, $currency, $isScopedStaffPanel) {
+            $st = $apt->status;
+            $isMissed = AppointmentLifecycle::isPastUnresolved($apt, $salon);
+            $displayStatus = AppointmentLifecycle::displayStatusKey($apt, $salon);
+            $pay = $apt->payment_status ?? Appointment::PAYMENT_UNPAID;
+            $serviceLines = AppointmentDisplayLines::serviceLines($apt);
+            $balanceDue = max(0, round((float) $apt->total_price - (float) $apt->amount_paid, 2));
+            $isCompleted = $st === 'completed';
+
+            return [
+                'id' => (int) $apt->id,
+                'client_name' => trim(($apt->client?->first_name ?? '') . ' ' . ($apt->client?->last_name ?? '')),
+                'reference' => (string) $apt->reference,
+                'service_summary' => $serviceLines->first()['name'] ?? ($apt->services->first()?->service_name ?? '—'),
+                'service_extra' => max(0, $serviceLines->count() - 1),
+                'staff_name' => $apt->staff?->name ?? '—',
+                'starts_clock' => DisplayFormatter::businessClock($salon, $apt->starts_at),
+                'starts_date' => DisplayFormatter::businessDate($salon, $apt->starts_at),
+                'time_range' => DisplayFormatter::businessTimeRange($salon, $apt->starts_at, $apt->ends_at),
+                'amount' => CurrencyHelper::format((float) $apt->total_price, $currency),
+                'amount_paid' => CurrencyHelper::format((float) $apt->amount_paid, $currency),
+                'balance_due' => CurrencyHelper::format($balanceDue, $currency),
+                'has_balance' => $balanceDue > 0,
+                'is_partial_payment' => $pay === Appointment::PAYMENT_PARTIAL || ($balanceDue > 0 && (float) $apt->amount_paid > 0),
+                'deposit_paid' => (float) $apt->deposit_paid > 0
+                    ? CurrencyHelper::format((float) $apt->deposit_paid, $currency)
+                    : null,
+                'invoice_pdf_url' => $isCompleted ? route('appointments.invoice.pdf', $apt) : null,
+                'invoice_page_url' => $isCompleted ? route('appointments.invoice.show', $apt) : null,
+                'status' => $st,
+                'display_status' => $displayStatus,
+                'is_missed' => $isMissed,
+                'status_label' => AppointmentLifecycle::displayStatusLabel($apt, $salon),
+                'status_url' => route('appointments.status', $apt->id),
+                'source' => (string) ($apt->source ?? 'manual'),
+                'source_label' => Appointment::sourceLabel($apt->source),
+                'payment_status' => $pay,
+                'payment_label' => Appointment::paymentStatusLabel($pay),
+                'booked_at' => DisplayFormatter::businessDateTime($salon, $apt->created_at),
+                'duration_minutes' => (int) $apt->duration_minutes,
+                'client_notes' => $apt->client_notes,
+                'internal_notes' => $isScopedStaffPanel ? null : $apt->internal_notes,
+                'show_url' => route('appointments.show', $apt->id),
+                'pos_url' => route('pos.create', ['appointment' => $apt->id]),
+                'rebook_url' => route('appointments.create', ['client_id' => $apt->client_id, 'from' => $apt->id]),
+                'rebook_same_url' => route('appointments.create', [
+                    'client_id' => $apt->client_id,
+                    'services' => $apt->services->pluck('service_id')->filter()->join(','),
+                    'staff_id' => $apt->staff_id,
+                    'from' => $apt->id,
+                ]),
+                'can_rebook' => in_array($st, ['completed', 'cancelled', 'no_show'], true) && ! $isMissed,
+                'services' => $serviceLines->map(fn ($line) => [
+                    'name' => $line['name'],
+                    'price' => CurrencyHelper::format((float) $line['price'], $currency),
+                    'duration' => $line['duration'],
+                    'source' => $line['source'],
+                ])->values()->all(),
+            ];
+        })->values()->all();
     }
 
     public function create(Request $request)

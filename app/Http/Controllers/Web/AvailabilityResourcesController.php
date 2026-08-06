@@ -372,6 +372,7 @@ class AvailabilityResourcesController extends Controller
         $leave->update(['status' => 'approved']);
         $leave->load(['staff', 'salon']);
         $this->attendanceService->syncLeaveToAttendance($leave);
+        app(\App\Services\NotificationService::class)->notifyStaffLeaveApproved($leave);
 
         return redirect()
             ->route('availability.index', ['tab' => 'leave'])
@@ -403,6 +404,19 @@ class AvailabilityResourcesController extends Controller
             );
         } catch (\InvalidArgumentException $e) {
             return $this->attendanceErrorResponse($request, $e->getMessage(), $data['date']);
+        }
+
+        if (in_array($data['status'], [
+            \App\Models\StaffAttendanceRecord::STATUS_ABSENT,
+            \App\Models\StaffAttendanceRecord::STATUS_ON_LEAVE,
+            \App\Models\StaffAttendanceRecord::STATUS_HALF_DAY,
+        ], true)) {
+            app(\App\Services\NotificationService::class)->notifyStaffAttendanceMarked(
+                $staff,
+                $salon,
+                $data['date'],
+                $data['status']
+            );
         }
 
         $cell = $this->attendanceService->freshCell($salon, $staff, $data['date']);

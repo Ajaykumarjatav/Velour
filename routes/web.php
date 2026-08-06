@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\LegacySalonUrlController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\TwoFactorController;
 use App\Http\Controllers\Web\DashboardController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Web\GuideController;
 use App\Http\Controllers\Admin\SuperAdminController;
 use App\Http\Controllers\Admin\TenantAdminController;
 use App\Http\Middleware\InitializeTenancyFromDomain;
+use App\Support\SalonUrl;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -136,9 +138,12 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::post('recovery/regenerate', [TwoFactorController::class, 'regenerateCodes'])->name('recovery.regenerate');
     });
 
-    // ── Tenant-scoped App Routes ─────────────────────────────────────────────
+    // ── Tenant-scoped App Routes (/ {store} / dashboard) ─────────────────────
 
-    Route::middleware(['salon.panel', 'plan.access', 'admin.store.browse.readonly-pages', InitializeTenancyFromDomain::class, 'tenant', 'profile.complete', 'sync.staff.role', 'route.permission', 'admin.store.readonly'])->group(function () {
+    Route::middleware(['salon.panel', 'plan.access', 'admin.store.browse.readonly-pages', 'store.path', InitializeTenancyFromDomain::class, 'tenant', 'profile.complete', 'sync.staff.role', 'route.permission', 'admin.store.readonly', 'user.activity'])
+        ->prefix('{store}')
+        ->where(['store' => SalonUrl::reservedPattern()])
+        ->group(function () {
 
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::post('action-items', [SalonActionItemController::class, 'store'])->name('action-items.store');
@@ -366,7 +371,14 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
             Route::post('transfer-ownership',          [TenantAdminController::class, 'transferOwnership'])->name('transfer');
         });
 
-    }); // end tenant middleware
+    }); // end tenant middleware ({store} prefix)
+
+    // Old bookmarks: /dashboard → /{store}/dashboard
+    Route::middleware(['salon.panel'])->group(function () {
+        Route::any('{legacy}', LegacySalonUrlController::class)
+            ->where('legacy', '^(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|security-support|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking)(/.*)?$')
+            ->name('legacy.salon.redirect');
+    });
 
 }); // end auth+verified+2fa
 
@@ -450,7 +462,7 @@ use App\Http\Controllers\Admin\Tenant\AdminTenantAuditController;
 use App\Http\Controllers\Admin\Tenant\AdminTenantDeletedController;
 use App\Http\Controllers\Admin\Tenant\AdminTenantActionsController;
 
-Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin'])
+Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin', 'user.activity'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -559,6 +571,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin']
     Route::get('audit/stats',                [\App\Http\Controllers\Admin\AuditLogController::class, 'stats'])->name('audit.stats');
     Route::get('audit/export',               [\App\Http\Controllers\Admin\AuditLogController::class, 'export'])->name('audit.export');
     Route::get('audit/{auditLog}',           [\App\Http\Controllers\Admin\AuditLogController::class, 'show'])->name('audit.show');
+    Route::get('user-activity',             [\App\Http\Controllers\Admin\UserActivityController::class, 'index'])->name('user-activity.index');
 
     // ── Admin Chatbot ─────────────────────────────────────────────────────────
     Route::post('chatbot/message', [\App\Http\Controllers\Web\ChatbotController::class, 'message'])->name('chatbot.message');

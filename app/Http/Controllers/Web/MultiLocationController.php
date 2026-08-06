@@ -230,7 +230,7 @@ class MultiLocationController extends Controller
         session(['active_salon_id' => $location->id]);
         session(['switched_location_name' => $location->name]);
 
-        return redirect()->route('multi-location.index')
+        return redirect()->route('dashboard', ['store' => \App\Support\SalonUrl::key($location)])
             ->with('success', 'Switched to ' . $location->name . '.');
     }
 

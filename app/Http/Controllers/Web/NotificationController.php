@@ -147,6 +147,23 @@ class NotificationController extends Controller
             return route('appointments.show', $appointmentId);
         }
 
+        $taskId = (int) data_get($notification->data, 'task_id', 0);
+        if ($taskId > 0 || data_get($notification->data, 'action_label') === 'tasks') {
+            return route('tasks.index');
+        }
+
+        if (data_get($notification->data, 'action_label') === 'leave') {
+            return route('availability.index', ['tab' => 'leave']);
+        }
+
+        if (data_get($notification->data, 'action_label') === 'attendance') {
+            return route('availability.index', ['tab' => 'attendance']);
+        }
+
+        if (data_get($notification->data, 'action_label') === 'salary') {
+            return route('expenses.index');
+        }
+
         $label = mb_strtolower(trim((string) data_get($notification->data, 'action_label', '')));
         $url = trim((string) ($notification->action_url ?? ''));
 

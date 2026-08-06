@@ -96,6 +96,16 @@ class PosTransaction extends Model
         }
 
         $request = request();
+
+        // Prefer /{store}/… URL key (bindings run before ResolveStorePath middleware).
+        $storeKey = $request->route('store');
+        if (is_string($storeKey) && $storeKey !== '') {
+            $fromUrl = \App\Support\SalonUrl::findByKey($storeKey);
+            if ($fromUrl) {
+                return (int) $fromUrl->id;
+            }
+        }
+
         if (! $request->hasSession()) {
             return null;
         }

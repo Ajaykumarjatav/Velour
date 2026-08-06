@@ -46,18 +46,26 @@ final class AuthPanel
         }
 
         if (self::typeFor($user) === self::STAFF) {
-            return route('dashboard');
+            $key = SalonUrl::keyForUser($user);
+
+            return $key ? route('dashboard', ['store' => $key]) : url('/');
         }
 
         $salon = DefaultSalonProvisioner::ensure($user);
         if ($salon) {
             $completion = ProfileCompletion::forSalon($salon);
             if ((int) ($completion['percentage'] ?? 0) < 100) {
-                return route('setup-progress');
+                return route('setup-progress', ['store' => SalonUrl::key($salon)]);
             }
+
+            return route('dashboard', ['store' => SalonUrl::key($salon)]);
         }
 
-        return route('dashboard');
+        $key = SalonUrl::keyForUser($user);
+
+        return $key
+            ? route('dashboard', ['store' => $key])
+            : url('/');
     }
 
     public static function canAccessPlatformPanel(User $user): bool

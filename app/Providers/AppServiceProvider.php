@@ -80,6 +80,12 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
+        // Subdirectory installs (e.g. /vellor/admin): paginator must not use raw
+        // request paths like /ak/appointments (browser resolves that to localhost/ak/…).
+        Paginator::currentPathResolver(function () {
+            return url()->current();
+        });
+
         $rememberMinutes = (int) config('auth.remember_lifetime', 43_200);
         if ($rememberMinutes > 0) {
             auth()->guard('web')->setRememberDuration($rememberMinutes);
@@ -132,6 +138,9 @@ class AppServiceProvider extends ServiceProvider
                     $view->with('salonBusinessStatus', $salon ? \App\Support\SalonBusinessStatus::forSalon($salon) : null);
                     $view->with('planExpired', app(\App\Services\Billing\PlanAccessService::class)->isExpired($user));
                     $view->with('subscriptionReminder', app(\App\Services\Billing\PlanAccessService::class)->reminderFor($user));
+                    if ($salon) {
+                        URL::defaults(['store' => \App\Support\SalonUrl::key($salon)]);
+                    }
                 } catch (\Throwable) {}
             }
         });
@@ -322,7 +331,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('view-activity-log', function (User $user) {
             return $user->isSuperAdmin()
-                || $user->hasRole('tenant_admin')
+                || $user->hasAnyRole(['tenant_admin', 'manager'])
                 || $user->salons()->exists();
         });
 

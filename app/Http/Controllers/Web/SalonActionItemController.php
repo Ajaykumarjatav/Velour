@@ -58,7 +58,7 @@ class SalonActionItemController extends Controller
 
         $assignedId = $canAssign ? ($data['assigned_staff_id'] ?? null) : null;
 
-        SalonActionItem::create([
+        $item = SalonActionItem::create([
             'salon_id' => $salon->id,
             'staff_id' => $scopedStaffId,
             'assigned_staff_id' => $assignedId,
@@ -69,6 +69,10 @@ class SalonActionItemController extends Controller
             'status' => 'open',
             'due_at' => $dueAt,
         ]);
+
+        if ($assignedId) {
+            app(\App\Services\NotificationService::class)->notifyStaffTaskAssigned($item);
+        }
 
         $redirectTo = match ($data['redirect_after'] ?? 'dashboard') {
             'tasks' => route('tasks.index'),

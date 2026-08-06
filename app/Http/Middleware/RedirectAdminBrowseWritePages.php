@@ -34,7 +34,7 @@ class RedirectAdminBrowseWritePages
         foreach (self::BLOCKED_SUFFIXES as $suffix) {
             if (str_ends_with($name, $suffix)) {
                 return redirect()
-                    ->back(fallback: route('dashboard'))
+                    ->back(fallback: route('dashboard', array_filter(['store' => \App\Support\SalonUrl::keyForUser($request->user())])))
                     ->withErrors(['error' => 'Read-only admin browse — you cannot open edit or create pages.']);
             }
         }

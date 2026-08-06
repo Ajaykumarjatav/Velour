@@ -108,7 +108,13 @@ class ExpenseController extends Controller
         $data['created_by'] = $request->user()?->id;
         $data['receipt_path'] = $this->storeReceipt($request, $salon->id);
 
-        Expense::create($data);
+        $expense = Expense::create($data);
+
+        if (($data['status'] ?? 'recorded') === 'recorded') {
+            app(\App\Services\NotificationService::class)->notifyStaffSalaryRecorded(
+                $expense->load(['staff.user', 'salon', 'category'])
+            );
+        }
 
         $message = ($data['status'] ?? 'recorded') === 'draft'
             ? 'Expense saved as draft.'

@@ -14,6 +14,15 @@ class LoginActivityService
     {
         $this->audit->login($user, $via2fa);
         $this->insertAttempt($request, $user->email, true);
+        try {
+            app(UserActivityLogger::class)->write($user, 'auth.login', 'Logged in'.($via2fa ? ' (2FA)' : ''), [
+                'method' => 'POST',
+                'path' => '/login',
+                'ip_address' => $request->ip(),
+                'salon_id' => (int) $request->session()->get('active_salon_id', 0) ?: null,
+            ]);
+        } catch (\Throwable) {
+        }
     }
 
     public function recordFailure(Request $request, string $email, string $reason = 'invalid_credentials'): void

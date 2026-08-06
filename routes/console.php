@@ -46,6 +46,10 @@ Schedule::command('velour:prune-stale-data')
     ->name('prune-stale-data')
     ->withoutOverlapping();
 
+Schedule::call(function () {
+    app(\App\Services\UserActivityLogger::class)->prune();
+})->dailyAt('03:15')->name('prune-user-activity')->withoutOverlapping();
+
 // ── Activate scheduled paid plans (after trial end) ─────────────────────
 Schedule::command('velour:activate-scheduled-plans')
     ->hourly()
