@@ -147,7 +147,7 @@ class AppointmentController extends Controller
             $st = $apt->status;
             $isMissed = AppointmentLifecycle::isPastUnresolved($apt, $salon);
             $displayStatus = AppointmentLifecycle::displayStatusKey($apt, $salon);
-            $pay = $apt->payment_status ?? Appointment::PAYMENT_UNPAID;
+            $pay = $apt->derivePaymentStatusFromAmounts();
             $serviceLines = AppointmentDisplayLines::serviceLines($apt);
             $balanceDue = max(0, round((float) $apt->total_price - (float) $apt->amount_paid, 2));
             $isCompleted = $st === 'completed';
@@ -508,6 +508,12 @@ class AppointmentController extends Controller
     {
         $this->authorise($appointment);
         $appointment->load(['client', 'staff', 'services', 'transaction.items', 'review']);
+
+        // Fix stale rows where payment_status says paid but amount_paid is still 0.
+        if ($appointment->reconcilePaymentStatus()) {
+            $appointment->saveQuietly();
+        }
+
         $displayServiceLines = AppointmentDisplayLines::serviceLines($appointment);
         $salon = $this->salon();
         $staff = Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->where('is_active', true)->withName()->get();
@@ -631,13 +637,24 @@ class AppointmentController extends Controller
                     throw ValidationException::withMessages(['starts_at' => $result->firstMessage()]);
                 }
 
+                $paymentStatus = $data['payment_status'];
+                $amountPaid    = (float) $appointment->amount_paid;
+                if ($paymentStatus === Appointment::PAYMENT_PAID && $amountPaid <= 0.009) {
+                    $amountPaid = (float) $appointment->total_price;
+                } elseif ($paymentStatus === Appointment::PAYMENT_UNPAID) {
+                    // Keep recorded payments; status will be reconciled from amounts on save.
+                } elseif ($paymentStatus === Appointment::PAYMENT_PARTIAL && $amountPaid <= 0.009) {
+                    $paymentStatus = Appointment::PAYMENT_UNPAID;
+                }
+
                 $appointment->update([
                     'client_id'        => $data['client_id'],
                     'staff_id'         => $staffId,
                     'starts_at'        => $startsAt->copy()->utc(),
                     'ends_at'          => $endsAt->copy()->utc(),
                     'source'           => $data['source'],
-                    'payment_status'   => $data['payment_status'],
+                    'payment_status'   => $paymentStatus,
+                    'amount_paid'      => $amountPaid,
                     'internal_notes'   => $data['internal_notes'] ?? null,
                     'client_notes'     => $data['client_notes'] ?? null,
                 ]);
@@ -750,7 +767,7 @@ class AppointmentController extends Controller
         }
 
         // Payment must be collected before completing — redirect to POS
-        if ($appointment->payment_status !== Appointment::PAYMENT_PAID) {
+        if (! $appointment->isFullyPaid()) {
             return redirect()
                 ->route('pos.create', ['appointment' => $appointment->id])
                 ->with('info', __('Please collect payment to complete this appointment.'));

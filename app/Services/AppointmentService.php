@@ -60,6 +60,18 @@ class AppointmentService
                 $status = 'confirmed';
             }
 
+            $paymentStatus = $data['payment_status'] ?? Appointment::PAYMENT_UNPAID;
+            if (! in_array($paymentStatus, Appointment::paymentStatusKeys(), true)) {
+                $paymentStatus = Appointment::PAYMENT_UNPAID;
+            }
+            $amountPaid = 0.0;
+            if ($paymentStatus === Appointment::PAYMENT_PAID) {
+                $amountPaid = (float) $snapshot['total_price'];
+            } elseif ($paymentStatus === Appointment::PAYMENT_PARTIAL) {
+                // Partial without an explicit amount is treated as unpaid until POS collects.
+                $paymentStatus = Appointment::PAYMENT_UNPAID;
+            }
+
             $appointment = Appointment::create([
                 'salon_id'          => $salonId,
                 'client_id'         => $data['client_id'],
@@ -68,9 +80,10 @@ class AppointmentService
                 'ends_at'           => $endsAt->copy()->utc(),
                 'duration_minutes'  => $snapshot['total_span_minutes'],
                 'total_price'       => $snapshot['total_price'],
+                'amount_paid'       => $amountPaid,
                 'status'            => $status,
                 'source'            => $data['source'] ?? 'manual',
-                'payment_status'    => $data['payment_status'] ?? Appointment::PAYMENT_UNPAID,
+                'payment_status'    => $paymentStatus,
                 'client_notes'      => $data['client_notes'] ?? null,
                 'internal_notes'    => $data['internal_notes'] ?? null,
                 'confirmed_at'      => $status === 'confirmed' ? now() : null,

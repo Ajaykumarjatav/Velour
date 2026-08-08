@@ -9,8 +9,14 @@
     $isMissed = \App\Support\AppointmentLifecycle::isPastUnresolved($appointment, $salon);
     $displayStatusKey = \App\Support\AppointmentLifecycle::displayStatusKey($appointment, $salon);
     $displayStatusLabel = \App\Support\AppointmentLifecycle::displayStatusLabel($appointment, $salon);
-    $isPartialPayment = $appointment->payment_status === \App\Models\Appointment::PAYMENT_PARTIAL
+    $paymentStatus = $appointment->derivePaymentStatusFromAmounts();
+    $isFullyPaid = $appointment->isFullyPaid();
+    $isPartialPayment = $paymentStatus === \App\Models\Appointment::PAYMENT_PARTIAL
         || ($balanceDue > 0 && (float) $appointment->amount_paid > 0);
+    $canCollectPayment = ! ($adminStoreBrowse ?? false)
+        && $balanceDue > 0.009
+        && $paymentStatus !== \App\Models\Appointment::PAYMENT_REFUNDED
+        && ! in_array($appointment->status, ['cancelled', 'no_show'], true);
     $canRebook = in_array($appointment->status, ['completed', 'cancelled', 'no_show'], true) && ! $isMissed;
 @endphp
 
@@ -79,7 +85,7 @@
             </div>
             <div>
                 <p class="stat-label mb-1">Payment status</p>
-                <p class="font-semibold text-heading">{{ \App\Models\Appointment::paymentStatusLabel($appointment->payment_status) }}</p>
+                <p class="font-semibold text-heading">{{ \App\Models\Appointment::paymentStatusLabel($paymentStatus) }}</p>
             </div>
             @if(!$isScopedStaffPanel && $appointment->client?->email)
             <div>
@@ -119,7 +125,7 @@
             </a>
             @endunless
         </div>
-        @elseif(!$adminStoreBrowse && $appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID && in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress'], true))
+        @elseif($canCollectPayment && in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress'], true))
         <div class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800">
             <a href="{{ route('pos.create', ['appointment' => $appointment->id]) }}" class="btn-primary text-sm inline-flex items-center gap-1.5">
                 Collect payment &amp; invoice
@@ -200,7 +206,7 @@
             <p class="text-xs mt-0.5 text-amber-800/90 dark:text-amber-200/90">This appointment time has passed without being completed or cancelled. Mark as no-show if the client did not arrive.</p>
         </div>
         @endif
-        @if($appointment->status === 'completed' && $appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID)
+        @if($appointment->status === 'completed' && ! $isFullyPaid)
         <div class="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
             <p class="font-semibold">Payment pending</p>
             <p class="text-xs mt-0.5 text-amber-700 dark:text-amber-400">This appointment is marked complete but payment has not been collected yet.</p>
@@ -209,8 +215,8 @@
 
         <div class="flex flex-wrap gap-2">
 
-            {{-- Collect Payment (unpaid appointments) --}}
-            @if($appointment->payment_status !== \App\Models\Appointment::PAYMENT_PAID && in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress', 'completed']))
+            {{-- Collect Payment whenever money is still owed --}}
+            @if($canCollectPayment)
             <a href="{{ route('pos.create', ['appointment' => $appointment->id]) }}"
                class="px-4 py-2 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors inline-flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -243,9 +249,9 @@
             </form>
             @endif
 
-            {{-- Complete (confirmed / checked_in / in_progress) — only if paid --}}
+            {{-- Complete (confirmed / checked_in / in_progress) — paid vs collect-at-complete --}}
             @if(in_array($appointment->status, ['confirmed', 'checked_in', 'in_progress']))
-                @if($appointment->payment_status === \App\Models\Appointment::PAYMENT_PAID)
+                @if($isFullyPaid)
                 <form action="{{ route('appointments.complete', $appointment->id) }}" method="POST">
                     @csrf @method('PATCH')
                     <button type="submit"

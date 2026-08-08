@@ -50,8 +50,83 @@ class Appointment extends Model
     public function scopeToday($q)    { return $q->whereDate('starts_at',today()); }
     public function scopeCompleted($q){ return $q->where('status','completed'); }
     public function getBalanceDueAttribute(): float {
-        return max(0, $this->total_price - $this->amount_paid);
+        return max(0, round((float) $this->total_price - (float) $this->amount_paid, 2));
     }
+
+    /** True when collected money covers the appointment total (refunded never counts as paid). */
+    public function isFullyPaid(): bool
+    {
+        if ($this->payment_status === self::PAYMENT_REFUNDED) {
+            return false;
+        }
+
+        return $this->balance_due <= 0.009;
+    }
+
+    /**
+     * Derive payment status from amount_paid / total_price.
+     * Money is the source of truth; the stored payment_status column can drift.
+     */
+    public function derivePaymentStatusFromAmounts(): string
+    {
+        if ($this->payment_status === self::PAYMENT_REFUNDED) {
+            return self::PAYMENT_REFUNDED;
+        }
+
+        $paid  = round((float) $this->amount_paid, 2);
+        $total = round((float) $this->total_price, 2);
+
+        if ($paid <= 0.009) {
+            return self::PAYMENT_UNPAID;
+        }
+
+        if ($total <= 0.009 || $paid + 0.009 >= $total) {
+            return self::PAYMENT_PAID;
+        }
+
+        return self::PAYMENT_PARTIAL;
+    }
+
+    /**
+     * Align payment_status with amount_paid. Returns true when the column changed.
+     */
+    public function reconcilePaymentStatus(): bool
+    {
+        if ($this->payment_status === self::PAYMENT_REFUNDED) {
+            return false;
+        }
+
+        $derived = $this->derivePaymentStatusFromAmounts();
+        if ($this->payment_status === $derived) {
+            return false;
+        }
+
+        $this->payment_status = $derived;
+
+        return true;
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Appointment $appointment) {
+            if ($appointment->payment_status === self::PAYMENT_REFUNDED) {
+                return;
+            }
+
+            // Creating/updating with "paid" but no money recorded → treat as desk-paid in full.
+            if (
+                $appointment->isDirty('payment_status')
+                && $appointment->payment_status === self::PAYMENT_PAID
+                && round((float) $appointment->amount_paid, 2) <= 0.009
+                && round((float) $appointment->total_price, 2) > 0.009
+            ) {
+                $appointment->amount_paid = $appointment->total_price;
+            }
+
+            $appointment->payment_status = $appointment->derivePaymentStatusFromAmounts();
+        });
+    }
+
     protected static function newFactory()
     {
         return \Database\Factories\AppointmentFactory::new();

@@ -570,6 +570,72 @@
             z-index: 80;
             background: linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #7c3aed 100%);
         }
+
+        /* Soft ambient glow behind app content — decorative only, never blocks UI */
+        .app-shell-main {
+            position: relative;
+            isolation: isolate;
+        }
+        .app-ambient {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+            contain: paint;
+        }
+        .app-ambient-orb {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(64px);
+            will-change: transform;
+            opacity: 0.45;
+            transform: translate3d(0, 0, 0);
+            animation: appAmbientDrift 48s ease-in-out infinite alternate;
+        }
+        .app-ambient-orb--a {
+            width: min(42vw, 28rem);
+            height: min(42vw, 28rem);
+            top: -8%;
+            right: 4%;
+            background: rgba(167, 139, 250, 0.22);
+            animation-duration: 52s;
+        }
+        .app-ambient-orb--b {
+            width: min(36vw, 22rem);
+            height: min(36vw, 22rem);
+            bottom: 8%;
+            left: 6%;
+            background: rgba(196, 181, 253, 0.16);
+            animation-duration: 64s;
+            animation-delay: -12s;
+        }
+        .app-ambient-orb--c {
+            width: min(28vw, 16rem);
+            height: min(28vw, 16rem);
+            top: 42%;
+            right: 18%;
+            background: rgba(233, 213, 255, 0.14);
+            animation-duration: 58s;
+            animation-delay: -24s;
+        }
+        .dark .app-ambient-orb--a { background: rgba(124, 58, 237, 0.14); opacity: 0.55; }
+        .dark .app-ambient-orb--b { background: rgba(91, 33, 182, 0.12); opacity: 0.5; }
+        .dark .app-ambient-orb--c { background: rgba(139, 92, 246, 0.1); opacity: 0.45; }
+        @keyframes appAmbientDrift {
+            from { transform: translate3d(0, 0, 0) scale(1); }
+            to { transform: translate3d(-3%, 2.5%, 0) scale(1.06); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .app-ambient-orb {
+                animation: none !important;
+                will-change: auto;
+            }
+        }
+        @media (max-width: 640px) {
+            .app-ambient-orb--c { display: none; }
+            .app-ambient-orb { filter: blur(48px); opacity: 0.35; }
+        }
     </style>
     @stack('styles')
 </head>
@@ -607,7 +673,11 @@
 
     {{-- Main — min-w-0 so wide children (tables, POS grids) shrink instead of overflowing under the fixed sidebar --}}
     <div class="app-shell-main flex-1 flex flex-col min-h-screen min-w-0">
-
+        <div class="app-ambient" aria-hidden="true">
+            <span class="app-ambient-orb app-ambient-orb--a"></span>
+            <span class="app-ambient-orb app-ambient-orb--b"></span>
+            <span class="app-ambient-orb app-ambient-orb--c"></span>
+        </div>
         {{-- Top bar --}}
         <header class="sticky top-0 z-50 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
                        bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800
