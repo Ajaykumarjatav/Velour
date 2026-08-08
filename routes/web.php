@@ -95,6 +95,26 @@ Route::post('logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
+// Public review forms (outside auth; include store key in URL)
+Route::prefix('{store}')
+    ->where(['store' => SalonUrl::reservedPattern()])
+    ->group(function () {
+        Route::get('reviews/share/{token}', [ReviewController::class, 'publicForm'])
+            ->middleware('throttle:60,1')
+            ->name('reviews.public');
+        Route::post('reviews/share/{token}', [ReviewController::class, 'submitPublicForm'])
+            ->middleware('throttle:20,1')
+            ->name('reviews.public.submit');
+    });
+
+// Old links without store → redirect to store-prefixed URL
+Route::get('reviews/share/{token}', [ReviewController::class, 'redirectLegacyPublic'])
+    ->middleware('throttle:60,1')
+    ->name('reviews.public.legacy');
+Route::post('reviews/share/{token}', [ReviewController::class, 'redirectLegacyPublic'])
+    ->middleware('throttle:20,1')
+    ->name('reviews.public.legacy.submit');
+
 Route::middleware('auth')->group(function () {
     Route::get('force-password-change', [AuthController::class, 'showForcePassword'])->name('password.force.show');
     Route::post('force-password-change', [AuthController::class, 'forcePasswordUpdate'])->name('password.force.update');
@@ -374,9 +394,10 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
     }); // end tenant middleware ({store} prefix)
 
     // Old bookmarks: /dashboard → /{store}/dashboard
+    // Do not catch public share URLs (reviews/share/{token}) — those are guest routes.
     Route::middleware(['salon.panel'])->group(function () {
         Route::any('{legacy}', LegacySalonUrlController::class)
-            ->where('legacy', '^(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|security-support|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking)(/.*)?$')
+            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|security-support|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking)(/.*)?$')
             ->name('legacy.salon.redirect');
     });
 
@@ -600,12 +621,6 @@ Route::get('s/{slug}/{path}', [\App\Http\Controllers\Web\StorefrontController::c
 
 // ── Public Booking Page ───────────────────────────────────────────────────────
 Route::get('book/{slug}', [\App\Http\Controllers\Web\BookingController::class, 'show'])->name('booking.show');
-Route::get('reviews/share/{token}', [\App\Http\Controllers\Web\ReviewController::class, 'publicForm'])
-    ->middleware('throttle:60,1')
-    ->name('reviews.public');
-Route::post('reviews/share/{token}', [\App\Http\Controllers\Web\ReviewController::class, 'submitPublicForm'])
-    ->middleware('throttle:20,1')
-    ->name('reviews.public.submit');
 
 // ── Legal & Compliance Pages ──────────────────────────────────────────────────
 Route::prefix('legal')->name('legal.')->group(function () {

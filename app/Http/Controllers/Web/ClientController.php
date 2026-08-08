@@ -207,7 +207,10 @@ class ClientController extends Controller
             'salon_id' => $salon->id,
             'staff_id' => null,
         ]);
-        $reviewUrl = route('reviews.public', $tenantReviewLink->token);
+        $reviewUrl = route('reviews.public', [
+            'store' => \App\Support\SalonUrl::key($salon),
+            'token' => $tenantReviewLink->token,
+        ]);
 
         $sent = 0;
         $skipped = 0;

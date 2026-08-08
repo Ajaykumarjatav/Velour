@@ -17,7 +17,7 @@
                 <input
                     type="text"
                     readonly
-                    value="{{ route('reviews.public', $tenantReviewLink->token) }}"
+                    value="{{ route('reviews.public', ['store' => \App\Support\SalonUrl::key($salon), 'token' => $tenantReviewLink->token]) }}"
                     class="form-input flex-1"
                     id="tenant-review-link"
                 >
@@ -40,7 +40,7 @@
                     <input
                         type="text"
                         readonly
-                        value="{{ route('reviews.public', $link->token) }}"
+                        value="{{ route('reviews.public', ['store' => \App\Support\SalonUrl::key($salon), 'token' => $link->token]) }}"
                         class="form-input"
                         id="{{ $inputId }}"
                     >

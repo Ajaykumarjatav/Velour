@@ -137,11 +137,31 @@ class ReviewController extends Controller
         return back()->with('success', 'Reply posted.');
     }
 
-    public function publicForm(string $token)
+    public function redirectLegacyPublic(string $token)
     {
-        $reviewLink = ReviewLink::query()
+        $reviewLink = ReviewLink::withoutGlobalScopes()
             ->where('token', $token)
             ->where('is_active', true)
+            ->with('salon')
+            ->firstOrFail();
+
+        $store = \App\Support\SalonUrl::key($reviewLink->salon);
+
+        return redirect()->route('reviews.public', [
+            'store' => $store,
+            'token' => $token,
+        ]);
+    }
+
+    public function publicForm(string $store, string $token)
+    {
+        $salonFromStore = \App\Support\SalonUrl::findByKey($store);
+        abort_unless($salonFromStore, 404);
+
+        $reviewLink = ReviewLink::withoutGlobalScopes()
+            ->where('token', $token)
+            ->where('is_active', true)
+            ->where('salon_id', $salonFromStore->id)
             ->with(['salon', 'staff'])
             ->firstOrFail();
 
@@ -159,16 +179,21 @@ class ReviewController extends Controller
         return view('reviews.public-form', [
             'reviewLink' => $reviewLink,
             'salon' => $salon,
+            'store' => $store,
             'staff' => $reviewLink->staff,
             'services' => $services->get(['id', 'name']),
         ]);
     }
 
-    public function submitPublicForm(Request $request, string $token)
+    public function submitPublicForm(Request $request, string $store, string $token)
     {
-        $reviewLink = ReviewLink::query()
+        $salonFromStore = \App\Support\SalonUrl::findByKey($store);
+        abort_unless($salonFromStore, 404);
+
+        $reviewLink = ReviewLink::withoutGlobalScopes()
             ->where('token', $token)
             ->where('is_active', true)
+            ->where('salon_id', $salonFromStore->id)
             ->with(['salon', 'staff'])
             ->firstOrFail();
 
@@ -207,6 +232,8 @@ class ReviewController extends Controller
 
         $reviewLink->update(['last_used_at' => now()]);
 
-        return back()->with('success', 'Thanks! Your review has been submitted.');
+        return redirect()
+            ->route('reviews.public', ['store' => $store, 'token' => $token])
+            ->with('success', 'Thank you for your review!');
     }
 }

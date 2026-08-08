@@ -56,6 +56,11 @@ class PreventPublicSessionClobber
             return true;
         }
 
+        // /{store}/reviews/share/{token}
+        if (preg_match('#^[a-z0-9]+(?:-[a-z0-9]+)*/reviews/share/#', $path)) {
+            return true;
+        }
+
         foreach ($prefixes as $prefix) {
             if (str_starts_with($path, $prefix)) {
                 return true;

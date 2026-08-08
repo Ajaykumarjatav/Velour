@@ -336,10 +336,17 @@ body.auth-body.dark-page { color: #e2e8f0; }
 .auth-error {
   margin: 0;
   font-size: 0.75rem;
-  font-weight: 500;
-  color: #dc2626;
+  font-weight: 600;
+  color: #dc2626 !important;
+  text-transform: none;
 }
-.dark .auth-error { color: #f87171; }
+.dark .auth-error { color: #f87171 !important; }
+
+/* Browser / field-level required hint under inputs */
+.auth-field .auth-input:user-invalid + .auth-error,
+.auth-input.is-invalid ~ .auth-error {
+  color: #f87171 !important;
+}
 
 .auth-alert {
   display: flex;
