@@ -123,7 +123,7 @@
                      x-transition:enter-start="opacity-0 -translate-y-1"
                      x-transition:enter-end="opacity-100 translate-y-0"
                      @click.outside="openRangePicker = false"
-                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(100vw-1.5rem,40rem)] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 p-3 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[80] overflow-visible">
+                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(100vw-1.5rem,44rem)] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 p-3 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[80] overflow-visible">
                     <form method="GET" action="{{ route('calendar') }}" class="space-y-3">
                         <input type="hidden" name="view" value="week">
                         <input type="hidden" name="staff_id" value="{{ $filterStaffId }}">

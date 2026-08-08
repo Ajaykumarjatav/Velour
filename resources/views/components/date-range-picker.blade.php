@@ -70,13 +70,13 @@
          class="relative w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden"
          @else
          :style="dropdownStyle"
-         class="fixed z-[200] w-[min(100vw-1rem,32rem)] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 shadow-xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden"
+         class="fixed z-[200] w-[min(100vw-1rem,44rem)] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 shadow-xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden"
          @endif
         >
         <div @class([
             'flex flex-col sm:flex-row',
-            'h-[21.5rem]' => $compact,
-            'h-[min(70vh,26rem)]' => ! $compact,
+            'sm:min-h-[22rem]' => $compact,
+            'sm:min-h-[24rem]' => ! $compact,
         ])>
             <div @class([
                 'shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto',
@@ -140,30 +140,35 @@
                 </div>
 
                 <div @class([
-                    'flex items-center justify-end gap-0.5 border-b border-gray-50 dark:border-gray-800/80 shrink-0',
-                    'px-3 py-1.5' => $compact,
-                    'px-4 py-2' => ! $compact,
+                    'flex-1 min-h-0',
+                    'px-2 sm:px-3 py-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3' => $compact,
+                    'px-4 py-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4' => ! $compact,
                 ])>
-                    <button type="button" @click="shiftMonths(-1)" class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500" aria-label="Previous month">
-                        <svg @class(['fill-none stroke-current', 'w-3.5 h-3.5' => $compact, 'w-4 h-4' => ! $compact]) viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <button type="button" @click="shiftMonths(1)" class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500" aria-label="Next month">
-                        <svg @class(['fill-none stroke-current', 'w-3.5 h-3.5' => $compact, 'w-4 h-4' => ! $compact]) viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                </div>
-
-                <div @class([
-                    'flex-1 min-h-0 overflow-y-auto',
-                    'px-3 py-2 space-y-3' => $compact,
-                    'px-4 py-2 space-y-4' => ! $compact,
-                ])>
-                    <template x-for="month in calendarMonths" :key="month.key">
-                        <div>
-                            <p @class([
-                                'font-semibold tracking-wide text-gray-500 dark:text-gray-400 uppercase',
-                                'text-[11px] mb-1.5' => $compact,
-                                'text-[11px] mb-2' => ! $compact,
-                            ]) x-text="month.label"></p>
+                    <template x-for="(month, monthIndex) in calendarMonths" :key="month.key">
+                        <div class="min-w-0">
+                            <div class="flex items-center justify-between gap-1 mb-1.5">
+                                <button type="button"
+                                        x-show="monthIndex === 0"
+                                        @click="shiftMonths(-1)"
+                                        class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"
+                                        aria-label="Previous month">
+                                    <svg @class(['fill-none stroke-current', 'w-3.5 h-3.5' => $compact, 'w-4 h-4' => ! $compact]) viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                                </button>
+                                <span x-show="monthIndex !== 0" class="w-5 shrink-0" aria-hidden="true"></span>
+                                <p @class([
+                                    'flex-1 text-center font-semibold tracking-wide text-gray-500 dark:text-gray-400 uppercase',
+                                    'text-[11px]' => $compact,
+                                    'text-[11px]' => ! $compact,
+                                ]) x-text="month.label"></p>
+                                <button type="button"
+                                        x-show="monthIndex === calendarMonths.length - 1"
+                                        @click="shiftMonths(1)"
+                                        class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"
+                                        aria-label="Next month">
+                                    <svg @class(['fill-none stroke-current', 'w-3.5 h-3.5' => $compact, 'w-4 h-4' => ! $compact]) viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                </button>
+                                <span x-show="monthIndex !== calendarMonths.length - 1" class="w-5 shrink-0" aria-hidden="true"></span>
+                            </div>
                             <div class="grid grid-cols-7 gap-0 text-center font-normal text-gray-500 dark:text-gray-400 mb-0.5">
                                 <template x-for="(wd, wi) in weekdays" :key="'wd-' + wi">
                                     <span @class([
@@ -604,7 +609,7 @@ document.addEventListener('alpine:init', () => {
         monthsToRender() {
             const anchor = this.parseYmd(this.viewAnchor);
             const months = [];
-            const count = this.compact ? 2 : 3;
+            const count = 2;
             for (let i = 0; i < count; i++) {
                 const date = new Date(anchor.getFullYear(), anchor.getMonth() + i, 1);
                 months.push(this.buildMonth(date));

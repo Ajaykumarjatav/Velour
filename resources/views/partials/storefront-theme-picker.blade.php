@@ -5,7 +5,7 @@
 
 <div class="space-y-3" id="storefront-theme-picker"
      data-theme-action="{{ $action }}"
-     data-csrf-cookie-url="{{ parse_url(route('sanctum.csrf-cookie'), PHP_URL_PATH) ?: '/sanctum/csrf-cookie' }}">
+     data-csrf-cookie-url="{{ route('sanctum.csrf-cookie') }}">
     <div class="flex items-center justify-between gap-3">
         <div>
             <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Website theme</h3>
@@ -179,9 +179,13 @@
 
         const data = await response.json().catch(function () { return {}; });
 
-        if ((response.status === 419 || response.status === 403) && !retried) {
+        if ((response.status === 419 || response.status === 403 || response.status === 401) && !retried) {
             await refreshCsrfCookie(picker.dataset.csrfCookieUrl);
             return postTheme(picker, slug, label, true);
+        }
+
+        if (response.status === 401) {
+            throw new Error('Session expired. Please refresh the page and try again.');
         }
 
         if (!response.ok) {

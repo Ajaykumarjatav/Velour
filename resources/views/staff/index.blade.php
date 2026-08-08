@@ -35,7 +35,8 @@ document.addEventListener('alpine:init', function () {
             scheduleOpen: false,
             menuOpenId: null,
             scheduleStaff: { id: 0, name: '', working_days: [], start_time: '09:00', end_time: '18:00' },
-            payrollExportUrl: @json(route('staff.payroll.export', ['month' => $monthStart->format('Y-m')])),
+            payrollExportUrl: @json(route('staff.payroll.export', ['month' => $monthKey])),
+            hubMonth: @json($monthKey),
             staffNames: @json($staff->pluck('name', 'id')),
             openPayroll: function (staffId) {
                 if (staffId == null || staffId === '') {
@@ -59,6 +60,9 @@ document.addEventListener('alpine:init', function () {
                     return this.payrollExportUrl;
                 }
                 return this.payrollExportUrl + '\u0026staff_id=' + this.payrollStaffId;
+            },
+            scheduleAction: function () {
+                return '{{ url('/staff') }}/' + this.scheduleStaff.id + '/weekly-schedule?month=' + encodeURIComponent(this.hubMonth);
             },
             openSchedule: function (payload) {
                 var days = payload.working_days && payload.working_days.length
@@ -97,7 +101,7 @@ document.addEventListener('alpine:init', function () {
     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
             <p class="text-sm text-muted">{{ $totalTeam }} team member{{ $totalTeam === 1 ? '' : 's' }} · {{ $onDuty }} on duty today</p>
-            <p class="text-xs text-muted mt-1">Full add/edit forms are unchanged — use <strong>View</strong> / <strong>Edit</strong> for profile details.</p>
+            <p class="text-xs text-muted mt-1">Stats below follow the selected date range — change the period to review past appointments, POS, salary, and reviews.</p>
         </div>
         <div class="flex flex-wrap gap-2 shrink-0">
             <x-unless-admin-browse>
@@ -110,10 +114,72 @@ document.addEventListener('alpine:init', function () {
         </div>
     </div>
 
-    {{-- Revenue chart (this month) --}}
+    {{-- Date range + connected modules --}}
+    @php
+        $fromDt = \Carbon\Carbon::createFromFormat('Y-m-d', $monthFrom);
+        $toDt = \Carbon\Carbon::createFromFormat('Y-m-d', $monthTo);
+        $rangeTriggerLabel = $monthFrom === $monthTo
+            ? $fromDt->format('d M Y')
+            : $fromDt->format('d M') . ' – ' . $toDt->format('d M Y');
+    @endphp
+    <div class="card p-4 sm:p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted">Period</p>
+                <p class="text-base font-bold text-heading mt-0.5">{{ $rangeLabel }}</p>
+            </div>
+            <form method="GET" action="{{ route('staff.index') }}"
+                  x-data="{ openRangePicker: false }"
+                  class="relative shrink-0">
+                <button type="button"
+                        @click="openRangePicker = !openRangePicker"
+                        @keydown.escape.window="openRangePicker = false"
+                        class="form-select w-full sm:w-auto sm:min-w-[11rem] !flex items-center justify-between gap-1.5 text-left tabular-nums text-[13px] h-9"
+                        :class="openRangePicker ? '!ring-2 !ring-velour-500 !border-transparent' : ''"
+                        :aria-expanded="openRangePicker">
+                    <span class="truncate min-w-0 text-heading">{{ $rangeTriggerLabel }}</span>
+                    <svg class="w-3.5 h-3.5 shrink-0 text-gray-400 dark:text-gray-500 transition-transform"
+                         :class="openRangePicker ? 'rotate-180' : ''"
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div x-show="openRangePicker"
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="opacity-0 -translate-y-0.5"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     @click.outside="openRangePicker = false"
+                     class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-1.5 w-[min(100vw-1rem,44rem)] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 p-2.5 shadow-lg ring-1 ring-black/5 dark:ring-white/10 z-[80]">
+                    <x-date-range-picker
+                        :inline="true"
+                        :compact="true"
+                        :from-value="$monthFrom"
+                        :to-value="$monthTo"
+                        :salon-today="$salonToday"
+                        class="relative z-10" />
+                    <div class="flex justify-end gap-1.5 pt-2 mt-2 border-t border-gray-100 dark:border-gray-800">
+                        <button type="button" class="btn-outline btn-sm !py-1 !px-2.5 !text-xs" @click="openRangePicker = false">Cancel</button>
+                        <button type="submit" class="btn-primary btn-sm !py-1 !px-2.5 !text-xs" @click="openRangePicker = false">Apply</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="flex flex-wrap gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+            <span class="text-[11px] font-semibold uppercase tracking-wide text-muted self-center mr-1">Open for this period:</span>
+            <a href="{{ route('appointments.index', ['date' => $monthFrom]) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Appointments</a>
+            <a href="{{ route('pos.index', ['from' => $monthFrom, 'to' => $monthTo]) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">POS sales</a>
+            <a href="{{ route('expenses.index', array_filter(['from' => $monthFrom, 'to' => $monthTo, 'category_id' => $salaryCategoryId])) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Salary / expenses</a>
+            <a href="{{ route('availability.index', ['tab' => 'attendance', 'period' => 'month', 'month' => $monthKey]) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Attendance</a>
+            <a href="{{ route('reviews.index', ['from' => $monthFrom, 'to' => $monthTo]) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Reviews</a>
+            <a href="{{ route('services.index') }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Services</a>
+        </div>
+    </div>
+
+    {{-- Revenue chart --}}
     <div class="card p-5 sm:p-6">
-        <h2 class="text-base font-bold text-heading mb-4">Team revenue this month</h2>
-        <p class="text-xs text-muted mb-4">Completed appointments only · {{ $monthStart->format('F Y') }}</p>
+        <h2 class="text-base font-bold text-heading mb-1">Team revenue</h2>
+        <p class="text-xs text-muted mb-4">Completed appointments only · {{ $rangeLabel }}</p>
         @if(count($chart))
             <div class="space-y-3">
                 @foreach($chart as $row)
@@ -179,7 +245,7 @@ document.addEventListener('alpine:init', function () {
                             <div x-show="menuOpenId === {{ $member->id }}" x-cloak @click.outside="menuOpenId = null"
                                  class="absolute right-0 mt-1 w-44 py-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20 text-sm text-gray-800 dark:text-gray-100">
                                 <a href="{{ route('staff.show', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View profile</a>
-                                <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View schedule</a>
+                                <a href="{{ route('calendar', ['view' => 'week', 'date' => $monthFrom, 'staff_id' => $member->id]) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">View schedule</a>
                                 @unless($adminStoreBrowse ?? false)
                                 <a href="{{ route('staff.edit', $member) }}" class="block px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Edit</a>
                                 <button type="button" @click="openPayroll({{ $member->id }})" class="w-full text-left px-3 py-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">Payroll</button>
@@ -202,15 +268,33 @@ document.addEventListener('alpine:init', function () {
                     </div>
                     <div class="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-2">
                         <p class="text-muted">Appointments</p>
-                        <p class="font-semibold text-body mt-0.5">{{ $member->hub_appts_month }} <span class="text-muted font-normal">this mo.</span></p>
+                        <p class="font-semibold text-body mt-0.5">{{ $member->hub_appts_month }} <span class="text-muted font-normal">in period</span></p>
                     </div>
                     <div class="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-2">
-                        <p class="text-muted">Revenue</p>
+                        <p class="text-muted">Appt revenue</p>
                         <p class="font-semibold text-body mt-0.5">{{ $fmtShort((float) $member->hub_revenue_month) }}</p>
                     </div>
                     <div class="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-2">
-                        <p class="text-muted">Commission</p>
-                        <p class="font-semibold text-body mt-0.5">{{ rtrim(rtrim(number_format((float) ($member->commission_rate ?? 0), 2), '0'), '.') }}%</p>
+                        <p class="text-muted">Commission earned</p>
+                        <p class="font-semibold text-body mt-0.5">{{ $fmtShort((float) $member->hub_commission_month) }}
+                            <span class="text-muted font-normal">({{ rtrim(rtrim(number_format((float) ($member->commission_rate ?? 0), 2), '0'), '.') }}%)</span>
+                        </p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-2">
+                        <p class="text-muted">POS sales</p>
+                        <p class="font-semibold text-body mt-0.5">{{ $fmtShort((float) $member->hub_pos_month) }}
+                            @if($member->hub_pos_count)<span class="text-muted font-normal">· {{ $member->hub_pos_count }}</span>@endif
+                        </p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-2">
+                        <p class="text-muted">Reviews</p>
+                        <p class="font-semibold text-body mt-0.5">
+                            @if($member->hub_reviews_month)
+                                {{ $member->hub_rating_month }}★ <span class="text-muted font-normal">· {{ $member->hub_reviews_month }}</span>
+                            @else
+                                —
+                            @endif
+                        </p>
                     </div>
                 </div>
 
@@ -229,7 +313,7 @@ document.addEventListener('alpine:init', function () {
                     @endunless
                 </div>
                 <div class="grid grid-cols-2 gap-2 mt-2">
-                    <a href="{{ route('calendar', ['view' => 'week', 'date' => now()->toDateString(), 'staff_id' => $member->id]) }}"
+                    <a href="{{ route('appointments.index', ['staff_id' => $member->id, 'date' => $monthFrom]) }}"
                        class="btn-primary text-center text-xs py-2">Appointments</a>
                     @unless($adminStoreBrowse ?? false)
                     <button type="button"
@@ -239,9 +323,21 @@ document.addEventListener('alpine:init', function () {
                         Schedule
                     </button>
                     @endunless
-                    <a href="{{ route('availability.index', ['tab' => 'attendance', 'week' => now()->toDateString(), 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="btn-outline text-center text-xs py-2">Attendance</a>
+                    <a href="{{ route('availability.index', ['tab' => 'attendance', 'period' => 'month', 'month' => $monthKey, 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="btn-outline text-center text-xs py-2">Attendance</a>
                     <a href="{{ route('availability.index', ['tab' => 'leave', 'staff_id' => $member->id, 'staffwise' => 1]) }}" class="btn-outline text-center text-xs py-2">Leave</a>
+                    <a href="{{ route('pos.index', ['from' => $monthFrom, 'to' => $monthTo, 'staff_id' => $member->id]) }}" class="btn-outline text-center text-xs py-2">POS</a>
+                    <a href="{{ route('reviews.index', ['from' => $monthFrom, 'to' => $monthTo, 'staff_id' => $member->id]) }}" class="btn-outline text-center text-xs py-2">Reviews</a>
                 </div>
+                @if($salaryCategoryId && !($adminStoreBrowse ?? false))
+                <a href="{{ route('expenses.create', [
+                        'category_id' => $salaryCategoryId,
+                        'staff_id' => $member->id,
+                        'expense_date' => $monthTo,
+                    ]) }}"
+                   class="mt-2 block text-center text-xs font-semibold text-velour-600 dark:text-velour-400 hover:underline py-1">
+                    Record salary for {{ $monthStart->format('M Y') }} →
+                </a>
+                @endif
             </div>
         @empty
             <div class="col-span-full empty-state">
@@ -285,9 +381,10 @@ document.addEventListener('alpine:init', function () {
                                     <td class="px-3 py-2 text-muted whitespace-nowrap">{{ $row['worked_days'] }} / {{ $row['scheduled_days'] }}</td>
                                     <td class="px-3 py-2 text-muted">{{ $row['appointments'] }}</td>
                                     <td class="px-3 py-2">
-                                        <form method="POST" action="{{ route('staff.base-salary', $row['staff']) }}" class="flex flex-wrap items-center gap-1">
+                                        <form method="POST" action="{{ route('staff.base-salary', ['staff' => $row['staff'], 'month' => $monthKey]) }}" class="flex flex-wrap items-center gap-1">
                                             @csrf
                                             @method('PATCH')
+                                            <input type="hidden" name="month" value="{{ $monthKey }}">
                                             <input type="number" name="base_salary" step="0.01" min="0" value="{{ $row['base'] ?: '' }}" placeholder="0"
                                                    class="form-input w-24 text-xs py-1 px-2">
                                             <button type="submit" class="text-[10px] font-semibold text-velour-600 hover:underline">Save</button>
@@ -306,7 +403,7 @@ document.addEventListener('alpine:init', function () {
                                             'staff_id' => $row['staff']->id,
                                             'title' => $row['suggested_title'],
                                             'amount' => $row['suggested_amount'],
-                                            'expense_date' => now()->toDateString(),
+                                            'expense_date' => $monthTo,
                                         ]) }}"
                                            class="text-[11px] font-semibold text-velour-600 dark:text-velour-400 hover:underline whitespace-nowrap">
                                             Record salary →
@@ -340,9 +437,10 @@ document.addEventListener('alpine:init', function () {
             <div class="px-5 py-3 text-xs text-sky-800 dark:text-sky-200 bg-sky-50 dark:bg-sky-900/20 rounded-xl mx-5 mt-4">
                 Toggle working days and set hours. Matches existing <code class="text-[10px]">working_days</code> / booking rules.
             </div>
-            <form method="POST" x-bind:action="'{{ url('/staff') }}/' + scheduleStaff.id + '/weekly-schedule'" class="p-5 space-y-4">
+            <form method="POST" x-bind:action="scheduleAction()" class="p-5 space-y-4">
                 @csrf
                 @method('PUT')
+                <input type="hidden" name="month" :value="hubMonth">
                 <div class="flex flex-wrap gap-2">
                     <template x-for="day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="day">
                         <label class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer text-xs font-medium"

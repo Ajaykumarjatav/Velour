@@ -31,8 +31,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // Sanctum stateful API support
         $middleware->statefulApi();
 
-        // Global API middleware (applies to all API routes)
+        $middleware->web(append: [
+            \App\Http\Middleware\ForgetLegacySessionCookies::class,
+        ]);
+
+        // Must run before StartSession so public storefront/booking never
+        // overwrite the admin panel session cookie after "Preview".
+        $middleware->web(prepend: [
+            \App\Http\Middleware\PreventPublicSessionClobber::class,
+        ]);
+
         $middleware->api(prepend: [
+            \App\Http\Middleware\PreventPublicSessionClobber::class,
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\ForceJsonResponse::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
@@ -56,10 +66,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/v1/book/*/confirm',
             'api/v1/book/*/cancel/*',
             'api/v1/book/*/reschedule/*',
-        ]);
-
-        $middleware->web(append: [
-            \App\Http\Middleware\ForgetLegacySessionCookies::class,
         ]);
 
         // Cashfree may append status fields when redirecting back to return_url.

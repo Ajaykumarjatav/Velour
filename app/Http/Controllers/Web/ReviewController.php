@@ -22,12 +22,17 @@ class ReviewController extends Controller
         $isScopedStaff = $scopedStaffId !== null;
         $rating = $request->get('rating');
         $replied = $request->get('replied');
+        $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
+        $from = $request->get('from');
+        $to = $request->get('to');
 
         $query = Review::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->with(['client', 'appointment', 'service'])
             ->latest();
         if ($isScopedStaff) {
             $query->where('staff_id', $scopedStaffId);
+        } elseif ($staffId) {
+            $query->where('staff_id', $staffId);
         }
 
         if ($rating) {
@@ -40,11 +45,22 @@ class ReviewController extends Controller
             $query->whereNull('owner_reply');
         }
 
+        if ($from && $to) {
+            try {
+                [$fromUtc, $toUtc] = \App\Support\SalonTime::ymdRangeUtcInclusive($salon, $from, $to);
+                $query->whereBetween('created_at', [$fromUtc, $toUtc]);
+            } catch (\Throwable) {
+                // ignore invalid dates
+            }
+        }
+
         $reviews = $query->paginate(20)->withQueryString();
 
         $statsQuery = Review::withoutGlobalScopes()->where('salon_id', $salon->id);
         if ($isScopedStaff) {
             $statsQuery->where('staff_id', $scopedStaffId);
+        } elseif ($staffId) {
+            $statsQuery->where('staff_id', $staffId);
         }
         $averageRating = (float) ($statsQuery->avg('rating') ?? 0);
         $ratingCounts  = (clone $statsQuery)

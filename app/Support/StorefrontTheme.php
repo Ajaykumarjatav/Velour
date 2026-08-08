@@ -139,8 +139,16 @@ final class StorefrontTheme
 
     public static function devUrl(Salon $salon): ?string
     {
+        if (! app()->environment('local')) {
+            return null;
+        }
+
+        if (! config('storefront.use_vite_preview')) {
+            return null;
+        }
+
         $devRoot = config('storefront.dev_url');
-        if (! $devRoot || ! app()->environment('local')) {
+        if (! $devRoot) {
             return null;
         }
 

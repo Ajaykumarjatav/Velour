@@ -71,7 +71,7 @@
 
                 <div>
                     @include('partials.storefront-theme-picker', [
-                        'action' => parse_url(route('website-seo.theme'), PHP_URL_PATH) ?: route('website-seo.theme'),
+                        'action' => route('website-seo.theme'),
                         'themes' => $themes,
                         'themeSlug' => $themeSlug,
                         'themeLabel' => $stats['theme'],

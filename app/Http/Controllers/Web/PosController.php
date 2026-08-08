@@ -34,6 +34,7 @@ class PosController extends Controller
         $from   = $request->get('from', $salonToday);
         $to     = $request->get('to', $salonToday);
         $method = $request->get('payment_method');
+        $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
 
         $query = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->with('client')
@@ -53,6 +54,9 @@ class PosController extends Controller
         $query->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$rangeStartUtc, $rangeEndUtc]);
 
         if ($method){ $query->where('payment_method', $method); }
+        if ($staffId) {
+            $query->where('staff_id', $staffId);
+        }
 
         $transactions = $query->paginate(25)->withQueryString();
 
@@ -67,7 +71,7 @@ class PosController extends Controller
             ->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$todayStartUtc, $todayEndUtc])
             ->count();
 
-        return view('pos.index', compact('salon', 'transactions', 'search', 'from', 'to', 'method', 'todayRevenue', 'todayCount'));
+        return view('pos.index', compact('salon', 'transactions', 'search', 'from', 'to', 'method', 'staffId', 'todayRevenue', 'todayCount'));
     }
 
     public function create(Request $request)

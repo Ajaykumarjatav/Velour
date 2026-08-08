@@ -95,7 +95,7 @@
       <div class="flex items-center gap-3">
         <span class="text-lg">🚀</span>
         <div>
-          <h2 class="font-semibold text-gray-800 dark:text-white text-sm">Go-Live Readiness</h2>
+          <h2 class="font-semibold text-gray-800 dark:text-white text-sm">Setup progress</h2>
           <p class="text-xs text-gray-400 dark:text-gray-500" x-text="`${checklist.done} of ${checklist.total} steps complete`"></p>
         </div>
       </div>
@@ -362,7 +362,7 @@
 
           <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
             @include('partials.storefront-theme-picker', [
-              'action' => parse_url(route('go-live.theme'), PHP_URL_PATH) ?: route('go-live.theme'),
+              'action' => route('go-live.theme'),
               'themes' => $themes,
               'themeSlug' => $themeSlug,
               'themeLabel' => $themeLabel,

@@ -24,7 +24,7 @@ class SalonBusinessStatus
             'is_live'       => (bool) $salon->online_booking_enabled,
             'setup_percent' => $setup['percent'],
             'copy_url'      => StorefrontUrl::booking($salon),
-            'setup_url'     => route('setup-progress'),
+            'setup_url'     => route('go-live'),
         ];
     }
 }

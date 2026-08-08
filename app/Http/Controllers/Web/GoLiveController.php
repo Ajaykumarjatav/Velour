@@ -11,10 +11,9 @@ use App\Models\Salon;
 use App\Models\SalonPhoto;
 use App\Models\SalonSetting;
 use App\Support\AuthPanel;
+use App\Support\SalonSetupProgress;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
-use App\Models\Service;
-use App\Models\Staff;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -256,28 +255,6 @@ class GoLiveController extends Controller
 
     private function buildChecklist(Salon $salon): array
     {
-        $salonId = $salon->id;
-
-        $items = [
-            ['key' => 'address',  'label' => 'Address set',             'done' => (bool) $salon->address_line1, 'priority' => 'high',   'link' => route('settings.index'), 'tip' => 'Clients need to know where you are.'],
-            ['key' => 'phone',    'label' => 'Phone number added',      'done' => (bool) $salon->phone,         'priority' => 'high',   'link' => route('settings.index'), 'tip' => 'Required for booking confirmations.'],
-            ['key' => 'hours',    'label' => 'Opening hours set',       'done' => ! empty($salon->opening_hours), 'priority' => 'high', 'link' => route('settings.index'), 'tip' => 'Without hours, no booking slots appear.'],
-            ['key' => 'services', 'label' => 'Bookable service added',  'done' => Service::withoutGlobalScopes()->where('salon_id', $salonId)->where('status', 'active')->where('online_bookable', true)->exists(), 'priority' => 'high', 'link' => route('services.index'), 'tip' => 'Enable online booking on at least one service.'],
-            ['key' => 'staff',    'label' => 'Staff bookable online',   'done' => Staff::withoutGlobalScopes()->where('salon_id', $salonId)->where('is_active', true)->where('bookable_online', true)->exists(),    'priority' => 'high', 'link' => route('staff.index'),    'tip' => 'Toggle bookable online in each staff profile.'],
-            ['key' => 'logo',     'label' => 'Logo uploaded',           'done' => (bool) $salon->logo,          'priority' => 'medium', 'link' => route('go-live') . '#logo-upload', 'tip' => 'Makes your booking page look professional.'],
-            ['key' => 'desc',     'label' => 'Salon description added', 'done' => (bool) $salon->description,   'priority' => 'medium', 'link' => route('settings.index'), 'tip' => 'Helps new clients choose your salon.'],
-            ['key' => 'stripe',   'label' => 'Stripe payments linked',  'done' => (bool) $salon->stripe_account_id, 'priority' => 'low', 'link' => route('settings.index'), 'tip' => 'Required to take deposits or online payments.'],
-        ];
-
-        $done  = collect($items)->where('done', true)->count();
-        $total = count($items);
-
-        return [
-            'items' => $items,
-            'done'  => $done,
-            'total' => $total,
-            'score' => (int) round(($done / $total) * 100),
-            'ready' => $done >= 5, // at least all high-priority done
-        ];
+        return SalonSetupProgress::checklistForSalon($salon);
     }
 }

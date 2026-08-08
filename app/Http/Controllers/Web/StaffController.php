@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\ExpenseCategory;
+use App\Models\PosTransaction;
+use App\Models\Review;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
 use App\Services\ExpenseCategoryDefaults;
 use App\Services\StaffAttendanceService;
 use App\Services\StaffPayrollCalculator;
 use App\Support\LanguageProficiency;
+use App\Support\SalonTime;
 use App\Support\StaffJobRoles;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -34,13 +37,15 @@ class StaffController extends Controller
         return $this->activeSalon();
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $salon       = $this->salon();
-        $monthStart  = now()->startOfMonth();
-        $monthEnd    = now()->endOfMonth();
-        $todayStr    = now()->toDateString();
-        $taxRate     = 0.10;
+        $salon = $this->salon();
+        [$rangeFrom, $rangeTo, $monthStart, $monthKey, $salonToday] = $this->resolveHubRange($request, $salon);
+        $rangeLabel = $rangeFrom->equalTo($rangeTo)
+            ? $rangeFrom->format('j M Y')
+            : $rangeFrom->format('j M Y').' – '.$rangeTo->format('j M Y');
+        $todayStr = $salonToday;
+        $taxRate = 0.10;
 
         $staff = Staff::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
@@ -57,10 +62,34 @@ class StaffController extends Controller
             ->orderBy('first_name')
             ->get();
 
+        [$rangeFromUtc, $rangeToUtc] = SalonTime::ymdRangeUtcInclusive(
+            $salon,
+            $rangeFrom->toDateString(),
+            $rangeTo->toDateString()
+        );
+
+        $posByStaff = PosTransaction::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereNotNull('staff_id')
+            ->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$rangeFromUtc, $rangeToUtc])
+            ->selectRaw('staff_id, COALESCE(SUM(total),0) as pos_total, COUNT(*) as pos_count')
+            ->groupBy('staff_id')
+            ->get()
+            ->keyBy('staff_id');
+
+        $reviewsMonthByStaff = Review::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereNotNull('staff_id')
+            ->whereBetween('created_at', [$rangeFromUtc, $rangeToUtc])
+            ->selectRaw('staff_id, COUNT(*) as c, AVG(rating) as avg_rating')
+            ->groupBy('staff_id')
+            ->get()
+            ->keyBy('staff_id');
+
         $revenueByStaff = Appointment::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->where('status', 'completed')
-            ->whereBetween('starts_at', [$monthStart, $monthEnd])
+            ->whereBetween('starts_at', [$rangeFromUtc, $rangeToUtc])
             ->selectRaw('staff_id, COALESCE(SUM(total_price),0) as rev')
             ->groupBy('staff_id')
             ->pluck('rev', 'staff_id');
@@ -68,7 +97,7 @@ class StaffController extends Controller
         $apptsMonthByStaff = Appointment::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->whereBetween('starts_at', [$monthStart, $monthEnd])
+            ->whereBetween('starts_at', [$rangeFromUtc, $rangeToUtc])
             ->selectRaw('staff_id, COUNT(*) as c')
             ->groupBy('staff_id')
             ->pluck('c', 'staff_id');
@@ -76,48 +105,66 @@ class StaffController extends Controller
         $payrollByStaff = $this->payrollCalculator->forStaffCollection($salon, $staff, $monthStart, $taxRate);
 
         $payrollRows = [];
-        $chart       = [];
+        $chart = [];
 
         foreach ($staff as $m) {
-            $rev   = (float) ($revenueByStaff[$m->id] ?? 0);
+            $rev = (float) ($revenueByStaff[$m->id] ?? 0);
             $apptM = (int) ($apptsMonthByStaff[$m->id] ?? 0);
+            $posRow = $posByStaff->get($m->id);
+            $reviewRow = $reviewsMonthByStaff->get($m->id);
             $todayAttendance = $this->attendanceService->todayStatus($salon, $m);
             $onLeave = StaffLeaveRequest::approvedBlockingLeaveExists($salon->id, $m->id, $todayStr)
                 || $todayAttendance === \App\Models\StaffAttendanceRecord::STATUS_ON_LEAVE;
 
             $pay = $payrollByStaff[(int) $m->id] ?? $this->payrollCalculator->forStaff($salon, $m, $monthStart, $taxRate);
+            $commPct = (float) ($m->commission_rate ?? 0);
+            $commissionEarned = round($rev * $commPct / 100, 2);
 
             $payrollRows[] = [
-                'staff'          => $m,
-                'base'           => $pay['base_salary'],
-                'base_payable'   => $pay['base_payable'],
-                'commission'     => $pay['commission'],
-                'tax'            => $pay['tax'],
-                'net'            => $pay['net'],
-                'worked_days'    => $pay['worked_days'],
+                'staff' => $m,
+                'base' => $pay['base_salary'],
+                'base_payable' => $pay['base_payable'],
+                'commission' => $pay['commission'],
+                'tax' => $pay['tax'],
+                'net' => $pay['net'],
+                'worked_days' => $pay['worked_days'],
                 'scheduled_days' => $pay['scheduled_days'],
-                'appointments'   => $pay['appointments'],
-                'revenue'        => $pay['revenue'],
-                'suggested_title'=> $pay['suggested_title'],
+                'appointments' => $pay['appointments'],
+                'revenue' => $pay['revenue'],
+                'suggested_title' => $pay['suggested_title'],
                 'suggested_amount' => $pay['suggested_amount'],
             ];
             $chart[] = ['name' => $m->name, 'revenue' => $rev];
 
             $m->setAttribute('hub_revenue_month', $rev);
             $m->setAttribute('hub_appts_month', $apptM);
+            $m->setAttribute('hub_commission_month', $commissionEarned);
+            $m->setAttribute('hub_pos_month', (float) ($posRow?->pos_total ?? 0));
+            $m->setAttribute('hub_pos_count', (int) ($posRow?->pos_count ?? 0));
+            $m->setAttribute('hub_reviews_month', (int) ($reviewRow?->c ?? 0));
+            $m->setAttribute(
+                'hub_rating_month',
+                $reviewRow !== null && $reviewRow->avg_rating !== null
+                    ? round((float) $reviewRow->avg_rating, 1)
+                    : null
+            );
             $m->setAttribute('hub_on_leave_today', $onLeave);
             $m->setAttribute('hub_attendance_today', $todayAttendance);
         }
 
-        $maxRev    = $chart === [] ? 1 : max(1, ...array_column($chart, 'revenue'));
+        $maxRev = $chart === [] ? 1 : max(1, ...array_column($chart, 'revenue'));
         $totalTeam = $staff->count();
-        $onDuty    = $staff->filter(fn ($m) => $m->is_active && $this->attendanceService->isOnDutyToday($salon, $m))->count();
+        $onDuty = $staff->filter(fn ($m) => $m->is_active && $this->attendanceService->isOnDutyToday($salon, $m))->count();
 
         ExpenseCategoryDefaults::ensureForSalon($salon->id);
         $salaryCategoryId = ExpenseCategory::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
             ->where('slug', 'salary')
             ->value('id');
+
+        $monthFrom = $rangeFrom->toDateString();
+        $monthTo = $rangeTo->toDateString();
+        $monthEnd = $monthStart->copy()->endOfMonth();
 
         return view('staff.index', compact(
             'salon',
@@ -126,11 +173,78 @@ class StaffController extends Controller
             'chart',
             'maxRev',
             'monthStart',
+            'monthEnd',
+            'monthKey',
+            'monthFrom',
+            'monthTo',
+            'rangeLabel',
+            'salonToday',
             'totalTeam',
             'onDuty',
             'taxRate',
             'salaryCategoryId'
         ));
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon, 2: Carbon, 3: string, 4: string}
+     */
+    private function resolveHubRange(Request $request, $salon): array
+    {
+        $tz = SalonTime::timezone($salon);
+        $salonToday = SalonTime::todayDateString($salon);
+        $nowLocal = SalonTime::now($salon);
+
+        // Legacy month=Y-m still supported.
+        if ($request->filled('month') && ! $request->filled('from') && ! $request->filled('to')) {
+            $month = (string) $request->query('month');
+            if (preg_match('/^\d{4}-\d{2}$/', $month)) {
+                try {
+                    $monthStart = Carbon::createFromFormat('Y-m-d', $month.'-01', $tz)->startOfMonth()->startOfDay();
+                    $monthEnd = $monthStart->copy()->endOfMonth()->endOfDay();
+                    $to = $monthEnd->toDateString() > $salonToday && $month === $nowLocal->format('Y-m')
+                        ? $salonToday
+                        : $monthEnd->toDateString();
+
+                    return [
+                        $monthStart->copy(),
+                        Carbon::createFromFormat('Y-m-d', $to, $tz)->startOfDay(),
+                        $monthStart->copy(),
+                        $month,
+                        $salonToday,
+                    ];
+                } catch (\Throwable) {
+                    // fall through
+                }
+            }
+        }
+
+        $from = (string) $request->query('from', $nowLocal->copy()->startOfMonth()->toDateString());
+        $to = (string) $request->query('to', $salonToday);
+
+        try {
+            $rangeFrom = Carbon::createFromFormat('Y-m-d', $from, $tz)->startOfDay();
+        } catch (\Throwable) {
+            $rangeFrom = $nowLocal->copy()->startOfMonth()->startOfDay();
+            $from = $rangeFrom->toDateString();
+        }
+
+        try {
+            $rangeTo = Carbon::createFromFormat('Y-m-d', $to, $tz)->startOfDay();
+        } catch (\Throwable) {
+            $rangeTo = Carbon::createFromFormat('Y-m-d', $salonToday, $tz)->startOfDay();
+            $to = $salonToday;
+        }
+
+        if ($rangeTo->lt($rangeFrom)) {
+            [$rangeFrom, $rangeTo] = [$rangeTo->copy(), $rangeFrom->copy()];
+            [$from, $to] = [$rangeFrom->toDateString(), $rangeTo->toDateString()];
+        }
+
+        $monthStart = $rangeTo->copy()->startOfMonth()->startOfDay();
+        $monthKey = $monthStart->format('Y-m');
+
+        return [$rangeFrom, $rangeTo, $monthStart, $monthKey, $salonToday];
     }
 
     public function updateWeeklySchedule(Request $request, Staff $staff)
@@ -150,7 +264,9 @@ class StaffController extends Controller
             'end_time'     => $data['end_time'] ?? $staff->end_time,
         ]);
 
-        return redirect()->route('staff.index')->with('success', 'Weekly schedule updated.');
+        return redirect()
+            ->route('staff.index', array_filter(['month' => $request->input('month', $request->query('month'))]))
+            ->with('success', 'Weekly schedule updated.');
     }
 
     public function updateBaseSalary(Request $request, Staff $staff)
@@ -159,11 +275,14 @@ class StaffController extends Controller
 
         $data = $request->validate([
             'base_salary' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999'],
+            'month' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
         ]);
 
         $staff->update(['base_salary' => $data['base_salary'] ?? null]);
 
-        return redirect()->route('staff.index')->with('success', 'Base salary saved.');
+        return redirect()
+            ->route('staff.index', array_filter(['month' => $data['month'] ?? $request->query('month')]))
+            ->with('success', 'Base salary saved.');
     }
 
     public function exportPayroll(Request $request): StreamedResponse

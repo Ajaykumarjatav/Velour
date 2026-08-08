@@ -8,8 +8,7 @@ use App\Models\Appointment;
 use App\Models\LinkVisit;
 use App\Models\PosTransaction;
 use App\Models\Salon;
-use App\Models\Service;
-use App\Models\Staff;
+use App\Support\SalonSetupProgress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -259,48 +258,9 @@ class ShareController extends Controller
     public function checklist(Request $request): JsonResponse
     {
         $salonId = (int) $request->attributes->get('salon_id');
-        $salon   = Salon::with(['staff', 'services', 'settings'])->findOrFail($salonId);
+        $salon   = Salon::findOrFail($salonId);
 
-        $hasLogo     = (bool) $salon->logo;
-        $hasHours    = ! empty($salon->opening_hours);
-        $hasServices = Service::withoutTenantScope()
-            ->where('salon_id', $salonId)
-            ->where('status', 'active')
-            ->where('online_bookable', true)
-            ->exists();
-        $hasStaff = Staff::withoutTenantScope()
-            ->where('salon_id', $salonId)
-            ->where('is_active', true)
-            ->where('bookable_online', true)
-            ->exists();
-        $hasAddress  = (bool) $salon->address_line1;
-        $hasStripe   = (bool) $salon->stripe_account_id;
-        $hasPhone    = (bool) $salon->phone;
-        $hasDesc     = (bool) $salon->description;
-
-        $items = [
-            ['key' => 'address',   'label' => 'Salon address set',              'done' => $hasAddress,  'link' => route('settings.index'), 'priority' => 'high'],
-            ['key' => 'phone',     'label' => 'Phone number added',             'done' => $hasPhone,    'link' => route('settings.index'), 'priority' => 'high'],
-            ['key' => 'hours',     'label' => 'Opening hours configured',       'done' => $hasHours,    'link' => route('settings.index'), 'priority' => 'high'],
-            ['key' => 'services',  'label' => 'At least one bookable service',  'done' => $hasServices, 'link' => route('services.index'), 'priority' => 'high'],
-            ['key' => 'staff',     'label' => 'Staff member bookable online',   'done' => $hasStaff,    'link' => route('staff.index'),    'priority' => 'high'],
-            ['key' => 'logo',      'label' => 'Logo uploaded',                  'done' => $hasLogo,     'link' => route('go-live') . '#logo-upload', 'priority' => 'medium'],
-            ['key' => 'desc',      'label' => 'Salon description written',      'done' => $hasDesc,     'link' => route('settings.index'), 'priority' => 'medium'],
-            ['key' => 'stripe',    'label' => 'Stripe payments connected',      'done' => $hasStripe,   'link' => route('settings.index'), 'priority' => 'low'],
-        ];
-
-        $done  = collect($items)->where('done', true)->count();
-        $total = count($items);
-        $score = round(($done / $total) * 100);
-
-        return $this->success([
-            'items'        => $items,
-            'score'        => $score,
-            'done'         => $done,
-            'total'        => $total,
-            'ready'        => $score >= 75,
-            'booking_live' => $salon->online_booking_enabled,
-        ]);
+        return $this->success(SalonSetupProgress::checklistForSalon($salon));
     }
 
     // ── Update booking page settings ──────────────────────────────────────────
