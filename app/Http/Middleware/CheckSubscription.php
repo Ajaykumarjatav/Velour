@@ -108,12 +108,12 @@ class CheckSubscription
                 'code'             => 'SUBSCRIPTION_REQUIRED',
                 'required_plan'    => $requiredPlan,
                 'required_feature' => $requiredFeature,
-                'upgrade_url'      => route('billing.plans'),
+                'upgrade_url'      => \App\Support\SalonUrl::route('billing.plans'),
             ], 402); // 402 Payment Required
         }
 
         return redirect()
-            ->route('billing.plans')
+            ->to(\App\Support\SalonUrl::route('billing.plans'))
             ->with('warning', $message . ' Please upgrade your plan to continue.');
     }
 

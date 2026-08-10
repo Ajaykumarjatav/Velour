@@ -20,8 +20,8 @@ class HelpController extends Controller
             ->where('is_published', true)
             ->when($category, fn($q) => $q->where('category', $category))
             ->when($search, fn($q) => $q->where(function ($q2) use ($search) {
-                $q2->where('title', 'ilike', "%{$search}%")
-                   ->orWhere('excerpt', 'ilike', "%{$search}%");
+                $q2->where('title', 'like', "%{$search}%")
+                   ->orWhere('excerpt', 'like', "%{$search}%");
             }))
             ->orderBy('is_featured', 'desc')
             ->orderBy('sort_order')

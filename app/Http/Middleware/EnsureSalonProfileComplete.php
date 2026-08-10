@@ -68,6 +68,10 @@ class EnsureSalonProfileComplete
             'services.',
             'staff.',
             'notifications.',
+            'onboarding.',
+            'account.',
+            'billing.',
+            'two-factor.',
         ];
 
         foreach ($prefixes as $prefix) {

@@ -1,0 +1,39 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6Ilpiemd3Z21leURRWXIyNE1UbXR6UEE9PSIsInZhbHVlIjoiN1ltaC9mL2w4ZnhFMUFrTGxXVHQvNlFQQmtLVC9TMSsrU0ppSU0xSFhSTTZRWDdhdGdXandGcGQwNllLbHhOcmhub2RvYWF1K2hVYnd6MmpRUzYwWENGWW1EWHdIcWQ2N25tdHdRZmVWeUVCQUo3ejQrZlVPdlgyaEhydlZNVm0iLCJtYWMiOiJmZjViOTgzZThmNGE0MTU2ZTUyNzhlNTQ5YzQ2MGE3YmJkNjlhMDFjMGU3NDkzMDM3YTRjYzU1NzAwMTc1NWI1IiwidGFnIjoiIn0%3D",
+      "domain": "localhost",
+      "path": "/vellor/admin",
+      "expires": 1786286039.936,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "easygrox_vellor_local_session",
+      "value": "eyJpdiI6IktQUVNnRUpOTkpHU24wdWlOY0JVQ1E9PSIsInZhbHVlIjoiNEpGSlBnYXRaQWo4cjNSTjdDVkVpQ2pKb0RXK2RWLzlLelRUMWRvNENKSGc0SHp2bHQwWmU0cUMvNGdjZVA2YVl4aUdBWTBYbG5FSkwrMDZhdU00MTB3b1hIZTkySXRFR2JwV3o4ekRGSG9LMG85c1ZSZHVMVDhJMmZYWS9FcE0iLCJtYWMiOiJlY2JkYjMzY2JiMDBjMDUxMzYzY2QwNTQ4MWY4YWE0MmIzZWYzNjQwMWZlMWU5M2MxYjNkMDk5YzJlMWIwMzE5IiwidGFnIjoiIn0%3D",
+      "domain": "localhost",
+      "path": "/vellor/admin",
+      "expires": 1786286039.936,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost",
+      "localStorage": [
+        {
+          "name": "velour-theme",
+          "value": "light"
+        },
+        {
+          "name": "velour-theme-v",
+          "value": "2"
+        }
+      ]
+    }
+  ]
+}

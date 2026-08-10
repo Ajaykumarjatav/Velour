@@ -75,8 +75,8 @@ class SalonActionItemController extends Controller
         }
 
         $redirectTo = match ($data['redirect_after'] ?? 'dashboard') {
-            'tasks' => route('tasks.index'),
-            default => route('dashboard'),
+            'tasks' => route('tasks.index', ['store' => \App\Support\SalonUrl::key($salon)]),
+            default => route('dashboard', ['store' => \App\Support\SalonUrl::key($salon)]),
         };
 
         return redirect()->to($redirectTo)->with('success', $scopedStaffId !== null

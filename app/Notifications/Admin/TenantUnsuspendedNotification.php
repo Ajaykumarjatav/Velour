@@ -21,7 +21,7 @@ class TenantUnsuspendedNotification extends Notification
             ->line("Your EasyGrox account for **{$this->salon->name}** has been fully reinstated and is now active again.");
         if ($this->message) { $mail->line($this->message); }
         return $mail
-            ->action('Go to Dashboard', route('dashboard'))
+            ->action('Go to Dashboard', route('dashboard', ['store' => \App\Support\SalonUrl::key($this->salon)]))
             ->line("Thank you for your patience.");
     }
 }

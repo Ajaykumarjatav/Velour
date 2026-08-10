@@ -79,12 +79,12 @@ class CheckPlanLimits
                     'resource'   => $resource,
                     'limit'      => $limit,
                     'current'    => $current,
-                    'upgrade_url'=> route('billing.plans'),
+                    'upgrade_url'=> \App\Support\SalonUrl::route('billing.plans'),
                 ], 402);
             }
 
             return redirect()->back()
-                ->with('warning', $message . ' <a href="'.route('billing.plans').'" class="underline font-semibold">Upgrade your plan →</a>');
+                ->with('warning', $message . ' <a href="'.\App\Support\SalonUrl::route('billing.plans').'" class="underline font-semibold">Upgrade your plan →</a>');
         }
 
         return $next($request);

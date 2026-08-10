@@ -147,17 +147,6 @@ Route::middleware('auth')->prefix('two-factor')->name('two-factor.')->group(func
 
 Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(function () {
 
-    // ── 2FA Settings (within authenticated session) ─────────────────────────
-    Route::prefix('settings/two-factor')->name('two-factor.')->group(function () {
-        Route::get('/',                    [TwoFactorController::class, 'showSetup'])->name('setup');
-        Route::post('totp',                [TwoFactorController::class, 'setupTotp'])->name('totp.setup');
-        Route::post('totp/confirm',        [TwoFactorController::class, 'confirmTotp'])->name('totp.confirm');
-        Route::post('email',               [TwoFactorController::class, 'setupEmail'])->name('email.setup');
-        Route::delete('/',                 [TwoFactorController::class, 'disable'])->name('disable');
-        Route::get('recovery',             [TwoFactorController::class, 'showRecovery'])->name('recovery');
-        Route::post('recovery/regenerate', [TwoFactorController::class, 'regenerateCodes'])->name('recovery.regenerate');
-    });
-
     // ── Tenant-scoped App Routes (/ {store} / dashboard) ─────────────────────
 
     Route::middleware(['salon.panel', 'plan.access', 'admin.store.browse.readonly-pages', 'store.path', InitializeTenancyFromDomain::class, 'tenant', 'profile.complete', 'sync.staff.role', 'route.permission', 'admin.store.readonly', 'user.activity'])
@@ -391,67 +380,71 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
             Route::post('transfer-ownership',          [TenantAdminController::class, 'transferOwnership'])->name('transfer');
         });
 
+        // ── 2FA settings (store-scoped) ─────────────────────────────────────
+        Route::prefix('settings/two-factor')->name('two-factor.')->group(function () {
+            Route::get('/',                    [TwoFactorController::class, 'showSetup'])->name('setup');
+            Route::post('totp',                [TwoFactorController::class, 'setupTotp'])->name('totp.setup');
+            Route::post('totp/confirm',        [TwoFactorController::class, 'confirmTotp'])->name('totp.confirm');
+            Route::post('email',               [TwoFactorController::class, 'setupEmail'])->name('email.setup');
+            Route::delete('/',                 [TwoFactorController::class, 'disable'])->name('disable');
+            Route::get('recovery',             [TwoFactorController::class, 'showRecovery'])->name('recovery');
+            Route::post('recovery/regenerate', [TwoFactorController::class, 'regenerateCodes'])->name('recovery.regenerate');
+        });
+
+        // ── Account (sessions / delete) ─────────────────────────────────────
+        Route::prefix('account')->name('account.')->group(function () {
+            Route::get('sessions',                     [\App\Http\Controllers\Web\AccountController::class, 'sessions'])->name('sessions');
+            Route::delete('sessions/{id}',             [\App\Http\Controllers\Web\AccountController::class, 'revokeSession'])->name('sessions.revoke');
+            Route::delete('sessions',                  [\App\Http\Controllers\Web\AccountController::class, 'revokeAllOtherSessions'])->name('sessions.revoke-all');
+            Route::delete('tokens/{id}',               [\App\Http\Controllers\Web\AccountController::class, 'revokeToken'])->name('tokens.revoke');
+            Route::get('delete',                       [\App\Http\Controllers\Web\AccountController::class, 'showDelete'])->name('delete');
+            Route::delete('/',                         [\App\Http\Controllers\Web\AccountController::class, 'destroy'])->name('destroy');
+        });
+
+        // ── Onboarding ──────────────────────────────────────────────────────
+        Route::prefix('onboarding')->name('onboarding.')->group(function () {
+            Route::get('/',                    [\App\Http\Controllers\Web\OnboardingController::class, 'index'])->name('index');
+            Route::get('/step/{step}',         [\App\Http\Controllers\Web\OnboardingController::class, 'step'])->name('step');
+            Route::post('/step/{step}',        [\App\Http\Controllers\Web\OnboardingController::class, 'completeStep'])->name('complete-step');
+            Route::get('/complete',            [\App\Http\Controllers\Web\OnboardingController::class, 'complete'])->name('complete');
+            Route::get('/skip',                [\App\Http\Controllers\Web\OnboardingController::class, 'skip'])->name('skip');
+        });
+
+        // ── Billing (store-scoped; Cashfree return stays global) ─────────────
+        Route::middleware(['subscriptions.enabled'])->prefix('billing')->name('billing.')->group(function () {
+            Route::get('/',            [BillingController::class, 'plans'])->name('plans');
+            Route::post('checkout',    [BillingController::class, 'checkout'])->name('checkout');
+            Route::get('success', fn () => redirect()->route('billing.dashboard'))->name('success');
+            Route::get('change',       [BillingController::class, 'showChangePlan'])->name('change.show');
+            Route::patch('change',     [BillingController::class, 'changePlan'])->name('change');
+            Route::get('cancel',       [BillingController::class, 'showCancel'])->name('cancel');
+            Route::delete('cancel',    [BillingController::class, 'cancel']);
+            Route::post('resume',      [BillingController::class, 'resume'])->name('resume');
+            Route::get('portal',       [BillingController::class, 'portal'])->name('portal');
+            Route::get('dashboard',    [BillingController::class, 'dashboard'])->name('dashboard');
+            Route::get('invoices/{id}',[BillingController::class, 'downloadInvoice'])->name('invoice.download');
+            Route::post('promo',       [BillingController::class, 'applyPromo'])->name('promo');
+        });
+
     }); // end tenant middleware ({store} prefix)
 
-    // Old bookmarks: /dashboard → /{store}/dashboard
+    // Old bookmarks: /dashboard → /{store}/dashboard, /account/* → /{store}/account/*, etc.
     // Do not catch public share URLs (reviews/share/{token}) — those are guest routes.
     Route::middleware(['salon.panel'])->group(function () {
         Route::any('{legacy}', LegacySalonUrlController::class)
-            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|security-support|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking)(/.*)?$')
+            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|security-support|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking|account|billing|onboarding)(/.*)?$')
             ->name('legacy.salon.redirect');
     });
 
 }); // end auth+verified+2fa
 
-// ── Billing & Subscriptions ───────────────────────────────────────────────────
-//
-//  Billing routes live outside the tenant middleware group because:
-//    1. Checkout / plans are available before a salon is configured.
-//    2. The Stripe customer portal redirects back to /billing which
-//       must work even if no tenant context is active.
-//
-//  Subscription-gated routes inside the tenant group use:
-//    ->middleware('subscription')         → any paid plan
-//    ->middleware('subscription:pro')     → pro or enterprise only
-//    ->middleware('subscription:feature:marketing') → feature flag
-
-// Cashfree redirects back via POST without session cookie — token-validated, no auth.
+// ── Billing return (Cashfree) — must stay outside {store} ─────────────────────
 Route::middleware(['subscriptions.enabled'])
     ->prefix('billing')
     ->name('billing.')
     ->group(function () {
         Route::match(['get', 'post'], 'return', [BillingController::class, 'paymentReturn'])->name('return');
     });
-
-Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'salon.panel', 'subscriptions.enabled'])
-    ->prefix('billing')
-    ->name('billing.')
-    ->group(function () {
-
-    // Pricing & checkout
-    Route::get('/',            [BillingController::class, 'plans'])->name('plans');
-    Route::post('checkout',    [BillingController::class, 'checkout'])->name('checkout');
-    Route::get('success', fn () => redirect()->route('billing.dashboard'))->name('success');
-
-    // Change plan (upgrade / downgrade)
-    Route::get('change',       [BillingController::class, 'showChangePlan'])->name('change.show');
-    Route::patch('change',     [BillingController::class, 'changePlan'])->name('change');
-
-    // Cancel & resume
-    Route::get('cancel',       [BillingController::class, 'showCancel'])->name('cancel');
-    Route::delete('cancel',    [BillingController::class, 'cancel']);
-    Route::post('resume',      [BillingController::class, 'resume'])->name('resume');
-
-    // Stripe Customer Portal (hosted by Stripe)
-    Route::get('portal',       [BillingController::class, 'portal'])->name('portal');
-
-    // Billing dashboard & invoices
-    Route::get('dashboard',    [BillingController::class, 'dashboard'])->name('dashboard');
-    Route::get('invoices/{id}',[BillingController::class, 'downloadInvoice'])->name('invoice.download');
-
-    // Promo / coupon codes
-    Route::post('promo',       [BillingController::class, 'applyPromo'])->name('promo');
-});
 
 // ── Super Admin Panel ─────────────────────────────────────────────────────────
 
@@ -600,15 +593,6 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin',
 });
 
 
-// ── Onboarding (shown to new users after registration) ────────────────────────
-Route::middleware(['auth', 'verified', 'plan.access'])->prefix('onboarding')->name('onboarding.')->group(function () {
-    Route::get('/',                    [\App\Http\Controllers\Web\OnboardingController::class, 'index'])->name('index');
-    Route::get('/step/{step}',         [\App\Http\Controllers\Web\OnboardingController::class, 'step'])->name('step');
-    Route::post('/step/{step}',        [\App\Http\Controllers\Web\OnboardingController::class, 'completeStep'])->name('complete-step');
-    Route::get('/complete',            [\App\Http\Controllers\Web\OnboardingController::class, 'complete'])->name('complete');
-    Route::get('/skip',                [\App\Http\Controllers\Web\OnboardingController::class, 'skip'])->name('skip');
-});
-
 // ── Public salon website (Blade themes + legacy React fallback) ───────────────
 Route::get('website/{theme}/assets/{asset}', [\App\Http\Controllers\Web\StorefrontController::class, 'themeAsset'])
     ->where('theme', '[a-z0-9\-]+')
@@ -635,14 +619,4 @@ Route::prefix('help')->name('help.')->group(function () {
     Route::get('/',                 [\App\Http\Controllers\Web\HelpController::class, 'index'])->name('index');
     Route::get('/{slug}',           [\App\Http\Controllers\Web\HelpController::class, 'article'])->name('article');
     Route::post('/{id}/feedback',   [\App\Http\Controllers\Web\HelpController::class, 'feedback'])->name('feedback');
-});
-
-// ── Account Management ────────────────────────────────────────────────────────
-Route::middleware(['auth', 'verified', 'plan.access'])->prefix('account')->name('account.')->group(function () {
-    Route::get('sessions',                     [\App\Http\Controllers\Web\AccountController::class, 'sessions'])->name('sessions');
-    Route::delete('sessions/{id}',             [\App\Http\Controllers\Web\AccountController::class, 'revokeSession'])->name('sessions.revoke');
-    Route::delete('sessions',                  [\App\Http\Controllers\Web\AccountController::class, 'revokeAllOtherSessions'])->name('sessions.revoke-all');
-    Route::delete('tokens/{id}',               [\App\Http\Controllers\Web\AccountController::class, 'revokeToken'])->name('tokens.revoke');
-    Route::get('delete',                       [\App\Http\Controllers\Web\AccountController::class, 'showDelete'])->name('delete');
-    Route::delete('/',                         [\App\Http\Controllers\Web\AccountController::class, 'destroy'])->name('destroy');
 });

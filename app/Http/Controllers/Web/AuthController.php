@@ -261,7 +261,7 @@ class AuthController extends Controller
         if ($salon) {
             $completion = ProfileCompletion::forSalon($salon);
             if ($completion['percentage'] < 100) {
-                return redirect()->route('onboarding.index')->with('success', 'Email verified. Continue your setup to go live.');
+                return redirect()->to(\App\Support\SalonUrl::route('onboarding.index', ['store' => \App\Support\SalonUrl::key($salon)]))->with('success', 'Email verified. Continue your setup to go live.');
             }
         }
 

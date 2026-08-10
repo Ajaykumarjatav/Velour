@@ -120,7 +120,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <a href="{{ route('dashboard') }}" class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/40 p-4 hover:border-velour-300 dark:hover:border-velour-700 transition-colors">
+            <a href="{{ \App\Support\SalonUrl::dashboardUrl() }}" class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/40 p-4 hover:border-velour-300 dark:hover:border-velour-700 transition-colors">
                 <p class="font-semibold text-gray-900 dark:text-gray-100">Dashboard</p>
                 <p class="text-sm text-muted mt-1">Daily business snapshot (revenue, bookings, alerts).</p>
                 <p class="text-xs text-muted mt-2">Tip: KPI cards are your fastest way to jump to action screens.</p>

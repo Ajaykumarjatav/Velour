@@ -10,7 +10,7 @@
 @endif
 
 <div style="text-align:center">
-  <a href="{{ route('dashboard') }}" class="btn">Open EasyGrox dashboard →</a>
+  <a href="{{ \App\Support\SalonUrl::dashboardUrl($user) }}" class="btn">Open EasyGrox dashboard →</a>
 </div>
 
 <hr class="divider">

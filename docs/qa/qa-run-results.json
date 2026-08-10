@@ -1,0 +1,2579 @@
+{
+  "config": {
+    "argv": [
+      "C:\\nvm4w\\nodejs\\node.exe",
+      "C:\\xampp\\htdocs\\vellor\\admin\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "-c",
+      "playwright.qa.config.ts",
+      "--project=setup-admin",
+      "--project=super-admin"
+    ],
+    "configFile": "C:\\xampp\\htdocs\\vellor\\admin\\playwright.qa.config.ts",
+    "rootDir": "C:/xampp/htdocs/vellor/admin/tests/playwright",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/xampp/htdocs/vellor/admin/test-results-qa",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup-tenant",
+        "name": "setup-tenant",
+        "testDir": "C:/xampp/htdocs/vellor/admin/tests/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.tenant\\.setup\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/vellor/admin/test-results-qa",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup-admin",
+        "name": "setup-admin",
+        "testDir": "C:/xampp/htdocs/vellor/admin/tests/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.admin\\.setup\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/vellor/admin/test-results-qa",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "guest",
+        "name": "guest",
+        "testDir": "C:/xampp/htdocs/vellor/admin/tests/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "/guest-pages\\.spec\\.ts|auth-gates\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/vellor/admin/test-results-qa",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tenant",
+        "name": "tenant",
+        "testDir": "C:/xampp/htdocs/vellor/admin/tests/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "/tenant-pages\\.spec\\.ts|billing-pages\\.spec\\.ts|account-onboarding\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/vellor/admin/test-results-qa",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "super-admin",
+        "name": "super-admin",
+        "testDir": "C:/xampp/htdocs/vellor/admin/tests/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "/admin-pages\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "docs/qa/qa-run-results.json"
+        }
+      ],
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "qa-report"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "auth.admin.setup.ts",
+      "file": "auth.admin.setup.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "authenticate super admin",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "setup-admin",
+              "projectName": "setup-admin",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7148,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-09T12:33:53.708Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3babb5de57b39ee8f85d-04d6431af4604920fd12",
+          "file": "auth.admin.setup.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "admin-pages.spec.ts",
+      "file": "admin-pages.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Super Admin pages (plan SA-*)",
+          "file": "admin-pages.spec.ts",
+          "line": 42,
+          "column": 6,
+          "specs": [
+            {
+              "title": "SA-01 GET /admin",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 17423,
+                      "error": {
+                        "message": "Error: SA-01 admin status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-01 admin status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-01 admin status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:34:03.902Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pages-plan-SA--SA-01-GET-admin-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pages-plan-SA--SA-01-GET-admin-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pages-plan-SA--SA-01-GET-admin-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-6879922d3762a924c688",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-03 GET /admin/facilities",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 13666,
+                      "error": {
+                        "message": "Error: SA-03 admin/facilities status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-03 admin/facilities status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-03 admin/facilities status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:34:24.800Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-0fb50--SA-03-GET-admin-facilities-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-0fb50--SA-03-GET-admin-facilities-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-0fb50--SA-03-GET-admin-facilities-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-40ef9a94d571f3f2cd28",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-04 GET /admin/tenants",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 12204,
+                      "error": {
+                        "message": "Error: SA-04 admin/tenants status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-04 admin/tenants status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-04 admin/tenants status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:34:41.135Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-1f037-SA--SA-04-GET-admin-tenants-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-1f037-SA--SA-04-GET-admin-tenants-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-1f037-SA--SA-04-GET-admin-tenants-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-ac33ca993a577f170515",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-05 GET /admin/tenants/owners/5",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 14386,
+                      "error": {
+                        "message": "Error: SA-05 admin/tenants/owners/5 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-05 admin/tenants/owners/5 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-05 admin/tenants/owners/5 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:34:55.717Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-11dab--GET-admin-tenants-owners-5-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-11dab--GET-admin-tenants-owners-5-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-11dab--GET-admin-tenants-owners-5-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-8f820827fabe5781253d",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-06 GET /admin/tenants/owners/5/stores",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 12134,
+                      "error": {
+                        "message": "Error: SA-06 admin/tenants/owners/5/stores status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-06 admin/tenants/owners/5/stores status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-06 admin/tenants/owners/5/stores status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:35:12.026Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-69b49-min-tenants-owners-5-stores-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-69b49-min-tenants-owners-5-stores-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-69b49-min-tenants-owners-5-stores-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-dc32fdb13f30e05543e8",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-07 GET /admin/tenants/stores/2",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 12377,
+                      "error": {
+                        "message": "Error: SA-07 admin/tenants/stores/2 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-07 admin/tenants/stores/2 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-07 admin/tenants/stores/2 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:35:25.862Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-5df5d--GET-admin-tenants-stores-2-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-5df5d--GET-admin-tenants-stores-2-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-5df5d--GET-admin-tenants-stores-2-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-45f35dc07842c4e348fb",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09a GET /admin/tenants/2/clients",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 15150,
+                      "error": {
+                        "message": "Error: SA-09a admin/tenants/2/clients status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09a admin/tenants/2/clients status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09a admin/tenants/2/clients status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:35:40.168Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-c0b9c-GET-admin-tenants-2-clients-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-c0b9c-GET-admin-tenants-2-clients-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-c0b9c-GET-admin-tenants-2-clients-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-fc10bb89bfe288fc5fe3",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09b GET /admin/tenants/2/appointments",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 11959,
+                      "error": {
+                        "message": "Error: SA-09b admin/tenants/2/appointments status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09b admin/tenants/2/appointments status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09b admin/tenants/2/appointments status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:35:57.083Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-eeec5-dmin-tenants-2-appointments-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-eeec5-dmin-tenants-2-appointments-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-eeec5-dmin-tenants-2-appointments-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-b7810badcf5504483605",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09c GET /admin/tenants/2/staff",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 11530,
+                      "error": {
+                        "message": "Error: SA-09c admin/tenants/2/staff status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09c admin/tenants/2/staff status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09c admin/tenants/2/staff status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:36:11.108Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-26138-c-GET-admin-tenants-2-staff-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-26138-c-GET-admin-tenants-2-staff-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-26138-c-GET-admin-tenants-2-staff-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-31269bf82afa94c77557",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09d GET /admin/tenants/2/pos",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9636,
+                      "error": {
+                        "message": "Error: SA-09d admin/tenants/2/pos status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09d admin/tenants/2/pos status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09d admin/tenants/2/pos status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:36:25.320Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-0360c-09d-GET-admin-tenants-2-pos-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-0360c-09d-GET-admin-tenants-2-pos-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-0360c-09d-GET-admin-tenants-2-pos-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-45539658d6d828c8f439",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09e GET /admin/tenants/2/services",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 11,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8731,
+                      "error": {
+                        "message": "Error: SA-09e admin/tenants/2/services status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09e admin/tenants/2/services status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09e admin/tenants/2/services status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:36:37.511Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-dd9f5-ET-admin-tenants-2-services-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-dd9f5-ET-admin-tenants-2-services-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-dd9f5-ET-admin-tenants-2-services-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-327a4a789bd4a86b4ad2",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09f GET /admin/tenants/2/inventory",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 12,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9345,
+                      "error": {
+                        "message": "Error: SA-09f admin/tenants/2/inventory status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09f admin/tenants/2/inventory status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09f admin/tenants/2/inventory status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:36:48.823Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cb845-T-admin-tenants-2-inventory-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cb845-T-admin-tenants-2-inventory-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cb845-T-admin-tenants-2-inventory-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-74102a7fa39680bcdd9a",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09g GET /admin/tenants/2/expenses",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 13,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8996,
+                      "error": {
+                        "message": "Error: SA-09g admin/tenants/2/expenses status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09g admin/tenants/2/expenses status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09g admin/tenants/2/expenses status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:37:00.178Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-30fde-ET-admin-tenants-2-expenses-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-30fde-ET-admin-tenants-2-expenses-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-30fde-ET-admin-tenants-2-expenses-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-67dc9e95f2dc2540d334",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09h GET /admin/tenants/2/reviews",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 14,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 15574,
+                      "error": {
+                        "message": "Error: SA-09h admin/tenants/2/reviews status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09h admin/tenants/2/reviews status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09h admin/tenants/2/reviews status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:37:11.276Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ea064-GET-admin-tenants-2-reviews-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ea064-GET-admin-tenants-2-reviews-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ea064-GET-admin-tenants-2-reviews-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-61f4708215481b018bb4",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09i GET /admin/tenants/2/marketing",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8997,
+                      "error": {
+                        "message": "Error: SA-09i admin/tenants/2/marketing status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09i admin/tenants/2/marketing status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09i admin/tenants/2/marketing status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:37:29.449Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-41a5a-T-admin-tenants-2-marketing-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-41a5a-T-admin-tenants-2-marketing-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-41a5a-T-admin-tenants-2-marketing-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-1cba3c1f2a047a87dcf2",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09j GET /admin/tenants/2/leave",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9439,
+                      "error": {
+                        "message": "Error: SA-09j admin/tenants/2/leave status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09j admin/tenants/2/leave status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09j admin/tenants/2/leave status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:37:40.174Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-a255e-j-GET-admin-tenants-2-leave-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-a255e-j-GET-admin-tenants-2-leave-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-a255e-j-GET-admin-tenants-2-leave-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-3c4fbb3e75e3d550eddb",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09k GET /admin/tenants/2/attendance",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 17,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8994,
+                      "error": {
+                        "message": "Error: SA-09k admin/tenants/2/attendance status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09k admin/tenants/2/attendance status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09k admin/tenants/2/attendance status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:37:51.030Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-c19e4--admin-tenants-2-attendance-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-c19e4--admin-tenants-2-attendance-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-c19e4--admin-tenants-2-attendance-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-2066be40d8252d77ee02",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09l GET /admin/tenants/2/settings",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 18,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9437,
+                      "error": {
+                        "message": "Error: SA-09l admin/tenants/2/settings status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09l admin/tenants/2/settings status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09l admin/tenants/2/settings status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:38:01.378Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-21c59-ET-admin-tenants-2-settings-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-21c59-ET-admin-tenants-2-settings-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-21c59-ET-admin-tenants-2-settings-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-ac10eb2fddfdb8209a2e",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09m GET /admin/tenants/2/audit",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 19,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9179,
+                      "error": {
+                        "message": "Error: SA-09m admin/tenants/2/audit status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09m admin/tenants/2/audit status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09m admin/tenants/2/audit status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:38:12.316Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-fb5d9-m-GET-admin-tenants-2-audit-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-fb5d9-m-GET-admin-tenants-2-audit-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-fb5d9-m-GET-admin-tenants-2-audit-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-799c143ed5a396a196bb",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-09n GET /admin/tenants/2/deleted",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 20,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8938,
+                      "error": {
+                        "message": "Error: SA-09n admin/tenants/2/deleted status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-09n admin/tenants/2/deleted status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-09n admin/tenants/2/deleted status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:38:24.429Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cedee-GET-admin-tenants-2-deleted-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cedee-GET-admin-tenants-2-deleted-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cedee-GET-admin-tenants-2-deleted-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-88692864c7ee1d884ad2",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-11 GET /admin/explorer",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 21,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8285,
+                      "error": {
+                        "message": "Error: SA-11 admin/explorer status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-11 admin/explorer status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-11 admin/explorer status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:38:34.929Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-5b3f5-A--SA-11-GET-admin-explorer-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-5b3f5-A--SA-11-GET-admin-explorer-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-5b3f5-A--SA-11-GET-admin-explorer-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-4d139e9ef5d8e6a7ff1c",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-12a GET /admin/users",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 22,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8567,
+                      "error": {
+                        "message": "Error: SA-12a admin/users status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-12a admin/users status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-12a admin/users status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:38:44.510Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-7d670--SA--SA-12a-GET-admin-users-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-7d670--SA--SA-12a-GET-admin-users-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-7d670--SA--SA-12a-GET-admin-users-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-0ef18b3b85dacd3ee0f2",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-12b GET /admin/users/5",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 23,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8930,
+                      "error": {
+                        "message": "Error: SA-12b admin/users/5 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-12b admin/users/5 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-12b admin/users/5 status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:38:54.464Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ca049-A--SA-12b-GET-admin-users-5-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ca049-A--SA-12b-GET-admin-users-5-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ca049-A--SA-12b-GET-admin-users-5-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-3ff6109f477b3dd047f3",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-13 GET /admin/revenue",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 24,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9396,
+                      "error": {
+                        "message": "Error: SA-13 admin/revenue status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-13 admin/revenue status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-13 admin/revenue status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:39:04.890Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-49c6e-SA--SA-13-GET-admin-revenue-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-49c6e-SA--SA-13-GET-admin-revenue-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-49c6e-SA--SA-13-GET-admin-revenue-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-ea2d3179d027c4f3e766",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-14 GET /admin/plans",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 25,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9752,
+                      "error": {
+                        "message": "Error: SA-14 admin/plans status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-14 admin/plans status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-14 admin/plans status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:39:15.547Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pages-plan-SA--SA-14-GET-admin-plans-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pages-plan-SA--SA-14-GET-admin-plans-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pages-plan-SA--SA-14-GET-admin-plans-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-8c16e8afcf317443af04",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-15 GET /admin/support",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 26,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 7097,
+                      "error": {
+                        "message": "Error: SA-15 admin/support status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-15 admin/support status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-15 admin/support status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:39:26.702Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ee529-SA--SA-15-GET-admin-support-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ee529-SA--SA-15-GET-admin-support-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-ee529-SA--SA-15-GET-admin-support-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-9b6f4e81b393198f51a4",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-16 GET /admin/analytics",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 27,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 7177,
+                      "error": {
+                        "message": "Error: SA-16 admin/analytics status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-16 admin/analytics status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-16 admin/analytics status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:39:35.288Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-394d6---SA-16-GET-admin-analytics-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-394d6---SA-16-GET-admin-analytics-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-394d6---SA-16-GET-admin-analytics-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-70b9030aa1ed1fe529f2",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-17a GET /admin/billing",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 28,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 7193,
+                      "error": {
+                        "message": "Error: SA-17a admin/billing status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-17a admin/billing status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-17a admin/billing status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:39:44.012Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-3b721-A--SA-17a-GET-admin-billing-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-3b721-A--SA-17a-GET-admin-billing-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-3b721-A--SA-17a-GET-admin-billing-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-20bbd3aefb9b9e45e0ec",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-17b GET /admin/billing/webhooks",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 29,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 6786,
+                      "error": {
+                        "message": "Error: SA-17b admin/billing/webhooks status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-17b admin/billing/webhooks status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-17b admin/billing/webhooks status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:39:53.071Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-1f920--GET-admin-billing-webhooks-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-1f920--GET-admin-billing-webhooks-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-1f920--GET-admin-billing-webhooks-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-c5db938a680fa7fb634d",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-18a GET /admin/audit",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 30,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8487,
+                      "error": {
+                        "message": "Error: SA-18a admin/audit status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-18a admin/audit status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-18a admin/audit status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:40:01.610Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-04f10--SA--SA-18a-GET-admin-audit-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-04f10--SA--SA-18a-GET-admin-audit-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-04f10--SA--SA-18a-GET-admin-audit-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-a406abe17c87445d5552",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-18b GET /admin/audit/stats",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 31,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5998,
+                      "error": {
+                        "message": "Error: SA-18b admin/audit/stats status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-18b admin/audit/stats status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-18b admin/audit/stats status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:40:11.795Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-67a85-A-18b-GET-admin-audit-stats-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-67a85-A-18b-GET-admin-audit-stats-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-67a85-A-18b-GET-admin-audit-stats-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-1a050f05ddadfc67620a",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            },
+            {
+              "title": "SA-19 GET /admin/user-activity",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "super-admin",
+                  "projectName": "super-admin",
+                  "results": [
+                    {
+                      "workerIndex": 32,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 7410,
+                      "error": {
+                        "message": "Error: SA-19 admin/user-activity status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m",
+                        "stack": "Error: SA-19 admin/user-activity status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                          "column": 37,
+                          "line": 22
+                        },
+                        "snippet": "   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                            "column": 37,
+                            "line": 22
+                          },
+                          "message": "Error: SA-19 admin/user-activity status\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m500\u001b[39m\nReceived:   \u001b[31m500\u001b[39m\n\n   at helpers\\qa.ts:22\n\n  20 |   const label = options.planId ? `${options.planId} ${path}` : path;\n  21 |\n> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);\n     |                                     ^\n  23 |\n  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);\n  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);\n    at assertUsablePage (C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts:22:37)\n    at C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\admin-pages.spec.ts:45:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-09T12:40:19.334Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cdcf1--19-GET-admin-user-activity-super-admin\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cdcf1--19-GET-admin-user-activity-super-admin\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\vellor\\admin\\test-results-qa\\admin-pages-Super-Admin-pa-cdcf1--19-GET-admin-user-activity-super-admin\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\vellor\\admin\\tests\\playwright\\helpers\\qa.ts",
+                        "column": 37,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "eb8dc4b206445fd3e86e-5faf29cb011405662739",
+              "file": "admin-pages.spec.ts",
+              "line": 44,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-08-09T12:33:50.317Z",
+    "duration": 396813.569,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 32,
+    "flaky": 0
+  }
+}

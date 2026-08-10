@@ -21,6 +21,6 @@ class RedirectUnlessSubscriptionsEnabled
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        return redirect()->route('dashboard');
+        return redirect()->to(\App\Support\SalonUrl::dashboardUrl());
     }
 }

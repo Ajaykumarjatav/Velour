@@ -78,7 +78,10 @@
     </div>
 
     @php
-        $navShow = fn (string $key): bool => \App\Support\SidebarNav::show(auth()->user(), $key);
+        $navUser = auth()->user();
+        $navShow = fn (string $key): bool => $navUser
+            ? \App\Support\SidebarNav::show($navUser, $key)
+            : false;
     @endphp
 
     {{-- Nav --}}
@@ -102,7 +105,7 @@
         @else
 
         @if($navShow('dashboard'))
-        <a href="{{ route('dashboard') }}"
+        <a href="{{ \App\Support\SalonUrl::dashboardUrl($navUser) }}"
            class="sidebar-link {{ request()->routeIs('dashboard') && ! request()->boolean('desk') ? 'active' : '' }}">
             @include('partials.sidebar-nav-icon', ['icon' => 'dashboard'])
             Dashboard
