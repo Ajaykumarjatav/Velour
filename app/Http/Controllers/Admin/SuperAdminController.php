@@ -187,7 +187,7 @@ class SuperAdminController extends Controller
 
         Auth::login($target);
 
-        return redirect()->route('dashboard')
+        return redirect()->to(\App\Support\SalonUrl::dashboardUrl($target))
             ->with('info', "You are now impersonating {$target->name}. Click \"Stop Impersonating\" to return.");
     }
 

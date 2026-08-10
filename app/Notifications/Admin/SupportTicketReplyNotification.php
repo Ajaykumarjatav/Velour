@@ -22,7 +22,7 @@ class SupportTicketReplyNotification extends Notification
             ->line("---")
             ->line(substr(strip_tags($this->replyBody), 0, 500))
             ->line("---")
-            ->action('View Ticket', route('dashboard')) // adjust to actual ticket route when tenant-facing added
+            ->action('View Ticket', \App\Support\SalonUrl::dashboardUrl($notifiable))
             ->line("Reply to this email or log in to your account to continue the conversation.");
     }
 }

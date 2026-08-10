@@ -134,13 +134,15 @@ class AppServiceProvider extends ServiceProvider
                         }
                     }
                     $view->with('currentSalon', $salon);
+                    // Set store defaults before any other work that might throw
+                    // (otherwise billing/account layouts call route('dashboard') without {store}).
+                    if ($salon) {
+                        URL::defaults(['store' => \App\Support\SalonUrl::key($salon)]);
+                    }
                     $view->with('headerProfileCompletion', $salon ? ProfileCompletion::forSalon($salon) : null);
                     $view->with('salonBusinessStatus', $salon ? \App\Support\SalonBusinessStatus::forSalon($salon) : null);
                     $view->with('planExpired', app(\App\Services\Billing\PlanAccessService::class)->isExpired($user));
                     $view->with('subscriptionReminder', app(\App\Services\Billing\PlanAccessService::class)->reminderFor($user));
-                    if ($salon) {
-                        URL::defaults(['store' => \App\Support\SalonUrl::key($salon)]);
-                    }
                 } catch (\Throwable) {}
             }
         });

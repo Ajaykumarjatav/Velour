@@ -33,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             \App\Http\Middleware\ForgetLegacySessionCookies::class,
+            // After session: default {store} for route() on billing/account/help-adjacent pages.
+            \App\Http\Middleware\EnsureStoreUrlDefaults::class,
         ]);
 
         // Must run before StartSession so public storefront/booking never

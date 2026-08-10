@@ -25,7 +25,7 @@ class PlanOverrideNotification extends Notification
             ->greeting("Hello {$notifiable->name}!")
             ->line("Great news — your account for **{$this->salon->name}** has been upgraded to the **{$planName}** plan {$expiry}.")
             ->line("You now have access to all features included in your new plan.")
-            ->action('Explore your account', route('dashboard'))
+            ->action('Explore your account', route('dashboard', ['store' => \App\Support\SalonUrl::key($this->salon)]))
             ->line("If you have any questions, our support team is always happy to help.");
     }
 }

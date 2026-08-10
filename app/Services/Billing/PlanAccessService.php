@@ -87,7 +87,7 @@ class PlanAccessService
 
     public function renewalUrl(): string
     {
-        return route('billing.plans');
+        return \App\Support\SalonUrl::route('billing.plans');
     }
 
     /**
@@ -138,7 +138,7 @@ class PlanAccessService
                 'days_remaining' => null,
                 'ends_at'        => null,
                 'urgent'         => false,
-                'renew_url'      => route('billing.dashboard'),
+                'renew_url'      => \App\Support\SalonUrl::route('billing.dashboard'),
             ];
         }
 
@@ -161,7 +161,7 @@ class PlanAccessService
             'ends_at'        => $endsAt,
             'urgent'         => $daysRemaining <= 3,
             'warning'        => $daysRemaining <= 7,
-            'renew_url'      => $kind === 'grace' ? route('billing.dashboard') : $this->renewalUrl(),
+            'renew_url'      => $kind === 'grace' ? \App\Support\SalonUrl::route('billing.dashboard') : $this->renewalUrl(),
             'scheduled_note' => $message,
         ];
     }

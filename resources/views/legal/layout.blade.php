@@ -28,7 +28,7 @@
 {{-- Top nav --}}
 <header class="border-b border-gray-100 bg-white sticky top-0 z-10">
   <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-    <a href="{{ route('dashboard') }}" class="text-xl font-bold" style="font-family:'Playfair Display',serif;color:#0F0E0C">
+    <a href="{{ url('/') }}" class="text-xl font-bold" style="font-family:'Playfair Display',serif;color:#0F0E0C">
       EasyGrox<span class="gold">.</span>
     </a>
     <div class="flex items-center gap-1">

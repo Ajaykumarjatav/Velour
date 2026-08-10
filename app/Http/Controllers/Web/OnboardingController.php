@@ -40,7 +40,7 @@ class OnboardingController extends Controller
 
         // If onboarding complete, redirect to dashboard
         if ($progress && $progress->completed) {
-            return redirect()->route('dashboard');
+            return redirect()->to(\App\Support\SalonUrl::dashboardUrl($user));
         }
 
         return view('onboarding.index', compact('user', 'salon', 'progress'));
@@ -117,7 +117,7 @@ class OnboardingController extends Controller
                 );
         }
 
-        return redirect()->route('dashboard');
+        return redirect()->to(\App\Support\SalonUrl::dashboardUrl($user));
     }
 
     private function getProgress(int $userId, ?int $salonId)

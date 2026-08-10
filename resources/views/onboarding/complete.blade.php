@@ -27,11 +27,11 @@
     </div>
 
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <a href="{{ route('dashboard') }}"
+      <a href="{{ route('dashboard', ['store' => \App\Support\SalonUrl::key($salon)]) }}"
         class="bg-gray-900 text-white rounded-xl px-8 py-4 font-semibold hover:bg-gray-700 transition">
         Go to Dashboard
       </a>
-      <a href="{{ route('setup-progress') }}"
+      <a href="{{ route('setup-progress', ['store' => \App\Support\SalonUrl::key($salon)]) }}"
         class="border border-gray-300 text-gray-700 rounded-xl px-8 py-4 font-semibold hover:bg-gray-50 transition">
         View Setup Progress
       </a>

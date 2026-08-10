@@ -243,7 +243,7 @@
         <p class="font-medium text-gray-300 truncate">{{ Auth::user()->name }}</p>
         <p class="text-gray-500 truncate">{{ Auth::user()->email }}</p>
       </div>
-      <a href="{{ route('dashboard') }}"
+      <a href="{{ \App\Support\SalonUrl::dashboardUrl() }}"
          data-title="Back to EasyGrox"
          class="admin-footer-link flex items-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-white rounded-xl hover:bg-gray-800 transition-colors">
         <svg class="w-4 h-4 shrink-0 nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>

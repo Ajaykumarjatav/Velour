@@ -17,7 +17,12 @@ final class SalonUrl
     public const RESERVED = [
         'admin',
         'api',
+        'account',
         'billing',
+        'onboarding',
+        'help',
+        'legal',
+        'book',
         'login',
         'register',
         'logout',
@@ -73,6 +78,42 @@ final class SalonUrl
             ->where('user_id', $user->id)
             ->where('salon_id', $salon->id)
             ->exists();
+    }
+
+    /** Generate a named route, injecting {store} when the user has a salon. */
+    public static function route(string $name, array $parameters = [], bool $absolute = true): string
+    {
+        if (! array_key_exists('store', $parameters)) {
+            $user = auth()->user();
+            if ($user) {
+                $key = self::keyForUser($user);
+                if ($key) {
+                    $parameters['store'] = $key;
+                }
+            }
+        }
+
+        return route($name, $parameters, $absolute);
+    }
+
+    /** Safe dashboard URL when {store} may be missing from the current request. */
+    public static function dashboardUrl(?User $user = null): string
+    {
+        $user ??= auth()->user();
+        if (! $user) {
+            return route('login');
+        }
+
+        $key = self::keyForUser($user);
+        if ($key) {
+            return route('dashboard', ['store' => $key]);
+        }
+
+        if ($user->isSuperAdmin()) {
+            return route('admin.dashboard');
+        }
+
+        return url('/');
     }
 
     public static function keyForUser(User $user): ?string
