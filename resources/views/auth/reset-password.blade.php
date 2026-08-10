@@ -1,47 +1,49 @@
 @extends('layouts.auth')
 @section('title', 'Reset Password')
 @section('content')
-<div class="mb-8 space-y-3">
-    <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-velour-600/90">New credentials</p>
-    <div class="space-y-1.5">
-        <h2 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">Choose a new password</h2>
-        <p class="text-sm leading-relaxed text-slate-500">Use at least 8 characters. Mix letters, numbers, and symbols.</p>
-    </div>
+<div class="auth-header">
+    <p class="auth-eyebrow">New credentials</p>
+    <h2 class="auth-title">Choose a new password</h2>
+    <p class="auth-subtitle">At least 8 characters, with upper &amp; lower case letters and a number.</p>
 </div>
 
-<form method="POST" action="{{ route('password.update') }}" class="space-y-5">
+<form method="POST" action="{{ route('password.update') }}" class="auth-form" data-password-confirm-match="1">
     @csrf
     <input type="hidden" name="token" value="{{ $token }}">
-    <input type="hidden" name="email" value="{{ $email }}">
 
-    <div class="space-y-2">
-        <label for="reset-password-new" class="text-xs font-bold uppercase tracking-wide text-slate-600">New password</label>
-        <div class="relative">
-            <input id="reset-password-new" type="password" name="password" required autocomplete="new-password" placeholder="••••••••"
-                   class="w-full rounded-2xl border border-slate-200/90 bg-white/80 py-3.5 pl-4 pr-12 text-sm text-slate-900 shadow-auth-input placeholder:text-slate-400 transition-all duration-300 focus:border-velour-400 focus:bg-white focus:shadow-auth-input-focus focus:outline-none focus:ring-0 @error('password') border-red-400 @enderror">
-            @include('auth._password-visibility-toggle', ['targetId' => 'reset-password-new'])
-        </div>
-        @error('password')<p class="text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+    <div class="auth-field">
+        <label for="reset-email" class="auth-label">Email</label>
+        <input id="reset-email" type="email" name="email" value="{{ old('email', $email) }}" required autocomplete="username"
+               class="auth-input @error('email') is-invalid @enderror">
+        @error('email')<p class="auth-error">{{ $message }}</p>@enderror
     </div>
 
-    <div class="space-y-2">
-        <label for="reset-password-confirmation" class="text-xs font-bold uppercase tracking-wide text-slate-600">Confirm</label>
-        <div class="relative">
-            <input id="reset-password-confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="••••••••"
-                   class="w-full rounded-2xl border border-slate-200/90 bg-white/80 py-3.5 pl-4 pr-12 text-sm text-slate-900 shadow-auth-input placeholder:text-slate-400 transition-all duration-300 focus:border-velour-400 focus:bg-white focus:shadow-auth-input-focus focus:outline-none focus:ring-0">
+    <div class="auth-field">
+        <label for="reset-password-new" class="auth-label">New password</label>
+        <div class="auth-password-wrap">
+            <input id="reset-password-new" type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="••••••••"
+                   class="auth-input auth-input--password @error('password') is-invalid @enderror"
+                   data-validation-message="Password">
+            @include('auth._password-visibility-toggle', ['targetId' => 'reset-password-new'])
+        </div>
+        @error('password')<p class="auth-error">{{ $message }}</p>@enderror
+    </div>
+
+    <div class="auth-field">
+        <label for="reset-password-confirmation" class="auth-label">Confirm</label>
+        <div class="auth-password-wrap">
+            <input id="reset-password-confirmation" type="password" name="password_confirmation" required minlength="8" autocomplete="new-password" placeholder="••••••••"
+                   class="auth-input auth-input--password"
+                   data-confirm-for="reset-password-new"
+                   data-validation-message="Confirm password">
             @include('auth._password-visibility-toggle', ['targetId' => 'reset-password-confirmation'])
         </div>
     </div>
 
-    <button type="submit"
-            class="auth-btn-primary group relative w-full overflow-hidden rounded-2xl py-4 text-sm font-bold text-white shadow-lg shadow-velour-600/30 transition-all duration-300 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-velour-500 focus-visible:ring-offset-2 active:scale-[0.985]">
-        <span class="absolute inset-0 bg-gradient-to-r from-velour-600 via-violet-600 to-purple-600 transition-opacity duration-300 group-hover:opacity-[0.92]" aria-hidden="true"></span>
-        <span class="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[100%]" aria-hidden="true"></span>
-        <span class="relative z-10 tracking-wide">Update password</span>
-    </button>
+    <button type="submit" class="auth-btn"><span>Update password</span></button>
 </form>
 
-<p class="mt-9 border-t border-slate-200/60 pt-8 text-center text-sm text-slate-500">
-    <a href="{{ route('login') }}" class="auth-link-line font-semibold text-velour-700 hover:text-velour-900">← Back to sign in</a>
+<p class="auth-foot-link">
+    <a href="{{ route('login') }}" class="auth-link-line">← Back to sign in</a>
 </p>
 @endsection

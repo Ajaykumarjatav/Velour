@@ -336,6 +336,9 @@
         .form-error {
             @apply mt-1 text-xs text-red-600 dark:text-red-400;
         }
+        .required-asterisk {
+            @apply text-red-500 dark:text-red-400 font-semibold ml-0.5;
+        }
         .form-input-error {
             @apply border-red-400 dark:border-red-500 focus:ring-red-500;
         }
@@ -935,7 +938,7 @@
                              style="width: {{ $profilePct }}%"></div>
                     </div>
                 </div>
-                <a href="{{ route('setup-progress') }}" class="text-xs font-medium leading-none hover:underline whitespace-nowrap shrink-0 {{ $profileToneText }}">
+                <a href="{{ \App\Support\SalonUrl::route('setup-progress') }}" class="text-xs font-medium leading-none hover:underline whitespace-nowrap shrink-0 {{ $profileToneText }}">
                     Complete setup
                 </a>
                 <button type="button"

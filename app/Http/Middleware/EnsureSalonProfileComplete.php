@@ -44,10 +44,10 @@ class EnsureSalonProfileComplete
             return $next($request);
         }
 
-        return redirect()->route('settings.index', array_filter([
+        return redirect()->to(\App\Support\SalonUrl::route('settings.index', array_filter([
             'tab' => 'salon',
             'return_to' => $request->isMethod('GET') ? $request->fullUrl() : null,
-        ]))->with('warning', 'Complete your salon setup (profile bar must reach 100%) to use this area. Use Settings plus Services, Categories, and Staff until all checklist items are done.');
+        ])))->with('warning', 'Complete your salon setup (profile bar must reach 100%) to use this area. Use Settings plus Services, Categories, and Staff until all checklist items are done.');
     }
 
     private static function routeAllowedDuringSetup(string $name): bool

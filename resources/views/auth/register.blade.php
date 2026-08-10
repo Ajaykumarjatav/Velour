@@ -8,12 +8,13 @@
     <p class="auth-subtitle">Onboard your salon and start booking in minutes—no clutter, just flow.</p>
 </div>
 
-<form action="{{ route('register.submit') }}" method="POST" class="auth-form" id="register-form">
+<form action="{{ route('register.submit') }}" method="POST" class="auth-form" id="register-form"
+      data-password-confirm-match="1">
     @csrf
     <div class="auth-grid">
         <div class="auth-field auth-field--full">
             <label for="register-name" class="auth-label">Full name</label>
-            <input id="register-name" type="text" name="name" value="{{ old('name') }}" required autocomplete="name" placeholder="Alex Morgan"
+            <input id="register-name" type="text" name="name" value="{{ old('name') }}" required maxlength="100" autocomplete="name" placeholder="Alex Morgan"
                    class="auth-input @error('name') is-invalid @enderror">
             @error('name')<p class="auth-error">{{ $message }}</p>@enderror
         </div>
@@ -26,22 +27,28 @@
         <div class="auth-field">
             <label for="register-password" class="auth-label">Password</label>
             <div class="auth-password-wrap">
-                <input id="register-password" type="password" name="password" required autocomplete="new-password" placeholder="Min. 8 characters"
-                       class="auth-input auth-input--password">
+                <input id="register-password" type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="Min. 8 characters"
+                       class="auth-input auth-input--password @error('password') is-invalid @enderror"
+                       data-validation-message="Password">
                 @include('auth._password-visibility-toggle', ['targetId' => 'register-password'])
             </div>
+            @error('password')<p class="auth-error">{{ $message }}</p>@enderror
+            <p class="auth-field-hint">At least 8 characters, with upper &amp; lower case letters and a number.</p>
         </div>
         <div class="auth-field">
             <label for="register-password-confirmation" class="auth-label">Confirm</label>
             <div class="auth-password-wrap">
-                <input id="register-password-confirmation" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Repeat password"
-                       class="auth-input auth-input--password">
+                <input id="register-password-confirmation" type="password" name="password_confirmation" required minlength="8" autocomplete="new-password" placeholder="Repeat password"
+                       class="auth-input auth-input--password @error('password_confirmation') is-invalid @enderror"
+                       data-confirm-for="register-password"
+                       data-validation-message="Confirm password">
                 @include('auth._password-visibility-toggle', ['targetId' => 'register-password-confirmation'])
             </div>
+            @error('password_confirmation')<p class="auth-error">{{ $message }}</p>@enderror
         </div>
     </div>
 
-    <p class="auth-subtitle" style="margin:0;padding:0.75rem 1rem;border-radius:1rem;border:1px solid rgba(226,232,240,0.8);background:rgba(248,250,252,0.6)">
+    <p class="auth-disclaimer">
         By continuing, you agree to use EasyGrox responsibly for your salon’s client and team data.
     </p>
 

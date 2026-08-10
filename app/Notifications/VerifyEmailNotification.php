@@ -3,30 +3,17 @@
 namespace App\Notifications;
 
 use Illuminate\Auth\Notifications\VerifyEmail;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\URL;
-use Spatie\Multitenancy\Jobs\NotTenantAware;
 
 /**
- * VerifyEmailNotification
- *
- * Replaces Laravel's default email verification notification with a branded
- * EasyGrox version.  Generates a signed URL valid for 60 minutes.
- *
- * Implements NotTenantAware so Spatie Multitenancy does not attempt to
- * resolve a tenant for this job (email verification runs in guest context).
+ * Branded email verification. Sent synchronously so registration can catch
+ * mail/config failures without a queued job masking MissingAppKey / SMTP errors.
  */
-class VerifyEmailNotification extends VerifyEmail implements ShouldQueue, NotTenantAware
+class VerifyEmailNotification extends VerifyEmail
 {
-    use Queueable;
-
-    /**
-     * Build the mail message.
-     */
     public function toMail($notifiable): MailMessage
     {
         $url = $this->verificationUrl($notifiable);
@@ -34,15 +21,12 @@ class VerifyEmailNotification extends VerifyEmail implements ShouldQueue, NotTen
         return (new MailMessage())
             ->subject('Verify your EasyGrox email address')
             ->view('emails.auth.verify-email', [
-                'user'    => $notifiable,
-                'url'     => $url,
-                'expiry'  => '60 minutes',
+                'user'   => $notifiable,
+                'url'    => $url,
+                'expiry' => '60 minutes',
             ]);
     }
 
-    /**
-     * Generate a signed verification URL.
-     */
     protected function verificationUrl($notifiable): string
     {
         return URL::temporarySignedRoute(

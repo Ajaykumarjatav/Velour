@@ -10,6 +10,7 @@
 <style>
   body { font-family: 'DM Sans', sans-serif; color: #1C1915; background: #FDFCFA; }
   h1,h2,h3 { font-family: 'Playfair Display', serif; }
+  .required-asterisk { color: #ef4444; font-weight: 600; margin-left: 0.15rem; }
 </style>
 </head>
 <body>
@@ -32,5 +33,6 @@
 <footer class="border-t border-gray-100 py-8 mt-16">
   <p class="text-center text-sm text-gray-400">© {{ date('Y') }} EasyGrox Salon SaaS. All rights reserved.</p>
 </footer>
+@include('partials.form-client-validation')
 </body>
 </html>

@@ -144,37 +144,37 @@ class NotificationController extends Controller
     {
         $appointmentId = (int) data_get($notification->data, 'appointment_id', 0);
         if ($appointmentId > 0) {
-            return route('appointments.show', $appointmentId);
+            return \App\Support\SalonUrl::route('appointments.show', ['appointment' => $appointmentId]);
         }
 
         $taskId = (int) data_get($notification->data, 'task_id', 0);
         if ($taskId > 0 || data_get($notification->data, 'action_label') === 'tasks') {
-            return route('tasks.index');
+            return \App\Support\SalonUrl::route('tasks.index');
         }
 
         if (data_get($notification->data, 'action_label') === 'leave') {
-            return route('availability.index', ['tab' => 'leave']);
+            return \App\Support\SalonUrl::route('availability.index', ['tab' => 'leave']);
         }
 
         if (data_get($notification->data, 'action_label') === 'attendance') {
-            return route('availability.index', ['tab' => 'attendance']);
+            return \App\Support\SalonUrl::route('availability.index', ['tab' => 'attendance']);
         }
 
         if (data_get($notification->data, 'action_label') === 'salary') {
-            return route('expenses.index');
+            return \App\Support\SalonUrl::route('expenses.index');
         }
 
         $label = mb_strtolower(trim((string) data_get($notification->data, 'action_label', '')));
         $url = trim((string) ($notification->action_url ?? ''));
 
         if ($label === 'add services' || $url === '/services') {
-            return route('settings.index', ['tab' => 'services']);
+            return \App\Support\SalonUrl::route('settings.index', ['tab' => 'services']);
         }
         if ($label === 'set hours' || $url === '/settings/hours') {
-            return route('settings.index', ['tab' => 'hours']);
+            return \App\Support\SalonUrl::route('settings.index', ['tab' => 'hours']);
         }
         if ($label === 'go live' || $url === '/go-live') {
-            return route('go-live');
+            return \App\Support\SalonUrl::route('go-live');
         }
 
         if ($url === '') {

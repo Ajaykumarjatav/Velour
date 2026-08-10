@@ -42,6 +42,7 @@
     *::-webkit-scrollbar-thumb { background: rgb(55 65 81); border-radius: 4px; }
     *::-webkit-scrollbar-thumb:hover { background: rgb(75 85 99); }
     .nav-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; opacity: 0.9; }
+    .required-asterisk { color: #f87171; font-weight: 600; margin-left: 0.15rem; }
 
   .admin-shell-sidebar {
     width: 14rem;

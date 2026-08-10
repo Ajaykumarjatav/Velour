@@ -194,7 +194,7 @@
             If something doesn’t match what you expect, start with:
         </p>
         <ul class="list-disc pl-5 text-sm text-muted space-y-1">
-            <li><a href="{{ route('setup-progress') }}" class="text-link">Setup progress</a> for guided onboarding</li>
+            <li><a href="{{ \App\Support\SalonUrl::route('setup-progress') }}" class="text-link">Setup progress</a> for guided onboarding</li>
             <li><a href="{{ route('availability.index') }}" class="text-link">Availability</a> if appointment slots are blocked</li>
             <li><a href="{{ route('staff.index') }}" class="text-link">Staff &amp; roles</a> if services don’t appear in appointment booking</li>
         </ul>

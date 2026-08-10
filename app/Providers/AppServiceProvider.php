@@ -50,6 +50,33 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Ensure APP_KEY is present before the encrypter is resolved (cookies / signed URLs).
+        $this->app->booting(function () {
+            $key = (string) ($this->app['config']->get('app.key') ?? '');
+            if ($key !== '') {
+                return;
+            }
+
+            $fromEnv = $_ENV['APP_KEY'] ?? $_SERVER['APP_KEY'] ?? getenv('APP_KEY') ?: '';
+            $fromEnv = is_string($fromEnv) ? trim($fromEnv, " \t\n\r\0\x0B\"'") : '';
+            if ($fromEnv !== '') {
+                $this->app['config']->set('app.key', $fromEnv);
+
+                return;
+            }
+
+            $envPath = $this->app->environmentFilePath();
+            if (is_readable($envPath)) {
+                $contents = file_get_contents($envPath) ?: '';
+                if (preg_match('/^APP_KEY=(.*)$/m', $contents, $m)) {
+                    $parsed = trim($m[1], " \t\n\r\0\x0B\"'");
+                    if ($parsed !== '') {
+                        $this->app['config']->set('app.key', $parsed);
+                    }
+                }
+            }
+        });
+
         // ── Service container bindings ─────────────────────────────────────
         $this->app->singleton(\App\Services\AppointmentService::class);
         $this->app->singleton(\App\Services\AvailabilityService::class);
@@ -353,10 +380,12 @@ class AppServiceProvider extends ServiceProvider
             return $user->isSuperAdmin() || $user->planAllows('custom_domain');
         });
 
-        // ── Custom password reset URL (SPA-aware) ─────────────────────────
+        // ── Password reset URL (admin panel route) ─────────────────────────
         ResetPassword::createUrlUsing(function ($notifiable, string $token) {
-            return config('app.frontend_url') . '/auth/reset-password?token=' . $token
-                . '&email=' . urlencode($notifiable->getEmailForPasswordReset());
+            return url(route('password.reset', [
+                'token' => $token,
+                'email' => $notifiable->getEmailForPasswordReset(),
+            ], false));
         });
 
         // ── Rate Limiters ──────────────────────────────────────────────────
