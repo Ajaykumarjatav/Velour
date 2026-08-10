@@ -764,7 +764,7 @@ class SettingsController extends Controller
 
         $data = $request->validate([
             'current_password' => ['required'],
-            'password'         => ['required', 'min:8', 'confirmed'],
+            'password'         => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::min(8)->mixedCase()->numbers()],
         ]);
 
         if (!Hash::check($data['current_password'], $user->password)) {

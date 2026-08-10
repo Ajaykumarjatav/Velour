@@ -96,7 +96,7 @@ class TwoFactorController extends Controller
         $user->enableTotpTwoFactor($secret);
         session()->forget('two_factor_pending_secret');
 
-        return redirect()->route('two-factor.recovery')
+        return redirect()->to(\App\Support\SalonUrl::route('two-factor.recovery'))
             ->with('success', 'Authenticator app 2FA enabled. Save your recovery codes now.');
     }
 
@@ -109,7 +109,7 @@ class TwoFactorController extends Controller
         $user = $request->user();
         $user->enableEmailTwoFactor();
 
-        return redirect()->route('two-factor.recovery')
+        return redirect()->to(\App\Support\SalonUrl::route('two-factor.recovery'))
             ->with('success', 'Email OTP 2FA enabled. Save your recovery codes now.');
     }
 
@@ -141,7 +141,7 @@ class TwoFactorController extends Controller
         $user = $request->user();
 
         if (! $user->hasTwoFactorEnabled()) {
-            return redirect()->route('two-factor.setup');
+            return redirect()->to(\App\Support\SalonUrl::route('two-factor.setup'));
         }
 
         return view('auth.two-factor.recovery-codes', [
@@ -195,7 +195,9 @@ class TwoFactorController extends Controller
 
     public function challenge(Request $request, LoginActivityService $activity)
     {
-        $request->validate(['code' => 'required|string']);
+        $request->validate([
+            'code' => ['required', 'string', 'size:6', 'regex:/^\d{6}$/'],
+        ]);
 
         $user = Auth::user();
         $code = trim($request->code);
@@ -255,7 +257,7 @@ class TwoFactorController extends Controller
         $user->disableTwoFactor();
         session(['two_factor_passed' => true]);
 
-        return redirect()->route('two-factor.setup')
+        return redirect()->to(\App\Support\SalonUrl::route('two-factor.setup'))
             ->with('warning', 'Recovery code accepted. 2FA has been disabled — please set it up again to stay secure.');
     }
 

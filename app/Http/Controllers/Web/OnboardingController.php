@@ -179,40 +179,48 @@ class OnboardingController extends Controller
 
     private function stepMeta(string $step, Salon $salon, ?object $progress): array
     {
+        $store = \App\Support\SalonUrl::key($salon);
+        $onboardingStep = fn (string $s) => route('onboarding.step', ['store' => $store, 'step' => $s]);
+        $settings = fn (string $tab, string $returnStep) => route('settings.index', [
+            'store' => $store,
+            'tab' => $tab,
+            'return_to' => $onboardingStep($returnStep),
+        ]);
+
         return match ($step) {
             'salon-profile' => [
                 'title' => 'Salon profile',
                 'description' => 'Add core business details so customers can identify and contact your salon.',
                 'done' => (bool) ($progress?->step_salon_profile ?? false),
-                'action_url' => route('settings.index', ['tab' => 'salon', 'return_to' => route('onboarding.step', ['step' => 'salon-profile'])]),
+                'action_url' => $settings('salon', 'salon-profile'),
                 'action_label' => 'Open Business Settings',
             ],
             'opening-hours' => [
                 'title' => 'Opening hours',
                 'description' => 'Set opening hours so the booking URL can generate valid slots.',
                 'done' => (bool) ($progress?->step_opening_hours ?? false),
-                'action_url' => route('settings.index', ['tab' => 'hours', 'return_to' => route('onboarding.step', ['step' => 'opening-hours'])]),
+                'action_url' => $settings('hours', 'opening-hours'),
                 'action_label' => 'Set Opening Hours',
             ],
             'first-service' => [
                 'title' => 'Service selection',
                 'description' => 'Select business type, categories, and configure at least one active service.',
                 'done' => (bool) ($progress?->step_first_service ?? false),
-                'action_url' => route('settings.index', ['tab' => 'services', 'return_to' => route('onboarding.step', ['step' => 'first-service'])]),
+                'action_url' => $settings('services', 'first-service'),
                 'action_label' => 'Configure Services',
             ],
             'invite-staff' => [
                 'title' => 'Team setup',
                 'description' => 'Add at least one active team member so clients can be assigned correctly.',
                 'done' => (bool) ($progress?->step_first_staff ?? false),
-                'action_url' => route('settings.index', ['tab' => 'profile', 'return_to' => route('onboarding.step', ['step' => 'invite-staff'])]),
+                'action_url' => $settings('profile', 'invite-staff'),
                 'action_label' => 'Add Team Member',
             ],
             default => [
                 'title' => 'Setup',
                 'description' => 'Complete your setup steps.',
                 'done' => false,
-                'action_url' => route('settings.index'),
+                'action_url' => route('settings.index', ['store' => $store]),
                 'action_label' => 'Open Settings',
             ],
         };

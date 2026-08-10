@@ -75,12 +75,18 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:auth')
         ->name('login.submit');
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('register',[AuthController::class, 'register'])->name('register.submit');
+    Route::post('register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth')
+        ->name('register.submit');
 
-    Route::get('forgot-password',        [AuthController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('forgot-password',       [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::get('forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('forgot-password', [AuthController::class, 'sendResetLink'])
+        ->middleware('throttle:auth')
+        ->name('password.email');
     Route::get('reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
-    Route::post('reset-password',        [AuthController::class, 'resetPassword'])->name('password.update');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:auth')
+        ->name('password.update');
 });
 
 // Signed POS invoice PDF (e.g. WhatsApp) — tenant from host, no login
@@ -137,10 +143,17 @@ Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
 // ── 2FA Challenge (after login, before full session) ─────────────────────────
 
 Route::middleware('auth')->prefix('two-factor')->name('two-factor.')->group(function () {
-    Route::get('challenge',        [TwoFactorController::class, 'showChallenge'])->name('challenge');
-    Route::post('challenge',       [TwoFactorController::class, 'challenge']);
-    Route::post('challenge/resend',[TwoFactorController::class, 'resendCode'])->name('resend');
-    Route::post('recovery',        [TwoFactorController::class, 'recovery'])->name('recovery');
+    Route::get('challenge', [TwoFactorController::class, 'showChallenge'])->name('challenge');
+    Route::post('challenge', [TwoFactorController::class, 'challenge'])
+        ->middleware('throttle:6,1')
+        ->name('challenge.submit');
+    Route::post('challenge/resend', [TwoFactorController::class, 'resendCode'])
+        ->middleware('throttle:6,1')
+        ->name('resend');
+    // Distinct from settings GET two-factor.recovery (store-scoped recovery codes page)
+    Route::post('recovery', [TwoFactorController::class, 'recovery'])
+        ->middleware('throttle:6,1')
+        ->name('challenge.recovery');
 });
 
 // ── Authenticated + Verified + 2FA Passed ─────────────────────────────────────

@@ -156,7 +156,7 @@ class GoLiveController extends Controller
         }
 
         return redirect()
-            ->route('go-live')
+            ->route('go-live', ['store' => \App\Support\SalonUrl::key($salon)])
             ->with('success', $message);
     }
 

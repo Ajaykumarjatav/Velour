@@ -22,6 +22,8 @@ class SalonSetupProgress
     {
         $completion = ProfileCompletion::forSalon($salon);
         $salonId = (int) $salon->id;
+        $store = SalonUrl::key($salon);
+        $settings = fn (array $extra = []) => route('settings.index', array_merge(['store' => $store], $extra));
 
         $items = [
             [
@@ -29,7 +31,7 @@ class SalonSetupProgress
                 'label' => 'Business type selected',
                 'done' => $completion['has_business_type'],
                 'priority' => 'high',
-                'link' => route('settings.index', ['tab' => 'services']),
+                'link' => $settings(['tab' => 'services']),
                 'tip' => 'Choose your business type so services and booking match your salon.',
             ],
             [
@@ -37,7 +39,7 @@ class SalonSetupProgress
                 'label' => 'Service categories configured',
                 'done' => $completion['has_service_categories'],
                 'priority' => 'high',
-                'link' => route('settings.index', ['tab' => 'services']),
+                'link' => $settings(['tab' => 'services']),
                 'tip' => 'Organise services into categories for easier booking.',
             ],
             [
@@ -45,7 +47,7 @@ class SalonSetupProgress
                 'label' => 'At least one service added',
                 'done' => $completion['has_services'],
                 'priority' => 'high',
-                'link' => route('settings.index', ['tab' => 'services']),
+                'link' => $settings(['tab' => 'services']),
                 'tip' => 'Add the services clients can book.',
             ],
             [
@@ -53,7 +55,7 @@ class SalonSetupProgress
                 'label' => 'At least one active team member',
                 'done' => $completion['has_staff'],
                 'priority' => 'medium',
-                'link' => route('settings.index', ['tab' => 'profile']),
+                'link' => $settings(['tab' => 'profile']),
                 'tip' => 'Add staff so appointments can be assigned.',
             ],
             [
@@ -61,7 +63,7 @@ class SalonSetupProgress
                 'label' => 'Online-bookable service enabled',
                 'done' => Service::withoutGlobalScopes()->where('salon_id', $salonId)->where('status', 'active')->where('online_bookable', true)->exists(),
                 'priority' => 'high',
-                'link' => route('services.index'),
+                'link' => route('services.index', ['store' => $store]),
                 'tip' => 'Enable online booking on at least one service.',
             ],
             [
@@ -69,7 +71,7 @@ class SalonSetupProgress
                 'label' => 'Bookable staff available',
                 'done' => Staff::withoutGlobalScopes()->where('salon_id', $salonId)->where('is_active', true)->where('bookable_online', true)->exists(),
                 'priority' => 'medium',
-                'link' => route('staff.index'),
+                'link' => route('staff.index', ['store' => $store]),
                 'tip' => 'Toggle bookable online in each staff profile.',
             ],
             [
@@ -77,7 +79,7 @@ class SalonSetupProgress
                 'label' => 'Address set',
                 'done' => (bool) $salon->address_line1,
                 'priority' => 'high',
-                'link' => route('settings.index'),
+                'link' => $settings(),
                 'tip' => 'Clients need to know where you are.',
             ],
             [
@@ -85,7 +87,7 @@ class SalonSetupProgress
                 'label' => 'Phone number added',
                 'done' => (bool) $salon->phone,
                 'priority' => 'high',
-                'link' => route('settings.index'),
+                'link' => $settings(),
                 'tip' => 'Required for booking confirmations.',
             ],
             [
@@ -93,7 +95,7 @@ class SalonSetupProgress
                 'label' => 'Opening hours set',
                 'done' => ! empty($salon->opening_hours),
                 'priority' => 'high',
-                'link' => route('settings.index'),
+                'link' => $settings(),
                 'tip' => 'Without hours, no booking slots appear.',
             ],
             [
@@ -101,7 +103,7 @@ class SalonSetupProgress
                 'label' => 'Logo uploaded',
                 'done' => (bool) $salon->logo,
                 'priority' => 'medium',
-                'link' => route('settings.index'),
+                'link' => $settings(),
                 'tip' => 'Makes your booking page look professional.',
             ],
             [
@@ -109,7 +111,7 @@ class SalonSetupProgress
                 'label' => 'Salon description added',
                 'done' => (bool) $salon->description,
                 'priority' => 'medium',
-                'link' => route('settings.index'),
+                'link' => $settings(),
                 'tip' => 'Helps new clients choose your salon.',
             ],
             [
@@ -117,7 +119,7 @@ class SalonSetupProgress
                 'label' => 'Online payments linked',
                 'done' => (bool) $salon->stripe_account_id,
                 'priority' => 'low',
-                'link' => route('settings.index'),
+                'link' => $settings(),
                 'tip' => 'Required to take deposits or online payments.',
             ],
         ];

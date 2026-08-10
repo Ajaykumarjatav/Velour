@@ -57,7 +57,9 @@ class AuthController extends Controller
             Auth::logout();
             $activity->recordFailure($request, $credentials['email'], 'account_suspended');
 
-            return back()->withErrors(['email' => 'Your account has been suspended. Please contact support.']);
+            return back()
+                ->withErrors(['email' => 'Your account has been suspended. Please contact support.'])
+                ->onlyInput('email');
         }
 
         $request->session()->regenerate();
@@ -110,7 +112,10 @@ class AuthController extends Controller
         if ($salon) {
             $completion = ProfileCompletion::forSalon($salon);
             if ($completion['percentage'] < 100) {
-                return redirect()->route('setup-progress');
+                $store = \App\Support\SalonUrl::key($salon);
+                \Illuminate\Support\Facades\URL::defaults(['store' => $store]);
+
+                return redirect()->to(route('setup-progress', ['store' => $store]));
             }
         }
 
@@ -126,7 +131,7 @@ class AuthController extends Controller
     {
         $user = Auth::user();
         $data = $request->validate([
-            'password' => ['required', 'min:8', 'confirmed'],
+            'password' => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
         ]);
 
         $user->update([
@@ -300,11 +305,13 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        $status = Password::sendResetLink($request->only('email'));
+        Password::sendResetLink($request->only('email'));
 
-        return $status === Password::RESET_LINK_SENT
-            ? back()->with('success', 'If that email exists in our system, a reset link has been sent.')
-            : back()->withErrors(['email' => 'We could not send a reset link to that email.']);
+        // Always the same response to avoid account enumeration.
+        return back()->with(
+            'success',
+            'If that email exists in our system, a reset link has been sent.'
+        )->onlyInput('email');
     }
 
     public function showResetPassword(Request $request, string $token)

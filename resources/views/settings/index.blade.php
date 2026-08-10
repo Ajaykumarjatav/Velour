@@ -193,7 +193,7 @@
 
             @if(!$settingsPersonalOnly && $settingsProfilePct !== null && $settingsProfilePct < 100)
             <div class="mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-700/80">
-                <a href="{{ route('setup-progress') }}" class="text-xs font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100 hover:underline">
+                <a href="{{ \App\Support\SalonUrl::route('setup-progress') }}" class="text-xs font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100 hover:underline">
                     View setup progress →
                 </a>
             </div>
@@ -1400,22 +1400,28 @@
                 </svg>
             </button>
         </div>
-        <form action="{{ route('settings.password') }}" method="POST" class="space-y-4">
+        <form action="{{ route('settings.password') }}" method="POST" class="space-y-4" data-password-confirm-match="1">
             @csrf @method('PUT')
             <input type="hidden" name="return_to" value="{{ $returnTo }}">
             <div>
                 <label class="form-label">Current password</label>
-                <input type="password" name="current_password" required class="form-input">
+                <input type="password" name="current_password" required class="form-input @error('current_password') form-input-error @enderror">
                 @error('current_password')<p class="form-error">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="form-label">New password</label>
-                <input type="password" name="password" required autocomplete="new-password" class="form-input">
+                <input id="settings-new-password" type="password" name="password" required minlength="8" autocomplete="new-password"
+                       class="form-input @error('password') form-input-error @enderror"
+                       data-validation-message="New password">
                 @error('password')<p class="form-error">{{ $message }}</p>@enderror
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">At least 8 characters, with upper &amp; lower case letters and a number.</p>
             </div>
             <div>
                 <label class="form-label">Confirm new password</label>
-                <input type="password" name="password_confirmation" required class="form-input">
+                <input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password"
+                       class="form-input"
+                       data-confirm-for="settings-new-password"
+                       data-validation-message="Confirm new password">
             </div>
             <div class="pt-1 flex items-center gap-2">
                 <button type="submit" class="btn-primary" :disabled="!canEditTab('security')">Change Password</button>
