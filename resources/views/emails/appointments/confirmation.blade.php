@@ -63,9 +63,15 @@
       ⚠️ Please note: appointments must be cancelled at least {{ $appointment->salon->cancellation_hours }} hours in advance to avoid a cancellation fee.
     </p>
     @endif
-    <a href="{{ config('app.frontend_url') }}/book/{{ $salon->slug }}/appointment/{{ $appointment->reference }}" class="btn">Manage Booking</a>
+    <a href="{{ \App\Support\MailUrl::clientAppointment($salon, $appointment) }}" class="btn">Manage Booking</a>
   </div>
   <div class="footer">
     {{ $salon->name }} &bull; {{ $salon->address_line1 }}, {{ $salon->city }}<br>
-    <a href="{{ config('app.frontend_url') }}" style="color:#B8943A;text-decoration:none;">easygrox.com</a>
-    &bull; <a href="/cdn-cgi/l/email-protection#3f44441f1b4c5e53505112015a525e56531f4242" style="color:#555;">{{ $salon->ema
+    <a href="{{ \App\Support\MailUrl::publicRoot() }}" style="color:#B8943A;text-decoration:none;">{{ parse_url(\App\Support\MailUrl::publicRoot(), PHP_URL_HOST) ?: 'EasyGrox' }}</a>
+    @if(!empty($salon->email))
+      &bull; <a href="mailto:{{ $salon->email }}" style="color:#555;">{{ $salon->email }}</a>
+    @endif
+  </div>
+</div>
+</body>
+</html>

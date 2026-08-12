@@ -26,7 +26,7 @@ class TenantSuspendedNotification extends Notification
         }
         return $mail
             ->line("If you believe this is an error or would like to discuss this, please contact our support team.")
-            ->action('Contact Support', route('billing.dashboard'))
+            ->action('Contact Support', \App\Support\MailUrl::billingPlans($this->salon))
             ->line("We're here to help resolve any issues as quickly as possible.");
     }
 }

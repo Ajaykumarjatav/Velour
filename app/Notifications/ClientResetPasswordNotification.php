@@ -23,7 +23,10 @@ class ClientResetPasswordNotification extends Notification implements ShouldQueu
 
     public function toMail(object $notifiable): MailMessage
     {
-        $url = url('/s/'.$this->salonSlug.'#reset-password?token='.$this->token.'&email='.urlencode($notifiable->email));
+        $url = \App\Support\StorefrontUrl::publicAppUrl()
+            .'/s/'.$this->salonSlug
+            .'#reset-password?token='.$this->token
+            .'&email='.urlencode($notifiable->email);
 
         return (new MailMessage)
             ->subject('Reset your password')

@@ -43,7 +43,7 @@
 @endif
 
 <div style="text-align:center;margin-top:24px;">
-  <a href="{{ url('/appointments/' . $appointment->id) }}" class="btn" style="background:#7c3aed">View Appointment →</a>
+  <a href="{{ \App\Support\MailUrl::tenantAppointment($salon, $appointment) }}" class="btn" style="background:#7c3aed">View Appointment →</a>
 </div>
 
 <hr class="divider">

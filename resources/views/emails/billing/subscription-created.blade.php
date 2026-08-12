@@ -10,9 +10,9 @@
 @endif
 
 <div style="text-align:center">
-  <a href="{{ \App\Support\SalonUrl::dashboardUrl($user) }}" class="btn">Open EasyGrox dashboard →</a>
+  <a href="{{ \App\Support\MailUrl::dashboard(user: $user) }}" class="btn">Open EasyGrox dashboard →</a>
 </div>
 
 <hr class="divider">
-<p class="note">Questions? Reply to this email or visit our <a href="{{ config('app.url') }}/support" style="color:#7c3aed">help centre</a>.</p>
+<p class="note">Questions? Reply to this email or visit our <a href="{{ \App\Support\MailUrl::help() }}" style="color:#7c3aed">help centre</a>.</p>
 @endsection

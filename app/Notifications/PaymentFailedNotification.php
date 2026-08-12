@@ -28,7 +28,7 @@ class PaymentFailedNotification extends Notification implements ShouldQueue, Not
                 'user'        => $notifiable,
                 'amount'      => $this->amount,
                 'nextAttempt' => $this->nextAttempt,
-                'portalUrl'   => route('billing.portal'),
+                'portalUrl'   => \App\Support\MailUrl::billingPortalForUser($notifiable),
             ]);
     }
 }

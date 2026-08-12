@@ -195,7 +195,7 @@ class ShareController extends Controller
     {
         $salonId = (int) $request->attributes->get('salon_id');
         $salon   = Salon::findOrFail($salonId);
-        $url     = rtrim(config('app.url'), '/') . '/book/' . $salon->slug;
+        $url     = \App\Support\StorefrontUrl::booking($salon);
 
         return $this->success([
             'booking_url' => $url,

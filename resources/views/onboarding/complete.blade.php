@@ -17,9 +17,9 @@
       <p class="text-sm text-gray-400 mb-2 font-medium uppercase tracking-wide">Your booking link</p>
       <div class="flex items-center gap-2">
         <code class="flex-1 bg-amber-50 text-amber-900 rounded-lg px-4 py-3 text-sm font-mono truncate">
-          {{ config('app.url') }}/book/{{ $salon->slug }}
+          {{ \App\Support\StorefrontUrl::booking($salon) }}
         </code>
-        <button onclick="navigator.clipboard.writeText('{{ config('app.url') }}/book/{{ $salon->slug }}')"
+        <button onclick="navigator.clipboard.writeText('{{ \App\Support\StorefrontUrl::booking($salon) }}')"
           class="bg-amber-500 text-white rounded-lg px-4 py-3 text-sm font-semibold hover:bg-amber-600 transition">
           Copy
         </button>

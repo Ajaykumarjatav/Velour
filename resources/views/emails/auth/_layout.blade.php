@@ -38,7 +38,7 @@
   </div>
   <div class="footer">
     <p>© {{ date('Y') }} EasyGrox · Business Management Platform</p>
-    <p>You received this email because you have an account at <a href="{{ config('app.url') }}">easygrox.com</a></p>
+    <p>You received this email because you have an account at <a href="{{ rtrim(config('app.url'), '/') }}">{{ parse_url(config('app.url'), PHP_URL_HOST) ?: config('app.name') }}</a></p>
   </div>
 </div>
 </body>

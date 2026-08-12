@@ -28,7 +28,7 @@
       with <strong>{{ $appointment->staff->first_name }}</strong>
     </p>
     <p style="color:#888;font-size:14px;">{{ $appointment->services->pluck('service_name')->join(', ') }}</p>
-    <a href="{{ config('app.frontend_url') }}/book/{{ $salon->slug }}/appointment/{{ $appointment->reference }}" class="btn">View or Manage</a>
+    <a href="{{ \App\Support\MailUrl::clientAppointment($salon, $appointment) }}" class="btn">View or Manage</a>
   </div>
   <div class="footer">{{ $salon->name }} &bull; {{ $salon->address_line1 }}, {{ $salon->city }}</div>
 </div>
