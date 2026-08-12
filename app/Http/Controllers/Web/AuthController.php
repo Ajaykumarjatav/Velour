@@ -259,10 +259,32 @@ class AuthController extends Controller
 
     public function verifyEmail(Request $request, int $id, string $hash)
     {
-        $user = User::findOrFail($id);
+        $user = User::find($id);
+        if (! $user) {
+            return redirect()->route('login')
+                ->with('error', 'This verification link is invalid. Please register again or request a new link.');
+        }
 
         if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
-            abort(403, 'Invalid verification link.');
+            return redirect()->route('login')
+                ->with('error', 'This verification link does not match the account email. Please request a new verification email.');
+        }
+
+        $token = (string) $request->query('token', '');
+        $tokenOk = $token !== '' && \App\Support\EmailVerificationToken::assertValid($user, $token);
+
+        // Legacy emails used Laravel signed URLs (no token). Accept if signature is valid.
+        $signedOk = false;
+        if (! $tokenOk && $request->hasValidSignature(absolute: true)) {
+            $signedOk = true;
+        }
+        if (! $tokenOk && ! $signedOk && $request->hasValidSignature(absolute: false)) {
+            $signedOk = true;
+        }
+
+        if (! $tokenOk && ! $signedOk) {
+            return redirect()->route('login')
+                ->with('error', 'This verification link is invalid or expired. Sign in and use “Resend verification email”.');
         }
 
         if (! $user->hasVerifiedEmail()) {
@@ -270,7 +292,8 @@ class AuthController extends Controller
             event(new \Illuminate\Auth\Events\Verified($user));
         }
 
-        // Already signed in as this user → continue into the app
+        \App\Support\EmailVerificationToken::forget($user);
+
         if (Auth::check() && (int) Auth::id() === (int) $user->id) {
             $salon = $user->salons()->orderBy('id')->first();
             if ($salon) {
@@ -286,7 +309,6 @@ class AuthController extends Controller
                 ->with('success', 'Email verified. Welcome to EasyGrox!');
         }
 
-        // Guest (or different account) → send to login with clear success
         return redirect()->route('login')
             ->with('success', 'Email verified successfully. Please sign in to continue.');
     }
