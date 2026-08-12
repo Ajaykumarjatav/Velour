@@ -43,21 +43,25 @@
 
         {{-- Actions --}}
         <div class="flex flex-col sm:flex-row gap-3 justify-center">
-            @if(auth()->check())
-            <a href="{{ \App\Support\AuthPanel::homeUrl(auth()->user()) }}"
-               class="px-6 py-3 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
-                Back to Dashboard
-            </a>
+            @hasSection('actions')
+                @yield('actions')
             @else
-            <a href="{{ route('login') }}"
-               class="px-6 py-3 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
-                Sign In
-            </a>
+                @if(auth()->check())
+                <a href="{{ \App\Support\AuthPanel::homeUrl(auth()->user()) }}"
+                   class="px-6 py-3 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
+                    Back to Dashboard
+                </a>
+                @else
+                <a href="{{ route('login') }}"
+                   class="px-6 py-3 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
+                    Sign In
+                </a>
+                @endif
+                <a href="javascript:history.back()"
+                   class="px-6 py-3 text-sm font-medium rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors">
+                    Go Back
+                </a>
             @endif
-            <a href="javascript:history.back()"
-               class="px-6 py-3 text-sm font-medium rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors">
-                Go Back
-            </a>
         </div>
     </div>
 </body>

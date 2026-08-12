@@ -90,7 +90,7 @@ Route::middleware('guest')->group(function () {
 });
 
 // Signed POS invoice PDF (e.g. WhatsApp) — tenant from host, no login
-Route::middleware([InitializeTenancyFromDomain::class, 'tenant', 'signed'])->group(function () {
+Route::middleware([InitializeTenancyFromDomain::class, 'tenant', 'signed.flexible'])->group(function () {
     Route::get('invoice/pos/{transaction}', [PosController::class, 'invoicePdfSigned'])
         ->name('pos.invoice.pdf.signed');
 });
@@ -137,7 +137,7 @@ Route::middleware('auth')->group(function () {
 
 // Signed verification URL (from email link) — must work while logged out
 Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-     ->middleware(['signed', 'throttle:6,1'])
+     ->middleware(['signed.flexible', 'throttle:6,1'])
      ->name('verification.verify');
 
 // ── 2FA Challenge (after login, before full session) ─────────────────────────

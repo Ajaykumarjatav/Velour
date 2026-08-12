@@ -6,7 +6,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\URL;
+use App\Support\SignedUrl;
 
 /**
  * Branded email verification. Sent synchronously so registration can catch
@@ -29,7 +29,7 @@ class VerifyEmailNotification extends VerifyEmail
 
     protected function verificationUrl($notifiable): string
     {
-        return URL::temporarySignedRoute(
+        return SignedUrl::temporaryRoute(
             'verification.verify',
             Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)),
             [

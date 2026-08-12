@@ -9,6 +9,8 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
@@ -125,6 +127,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.store.readonly' => \App\Http\Middleware\EnsureAdminStoreBrowseReadOnly::class,
             'admin.store.browse.readonly-pages' => \App\Http\Middleware\RedirectAdminBrowseWritePages::class,
             'user.activity'    => \App\Http\Middleware\LogUserActivity::class,
+            'signed.flexible'  => \App\Http\Middleware\ValidateFlexibleSignature::class,
             'client.auth'      => \App\Http\Middleware\AuthenticateClientToken::class,
             'client.portal'    => \App\Http\Middleware\EnsureClientPortalAuth::class,
             'client.salon'     => \App\Http\Middleware\ResolveClientSalon::class,
@@ -158,6 +161,30 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'This action is unauthorised.'], 403);
             }
+        });
+
+        $exceptions->render(function (InvalidSignatureException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Invalid or expired link.'], 403);
+            }
+
+            // Email verification links — send user to login with a clear next step
+            if ($request->is('verify-email/*') || $request->routeIs('verification.verify')) {
+                return redirect()
+                    ->route('login')
+                    ->with('error', 'This verification link is invalid or expired. Sign in and use “Resend verification email”, or register again if needed.');
+            }
+
+            // Signed invoice / other signed links
+            if ($request->routeIs('pos.invoice.pdf.signed') || $request->is('invoice/*')) {
+                return redirect()
+                    ->route('login')
+                    ->with('error', 'This invoice link is invalid or has expired. Please ask the salon to send a new one.');
+            }
+
+            return response()->view('errors.403', [
+                'exception' => new HttpException(403, 'This link is invalid or has expired. Please request a new one.'),
+            ], 403);
         });
 
         $exceptions->render(function (TooManyRequestsHttpException $e, Request $request) {
