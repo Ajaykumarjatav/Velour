@@ -4,7 +4,6 @@
 
 @php
     use App\Support\PosInvoiceFormatting;
-    use Illuminate\Support\Facades\URL;
 
     $transaction->loadMissing(['salon', 'client', 'items', 'staff']);
     $salon = $transaction->salon;
@@ -15,7 +14,7 @@
     $invoiceDate = ($transaction->completed_at ?? $transaction->created_at)?->timezone($tz);
     $client = $transaction->client;
     $clientName = $client ? trim(($client->first_name ?? '').' '.($client->last_name ?? '')) : '';
-    $invoicePdfSignedUrl = URL::temporarySignedRoute(
+    $invoicePdfSignedUrl = \App\Support\SignedUrl::temporaryRoute(
         'pos.invoice.pdf.signed',
         now()->addDays(14),
         ['transaction' => $transaction->id]
