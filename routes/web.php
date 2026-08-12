@@ -135,9 +135,9 @@ Route::middleware('auth')->group(function () {
          ->name('verification.send');
 });
 
-// Signed verification URL (from email link)
+// Signed verification URL (from email link) — must work while logged out
 Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-     ->middleware(['auth', 'signed', 'throttle:6,1'])
+     ->middleware(['signed', 'throttle:6,1'])
      ->name('verification.verify');
 
 // ── 2FA Challenge (after login, before full session) ─────────────────────────
