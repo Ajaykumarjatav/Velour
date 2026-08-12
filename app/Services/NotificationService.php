@@ -66,6 +66,7 @@ class NotificationService
 
     /**
      * Instant client email after online booking (queued; requires queue worker unless QUEUE_CONNECTION=sync).
+     * Also sends when only the WhatsApp confirmation rule is on, so every confirmation channel emails the client.
      */
     public function sendClientBookingConfirmationIfEnabled(Appointment $appointment): void
     {
@@ -76,7 +77,9 @@ class NotificationService
 
         $cfg = $this->notificationConfig();
         $pluck = $this->salonSettingsPluck($salon);
-        if (! $cfg->isRuleEnabled($salon, 'client_booking_confirmation_email', $pluck)) {
+        $emailOn = $cfg->isRuleEnabled($salon, 'client_booking_confirmation_email', $pluck);
+        $whatsAppOn = $cfg->isRuleEnabled($salon, 'client_booking_confirmation_whatsapp', $pluck);
+        if (! $emailOn && ! $whatsAppOn) {
             return;
         }
 
@@ -86,10 +89,16 @@ class NotificationService
             return;
         }
 
-        $tpl = $cfg->templatesForRule($salon, 'client_booking_confirmation_email', $pluck);
         $ctx = $cfg->buildAppointmentContext($appointment);
-        $subject = $cfg->render($tpl['email_subject'] ?? 'Booking confirmed', $ctx);
-        $body = $cfg->render($tpl['email_body'] ?? '', $ctx);
+        if ($emailOn) {
+            $tpl = $cfg->templatesForRule($salon, 'client_booking_confirmation_email', $pluck);
+            $subject = $cfg->render($tpl['email_subject'] ?? 'Booking confirmed', $ctx);
+            $body = $cfg->render($tpl['email_body'] ?? '', $ctx);
+        } else {
+            $tpl = $cfg->templatesForRule($salon, 'client_booking_confirmation_whatsapp', $pluck);
+            $subject = $cfg->render('Your appointment at {{salon_name}}', $ctx);
+            $body = $cfg->render($tpl['whatsapp_body'] ?? '', $ctx);
+        }
 
         $bodyHtml = $this->clientConfirmationBodyAsHtml($body);
 
@@ -209,15 +218,44 @@ class NotificationService
 
         if ($ruleId === 'client_appointment_reminder_sms') {
             $client = $appointment->client;
-            if (! $client?->phone) {
+            if (! $client?->phone && ! $client?->email) {
                 return false;
             }
+
             $sms = $cfg->render($tpl['sms_body'] ?? '', $ctx);
-            Log::info('Client appointment reminder SMS (stub)', [
-                'appointment_id' => $appointment->id,
-                'to'             => $client->phone,
-                'preview'        => mb_substr($sms, 0, 160),
-            ]);
+            if ($client?->phone) {
+                Log::info('Client appointment reminder SMS (stub)', [
+                    'appointment_id' => $appointment->id,
+                    'to'             => $client->phone,
+                    'preview'        => mb_substr($sms, 0, 160),
+                ]);
+            }
+
+            // Always email as well (SMS gateway may be stub). Skip if email reminder rule already covers it.
+            $emailRuleOn = $cfg->isRuleEnabled($salon, 'client_appointment_reminder_email', $settingsPluck);
+            if ($client?->email && ! $emailRuleOn) {
+                $emailTpl = $cfg->templatesForRule($salon, 'client_appointment_reminder_email', $settingsPluck);
+                $subject = $cfg->render($emailTpl['email_subject'] ?? 'Reminder', $ctx);
+                $body = trim((string) ($emailTpl['email_body'] ?? '')) !== ''
+                    ? $cfg->render($emailTpl['email_body'], $ctx)
+                    : $sms;
+                try {
+                    Mail::to($client->email)->queue(new ClientBookingConfirmationMail(
+                        $subject,
+                        $this->clientConfirmationBodyAsHtml($body)
+                    ));
+                } catch (\Throwable $e) {
+                    Log::error('Client appointment reminder SMS→email failed', [
+                        'appointment_id' => $appointment->id,
+                        'error'          => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if (! $client?->phone && ! ($client?->email && ! $emailRuleOn)) {
+                return false;
+            }
+
             $cfg->markDispatchKey($appointment->fresh(), $key);
             $this->appointmentReminder($appointment->fresh());
 
@@ -249,14 +287,16 @@ class NotificationService
         $recipient = $salon->email ?: optional($salon->owner)->email;
         if ($recipient) {
             try {
-                Log::info('Tenant new-client email (stub)', [
+                Mail::to($recipient)->queue(new ClientBookingConfirmationMail(
+                    $subject,
+                    $this->clientConfirmationBodyAsHtml($body)
+                ));
+            } catch (\Throwable $e) {
+                Log::error('Tenant new-client email failed', [
                     'salon_id' => $salon->id,
                     'to'       => $recipient,
-                    'subject'  => $subject,
-                    'preview'  => mb_substr($body, 0, 200),
+                    'error'    => $e->getMessage(),
                 ]);
-            } catch (\Throwable $e) {
-                Log::error('Tenant new-client email failed', ['error' => $e->getMessage()]);
             }
         }
     }

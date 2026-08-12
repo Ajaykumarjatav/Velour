@@ -91,12 +91,15 @@ class OnboardNewTenant implements ShouldQueue, NotTenantAware
             SalonNotification::create(array_merge(['salon_id' => $this->salon->id], $n));
         }
 
-        // 3. Send welcome email
+        // 3. Send welcome email to the new owner
         try {
             Mail::to($this->user->email)->send(new \App\Mail\WelcomeEmail($this->user, $this->salon));
         } catch (\Throwable $e) {
             Log::warning('Welcome email failed to send', ['user_id' => $this->user->id, 'error' => $e->getMessage()]);
         }
+
+        // 4. Ops copy (new user + first store)
+        \App\Support\OpsNotifier::newUser($this->user, $this->salon);
 
         Log::info('Tenant onboarding complete', ['user_id' => $this->user->id, 'salon_id' => $this->salon->id]);
     }

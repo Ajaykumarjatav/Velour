@@ -34,9 +34,9 @@ class NotificationConfigService
             ],
             'client_booking_confirmation_whatsapp' => [
                 'label'       => 'Client — booking confirmation (WhatsApp)',
-                'description' => 'WhatsApp message to the client immediately after a booking is confirmed.',
+                'description' => 'WhatsApp message to the client immediately after a booking is confirmed (email is also sent when the client has an email).',
                 'timing'      => 'instant',
-                'channels'    => ['whatsapp'],
+                'channels'    => ['whatsapp', 'email'],
                 'default_enabled' => true,
                 'default_offset_hours' => null,
                 'variables'   => ['client_first_name', 'client_last_name', 'salon_name', 'appointment_date', 'appointment_time', 'staff_name', 'service_names', 'reference', 'salon_phone'],
@@ -59,9 +59,9 @@ class NotificationConfigService
             ],
             'client_appointment_reminder_sms' => [
                 'label'       => 'Client — reminder (SMS)',
-                'description' => 'Scheduled SMS to the client before their appointment.',
+                'description' => 'Scheduled SMS to the client before their appointment (email is also sent when SMS is the only reminder channel).',
                 'timing'      => 'scheduled',
-                'channels'    => ['sms'],
+                'channels'    => ['sms', 'email'],
                 'default_enabled' => true,
                 'default_offset_hours' => 24,
                 'variables'   => ['client_first_name', 'salon_name', 'appointment_date', 'appointment_time', 'reference'],

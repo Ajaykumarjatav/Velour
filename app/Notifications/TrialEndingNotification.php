@@ -24,7 +24,7 @@ class TrialEndingNotification extends Notification implements ShouldQueue, NotTe
             ->view('emails.billing.trial-ending', [
                 'user'         => $notifiable,
                 'trialEndsAt'  => $this->trialEndsAt,
-                'billingUrl'   => route('billing.plans'),
+                'billingUrl'   => \App\Support\MailUrl::billingPlansForUser($notifiable),
             ]);
     }
 }

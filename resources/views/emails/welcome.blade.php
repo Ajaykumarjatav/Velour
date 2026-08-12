@@ -54,13 +54,17 @@
       </div>
     </div>
 
-    <a href="{{ config('app.frontend_url') }}/dashboard" class="btn">Open Your Dashboard</a>
+    <a href="{{ \App\Support\MailUrl::dashboard($salon, $user) }}" class="btn">Open Your Dashboard</a>
 
     <p style="color:#555;font-size:12px;margin-top:32px;line-height:1.8;">
-      Your booking link: <a href="{{ config('app.frontend_url') }}/book/{{ $salon->slug }}" style="color:#B8943A;">
-        {{ config('app.frontend_url') }}/book/{{ $salon->slug }}
+      Your booking link: <a href="{{ \App\Support\MailUrl::booking($salon) }}" style="color:#B8943A;">
+        {{ \App\Support\MailUrl::booking($salon) }}
       </a>
     </p>
   </div>
   <div class="footer">
-    EasyGrox Salon SaaS &bull; <a href="/cdn-cgi/l/email-protection#60131510100f12142016050c0f15124e011010" style="color:#555;"><span class="__cf_email__" data-cfemail="ed9e989d9d829f99ad9b888182989fc38c9d9d">[email&#160;protected]</span></a
+    EasyGrox Salon SaaS &bull; <a href="mailto:support@easygrox.com" style="color:#555;">support@easygrox.com</a>
+  </div>
+</div>
+</body>
+</html>

@@ -105,6 +105,13 @@ class AppServiceProvider extends ServiceProvider
             if ($appPath !== '' && $appPath !== '/') {
                 config(['session.path' => $appPath]);
             }
+
+            // Keep frontend_url aligned with this environment when APP_FRONTEND_URL is unset.
+            if (! filled(env('APP_FRONTEND_URL'))) {
+                config([
+                    'app.frontend_url' => \App\Support\StorefrontUrl::publicAppUrl(),
+                ]);
+            }
         }
 
         // Subdirectory installs (e.g. /vellor/admin): paginator must not use raw

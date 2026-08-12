@@ -33,7 +33,7 @@
 <p class="text" style="color:#6b7280;">This time slot is now free. You may want to offer it to another client.</p>
 
 <div style="text-align:center;margin-top:24px;">
-  <a href="{{ url('/appointments') }}" class="btn" style="background:#dc2626">View Appointments →</a>
+  <a href="{{ \App\Support\MailUrl::tenantAppointments($salon) }}" class="btn" style="background:#dc2626">View Appointments →</a>
 </div>
 
 <hr class="divider">

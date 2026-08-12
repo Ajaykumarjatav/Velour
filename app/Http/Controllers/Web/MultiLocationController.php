@@ -177,6 +177,8 @@ class MultiLocationController extends Controller
             ]);
         }
 
+        \App\Support\OpsNotifier::newStore($owner, $salon);
+
         return redirect()->route('multi-location.index')->with('success', 'Location added successfully.');
     }
 

@@ -29,7 +29,7 @@
 </table>
 
 <div style="text-align:center;margin-top:24px;">
-  <a href="{{ url('/appointments/' . $appointment->id) }}" class="btn" style="background:#f59e0b">View Appointment →</a>
+  <a href="{{ \App\Support\MailUrl::tenantAppointment($salon, $appointment) }}" class="btn" style="background:#f59e0b">View Appointment →</a>
 </div>
 
 <hr class="divider">
