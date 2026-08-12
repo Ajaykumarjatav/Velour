@@ -49,7 +49,7 @@ Route::prefix('v1')->middleware(['sanitize'])->group(function () {
         Route::post('forgot',    [AuthController::class, 'forgotPassword']);
         Route::post('reset',     [AuthController::class, 'resetPassword']);
         Route::get('verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-             ->name('verification.verify');
+             ->name('api.verification.verify');
     });
 
     // Public salon marketing website (React storefront)

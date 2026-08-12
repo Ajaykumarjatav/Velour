@@ -28,6 +28,61 @@
             }
         })();
     </script>
+    {{-- Critical shell CSS (plain style — applies before Tailwind CDN compiles) so collapsed sidebar does not flash open --}}
+    <style>
+        @media (min-width: 1024px) {
+            .app-shell-main { padding-left: 15rem; }
+            html.sidebar-is-collapsed .app-shell-main { padding-left: 4.5rem; }
+            .app-shell-sidebar { width: 15rem; }
+            html.sidebar-is-collapsed .app-shell-sidebar { width: 4.5rem; }
+        }
+        .sidebar-logo-icon { display: none; }
+        html.sidebar-is-collapsed .sidebar-logo-icon { display: flex; }
+        html.sidebar-is-collapsed .sidebar-text,
+        html.sidebar-is-collapsed .nav-section-title { display: none !important; }
+        html.sidebar-is-collapsed .sidebar-wrapper { align-items: center; }
+        html.sidebar-is-collapsed .sidebar-wrapper > div:first-child {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link {
+            position: relative;
+            justify-content: center;
+            padding: 0.625rem;
+            border-left: 0;
+            border-radius: 0.75rem;
+            width: 2.75rem;
+            overflow: visible;
+            font-size: 0;
+            gap: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link > span,
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link > svg:not(.nav-icon) {
+            display: none !important;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            flex-shrink: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper nav {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            align-items: center;
+        }
+        html.sidebar-is-collapsed .sidebar-nav-badge { display: none !important; }
+        html.sidebar-is-collapsed .sidebar-submenu-panel:not(.sidebar-submenu-flyout-open) {
+            display: none !important;
+        }
+        .app-shell-sidebar,
+        .app-shell-main {
+            transition: none;
+        }
+    </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {

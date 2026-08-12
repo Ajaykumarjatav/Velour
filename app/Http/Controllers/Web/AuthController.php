@@ -14,7 +14,6 @@ use App\Support\AuthRedirect;
 use App\Support\ProfileCompletion;
 use App\Support\TrustedDevice;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -258,20 +257,38 @@ class AuthController extends Controller
         return view('auth.verify-email');
     }
 
-    public function verifyEmail(EmailVerificationRequest $request)
+    public function verifyEmail(Request $request, int $id, string $hash)
     {
-        $request->fulfill(); // marks verified + fires Verified event
-        $user = $request->user();
-        $salon = $user->salons()->orderBy('id')->first();
-        if ($salon) {
-            $completion = ProfileCompletion::forSalon($salon);
-            if ($completion['percentage'] < 100) {
-                return redirect()->to(\App\Support\SalonUrl::route('onboarding.index', ['store' => \App\Support\SalonUrl::key($salon)]))->with('success', 'Email verified. Continue your setup to go live.');
-            }
+        $user = User::findOrFail($id);
+
+        if (! hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
+            abort(403, 'Invalid verification link.');
         }
 
-        return redirect()->to(AuthPanel::homeUrl($user))
-            ->with('success', 'Email verified. Welcome to EasyGrox!');
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            event(new \Illuminate\Auth\Events\Verified($user));
+        }
+
+        // Already signed in as this user → continue into the app
+        if (Auth::check() && (int) Auth::id() === (int) $user->id) {
+            $salon = $user->salons()->orderBy('id')->first();
+            if ($salon) {
+                $completion = ProfileCompletion::forSalon($salon);
+                if ($completion['percentage'] < 100) {
+                    return redirect()
+                        ->to(\App\Support\SalonUrl::route('onboarding.index', ['store' => \App\Support\SalonUrl::key($salon)]))
+                        ->with('success', 'Email verified. Continue your setup to go live.');
+                }
+            }
+
+            return redirect()->to(AuthPanel::homeUrl($user))
+                ->with('success', 'Email verified. Welcome to EasyGrox!');
+        }
+
+        // Guest (or different account) → send to login with clear success
+        return redirect()->route('login')
+            ->with('success', 'Email verified successfully. Please sign in to continue.');
     }
 
     public function resendVerification(Request $request)
