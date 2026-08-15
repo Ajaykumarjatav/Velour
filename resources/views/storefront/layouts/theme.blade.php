@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $data['salon']['name'] ?? $salon->name }} — Book Online</title>
+    @include('partials.easygrox-http')
     @if(!empty($data['salon']['description']))
     <meta name="description" content="{{ $data['salon']['description'] }}">
     @endif
@@ -47,14 +48,15 @@
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
+        window.__STOREFRONT_BOOKING_ENABLED__ = @json((bool) ($data['salon']['online_booking_enabled'] ?? $salon->online_booking_enabled ?? false));
         (function () {
-            if (window.location.hash === '#book') {
-                document.body.classList.add('storefront-booking-active');
-            }
             function syncBookingHash() {
                 var open = window.location.hash === '#book';
                 document.body.classList.toggle('storefront-booking-active', open);
                 window.dispatchEvent(new CustomEvent('storefront-booking-toggle', { detail: { open: open } }));
+            }
+            if (window.location.hash === '#book') {
+                document.body.classList.add('storefront-booking-active');
             }
             window.addEventListener('hashchange', syncBookingHash);
             document.addEventListener('DOMContentLoaded', syncBookingHash);

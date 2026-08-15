@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sign In') — EasyGrox</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    @include('partials.easygrox-http')
     <script>
         (function () {
             var saved = localStorage.getItem('velour-theme');

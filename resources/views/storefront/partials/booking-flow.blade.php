@@ -2,19 +2,36 @@
     $slug = $salon->slug;
     $currency = $data['salon']['currency_symbol'] ?? '£';
     $salonName = $data['salon']['name'] ?? $salon->name;
+    $onlineBookingEnabled = (bool) ($data['salon']['online_booking_enabled'] ?? $salon->online_booking_enabled);
 @endphp
 <div x-data="storefrontBooking(@js([
     'slug' => $slug,
     'apiBase' => $apiBase,
     'currency' => $currency,
     'salonName' => $salonName,
+    'onlineBookingEnabled' => $onlineBookingEnabled,
 ]))"
      x-init="init()"
-     @storefront-booking-toggle.window="open = $event.detail.open"
+     @storefront-booking-toggle.window="onBookingToggle($event.detail.open)"
      x-show="open"
      x-cloak
      class="storefront-booking-overlay">
-    <template x-if="step === 5 && bookingRef">
+    <template x-if="!onlineBookingEnabled">
+        <div class="min-h-screen flex flex-col">
+            <header class="border-b border-white/10 px-4 py-4 max-w-2xl mx-auto w-full flex items-center justify-between">
+                <span class="font-manrope font-bold text-lg" x-text="salonName"></span>
+                <button type="button" @click="close()" class="text-sm text-white/60 hover:text-white">← Back to site</button>
+            </header>
+            <main class="flex-1 max-w-lg mx-auto px-4 py-16 text-center">
+                <div class="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-6 text-2xl">⏸</div>
+                <h1 class="text-2xl font-bold mb-3">Online booking is offline</h1>
+                <p class="text-white/70 text-sm mb-8">This salon has turned offline booking off for now. Please contact them directly to book an appointment.</p>
+                <button type="button" @click="close()" class="inline-flex px-6 py-3 rounded-full bg-primary text-white font-semibold">Back to website</button>
+            </main>
+        </div>
+    </template>
+
+    <template x-if="onlineBookingEnabled && step === 5 && bookingRef">
         <div class="min-h-screen">
             <header class="border-b border-white/10 px-4 py-4 max-w-2xl mx-auto flex items-center justify-between">
                 <span class="font-manrope font-bold text-lg" x-text="salonName"></span>
@@ -36,7 +53,7 @@
         </div>
     </template>
 
-    <template x-if="!(step === 5 && bookingRef)">
+    <template x-if="onlineBookingEnabled && !(step === 5 && bookingRef)">
         <div class="min-h-screen">
             <header class="sticky top-0 z-50 bg-black/95 backdrop-blur border-b border-white/10 px-4 py-4">
                 <div class="max-w-2xl mx-auto flex items-center justify-between gap-4">
@@ -136,8 +153,75 @@
                         <h2 class="font-manrope font-bold text-base sm:text-lg">When would you like to visit?</h2>
                         <p class="text-xs sm:text-sm text-white/50 mt-0.5">Pick a date, then choose a time.</p>
                     </div>
-                    <input type="date" :min="today" :max="maxDate" x-model="selected.date" @change="loadSlots()"
-                           class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white">
+
+                    <div class="relative" @click.outside="calendarOpen = false" @keydown.escape.window="calendarOpen = false">
+                        <button type="button" @click="calendarOpen = !calendarOpen"
+                                class="w-full flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/10 hover:bg-white/[0.12] px-4 py-3.5 text-left transition-colors">
+                            <div class="min-w-0">
+                                <p class="text-[10px] uppercase tracking-widest text-white/40 mb-0.5">Date</p>
+                                <p class="text-sm font-semibold text-white truncate"
+                                   x-text="selected.date ? formatDate(selected.date) : 'Select a date'"></p>
+                            </div>
+                            <span class="shrink-0 w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/70">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </span>
+                        </button>
+
+                        <div x-show="calendarOpen" x-cloak x-transition.origin.top.left
+                             class="mt-2 rounded-2xl border border-white/10 bg-[#12151f] p-4 sm:p-5 shadow-2xl shadow-black/50 z-20 relative">
+                            <div class="flex items-center justify-between gap-3 mb-4">
+                                <button type="button" @click="shiftCalendarMonth(-1)" :disabled="!canShiftCalendar(-1)"
+                                        class="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                                        aria-label="Previous month">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                                </button>
+                                <div class="text-center min-w-0 flex-1">
+                                    <p class="font-manrope font-semibold text-white text-sm sm:text-base tracking-tight" x-text="calendarMonthLabel"></p>
+                                    <p class="text-[10px] uppercase tracking-widest text-white/35 mt-0.5" x-show="selected.date" x-text="formatDateShort(selected.date)"></p>
+                                </div>
+                                <button type="button" @click="shiftCalendarMonth(1)" :disabled="!canShiftCalendar(1)"
+                                        class="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                                        aria-label="Next month">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                </button>
+                                <button type="button" @click="calendarOpen = false"
+                                        class="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white flex items-center justify-center transition-colors"
+                                        aria-label="Close calendar">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-7 gap-1 mb-2">
+                                <template x-for="dow in ['Su','Mo','Tu','We','Th','Fr','Sa']" :key="dow">
+                                    <div class="text-center text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-white/35 py-1" x-text="dow"></div>
+                                </template>
+                            </div>
+
+                            <div class="grid grid-cols-7 gap-1">
+                                <template x-for="cell in calendarCells" :key="cell.key">
+                                    <button type="button"
+                                            @click="cell.selectable && pickCalendarDate(cell.ymd)"
+                                            :disabled="!cell.selectable"
+                                            :class="calendarDayClass(cell)"
+                                            class="aspect-square rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center justify-center relative"
+                                            x-text="cell.day">
+                                    </button>
+                                </template>
+                            </div>
+
+                            <div class="mt-4 flex items-center justify-between gap-2">
+                                <button type="button" @click="pickCalendarDate(today)" :disabled="today > maxDate"
+                                        class="text-[11px] font-semibold text-primary hover:text-primary-dark disabled:opacity-40">Today</button>
+                                <div class="flex items-center gap-3">
+                                    <button type="button" x-show="selected.date" @click="clearCalendarDate()"
+                                            class="text-[11px] font-semibold text-white/45 hover:text-white">Clear</button>
+                                    <button type="button" @click="calendarOpen = false"
+                                            class="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/15">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <template x-if="selected.date">
                         <div class="rounded-xl border border-white/10 bg-[#1a1f2e]/80 p-3 sm:p-4">
                             <div class="flex items-center justify-between gap-2 mb-3">
@@ -157,7 +241,11 @@
                                     <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5 sm:gap-2">
                                         <template x-for="slot in periodSlots" :key="slot.time">
                                             <button type="button" :disabled="!slot.available" @click="selectSlot(slot)"
-                                                    :class="slot.available ? 'border-white/15 bg-white/5 text-white hover:border-primary hover:bg-primary/15 active:scale-[0.98]' : 'border-white/5 text-white/25 cursor-not-allowed'"
+                                                    :class="[
+                                                        selected.slot?.time === slot.time
+                                                            ? 'border-primary bg-primary text-white shadow-lg shadow-primary/25'
+                                                            : (slot.available ? 'border-white/15 bg-white/5 text-white hover:border-primary hover:bg-primary/15 active:scale-[0.98]' : 'border-white/5 text-white/25 cursor-not-allowed')
+                                                    ]"
                                                     class="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm font-semibold border transition-colors duration-150" x-text="slot.time"></button>
                                         </template>
                                     </div>
@@ -231,7 +319,8 @@
 function storefrontBooking(config) {
     return {
         ...config,
-        open: window.location.hash === '#book',
+        onlineBookingEnabled: Boolean(config.onlineBookingEnabled),
+        open: Boolean(config.onlineBookingEnabled) && window.location.hash === '#book',
         steps: ['Services', 'Date & time', 'Stylist', 'Your details', 'Confirm'],
         step: 0,
         loading: true,
@@ -255,10 +344,57 @@ function storefrontBooking(config) {
         get maxDate() { const d = new Date(); d.setDate(d.getDate() + 60); return d.toISOString().slice(0, 10); },
         get bookCategories() { return this.allServices.filter(c => (c.services?.length ?? 0) > 0); },
         get flatServices() { return this.bookCategories.flatMap(c => c.services ?? []); },
+        calendarCursor: null,
+        calendarOpen: false,
+        get calendarMonthLabel() {
+            const d = this.calendarCursorDate();
+            return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        },
+        get calendarCells() {
+            const cursor = this.calendarCursorDate();
+            const year = cursor.getFullYear();
+            const month = cursor.getMonth();
+            const first = new Date(year, month, 1);
+            const startPad = first.getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const cells = [];
+            for (let i = 0; i < startPad; i++) {
+                cells.push({ key: 'pad-' + i, day: '', ymd: '', selectable: false, inMonth: false, isToday: false, isSelected: false });
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const ymd = this.toYmd(new Date(year, month, day));
+                cells.push({
+                    key: ymd,
+                    day,
+                    ymd,
+                    inMonth: true,
+                    selectable: ymd >= this.today && ymd <= this.maxDate,
+                    isToday: ymd === this.today,
+                    isSelected: ymd === this.selected.date,
+                });
+            }
+            while (cells.length % 7 !== 0) {
+                cells.push({ key: 'end-' + cells.length, day: '', ymd: '', selectable: false, inMonth: false, isToday: false, isSelected: false });
+            }
+            return cells;
+        },
         init() {
+            this.calendarCursor = this.today.slice(0, 7) + '-01';
             this.syncBodyBookingState();
             this.$watch('open', () => this.syncBodyBookingState());
-            this.fetchServices();
+            if (this.onlineBookingEnabled) {
+                this.fetchServices();
+            } else {
+                this.loading = false;
+            }
+        },
+        onBookingToggle(wantOpen) {
+            if (!this.onlineBookingEnabled) {
+                // Still show the offline notice if someone hits #book
+                this.open = Boolean(wantOpen);
+                return;
+            }
+            this.open = Boolean(wantOpen);
         },
         syncBodyBookingState() {
             document.body.classList.toggle('storefront-booking-active', this.open);
@@ -365,6 +501,58 @@ function storefrontBooking(config) {
             if (!dateStr) return '';
             try { return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
             catch { return dateStr; }
+        },
+        formatDateShort(dateStr) {
+            if (!dateStr) return '';
+            try { return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); }
+            catch { return dateStr; }
+        },
+        toYmd(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        },
+        calendarCursorDate() {
+            const raw = this.calendarCursor || (this.today.slice(0, 7) + '-01');
+            const parts = raw.split('-').map(Number);
+            return new Date(parts[0], (parts[1] || 1) - 1, 1);
+        },
+        canShiftCalendar(delta) {
+            const cursor = this.calendarCursorDate();
+            cursor.setMonth(cursor.getMonth() + delta);
+            const monthStart = this.toYmd(new Date(cursor.getFullYear(), cursor.getMonth(), 1));
+            const monthEnd = this.toYmd(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0));
+            return monthEnd >= this.today && monthStart <= this.maxDate;
+        },
+        shiftCalendarMonth(delta) {
+            if (!this.canShiftCalendar(delta)) return;
+            const cursor = this.calendarCursorDate();
+            cursor.setMonth(cursor.getMonth() + delta);
+            this.calendarCursor = this.toYmd(new Date(cursor.getFullYear(), cursor.getMonth(), 1));
+        },
+        calendarDayClass(cell) {
+            if (!cell.inMonth) return 'invisible pointer-events-none';
+            if (cell.isSelected) return 'bg-primary text-white shadow-lg shadow-primary/30 scale-[1.02]';
+            if (!cell.selectable) return 'text-white/20 cursor-not-allowed';
+            if (cell.isToday) return 'bg-white/10 text-white ring-1 ring-primary/50 hover:bg-primary/20';
+            return 'text-white/85 hover:bg-white/10 hover:text-white';
+        },
+        pickCalendarDate(ymd) {
+            if (!ymd || ymd < this.today || ymd > this.maxDate) return;
+            this.selected.date = ymd;
+            this.selected.slot = null;
+            this.calendarCursor = ymd.slice(0, 7) + '-01';
+            this.calendarOpen = false;
+            this.loadSlots();
+        },
+        clearCalendarDate() {
+            this.selected.date = '';
+            this.selected.slot = null;
+            this.slots = [];
+            this.slotsError = '';
+            this.combinedInfo = null;
+            this.calendarOpen = false;
         },
         loadSlots() {
             if (!this.selected.date || !this.selected.services.length) return;

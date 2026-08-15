@@ -101,6 +101,11 @@ Route::post('logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
+// Fresh CSRF meta token for AJAX clients (session must already exist)
+Route::get('csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->middleware('throttle:60,1')->name('csrf.token');
+
 // Public review forms (outside auth; include store key in URL)
 Route::prefix('{store}')
     ->where(['store' => SalonUrl::reservedPattern()])
@@ -466,6 +471,7 @@ use App\Http\Controllers\Admin\AdminTenantController;
 use App\Http\Controllers\Admin\AdminRevenueController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSupportController;
+use App\Http\Controllers\Admin\AdminContactQueryController;
 use App\Http\Controllers\Admin\AdminAnalyticsController;
 use App\Http\Controllers\Admin\AdminTenantOwnerController;
 use App\Http\Controllers\Admin\AdminTenantStoresController;
@@ -584,6 +590,10 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin',
     Route::post('support/{ticket}/reply',    [AdminSupportController::class, 'reply'])->name('support.reply');
     Route::patch('support/{ticket}/assign',  [AdminSupportController::class, 'assign'])->name('support.assign');
     Route::patch('support/{ticket}/status',  [AdminSupportController::class, 'updateStatus'])->name('support.status');
+
+    // ── Contact form queries (website) ────────────────────────────────────────
+    Route::get('contact-queries',            [AdminContactQueryController::class, 'index'])->name('contact-queries.index');
+    Route::get('contact-queries/{contactQuery}', [AdminContactQueryController::class, 'show'])->name('contact-queries.show');
 
     // ── Usage Analytics ───────────────────────────────────────────────────────
     Route::get('analytics',                  [AdminAnalyticsController::class, 'index'])->name('analytics');

@@ -6,6 +6,7 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>EasyGrox Admin · @yield('title', 'Dashboard')</title>
   <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+  @include('partials.easygrox-http')
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -210,6 +211,7 @@
           ['route' => 'admin.revenue',       'icon' => 'revenue',      'label' => 'Revenue'],
           ['route' => 'admin.plans',         'icon' => 'packages',     'label' => 'Plans'],
           ['route' => 'admin.support.index', 'icon' => 'support',      'label' => 'Support'],
+          ['route' => 'admin.contact-queries.index', 'icon' => 'mail', 'label' => 'Contact queries'],
           ['route' => 'admin.analytics',     'icon' => 'analytics',    'label' => 'Analytics'],
           ['route' => 'admin.billing',       'icon' => 'billing',      'label' => 'Billing'],
           ['route' => 'admin.audit.index',   'icon' => 'audit',        'label' => 'Audit Log'],
@@ -223,11 +225,14 @@
         if ($item['route'] === 'admin.support.index' && $openTickets > 0) {
             $navTitle .= ' ('.$openTickets.' open)';
         }
+        $isActive = str_ends_with($item['route'], '.index')
+            ? request()->routeIs(str_replace('.index', '.*', $item['route']))
+            : request()->routeIs($item['route']);
       @endphp
       <a href="{{ route($item['route']) }}"
          data-title="{{ $navTitle }}"
          class="admin-nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors
-                {{ request()->routeIs($item['route'].'*') ? 'bg-velour-600 text-white font-semibold' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
+                {{ $isActive ? 'bg-velour-600 text-white font-semibold' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
         @include('partials.sidebar-nav-icon', ['icon' => $item['icon']])
         <span class="admin-nav-label flex-1">{{ $item['label'] }}</span>
         @if($item['route'] === 'admin.support.index' && $openTickets > 0)

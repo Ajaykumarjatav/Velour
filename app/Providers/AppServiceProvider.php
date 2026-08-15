@@ -106,6 +106,11 @@ class AppServiceProvider extends ServiceProvider
                 config(['session.path' => $appPath]);
             }
 
+            // HTTPS installs must mark session cookies Secure or browsers may drop them.
+            if ($scheme === 'https') {
+                config(['session.secure' => true]);
+            }
+
             // Keep frontend_url aligned with this environment when APP_FRONTEND_URL is unset.
             if (! filled(env('APP_FRONTEND_URL'))) {
                 config([

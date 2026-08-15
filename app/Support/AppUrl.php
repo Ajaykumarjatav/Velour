@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 /**
  * Build absolute URLs that include the APP_URL subdirectory when the app
- * runs under a path prefix (e.g. /vellor on XAMPP).
+ * runs under a path prefix (e.g. /vellor/admin on XAMPP).
  */
 final class AppUrl
 {
@@ -18,7 +18,7 @@ final class AppUrl
             return url('/');
         }
 
-        $appPath = self::appBasePath();
+        $appPath = self::basePath();
         $path = $pathOrUrl;
         $query = null;
 
@@ -42,6 +42,29 @@ final class AppUrl
         return $url;
     }
 
+    /**
+     * Same-origin path for fetch/form actions (keeps subdirectory, drops host).
+     * Avoids CSRF failures when APP_URL host differs from the browser host.
+     */
+    public static function path(string $name, mixed $parameters = [], bool $absolute = true): string
+    {
+        $url = route($name, $parameters, $absolute);
+        $path = parse_url($url, PHP_URL_PATH) ?: '/';
+        $query = parse_url($url, PHP_URL_QUERY);
+
+        return $query ? $path.'?'.$query : $path;
+    }
+
+    /**
+     * App subdirectory from APP_URL (e.g. "/vellor/admin" or "/admin" or "").
+     */
+    public static function basePath(): string
+    {
+        $appUrl = rtrim((string) config('app.url'), '/');
+
+        return rtrim(parse_url($appUrl, PHP_URL_PATH) ?: '', '/');
+    }
+
     public static function intendedFromRequest(Request $request): string
     {
         $path = '/'.ltrim($request->path(), '/');
@@ -52,12 +75,5 @@ final class AppUrl
         }
 
         return self::absolute($path);
-    }
-
-    private static function appBasePath(): string
-    {
-        $appUrl = rtrim((string) config('app.url'), '/');
-
-        return rtrim(parse_url($appUrl, PHP_URL_PATH) ?: '', '/');
     }
 }

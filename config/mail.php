@@ -8,5 +8,7 @@ return [
     'from'      => ['address' => env('MAIL_FROM_ADDRESS', 'noreply@easygrox.com'), 'name' => env('MAIL_FROM_NAME', 'EasyGrox')],
     // Internal ops inbox for new user / new store alerts
     'ops_notify' => env('MAIL_OPS_NOTIFY', 'ajayajatav439@gmail.com'),
+    // Optional CC (comma-separated) for the same ops alerts
+    'ops_notify_cc' => env('MAIL_OPS_NOTIFY_CC', ''),
     'markdown'  => ['theme' => 'default', 'paths' => [resource_path('views/vendor/mail')]],
 ];

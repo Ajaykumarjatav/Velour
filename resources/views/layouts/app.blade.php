@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') — EasyGrox</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    @include('partials.easygrox-http')
     {{-- Apply theme BEFORE any CSS loads to prevent flash of wrong theme --}}
     <script>
         (function () {
@@ -1171,13 +1172,15 @@
             setTimeout(function () { bar.remove(); }, 200);
         }
         try {
-            await fetch(@json(route('ui.hide-profile-bar')), {
+            await fetch(@json(\App\Support\AppUrl::path('ui.hide-profile-bar')), {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json',
-                },
+                headers: window.EasyGroxHttp
+                    ? window.EasyGroxHttp.csrfHeaders()
+                    : {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
                 credentials: 'same-origin',
             });
         } catch (e) {

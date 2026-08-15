@@ -104,14 +104,20 @@ function cookieBanner() {
 
     savePreferences() {
       localStorage.setItem('velour_cookie_consent', JSON.stringify(this.prefs));
-      fetch('{{ route("legal.cookie-consent") }}', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-        },
-        body: JSON.stringify(this.prefs)
-      });
+      const url = @json(\App\Support\AppUrl::path('legal.cookie-consent'));
+      if (window.EasyGroxHttp) {
+        window.EasyGroxHttp.post(url, this.prefs);
+      } else {
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify(this.prefs)
+        });
+      }
       this.show = false;
     }
   }

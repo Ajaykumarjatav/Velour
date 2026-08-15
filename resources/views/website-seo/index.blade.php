@@ -15,7 +15,7 @@
             <div class="flex flex-wrap gap-2">
                 <a href="{{ $websiteUrl }}" target="_blank" rel="noopener" class="btn-outline btn-sm">Preview Site</a>
                 <x-unless-admin-browse>
-                <form method="POST" action="{{ route('website-seo.publish') }}" class="salon-write-ui">
+                <form method="POST" action="{{ \App\Support\AppUrl::path('website-seo.publish') }}" class="salon-write-ui">
                     @csrf
                     <input type="hidden" name="published" value="{{ $stats['published'] ? 0 : 1 }}">
                     <button type="submit" class="btn-primary btn-sm">{{ $stats['published'] ? 'Unpublish' : 'Publish' }}</button>
