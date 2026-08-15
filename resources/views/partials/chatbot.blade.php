@@ -247,13 +247,16 @@ function chatbot() {
             this.typing = true;
             this.$nextTick(() => this.scrollBottom());
 
-            fetch('{{ $chatRoute }}', {
+            fetch((window.EasyGroxHttp ? window.EasyGroxHttp.sameOrigin('{{ $chatRoute }}') : '{{ $chatRoute }}'), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                    'Accept': 'application/json',
-                },
+                headers: (window.EasyGroxHttp
+                    ? window.EasyGroxHttp.csrfHeaders({ 'Content-Type': 'application/json' })
+                    : {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                    }),
+                credentials: 'same-origin',
                 body: JSON.stringify({ message: text }),
             })
             .then(r => r.json())

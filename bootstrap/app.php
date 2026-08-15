@@ -10,6 +10,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Routing\Exceptions\InvalidSignatureException;
+use Illuminate\Session\TokenMismatchException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -161,6 +162,20 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'This action is unauthorised.'], 403);
             }
+        });
+
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Your session expired. Please refresh the page and try again.',
+                ], 419);
+            }
+
+            $fallback = $request->headers->get('referer') ?: url('/');
+
+            return redirect()
+                ->to($fallback)
+                ->with('error', 'Your session expired for security. Please try that action again.');
         });
 
         $exceptions->render(function (InvalidSignatureException $e, Request $request) {

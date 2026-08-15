@@ -194,11 +194,14 @@
           try {
             const res = await fetch(this.toggleUrl, {
               method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': this.csrf,
-              },
+              headers: window.EasyGroxHttp
+                ? window.EasyGroxHttp.csrfHeaders({ 'Content-Type': 'application/json' })
+                : {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': this.csrf,
+                  },
+              credentials: 'same-origin',
               body: JSON.stringify({ role, permission, enabled }),
             });
             const data = await res.json().catch(() => ({}));

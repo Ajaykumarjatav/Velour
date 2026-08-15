@@ -740,13 +740,17 @@ function goLivePage() {
 
     // ── API fetchers ─────────────────────────────────────────────────────
     async api(path) {
-      const res = await fetch(`/api/v1/salon/${path}`, {
-        headers: {
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-        },
-        credentials: 'same-origin',
-      });
+      const http = window.EasyGroxHttp;
+      const url = `/api/v1/salon/${path}`;
+      const res = http
+        ? await http.request(url, { method: 'GET' })
+        : await fetch(url, {
+            headers: {
+              'Accept': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            credentials: 'same-origin',
+          });
       if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
       return res.json();
     },
@@ -778,24 +782,39 @@ function goLivePage() {
       this.saveOk = false;
       this.salon[key] = value;          // optimistic update
       try {
-        const res = await fetch('{{ route("go-live.settings.update") }}', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept':        'application/json',
-            'X-CSRF-TOKEN':  document.querySelector('meta[name="csrf-token"]').content,
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify({ [key]: value }),
-        });
+        const url = @json(\App\Support\AppUrl::path('go-live.settings.update'));
+        const body = { [key]: value };
+        const res = window.EasyGroxHttp
+          ? await window.EasyGroxHttp.post(url, body)
+          : await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+              },
+              credentials: 'same-origin',
+              body: JSON.stringify(body),
+            });
+
         if (!res.ok) {
-          throw new Error(`Setting save failed (${res.status})`);
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || `Setting save failed (${res.status})`);
         }
+
+        const data = await res.json().catch(() => ({}));
+        if (data.salon && typeof data.salon[key] !== 'undefined') {
+          this.salon[key] = !!data.salon[key];
+        }
+
         this.saveOk = true;
         setTimeout(() => this.saveOk = false, 3000);
       } catch(e) {
         this.salon[key] = previousValue; // rollback
         console.error('save failed:', e);
+        if (typeof window.showToast === 'function') {
+          window.showToast(e.message || 'Could not save setting. Refresh and try again.', 'error');
+        }
       } finally {
         this.saving = false;
       }
@@ -805,16 +824,21 @@ function goLivePage() {
       if (this.readOnly) return;
       this.shareClicks[platform] = (this.shareClicks[platform] ?? 0) + 1; // optimistic
       try {
-        await fetch('/api/v1/salon/share/track-click', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept':        'application/json',
-            'X-CSRF-TOKEN':  document.querySelector('meta[name="csrf-token"]').content,
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify({ platform }),
-        });
+        const url = '/api/v1/salon/share/track-click';
+        if (window.EasyGroxHttp) {
+          await window.EasyGroxHttp.post(url, { platform });
+        } else {
+          await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ platform }),
+          });
+        }
       } catch(e) { /* non-critical */ }
     },
 
@@ -886,10 +910,12 @@ function salonPhotos() {
 
         const fd = new FormData();
         fd.append('photo', file);
-        fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
 
         try {
-          const res  = await fetch('{{ route("go-live.photos.upload") }}', { method: 'POST', body: fd, credentials: 'same-origin' });
+          const url = @json(\App\Support\AppUrl::path('go-live.photos.upload'));
+          const res = window.EasyGroxHttp
+            ? await window.EasyGroxHttp.post(url, fd)
+            : await fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' });
           const data = await res.json();
           if (!res.ok) {
             this.uploadError = data.error ?? 'Upload failed.';
@@ -909,14 +935,18 @@ function salonPhotos() {
     async deletePhoto(id) {
       if (!confirm('Remove this photo?')) return;
       try {
-        const res = await fetch(`{{ url('go-live/photos') }}/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Accept': 'application/json',
-          },
-          credentials: 'same-origin',
-        });
+        const template = @json(\App\Support\AppUrl::path('go-live.photos.delete', ['photo' => 0]));
+        const deleteUrl = template.replace(/\/0(\?|$)/, '/' + id + '$1').replace(/\/0$/, '/' + id);
+        const res = window.EasyGroxHttp
+          ? await window.EasyGroxHttp.request(deleteUrl, { method: 'DELETE' })
+          : await fetch(deleteUrl, {
+              method: 'DELETE',
+              headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+              },
+              credentials: 'same-origin',
+            });
         if (res.ok) {
           this.photos = this.photos.filter(p => p.id !== id);
         }

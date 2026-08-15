@@ -25,6 +25,17 @@ class BookingController extends Controller
             ], 503);
         }
 
+        if (! $salon->online_booking_enabled) {
+            if (! $request->boolean('legacy')) {
+                return redirect(StorefrontUrl::website($salon).'#book');
+            }
+
+            return response()->view('booking.unavailable', [
+                'salon'   => $salon,
+                'reasons' => ['Online booking is currently turned off.'],
+            ], 200);
+        }
+
         if (! $request->boolean('legacy')) {
             return redirect(StorefrontUrl::website($salon) . '#book');
         }

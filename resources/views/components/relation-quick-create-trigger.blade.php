@@ -132,7 +132,6 @@ document.addEventListener('alpine:init', () => {
             this.loading = true;
             this.fieldErrors = {};
             const fd = new FormData();
-            fd.append('_token', this.cfg.csrf);
             if (this.cfg.type === 'client') {
                 fd.append('name', this.qcClientName || '');
                 fd.append('phone', this.qcPhone || '');
@@ -162,15 +161,17 @@ document.addEventListener('alpine:init', () => {
                 fd.append('name', this.qcInvCatName);
             }
             try {
-                const res = await fetch(this.cfg.postUrl, {
-                    method: 'POST',
-                    body: fd,
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    credentials: 'same-origin',
-                });
+                const res = window.EasyGroxHttp
+                    ? await window.EasyGroxHttp.post(this.cfg.postUrl, fd)
+                    : await fetch(this.cfg.postUrl, {
+                        method: 'POST',
+                        body: fd,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    });
                 const data = await res.json().catch(() => ({}));
                 if (res.status === 422) {
                     this.fieldErrors = data.errors || {};

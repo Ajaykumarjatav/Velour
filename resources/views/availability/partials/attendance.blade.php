@@ -426,6 +426,15 @@ document.addEventListener('alpine:init', () => {
             return template.replace('__STAFF__', String(staffId));
         },
         async post(url, body) {
+            if (window.EasyGroxHttp) {
+                const res = await window.EasyGroxHttp.post(url, body);
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) {
+                    throw new Error(data.message || 'Something went wrong.');
+                }
+                return data;
+            }
+
             const res = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -446,7 +455,6 @@ document.addEventListener('alpine:init', () => {
             this.setLoading(staffId, ymd, status);
             try {
                 const fd = new FormData();
-                fd.append('_token', this.csrf);
                 fd.append('staff_id', staffId);
                 fd.append('date', ymd);
                 fd.append('status', status);
@@ -463,7 +471,6 @@ document.addEventListener('alpine:init', () => {
             this.setLoading(staffId, this.today, 'in');
             try {
                 const fd = new FormData();
-                fd.append('_token', this.csrf);
                 const data = await this.post(this.staffUrl(this.urls.clockIn, staffId), fd);
                 this.applyCell(staffId, this.today, data.cell);
                 this.showToast(data.message);
@@ -477,7 +484,6 @@ document.addEventListener('alpine:init', () => {
             this.setLoading(staffId, this.today, 'out');
             try {
                 const fd = new FormData();
-                fd.append('_token', this.csrf);
                 const data = await this.post(this.staffUrl(this.urls.clockOut, staffId), fd);
                 this.applyCell(staffId, this.today, data.cell);
                 this.showToast(data.message);

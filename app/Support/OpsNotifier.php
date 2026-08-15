@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Sends internal ops alerts (new user / new store) to MAIL_OPS_NOTIFY.
+ * Sends internal ops alerts (new user / new store) to MAIL_OPS_NOTIFY
+ * (optional CC via MAIL_OPS_NOTIFY_CC).
  */
 final class OpsNotifier
 {
@@ -18,6 +19,29 @@ final class OpsNotifier
         $email = trim((string) config('mail.ops_notify', ''));
 
         return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function ccRecipients(?string $to = null): array
+    {
+        $raw = (string) config('mail.ops_notify_cc', '');
+        $emails = preg_split('/[,;]+/', $raw) ?: [];
+        $cc = [];
+
+        foreach ($emails as $email) {
+            $email = trim($email);
+            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+            if ($to && strcasecmp($email, $to) === 0) {
+                continue;
+            }
+            $cc[strtolower($email)] = $email;
+        }
+
+        return array_values($cc);
     }
 
     public static function newUser(User $user, Salon $salon): void
@@ -43,7 +67,12 @@ final class OpsNotifier
         }
 
         try {
-            Mail::to($to)->send(new OpsSignupAlert($event, $user, $salon));
+            $mailer = Mail::to($to);
+            $cc = self::ccRecipients($to);
+            if ($cc !== []) {
+                $mailer->cc($cc);
+            }
+            $mailer->send(new OpsSignupAlert($event, $user, $salon));
         } catch (\Throwable $e) {
             Log::warning('Ops signup alert failed', [
                 'event' => $event,

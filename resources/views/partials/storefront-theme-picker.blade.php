@@ -4,8 +4,8 @@
 @endphp
 
 <div class="space-y-3" id="storefront-theme-picker"
-     data-theme-action="{{ $action }}"
-     data-csrf-cookie-url="{{ route('sanctum.csrf-cookie') }}">
+     data-theme-action="{{ parse_url($action ?? route('go-live.theme'), PHP_URL_PATH) }}"
+     data-csrf-cookie-url="{{ parse_url(route('sanctum.csrf-cookie'), PHP_URL_PATH) }}">
     <div class="flex items-center justify-between gap-3">
         <div>
             <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Website theme</h3>
@@ -86,38 +86,6 @@
 @push('scripts')
 <script>
 (function () {
-    function metaCsrfToken() {
-        return document.querySelector('meta[name="csrf-token"]')?.content || '';
-    }
-
-    function xsrfToken() {
-        const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
-        return match ? decodeURIComponent(match[1]) : '';
-    }
-
-    function syncMetaCsrfToken(token) {
-        if (!token) return;
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        if (meta) meta.content = token;
-    }
-
-    async function refreshCsrfCookie(url) {
-        const response = await fetch(url, {
-            method: 'GET',
-            credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error('Could not refresh session token.');
-        }
-
-        return metaCsrfToken() || xsrfToken();
-    }
-
     function setStatus(message, isError) {
         const el = document.getElementById('storefront-theme-status');
         if (!el) return;
@@ -152,59 +120,39 @@
         if (badge) badge.textContent = label;
     }
 
-    async function postTheme(picker, slug, label, retried) {
-        const xsrf = xsrfToken();
-        const token = metaCsrfToken();
-        const body = new FormData();
-        body.append('theme', slug);
-
-        const headers = {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        };
-
-        if (xsrf) {
-            headers['X-XSRF-TOKEN'] = xsrf;
-        } else if (token) {
-            headers['X-CSRF-TOKEN'] = token;
-            body.append('_token', token);
-        }
-
-        const response = await fetch(picker.dataset.themeAction, {
-            method: 'POST',
-            headers: headers,
-            credentials: 'same-origin',
-            body: body,
-        });
-
-        const data = await response.json().catch(function () { return {}; });
-
-        if ((response.status === 419 || response.status === 403 || response.status === 401) && !retried) {
-            await refreshCsrfCookie(picker.dataset.csrfCookieUrl);
-            return postTheme(picker, slug, label, true);
-        }
-
-        if (response.status === 401) {
-            throw new Error('Session expired. Please refresh the page and try again.');
-        }
-
-        if (!response.ok) {
-            throw new Error(data.message || 'Could not save theme.');
-        }
-
-        return data;
-    }
-
     async function saveTheme(picker, slug, label, input) {
         setStatus('Saving theme…', false);
         input.disabled = true;
 
         try {
-            await refreshCsrfCookie(picker.dataset.csrfCookieUrl);
-            const data = await postTheme(picker, slug, label, false);
+            const http = window.EasyGroxHttp;
+            const fd = new FormData();
+            fd.append('theme', slug);
+
+            if (http) {
+                await http.refreshCsrf();
+            }
+
+            const response = http
+                ? await http.post(picker.dataset.themeAction, fd)
+                : await fetch(picker.dataset.themeAction, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                    body: fd,
+                });
+
+            const data = await response.json().catch(function () { return {}; });
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Could not save theme.');
+            }
 
             markActiveCard(slug, data.label || label);
-            syncMetaCsrfToken(metaCsrfToken());
             setStatus(data.message || 'Theme updated.', false);
             setTimeout(function () { setStatus('', false); }, 3000);
         } catch (error) {

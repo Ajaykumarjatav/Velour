@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Book at {{ $salon->name }}</title>
+    @include('partials.easygrox-http')
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -831,15 +832,22 @@ function bookingApp() {
 
             try {
                 // Hold the slot
-                const holdRes = await fetch(API + '/hold', {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-                    body:    JSON.stringify({
+        const holdRes = await (window.EasyGroxHttp
+                    ? window.EasyGroxHttp.post(API + '/hold', {
                         service_ids: this.selected.services.map((s) => s.id),
                         staff_id:    this.resolveHoldStaffId(),
                         starts_at:   this.selected.date + ' ' + this.selected.slot.time + ':00',
-                    }),
-                });
+                    })
+                    : fetch(API + '/hold', {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                        body:    JSON.stringify({
+                            service_ids: this.selected.services.map((s) => s.id),
+                            staff_id:    this.resolveHoldStaffId(),
+                            starts_at:   this.selected.date + ' ' + this.selected.slot.time + ':00',
+                        }),
+                    }));
                 const holdData = await holdRes.json();
                 if (!holdRes.ok) {
                     this.bookingError = holdData.message ?? 'That slot is no longer available. Please choose another time.';
@@ -849,10 +857,8 @@ function bookingApp() {
                 this.holdToken = holdData.hold_token;
 
                 // Confirm booking
-                const confirmRes = await fetch(API + '/confirm', {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-                    body:    JSON.stringify({
+                const confirmRes = await (window.EasyGroxHttp
+                    ? window.EasyGroxHttp.post(API + '/confirm', {
                         hold_token:        this.holdToken,
                         first_name:        this.client.first_name,
                         last_name:         this.client.last_name,
@@ -860,8 +866,21 @@ function bookingApp() {
                         phone:             this.client.phone,
                         notes:             this.client.notes,
                         marketing_consent: this.client.marketing_consent,
-                    }),
-                });
+                    })
+                    : fetch(API + '/confirm', {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                        body:    JSON.stringify({
+                            hold_token:        this.holdToken,
+                            first_name:        this.client.first_name,
+                            last_name:         this.client.last_name,
+                            email:             this.client.email,
+                            phone:             this.client.phone,
+                            notes:             this.client.notes,
+                            marketing_consent: this.client.marketing_consent,
+                        }),
+                    }));
                 const confirmData = await confirmRes.json();
                 if (!confirmRes.ok) {
                     this.bookingError = confirmData.message ?? 'Booking failed. Please try again.';

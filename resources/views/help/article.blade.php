@@ -88,11 +88,17 @@
 
 <script>
 async function sendFeedback(id, helpful) {
-  await fetch(`/help/${id}/feedback`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-    body: JSON.stringify({ helpful })
-  });
+  const url = (window.__EASYGROX__?.basePath || '') + `/help/${id}/feedback`;
+  if (window.EasyGroxHttp) {
+    await window.EasyGroxHttp.post(url, { helpful });
+  } else {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+      credentials: 'same-origin',
+      body: JSON.stringify({ helpful })
+    });
+  }
   document.getElementById('feedback-btns').style.display = 'none';
   document.getElementById('feedback-thanks').classList.remove('hidden');
 }

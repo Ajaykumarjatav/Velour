@@ -241,11 +241,16 @@ async function saveCategory() {
     if (!business_type_id) { err.textContent = 'Select a business type for this category.'; err.classList.remove('hidden'); return; }
     err.classList.add('hidden');
 
-    const res  = await fetch('{{ route('service-categories.store') }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-        body: JSON.stringify({ name, color, business_type_id }),
-    });
+    const url = @json(\App\Support\AppUrl::path('service-categories.store'));
+    const payload = { name, color, business_type_id };
+    const res = window.EasyGroxHttp
+        ? await window.EasyGroxHttp.post(url, payload)
+        : await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload),
+        });
     const data = await res.json();
     if (!res.ok) { err.textContent = data.message ?? 'Error saving category.'; err.classList.remove('hidden'); return; }
 
