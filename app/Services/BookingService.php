@@ -415,7 +415,7 @@ class BookingService
         return Client::create([
             'salon_id'          => $salonId,
             'first_name'        => $data['first_name'],
-            'last_name'         => $data['last_name'],
+            'last_name'         => $data['last_name'] ?? '',
             'email'             => $data['email'] ?? null,
             'phone'             => $data['phone'],
             'marketing_consent' => $data['marketing_consent'] ?? false,

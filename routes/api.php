@@ -57,7 +57,7 @@ Route::prefix('v1')->middleware(['sanitize'])->group(function () {
         ->middleware('throttle:60,1');
 
     // Public booking widget (guest hold/confirm — no login required)
-    Route::prefix('book/{salonSlug}')->middleware(['throttle:30,1'])->group(function () {
+    Route::prefix('book/{salonSlug}')->middleware(['throttle:30,1', 'tenant.public'])->group(function () {
         Route::get('/',              [BookingController::class, 'info']);
         Route::get('services',       [BookingController::class, 'services']);
         Route::get('staff',          [BookingController::class, 'staff']);
@@ -70,7 +70,7 @@ Route::prefix('v1')->middleware(['sanitize'])->group(function () {
     });
 
     // Client portal — salon-scoped customer accounts
-    Route::prefix('client/{salonSlug}')->middleware(['throttle:30,1', 'client.salon'])->group(function () {
+    Route::prefix('client/{salonSlug}')->middleware(['throttle:30,1', 'tenant.public', 'client.salon'])->group(function () {
         Route::prefix('auth')->middleware(['throttle:10,1'])->group(function () {
             Route::post('register', [ClientPortalAuthController::class, 'register']);
             Route::post('login',    [ClientPortalAuthController::class, 'login']);

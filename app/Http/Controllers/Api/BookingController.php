@@ -269,7 +269,7 @@ class BookingController extends Controller
         $data = $request->validate([
             'hold_token'      => 'required|string',
             'first_name'      => 'required|string|max:100',
-            'last_name'       => 'required|string|max:100',
+            'last_name'       => 'nullable|string|max:100',
             'email'           => 'nullable|email',
             'phone'           => 'required|string|max:30',
             'notes'           => 'nullable|string|max:500',

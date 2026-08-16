@@ -181,8 +181,7 @@ export default function BookingFlow() {
   const [slotsError, setSlotsError] = useState('')
   const [selected, setSelected] = useState({ services: [], staff: null, date: '', slot: null })
   const [client, setClient] = useState({
-    first_name: '',
-    last_name: '',
+    name: '',
     email: '',
     phone: '',
     notes: '',
@@ -325,10 +324,11 @@ export default function BookingFlow() {
         staff_id: resolveHoldStaffId(),
         starts_at: `${selected.date} ${selected.slot.time}:00`,
       })
+      const nameParts = (client.name || '').trim().split(/\s+/).filter(Boolean)
       const confirmData = await confirmBooking(slug, {
         hold_token: holdData.hold_token,
-        first_name: client.first_name,
-        last_name: client.last_name,
+        first_name: nameParts[0] || '',
+        last_name: nameParts.slice(1).join(' '),
         email: client.email,
         phone: client.phone,
         notes: client.notes,
@@ -348,7 +348,7 @@ export default function BookingFlow() {
 
   const goToConfirm = () => {
     setDetailsError('')
-    if (!client.first_name || !client.last_name) {
+    if (!client.name?.trim()) {
       setDetailsError('Please enter your full name.')
       return
     }
@@ -420,8 +420,7 @@ export default function BookingFlow() {
               setStep(0)
               setSelected({ services: [], staff: null, date: '', slot: null })
               setClient({
-                first_name: '',
-                last_name: '',
+                name: '',
                 email: '',
                 phone: '',
                 notes: '',
@@ -715,20 +714,13 @@ export default function BookingFlow() {
             {detailsError ? (
               <p className="text-red-300 text-sm bg-red-500/20 border border-red-500/40 rounded-lg p-3">{detailsError}</p>
             ) : null}
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                placeholder="First name"
-                value={client.first_name}
-                onChange={(e) => setClient((c) => ({ ...c, first_name: e.target.value }))}
-                className="bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"
-              />
-              <input
-                placeholder="Last name"
-                value={client.last_name}
-                onChange={(e) => setClient((c) => ({ ...c, last_name: e.target.value }))}
-                className="bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"
-              />
-            </div>
+            <input
+              placeholder="Full name"
+              autoComplete="name"
+              value={client.name}
+              onChange={(e) => setClient((c) => ({ ...c, name: e.target.value }))}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"
+            />
             <input
               type="email"
               placeholder="Email"

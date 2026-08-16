@@ -219,7 +219,7 @@
             $isAnalyticsActive = request()->routeIs('reports.analytics');
             $isReportsMenuActive = request()->routeIs('reports.index', 'reports.show', 'revenue.index');
             $growthMenuActive = request()->routeIs(
-                'go-live', 'website-seo.*', 'customization.*', 'marketing.*',
+                'go-live', 'marketing.*',
                 'reviews.*', 'reports.analytics', 'reports.index', 'reports.show',
                 'revenue.index', 'reports.growth-tips'
             );
@@ -234,6 +234,7 @@
                 Go Live &amp; Share
             </a>
             @endif
+            {{-- Temporarily hidden — unused for now
             @if($navShow('website_seo'))
             <a href="{{ route('website-seo.index') }}"
                class="sidebar-sub-link {{ request()->routeIs('website-seo.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
@@ -248,6 +249,7 @@
                 Customization
             </a>
             @endif
+            --}}
             @if($navShow('marketing'))
             <a href="{{ route('marketing.growth') }}"
                class="sidebar-sub-link {{ request()->routeIs('marketing.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">

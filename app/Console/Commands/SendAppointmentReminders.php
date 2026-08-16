@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Appointment;
+use App\Models\Tenant;
 use App\Services\NotificationConfigService;
 use App\Services\NotificationService;
 use Illuminate\Console\Command;
@@ -63,6 +64,11 @@ class SendAppointmentReminders extends Command
                         }
 
                         try {
+                            // Queues are tenant aware, so a reminder queued from this tenantless
+                            // command would be discarded when the mail job runs. Released again
+                            // straight away so the chunked query keeps spanning every salon.
+                            Tenant::query()->withoutGlobalScopes()->find($salonId)?->makeCurrent();
+
                             if ($this->notificationService->sendClientScheduledReminder($appointment, $ruleId, $pluck)) {
                                 $sent++;
                                 Log::info('Appointment reminder dispatched', [
@@ -78,6 +84,8 @@ class SendAppointmentReminders extends Command
                                 'rule'           => $ruleId,
                                 'error'          => $e->getMessage(),
                             ]);
+                        } finally {
+                            Tenant::forgetCurrent();
                         }
                     }
                 }
