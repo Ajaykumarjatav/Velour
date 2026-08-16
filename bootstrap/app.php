@@ -105,6 +105,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // ── Multitenancy ──────────────────────────────────────────────
             'tenant'          => \App\Http\Middleware\TenantMiddleware::class,
             'tenant.init'     => \App\Http\Middleware\InitializeTenancyFromDomain::class,
+            'tenant.public'   => \App\Http\Middleware\InitializeTenantFromSalonSlug::class,
             // ── Authentication & Authorization ────────────────────────────
             'verified'        => \App\Http\Middleware\EnsureEmailIsVerified::class,
             '2fa'             => \App\Http\Middleware\RequireTwoFactor::class,

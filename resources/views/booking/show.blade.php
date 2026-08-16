@@ -449,15 +449,9 @@
                     <p style="font-size:13px;color:#9ca3af;">We'll send your confirmation to these details</p>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-                    <div>
-                        <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;">First name *</label>
-                        <input type="text" class="input-field" x-model="client.first_name" placeholder="Jane">
-                    </div>
-                    <div>
-                        <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;">Last name *</label>
-                        <input type="text" class="input-field" x-model="client.last_name" placeholder="Smith">
-                    </div>
+                <div style="margin-bottom:14px;">
+                    <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;">Full name *</label>
+                    <input type="text" class="input-field" x-model="client.name" autocomplete="name" placeholder="Your full name">
                 </div>
                 <div style="margin-bottom:14px;">
                     <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;">Email address *</label>
@@ -486,7 +480,7 @@
                 <button @click="goToConfirm()"
                         class="btn-primary"
                         style="width:100%;margin-top:20px;display:flex;align-items:center;justify-content:center;gap:8px;"
-                        :disabled="!client.first_name || !client.last_name || !client.email || !client.phone">
+                        :disabled="!client.name?.trim() || !client.email || !client.phone">
                     Review booking →
                 </button>
                 <button @click="step = 2"
@@ -539,9 +533,9 @@
                     <div style="font-size:11px;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Your Details</div>
                     <div style="display:flex;align-items:center;gap:12px;">
                         <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6d28d9);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0;"
-                             x-text="(client.first_name || '?').charAt(0).toUpperCase()"></div>
+                             x-text="(client.name || '?').charAt(0).toUpperCase()"></div>
                         <div>
-                            <div style="font-weight:700;color:#111827;font-size:14px;" x-text="client.first_name + ' ' + client.last_name"></div>
+                            <div style="font-weight:700;color:#111827;font-size:14px;" x-text="client.name"></div>
                             <div style="font-size:12px;color:#6b7280;" x-text="client.email"></div>
                             <div style="font-size:12px;color:#6b7280;" x-text="client.phone"></div>
                         </div>
@@ -656,7 +650,7 @@ function bookingApp() {
         maxDate: '{{ $maxDateYmd }}',
 
         selected: { services: [], staff: undefined, date: '', slot: null },
-        client:   { first_name: '', last_name: '', email: '', phone: '', notes: '', marketing_consent: false },
+        client:   { name: '', email: '', phone: '', notes: '', marketing_consent: false },
 
         async init() {
             try {
@@ -787,7 +781,7 @@ function bookingApp() {
 
         goToConfirm() {
             this.detailsError = '';
-            if (!this.client.first_name || !this.client.last_name) {
+            if (!this.client.name?.trim()) {
                 this.detailsError = 'Please enter your full name.'; return;
             }
             if (!this.client.email) {
@@ -856,12 +850,16 @@ function bookingApp() {
                 }
                 this.holdToken = holdData.hold_token;
 
+                const nameParts = (this.client.name || '').trim().split(/\s+/).filter(Boolean);
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ');
+
                 // Confirm booking
                 const confirmRes = await (window.EasyGroxHttp
                     ? window.EasyGroxHttp.post(API + '/confirm', {
                         hold_token:        this.holdToken,
-                        first_name:        this.client.first_name,
-                        last_name:         this.client.last_name,
+                        first_name:        firstName,
+                        last_name:         lastName,
                         email:             this.client.email,
                         phone:             this.client.phone,
                         notes:             this.client.notes,
@@ -873,8 +871,8 @@ function bookingApp() {
                         credentials: 'same-origin',
                         body:    JSON.stringify({
                             hold_token:        this.holdToken,
-                            first_name:        this.client.first_name,
-                            last_name:         this.client.last_name,
+                            first_name:        firstName,
+                            last_name:         lastName,
                             email:             this.client.email,
                             phone:             this.client.phone,
                             notes:             this.client.notes,

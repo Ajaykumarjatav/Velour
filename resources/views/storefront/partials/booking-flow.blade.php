@@ -280,10 +280,7 @@
                 <div x-show="step === 3" class="space-y-4">
                     <h2 class="font-bold text-lg">Your details</h2>
                     <p x-show="detailsError" class="text-red-300 text-sm bg-red-500/20 border border-red-500/40 rounded-lg p-3" x-text="detailsError"></p>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input placeholder="First name" x-model="client.first_name" class="bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40">
-                        <input placeholder="Last name" x-model="client.last_name" class="bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40">
-                    </div>
+                    <input placeholder="Full name" x-model="client.name" autocomplete="name" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40">
                     <input type="email" placeholder="Email" x-model="client.email" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40">
                     <input type="tel" placeholder="Phone" x-model="client.phone" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40">
                     <textarea placeholder="Notes (optional)" x-model="client.notes" rows="3" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"></textarea>
@@ -332,7 +329,7 @@ function storefrontBooking(config) {
         combinedInfo: null,
         slotsError: '',
         selected: { services: [], staff: null, date: '', slot: null },
-        client: { first_name: '', last_name: '', email: '', phone: '', notes: '', marketing_consent: false },
+        client: { name: '', email: '', phone: '', notes: '', marketing_consent: false },
         detailsError: '',
         bookingError: '',
         confirming: false,
@@ -605,21 +602,29 @@ function storefrontBooking(config) {
         },
         goToConfirm() {
             this.detailsError = '';
-            if (!this.client.first_name || !this.client.last_name) { this.detailsError = 'Please enter your full name.'; return; }
+            if (!this.client.name?.trim()) { this.detailsError = 'Please enter your full name.'; return; }
             if (!this.client.email) { this.detailsError = 'Please enter your email address.'; return; }
             if (!this.client.phone) { this.detailsError = 'Please enter your phone number.'; return; }
             this.step = 4;
         },
+        splitClientName() {
+            const parts = (this.client.name || '').trim().split(/\s+/).filter(Boolean);
+            return {
+                first_name: parts[0] || '',
+                last_name: parts.slice(1).join(' '),
+            };
+        },
         handleConfirm() {
             this.confirming = true; this.bookingError = '';
+            const nameParts = this.splitClientName();
             this.api('/hold', { method: 'POST', body: JSON.stringify({
                 service_ids: this.selected.services.map(s => s.id),
                 staff_id: this.resolveHoldStaffId(),
                 starts_at: `${this.selected.date} ${this.selected.slot.time}:00`,
             }) }).then(hold => this.api('/confirm', { method: 'POST', body: JSON.stringify({
                 hold_token: hold.hold_token ?? hold.data?.hold_token,
-                first_name: this.client.first_name,
-                last_name: this.client.last_name,
+                first_name: nameParts.first_name,
+                last_name: nameParts.last_name,
                 email: this.client.email,
                 phone: this.client.phone,
                 notes: this.client.notes,
@@ -636,7 +641,7 @@ function storefrontBooking(config) {
         resetBooking() {
             this.step = 0;
             this.selected = { services: [], staff: null, date: '', slot: null };
-            this.client = { first_name: '', last_name: '', email: '', phone: '', notes: '', marketing_consent: false };
+            this.client = { name: '', email: '', phone: '', notes: '', marketing_consent: false };
             this.bookingRef = ''; this.bookingStatus = ''; this.confirmDisplay = null;
         },
     };
