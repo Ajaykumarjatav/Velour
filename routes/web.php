@@ -345,6 +345,9 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         })->name('storefront.theme-preview');
         Route::get('setup-progress', [\App\Http\Controllers\Web\SetupProgressController::class, 'index'])->name('setup-progress');
         Route::post('go-live/logo', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadLogo'])->name('go-live.logo.upload');
+        Route::get('go-live/theme-branding/{theme}', [\App\Http\Controllers\Web\GoLiveController::class, 'themeBranding'])->name('go-live.theme-branding.show');
+        Route::post('go-live/theme-branding', [\App\Http\Controllers\Web\GoLiveController::class, 'updateThemeBranding'])->name('go-live.theme-branding.update');
+        Route::delete('go-live/theme-branding/{theme}/{element}', [\App\Http\Controllers\Web\GoLiveController::class, 'resetThemeBranding'])->name('go-live.theme-branding.reset');
         Route::post('go-live/settings', [\App\Http\Controllers\Web\GoLiveController::class, 'updateSettings'])->name('go-live.settings.update');
         Route::post('go-live/photos', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadPhoto'])->name('go-live.photos.upload');
         Route::delete('go-live/photos/{photo}', [\App\Http\Controllers\Web\GoLiveController::class, 'deletePhoto'])->name('go-live.photos.delete');

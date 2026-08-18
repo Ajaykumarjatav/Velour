@@ -1,6 +1,11 @@
 @php
     $salonData = $data['salon'] ?? [];
-    $heroImage = $salonData['cover_image_url'] ?? $asset('Rectangle 98.png');
+    $branding = $data['branding'] ?? [];
+    $heroImage = $branding['banner_url'] ?? $asset('Rectangle 98.png');
+    // This theme accents everything after the first line of the heading.
+    $headingLines = preg_split('/\r\n|\r|\n/', trim($branding['heading'] ?? ''));
+    $headingLead = array_shift($headingLines) ?? '';
+    $headingAccent = implode("\n", $headingLines);
     $ratingLabel = (!empty($salonData['avg_rating']) && !empty($salonData['review_count']))
         ? 'Rated '.$salonData['avg_rating'].' Stars · '.$salonData['review_count'].' reviews'
         : 'Rated 5 Stars by Clients';
@@ -48,13 +53,15 @@
             </div>
 
             <h2 class="font-manrope font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-[75px] xl:text-[90px] leading-tight lg:leading-[90px] xl:leading-[100px] text-white mb-6 md:mb-8 tracking-tight">
-                Precision in
+                {{ $headingLead }}
+                @if($headingAccent !== '')
                 <br class="hidden sm:block" />
-                <span class="text-[#9a031e]">Permanence</span>
+                <span class="text-[#9a031e]">{!! nl2br(e($headingAccent)) !!}</span>
+                @endif
             </h2>
 
             <p class="text-gray-400 font-inter font-light text-sm md:text-lg max-w-[500px] mb-8 md:mb-10 mx-auto lg:mx-0 leading-relaxed">
-                Where surgical standards meet classical artistry. We specialize in bespoke designs crafted to endure a lifetime.
+                {{ $branding['subheading'] ?? '' }}
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 md:gap-12 mb-10 md:mb-12">

@@ -1,6 +1,6 @@
 @php
     $salonData = $data['salon'] ?? [];
-    $logoUrl = $salonData['logo_url'] ?? null;
+    $logoUrl = $data['branding']['logo_url'] ?? null;
     $salonName = $salonData['name'] ?? ($salon->name ?? '');
     $variant = $variant ?? 'header';
     $imageClass = $imageClass ?? match ($variant) {
