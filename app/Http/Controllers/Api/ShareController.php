@@ -66,9 +66,11 @@ class ShareController extends Controller
                 ->whereBetween('completed_at', [$from, $to])
                 ->sum('total');
 
-            $onlineRevenue = Appointment::where('salon_id', $salonId)
-                ->whereIn('source', ['online', 'widget', 'qr'])
-                ->whereBetween('starts_at', [$from, $to])
+            // pos_transactions also carries salon_id/status, so every column here must be
+            // qualified or MySQL rejects the join as ambiguous.
+            $onlineRevenue = Appointment::where('appointments.salon_id', $salonId)
+                ->whereIn('appointments.source', ['online', 'widget', 'qr'])
+                ->whereBetween('appointments.starts_at', [$from, $to])
                 ->join('pos_transactions', 'appointments.id', '=', 'pos_transactions.appointment_id')
                 ->where('pos_transactions.status', 'completed')
                 ->sum('pos_transactions.total');

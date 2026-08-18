@@ -10,10 +10,12 @@ use App\Models\PosTransaction;
 use App\Models\Salon;
 use App\Models\SalonPhoto;
 use App\Models\SalonSetting;
+use App\Models\SalonThemeAsset;
 use App\Support\AuthPanel;
 use App\Support\SalonSetupProgress;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
+use App\Support\ThemeBranding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -160,6 +162,110 @@ class GoLiveController extends Controller
             ->with('success', $message);
     }
 
+    /**
+     * Effective branding for one theme, plus the theme's own defaults so the
+     * panel can show placeholders and Custom/Default badges.
+     */
+    public function themeBranding(Request $request, string $theme): JsonResponse
+    {
+        $salon = $this->activeSalon();
+        $theme = $this->validTheme($theme);
+
+        return response()->json($this->brandingPayload($salon, $theme));
+    }
+
+    public function updateThemeBranding(Request $request): JsonResponse
+    {
+        $this->abortIfAdminStoreBrowse();
+
+        $salon = $this->activeSalon();
+
+        $validated = $request->validate([
+            'theme'             => ['required', 'string', \Illuminate\Validation\Rule::in(array_keys(StorefrontTheme::all()))],
+            'logo'              => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'banner'            => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'heading'           => ['nullable', 'string', 'max:80'],
+            'subheading'        => ['nullable', 'string', 'max:220'],
+        ]);
+
+        $theme = $validated['theme'];
+        $record = SalonThemeAsset::lookup($salon->id, $theme)
+            ?? new SalonThemeAsset(['salon_id' => $salon->id, 'theme' => $theme]);
+
+        $warning = null;
+
+        foreach (['logo' => 'logo_path', 'banner' => 'banner_path'] as $field => $column) {
+            if (! $request->hasFile($field)) {
+                continue;
+            }
+
+            if ($field === 'banner') {
+                $warning = $this->bannerSizeAdvice($request->file($field));
+            }
+
+            $this->deleteBrandingFile($record->{$column});
+            $record->{$column} = $request->file($field)->store("salons/{$salon->id}/themes/{$theme}", 'public');
+        }
+
+        // A submitted-but-empty text field means "go back to the theme default".
+        foreach (['heading' => 'banner_heading', 'subheading' => 'banner_subheading'] as $field => $column) {
+            if (! $request->has($field)) {
+                continue;
+            }
+
+            $value = trim((string) $request->input($field));
+            $record->{$column} = $value === '' ? null : $value;
+        }
+
+        $record->salon_id = $salon->id;
+        $record->theme = $theme;
+        $record->save();
+
+        return response()->json([
+            'ok'      => true,
+            'message' => StorefrontTheme::label($theme).' branding saved.',
+            'warning' => $warning,
+        ] + $this->brandingPayload($salon, $theme));
+    }
+
+    /** Clear one element so the storefront falls back again. */
+    public function resetThemeBranding(Request $request, string $theme, string $element): JsonResponse
+    {
+        $this->abortIfAdminStoreBrowse();
+
+        $salon = $this->activeSalon();
+        $theme = $this->validTheme($theme);
+
+        abort_unless(in_array($element, ThemeBranding::ELEMENTS, true), 404);
+
+        $record = SalonThemeAsset::lookup($salon->id, $theme);
+
+        if ($record) {
+            $column = match ($element) {
+                'logo'       => 'logo_path',
+                'banner'     => 'banner_path',
+                'heading'    => 'banner_heading',
+                'subheading' => 'banner_subheading',
+            };
+
+            if (in_array($element, ['logo', 'banner'], true)) {
+                $this->deleteBrandingFile($record->{$column});
+            }
+
+            $record->{$column} = null;
+
+            $isEmpty = collect(['logo_path', 'banner_path', 'banner_heading', 'banner_subheading'])
+                ->every(fn (string $col) => blank($record->{$col}));
+
+            $isEmpty ? $record->delete() : $record->save();
+        }
+
+        return response()->json([
+            'ok'      => true,
+            'message' => ucfirst($element).' reset to the '.StorefrontTheme::label($theme).' default.',
+        ] + $this->brandingPayload($salon, $theme));
+    }
+
     public function uploadPhoto(Request $request): \Illuminate\Http\JsonResponse
     {
         $this->abortIfAdminStoreBrowse();
@@ -256,5 +362,59 @@ class GoLiveController extends Controller
     private function buildChecklist(Salon $salon): array
     {
         return SalonSetupProgress::checklistForSalon($salon);
+    }
+
+    private function validTheme(string $theme): string
+    {
+        abort_unless(array_key_exists($theme, StorefrontTheme::all()), 404, 'Unknown theme.');
+
+        return $theme;
+    }
+
+    /** @return array<string, mixed> */
+    private function brandingPayload(Salon $salon, string $theme): array
+    {
+        $branding = ThemeBranding::resolve($salon, $theme);
+        $defaults = ThemeBranding::defaults($theme);
+
+        return [
+            'theme'      => $theme,
+            'label'      => StorefrontTheme::label($theme),
+            'logo_url'   => $branding['logo_url'],
+            'banner_url' => $branding['banner_url'],
+            'heading'    => $branding['heading'],
+            'subheading' => $branding['subheading'],
+            'custom'     => $branding['custom'],
+            'source'     => $branding['source'],
+            'defaults'   => [
+                'logo_url'   => ThemeBranding::defaultLogoUrl($theme),
+                'banner_url' => ThemeBranding::defaultBannerUrl($theme),
+                'heading'    => $defaults['heading'],
+                'subheading' => $defaults['subheading'],
+            ],
+        ];
+    }
+
+    /**
+     * Small banners are accepted but stretched across a full-width hero, so say so
+     * rather than rejecting an upload the salon deliberately chose.
+     */
+    private function bannerSizeAdvice(\Illuminate\Http\UploadedFile $file): ?string
+    {
+        $size = @getimagesize($file->getRealPath());
+        $width = $size[0] ?? null;
+
+        if (! $width || $width >= 1200) {
+            return null;
+        }
+
+        return "Heads up: this image is {$width}px wide. Under 1200px it can look soft on desktop screens.";
+    }
+
+    private function deleteBrandingFile(?string $path): void
+    {
+        if (is_string($path) && str_starts_with($path, 'salons/')) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

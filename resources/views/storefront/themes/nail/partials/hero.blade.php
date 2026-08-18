@@ -1,6 +1,7 @@
 @php
     $salonData = $data['salon'] ?? [];
-    $heroImage = $salonData['cover_image_url'] ?? $asset('Rectangle 65.png');
+    $branding = $data['branding'] ?? [];
+    $heroImage = $branding['banner_url'] ?? $asset('Rectangle 65.png');
     $ratingLabel = (!empty($salonData['avg_rating']) && !empty($salonData['review_count']))
         ? 'Rated '.$salonData['avg_rating'].' Stars · '.$salonData['review_count'].' reviews'
         : 'Rated 5 Stars by Clients';
@@ -48,12 +49,11 @@
             </div>
 
             <h2 class="font-manrope font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-[75px] xl:text-[90px] leading-tight lg:leading-[90px] xl:leading-[100px] text-white mb-6 md:mb-8 tracking-tight">
-                When Nails
-                <br class="hidden sm:block" /> Becomes Art
+                {!! nl2br(e($branding['heading'] ?? '')) !!}
             </h2>
 
             <p class="text-[#A5A5A5] font-inter font-light text-sm md:text-lg max-w-[500px] mb-8 md:mb-10 mx-auto lg:mx-0 leading-relaxed">
-                Luxury nails create timeless design crafted to elevate your everyday style.
+                {{ $branding['subheading'] ?? '' }}
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 md:gap-12 mb-10 md:mb-12">

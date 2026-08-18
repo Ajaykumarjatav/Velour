@@ -153,6 +153,9 @@
             }
 
             markActiveCard(slug, data.label || label);
+            document.dispatchEvent(new CustomEvent('storefront-theme-changed', {
+                detail: { theme: slug, label: data.label || label },
+            }));
             setStatus(data.message || 'Theme updated.', false);
             setTimeout(function () { setStatus('', false); }, 3000);
         } catch (error) {

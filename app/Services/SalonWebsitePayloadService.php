@@ -14,6 +14,7 @@ use App\Scopes\TenantScope;
 use App\Support\StaffJobRoles;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
+use App\Support\ThemeBranding;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
@@ -78,8 +79,10 @@ class SalonWebsitePayloadService
             ->avg('rating');
 
         $currency = $salon->currency ?? 'GBP';
+        $theme = StorefrontTheme::forSalon($salon);
 
         return [
+            'branding' => ThemeBranding::resolve($salon, $theme),
             'salon' => [
                 'id'                  => $salon->id,
                 'name'                => $salon->name,
@@ -106,8 +109,8 @@ class SalonWebsitePayloadService
                 'currency_symbol'     => CurrencyHelper::symbol($currency),
                 'website_url'         => StorefrontUrl::website($salon),
                 'booking_url'         => StorefrontUrl::booking($salon),
-                'website_theme'       => StorefrontTheme::forSalon($salon),
-                'website_theme_label' => StorefrontTheme::label(StorefrontTheme::forSalon($salon)),
+                'website_theme'       => $theme,
+                'website_theme_label' => StorefrontTheme::label($theme),
                 'whatsapp_url'        => $this->whatsappUrl($salon->phone),
                 'opening_hours'       => $salon->opening_hours,
                 'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),
