@@ -619,6 +619,11 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin',
 });
 
 
+// ── Uploaded files, for hosts where `public/storage` cannot be a symlink ──────
+Route::get('storage/{path}', [\App\Http\Controllers\Web\PublicStorageController::class, 'show'])
+    ->where('path', '.*')
+    ->name('public-storage.show');
+
 // ── Public salon website (Blade themes + legacy React fallback) ───────────────
 Route::get('website/{theme}/assets/{asset}', [\App\Http\Controllers\Web\StorefrontController::class, 'themeAsset'])
     ->where('theme', '[a-z0-9\-]+')
