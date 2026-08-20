@@ -1,4 +1,4 @@
-﻿@php
+@php
     $salon = $data['salon'] ?? null;
     if (!$salon) return;
     $lines = $salon['opening_hours_lines'] ?? [];

@@ -1,4 +1,4 @@
-﻿@php
+@php
     $salonData = $data['salon'] ?? [];
     $logoUrl = $data['branding']['logo_url'] ?? null;
     $salonName = $salonData['name'] ?? ($salon->name ?? '');

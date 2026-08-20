@@ -1,4 +1,4 @@
-﻿@php
+@php
     $salonData = $data['salon'] ?? [];
     $branding = $data['branding'] ?? [];
     $heroImage = $branding['banner_url'] ?? $asset('Rectangle 65.png');

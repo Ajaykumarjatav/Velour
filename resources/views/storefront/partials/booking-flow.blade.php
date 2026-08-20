@@ -1,4 +1,4 @@
-﻿@php
+@php
     $slug = $salon->slug;
     $currency = $data['salon']['currency_symbol'] ?? '£';
     $salonName = $data['salon']['name'] ?? $salon->name;
