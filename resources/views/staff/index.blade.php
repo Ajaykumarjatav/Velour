@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Staff & HR')
 @section('page-title', 'Staff & HR')
 
@@ -351,7 +351,7 @@ document.addEventListener('alpine:init', function () {
 
     {{-- Payroll modal --}}
     <x-modal-overlay show="payrollOpen">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" @click.outside="closePayroll()">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-3xl w-full max-h-[90dvh] overflow-hidden flex flex-col" @click.outside="closePayroll()">
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
                 <div>
                     <h3 class="text-lg font-serif font-bold text-heading" x-text="payrollStaffId ? ('Payroll — ' + payrollStaffName) : 'Payroll summary'"></h3>
@@ -429,7 +429,7 @@ document.addEventListener('alpine:init', function () {
 
     {{-- Weekly schedule modal --}}
     <x-modal-overlay show="scheduleOpen">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" @click.outside="closeSchedule()">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90dvh] overflow-y-auto" @click.outside="closeSchedule()">
             <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
                 <h3 class="text-lg font-serif font-bold text-heading">Weekly schedule — <span x-text="scheduleStaff.name"></span></h3>
                 <button type="button" class="text-muted hover:text-heading text-2xl" @click="closeSchedule()">&times;</button>

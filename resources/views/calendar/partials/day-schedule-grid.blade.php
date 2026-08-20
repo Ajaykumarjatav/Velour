@@ -28,7 +28,15 @@
         --day-slot-h: {{ $slotH }}px;
         --day-time-inset: {{ $timeInset }}px;
     }
-    .day-cal__scroll { overflow: auto; max-height: min(80vh, 960px); }
+    .day-cal__scroll { overflow: auto; max-height: min(80dvh, 960px); }
+    /* Phones: give the staff columns room by trimming the pinned time gutter. */
+    @media (max-width: 640px) {
+        .day-cal {
+            --day-time-w: 3.5rem;
+            --day-staff-min: 7rem;
+        }
+        .day-cal__scroll { max-height: min(70dvh, 960px); }
+    }
     .day-cal__grid {
         display: grid;
         grid-template-columns: var(--day-time-w) repeat({{ $colCount }}, minmax(var(--day-staff-min), 1fr));

@@ -70,7 +70,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+    <div class="grid grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6 gap-3">
         <div class="card p-4 col-span-2 lg:col-span-1 xl:col-span-1">
             <p class="text-[11px] text-muted font-semibold uppercase tracking-wide">Total expenses</p>
             <p class="text-2xl font-bold text-heading mt-1">@money($d['month_total'])</p>

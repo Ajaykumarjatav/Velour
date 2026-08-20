@@ -41,7 +41,7 @@
       {{-- Quick actions --}}
       <div class="flex flex-wrap gap-2 flex-shrink-0">
         {{-- Assign --}}
-        <form method="POST" action="{{ route('admin.support.assign', $ticket) }}" class="flex gap-2">
+        <form method="POST" action="{{ route('admin.support.assign', $ticket) }}" class="flex flex-wrap gap-2">
           @csrf @method('PATCH')
           <select name="assigned_to"
                   class="px-3 py-2 text-xs bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
@@ -159,7 +159,7 @@
                        focus:outline-none focus:ring-2 focus:ring-velour-500 placeholder-gray-500 resize-none"
                 x-bind:class="replyTab==='note' ? 'border-amber-800/50' : 'border-gray-700'"></textarea>
 
-      <div class="flex items-center gap-3 mt-3">
+      <div class="flex flex-wrap items-center gap-3 mt-3">
         <select name="status"
                 class="px-3 py-2 text-xs bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
           <option value="">Keep current status</option>

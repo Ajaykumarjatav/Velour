@@ -1,4 +1,4 @@
-@php
+﻿@php
     $lines = $data['salon']['opening_hours_lines'] ?? [];
     $weekdayLine = $lines[0] ?? 'Monday to Friday - 10 AM to 7 PM';
     $weekendLine = $lines[1] ?? 'Saturday & Sunday - 10 AM to 10 PM';
@@ -16,7 +16,7 @@
         <div class="flex flex-col sm:flex-row items-center gap-4 lg:gap-10">
             <div class="flex flex-col md:flex-row items-center gap-2 md:gap-3 text-center md:text-right">
                 <span class="text-salmon font-inter font-semibold text-xs md:text-sm uppercase tracking-widest">Timings</span>
-                <div class="flex items-center gap-2 md:gap-2.5 flex-wrap justify-center font-inter">
+                <div class="sf-hours flex items-center gap-2 md:gap-2.5 flex-wrap justify-center font-inter">
                     <span class="text-white/90 font-light text-[11px] md:text-sm whitespace-nowrap">{{ $weekdayLine }}</span>
                     <span class="hidden md:block w-px h-4 bg-[#444]"></span>
                     <span class="text-white/90 font-light text-[11px] md:text-sm whitespace-nowrap">{{ $weekendLine }}</span>

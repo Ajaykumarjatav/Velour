@@ -15,7 +15,7 @@
     $toId = $toId ?? ($toName . '-field');
 @endphp
 
-<div {{ $attributes->merge(['class' => 'grid grid-cols-2 gap-3']) }}>
+<div {{ $attributes->merge(['class' => 'grid grid-cols-1 min-[420px]:grid-cols-2 gap-3']) }}>
     <div class="min-w-0">
         <label for="{{ $fromId }}" class="form-label text-xs mb-1">{{ $fromLabel }}</label>
         <div class="form-date-wrap">

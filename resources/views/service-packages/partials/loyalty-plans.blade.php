@@ -52,7 +52,7 @@
 
     {{-- Tier modal --}}
     <x-modal-overlay show="tierModal !== null" x-on:click.self="tierModal=null">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700" x-show="tierModal !== null">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700 max-h-[90dvh] overflow-y-auto" x-show="tierModal !== null">
             <form x-show="tierModal && tierModal.id != null" x-cloak :action="'{{ url('marketing/loyalty/tiers') }}/' + tierModal.id" method="POST" class="space-y-4">
                 @csrf @method('PUT')
                 <h3 class="font-semibold text-heading text-lg">Edit loyalty plan</h3>

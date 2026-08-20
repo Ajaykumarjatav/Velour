@@ -53,7 +53,7 @@
           class="w-full" />
     </div>
   </div>
-  <div class="flex gap-2 mt-3 justify-end">
+  <div class="flex flex-wrap gap-2 mt-3 justify-end">
     <a href="{{ route('admin.audit.index') }}" class="px-4 py-2 text-sm text-gray-400 hover:text-gray-200">Clear</a>
     <button type="submit" class="px-4 py-2 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
       Filter
@@ -66,8 +66,8 @@
 </form>
 
 {{-- Log table --}}
-<div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden" x-data>
-  <table class="w-full text-sm">
+<div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto" x-data>
+  <table class="w-full text-sm min-w-[38rem]">
     <thead>
     <tr class="border-b border-gray-800 bg-gray-800/50">
       <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Severity</th>

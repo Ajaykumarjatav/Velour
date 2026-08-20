@@ -4,7 +4,7 @@
 @section('content')
 
 {{-- Platform totals --}}
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
   @foreach([
     ['Total Salons',   number_format($totals['salons']),         'text-white'],
     ['Active Salons',  number_format($totals['active_salons']),  'text-green-400'],
@@ -26,10 +26,10 @@
   <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5">
     <h2 class="text-sm font-semibold text-gray-300 mb-4">New Salons — 12 Month Growth</h2>
     @php $maxSG = max(array_values($salonGrowth)) ?: 1; @endphp
-    <div class="flex items-end gap-1.5 h-36">
+    <div class="flex items-end gap-1.5 h-36 overflow-x-auto">
       @foreach($salonGrowth as $label => $count)
       @php $h = max(3, round(($count / $maxSG) * 100)); @endphp
-      <div class="flex-1 flex flex-col items-center gap-1 group">
+      <div class="flex-1 min-w-[1.75rem] flex flex-col items-center gap-1 group">
         <div class="w-full bg-velour-600/80 hover:bg-velour-500 rounded-t transition-colors relative"
              style="height: {{ $h }}%"
              title="{{ $label }}: {{ $count }} salons">
@@ -52,10 +52,10 @@
   <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5">
     <h2 class="text-sm font-semibold text-gray-300 mb-4">Appointment Volume — 12 Months</h2>
     @php $maxAV = max(array_values($appointmentVolume)) ?: 1; @endphp
-    <div class="flex items-end gap-1.5 h-36">
+    <div class="flex items-end gap-1.5 h-36 overflow-x-auto">
       @foreach($appointmentVolume as $label => $count)
       @php $h = max(3, round(($count / $maxAV) * 100)); @endphp
-      <div class="flex-1 flex flex-col items-center gap-1 group">
+      <div class="flex-1 min-w-[1.75rem] flex flex-col items-center gap-1 group">
         <div class="w-full bg-blue-600/70 hover:bg-blue-500 rounded-t transition-colors relative"
              style="height: {{ $h }}%"
              title="{{ $label }}: {{ number_format($count) }} appts">

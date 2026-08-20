@@ -21,7 +21,7 @@
             </x-unless-admin-browse>
         </div>
 
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 mt-6">
             <div class="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3"><p class="text-xs text-muted">White Label</p><p class="font-semibold text-heading">{{ $data['white_label_enabled'] ? 'Active' : 'Locked by Plan' }}</p></div>
             <div class="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3"><p class="text-xs text-muted">Languages</p><p class="font-semibold text-heading">{{ count($data['languages']) }} enabled</p></div>
             <div class="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3"><p class="text-xs text-muted">Custom Forms</p><p class="font-semibold text-heading">{{ $data['custom_forms_count'] }} forms</p></div>

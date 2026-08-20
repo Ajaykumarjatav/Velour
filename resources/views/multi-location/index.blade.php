@@ -165,7 +165,7 @@
                 @csrf
                 <div><label class="form-label">Branch name *</label><input name="name" required class="form-input" placeholder="e.g. Delhi NCR"></div>
                 <div><label class="form-label">Full address *</label><input name="address_line1" required class="form-input" placeholder="Street, Area, City, PIN"></div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label class="form-label">City *</label><input name="city" required class="form-input"></div>
                     <div><label class="form-label" for="ml-add-tz-trigger">Timezone *</label>
                         <x-searchable-select
@@ -180,11 +180,11 @@
                         </x-searchable-select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label class="form-label">Phone *</label><input name="phone" required class="form-input" placeholder="+91 98765 43210"></div>
                     <div><label class="form-label">Branch manager</label><input name="branch_manager" class="form-input" placeholder="Manager's name"></div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <label class="inline-flex items-center gap-2 text-sm text-body"><input type="hidden" name="online_booking_enabled" value="0"><input type="checkbox" name="online_booking_enabled" value="1" checked class="rounded"> Enable online booking</label>
                     <label class="inline-flex items-center gap-2 text-sm text-body"><input type="hidden" name="notify_team_when_created" value="0"><input type="checkbox" name="notify_team_when_created" value="1" checked class="rounded"> Notify team when created</label>
                 </div>
@@ -207,7 +207,7 @@
                 @csrf @method('PUT')
                 <div><label class="form-label">Branch name *</label><input name="name" required class="form-input" :value="selected?.name ?? ''"></div>
                 <div><label class="form-label">Full address *</label><input name="address_line1" required class="form-input" :value="selected?.address_line1 ?? ''"></div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label class="form-label">City *</label><input name="city" required class="form-input" :value="selected?.city ?? ''"></div>
                     <div><label class="form-label">Timezone *</label>
                         <select name="timezone" class="form-select" required>
@@ -215,7 +215,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label class="form-label">Phone *</label><input name="phone" required class="form-input" :value="selected?.phone ?? ''"></div>
                     <div><label class="form-label">Branch manager</label><input name="branch_manager" class="form-input" :value="selected?.branch_manager ?? ''"></div>
                 </div>

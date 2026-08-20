@@ -270,6 +270,17 @@ class AuthController extends Controller
                 ->with('error', 'This verification link does not match the account email. Please request a new verification email.');
         }
 
+        // Already verified — old/reused links should not ask to resend verification.
+        if ($user->hasVerifiedEmail()) {
+            if (Auth::check() && (int) Auth::id() === (int) $user->id) {
+                return redirect()->to(AuthPanel::homeUrl($user))
+                    ->with('success', 'Your email is already verified.');
+            }
+
+            return redirect()->route('login')
+                ->with('success', 'Your email is already verified. Please sign in to continue.');
+        }
+
         $token = (string) $request->query('token', '');
         $tokenOk = $token !== '' && \App\Support\EmailVerificationToken::assertValid($user, $token);
 
@@ -287,10 +298,8 @@ class AuthController extends Controller
                 ->with('error', 'This verification link is invalid or expired. Sign in and use “Resend verification email”.');
         }
 
-        if (! $user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
-            event(new \Illuminate\Auth\Events\Verified($user));
-        }
+        $user->markEmailAsVerified();
+        event(new \Illuminate\Auth\Events\Verified($user));
 
         \App\Support\EmailVerificationToken::forget($user);
 

@@ -27,11 +27,11 @@
 
 {{-- Top nav --}}
 <header class="border-b border-gray-100 bg-white sticky top-0 z-10">
-  <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 min-h-14 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
     <a href="{{ url('/') }}" class="text-xl font-bold" style="font-family:'Playfair Display',serif;color:#0F0E0C">
       EasyGrox<span class="gold">.</span>
     </a>
-    <div class="flex items-center gap-1">
+    <div class="flex flex-wrap items-center gap-1">
       <a href="{{ route('legal.privacy') }}" class="nav-link @yield('nav-active-privacy')">Privacy</a>
       <a href="{{ route('legal.terms') }}" class="nav-link @yield('nav-active-terms')">Terms</a>
       <a href="{{ route('legal.cookies') }}" class="nav-link @yield('nav-active-cookies')">Cookies</a>
@@ -39,7 +39,7 @@
   </div>
 </header>
 
-<main class="max-w-3xl mx-auto px-6 py-16">
+<main class="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
   <div class="mb-10">
     <p class="text-sm font-medium uppercase tracking-widest gold mb-3">@yield('doc-type')</p>
     <h1 class="text-4xl font-bold text-gray-900 mb-2">@yield('title')</h1>

@@ -5,12 +5,12 @@
 
 <div class="max-w-4xl space-y-6">
 
-    <div class="card p-6 flex items-start gap-5">
+    <div class="card p-4 sm:p-6 flex flex-wrap items-start gap-4 sm:gap-5">
         <div class="w-16 h-16 rounded-2xl bg-velour-100 dark:bg-velour-900/30 flex items-center justify-center text-velour-700 dark:text-velour-400 font-bold text-2xl flex-shrink-0">
             {{ strtoupper(substr($client->first_name, 0, 1)) }}
         </div>
-        <div class="flex-1">
-            <h2 class="text-xl font-bold text-heading">{{ $client->first_name }} {{ $client->last_name }}</h2>
+        <div class="flex-1 min-w-0">
+            <h2 class="text-xl font-bold text-heading break-words">{{ $client->first_name }} {{ $client->last_name }}</h2>
             @if($client->loyaltyTier)
                 <p class="mt-2">
                     <span class="inline-flex items-center rounded-full bg-velour-100 dark:bg-velour-900/40 text-velour-800 dark:text-velour-200 text-xs font-semibold px-3 py-1">
@@ -21,8 +21,8 @@
                     </span>
                 </p>
             @endif
-            <div class="flex flex-wrap gap-4 mt-2 text-sm text-muted">
-                @if($client->email)<span>✉ {{ $client->email }}</span>@endif
+            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-muted">
+                @if($client->email)<span class="break-all">✉ {{ $client->email }}</span>@endif
                 @if($client->phone)<span>📞 {{ $client->phone }}</span>@endif
                 @if($client->date_of_birth)<span>🎂 {{ \Carbon\Carbon::parse($client->date_of_birth)->format('d M Y') }}</span>@endif
             </div>

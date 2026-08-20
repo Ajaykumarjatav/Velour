@@ -1,4 +1,4 @@
-@php
+﻿@php
     $slug = $salon->slug;
     $currency = $data['salon']['currency_symbol'] ?? '£';
     $salonName = $data['salon']['name'] ?? $salon->name;
@@ -84,7 +84,7 @@
                             <p class="text-white/50 text-sm py-8 text-center">No services available for booking.</p>
                         </template>
                         <template x-if="bookCategories.length > 0 || bookPackages.length > 0">
-                            <div class="overflow-y-auto scrollbar-none -mx-1 px-1 space-y-6" style="max-height:min(60vh,28rem)">
+                            <div class="overflow-y-auto scrollbar-none -mx-1 px-1 space-y-6" style="max-height:min(60dvh,28rem)">
                                 <template x-if="bookPackages.length > 0">
                                     <div>
                                         <div class="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
@@ -141,7 +141,9 @@
                             </div>
                         </template>
                     </div>
-                    <div x-show="selected.services.length > 0" class="sticky bottom-4 bg-black/90 backdrop-blur border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4">
+                    <div x-show="selected.services.length > 0"
+                         class="sf-sticky-bar sticky bg-black/90 backdrop-blur border border-white/10 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4"
+                         style="bottom: max(1rem, env(safe-area-inset-bottom))">
                         <span class="text-sm" x-text="selected.services.length + ' selected · ' + currency + totalPrice().toFixed(2)"></span>
                         <button type="button" @click="step = 1" class="bg-primary hover:bg-primary-dark text-white font-semibold rounded-full px-6 py-2.5 text-sm">Continue</button>
                     </div>
@@ -176,7 +178,7 @@
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                                 </button>
                                 <div class="text-center min-w-0 flex-1">
-                                    <p class="font-manrope font-semibold text-white text-sm sm:text-base tracking-tight" x-text="calendarMonthLabel"></p>
+                                    <p class="font-manrope font-semibold text-white text-sm sm:text-base tracking-tight truncate" x-text="calendarMonthLabel"></p>
                                     <p class="text-[10px] uppercase tracking-widest text-white/35 mt-0.5" x-show="selected.date" x-text="formatDateShort(selected.date)"></p>
                                 </div>
                                 <button type="button" @click="shiftCalendarMonth(1)" :disabled="!canShiftCalendar(1)"
@@ -238,7 +240,7 @@
                             <template x-for="[period, periodSlots] in groupedSlots()" :key="period">
                                 <div class="space-y-3 sm:space-y-4 mb-3">
                                     <p class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-white/35 mb-1.5" x-text="period"></p>
-                                    <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5 sm:gap-2">
+                                    <div class="sf-slot-grid grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5 sm:gap-2">
                                         <template x-for="slot in periodSlots" :key="slot.time">
                                             <button type="button" :disabled="!slot.available" @click="selectSlot(slot)"
                                                     :class="[

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 @section('title', $salon->name)
 @section('page-title', $salon->name)
 @section('content')
@@ -50,7 +50,7 @@
   </div>
 
   {{-- Key metrics --}}
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+  <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
     @foreach([
       ['Staff',      $salon->staff_count,        'text-white'],
       ['Clients',    number_format($salon->clients_count), 'text-white'],
@@ -340,7 +340,7 @@
 
   {{-- Suspend modal --}}
   <div x-show="suspendModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg" @click.outside="suspendModal=false">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg max-h-[90dvh] overflow-y-auto" @click.outside="suspendModal=false">
       <h2 class="text-lg font-bold text-white mb-4">Suspend {{ $salon->name }}</h2>
       <form method="POST" action="{{ route('admin.tenants.suspend', $salon->id) }}" class="space-y-4">
         @csrf
@@ -382,7 +382,7 @@
 
   {{-- Unsuspend modal --}}
   <div x-show="unsuspendModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg" @click.outside="unsuspendModal=false">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg max-h-[90dvh] overflow-y-auto" @click.outside="unsuspendModal=false">
       <h2 class="text-lg font-bold text-white mb-4">Reinstate {{ $salon->name }}</h2>
       <form method="POST" action="{{ route('admin.tenants.unsuspend', $salon->id) }}" class="space-y-4">
         @csrf
@@ -413,7 +413,7 @@
 
   {{-- Plan override modal --}}
   <div x-show="overrideModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg overflow-y-auto max-h-[90vh]" @click.outside="overrideModal=false" x-data="{ type: 'plan' }">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg overflow-y-auto max-h-[90dvh]" @click.outside="overrideModal=false" x-data="{ type: 'plan' }">
       <h2 class="text-lg font-bold text-white mb-4">Apply Plan Override</h2>
       <form method="POST" action="{{ route('admin.tenants.override', $salon->id) }}" class="space-y-4">
         @csrf
@@ -445,7 +445,7 @@
           <input type="number" name="discount_percentage" min="1" max="100" placeholder="20"
                  class="w-full px-4 py-2.5 text-sm bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
         </div>
-        <div x-show="type==='custom_limit'" class="grid grid-cols-3 gap-2">
+        <div x-show="type==='custom_limit'" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           @foreach(['override_staff_limit'=>'Staff limit','override_client_limit'=>'Client limit','override_services_limit'=>'Services limit'] as $field=>$label)
           <div>
             <label class="block text-xs text-gray-400 mb-1">{{ $label }}</label>

@@ -1,4 +1,4 @@
-@php
+﻿@php
     $navLinks = [
         ['label' => 'Who We are', 'href' => '#about'],
         ['label' => 'Services', 'href' => '#services'],
@@ -13,7 +13,7 @@
 <nav
     x-data="{ active: 'Who We are', isSticky: false, menuOpen: false }"
     x-init="window.addEventListener('scroll', () => { isSticky = window.scrollY > 120 })"
-    class="w-full z-50 transition-all duration-300 border-b border-[#F2EBE8]"
+    class="sf-sticky-nav w-full z-50 transition-all duration-300 border-b border-[#F2EBE8]"
     :class="isSticky ? 'fixed top-0 left-0 right-0 shadow-lg bg-[#F2EBE8]/95 backdrop-blur-md py-1' : 'relative bg-section-lightest py-3'"
 >
     <div class="max-w-[1360px] mx-auto px-4">

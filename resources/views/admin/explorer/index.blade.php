@@ -32,8 +32,8 @@
     </form>
 
     @if($search !== '')
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-        <table class="w-full text-sm">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-x-auto">
+        <table class="w-full text-sm min-w-[30rem]">
             <thead class="bg-gray-800/50 text-gray-500 text-[11px] uppercase">
                 <tr>
                     <th class="px-4 py-3 text-left">Store</th>

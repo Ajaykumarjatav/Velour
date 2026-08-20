@@ -56,7 +56,7 @@
             </div>
         </div>
 
-        <div class="absolute -left-24 top-10 w-[380px] h-[680px] pointer-events-none opacity-30 lg:opacity-100 transition-opacity">
+        <div class="absolute -left-24 top-10 w-[380px] h-[680px] pointer-events-none hidden lg:block opacity-100 transition-opacity">
             <img
                 src="{{ $asset('Group 23.png') }}"
                 alt="Decoration Left"
@@ -64,7 +64,7 @@
             />
         </div>
 
-        <div class="absolute -right-24 top-10 w-[380px] h-[680px] pointer-events-none opacity-30 lg:opacity-100 transition-opacity">
+        <div class="absolute -right-24 top-10 w-[380px] h-[680px] pointer-events-none hidden lg:block opacity-100 transition-opacity">
             <img
                 src="{{ $asset('Group 25.png') }}"
                 alt="Decoration Right"

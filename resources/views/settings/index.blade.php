@@ -102,8 +102,8 @@
     }
 
     $settingsProfilePct = null;
-    if (isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar)) {
-        $settingsProfilePct = max(0, min(100, (int) ($headerProfileCompletion['percentage'] ?? 0)));
+    if (($salonBusinessStatus ?? null) && empty($hideSalonProfileBar)) {
+        $settingsProfilePct = max(0, min(100, (int) ($salonBusinessStatus['setup_percent'] ?? 0)));
     }
 
     // One JSON object for Alpine: must use single-quoted HTML attribute (see x-data below) — double-quoted x-data breaks when @json emits "quotes".
@@ -129,7 +129,7 @@
             <div class="mb-3 sm:mb-4 xl:mb-5">
                 <h2 class="text-sm sm:text-base font-semibold text-teal-950 dark:text-teal-50 tracking-tight">Settings</h2>
                 @if($settingsProfilePct !== null)
-                <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">Profile {{ $settingsProfilePct }}% complete</p>
+                <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">Setup {{ $settingsProfilePct }}% complete</p>
                 <div class="mt-2 h-1.5 w-full rounded-full bg-teal-100 dark:bg-teal-950/60 overflow-hidden">
                     <div class="h-full rounded-full bg-teal-600 dark:bg-teal-400 transition-all duration-300" style="width: {{ $settingsProfilePct }}%"></div>
                 </div>
@@ -716,8 +716,8 @@
                 @endphp
                 @foreach($days as $day)
                 @php $h = $current[$day] ?? ['open'=>true,'from'=>'09:00','to'=>'18:00']; @endphp
-                <div class="flex items-center gap-4 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                    <div class="w-28">
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <div class="w-28 shrink-0">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" name="hours[{{ $day }}][open]" value="1"
                                    {{ ($h['open'] ?? false) ? 'checked' : '' }}
@@ -725,9 +725,9 @@
                             <span class="text-sm font-medium text-body capitalize">{{ $day }}</span>
                         </label>
                     </div>
-                    <input type="time" name="hours[{{ $day }}][from]" value="{{ $h['from'] ?? '09:00' }}" class="form-input w-auto">
+                    <input type="time" name="hours[{{ $day }}][from]" value="{{ $h['from'] ?? '09:00' }}" class="form-input w-auto min-w-0 flex-1 sm:flex-none">
                     <span class="text-muted text-sm">to</span>
-                    <input type="time" name="hours[{{ $day }}][to]" value="{{ $h['to'] ?? '18:00' }}" class="form-input w-auto">
+                    <input type="time" name="hours[{{ $day }}][to]" value="{{ $h['to'] ?? '18:00' }}" class="form-input w-auto min-w-0 flex-1 sm:flex-none">
                 </div>
                 @endforeach
                 </fieldset>
@@ -770,14 +770,14 @@
                     <div class="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center flex-shrink-0">
                         @include('partials.social-platform-icon', ['platform' => $key, 'class' => 'w-5 h-5'])
                     </div>
-                    <div class="flex-1">
+                    <div class="flex-1 min-w-0">
                         <label class="form-label mb-1">{{ $meta['label'] }}</label>
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <input type="url"
                                    name="social_links[{{ $key }}]"
                                    value="{{ old("social_links.{$key}", $saved[$key] ?? '') }}"
                                    placeholder="{{ $meta['placeholder'] }}"
-                                   class="form-input flex-1">
+                                   class="form-input flex-1 min-w-0">
                             @if(!empty($saved[$key]))
                             <a href="{{ $saved[$key] }}"
                                target="_blank"
@@ -1388,7 +1388,7 @@
      x-show="canEditTab('profile')"
      x-transition.opacity
      @keydown.escape.window="showPasswordModal = false">
-    <div class="w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-2xl" @click.stop>
+    <div class="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-2xl" @click.stop>
         <div class="mb-5 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-heading">Change Password</h3>
             <button type="button"

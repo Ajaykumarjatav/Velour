@@ -11,7 +11,7 @@
     $chipBg       = $isAdmin ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-velour-900/40 hover:border-velour-700 hover:text-velour-300' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-velour-50 dark:hover:bg-velour-900/30 hover:border-velour-300 dark:hover:border-velour-700 hover:text-velour-700 dark:hover:text-velour-300';
 @endphp
 
-<div x-data="chatbot()" class="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+<div x-data="chatbot()" class="fixed bottom-5 right-5 left-5 sm:left-auto z-50 flex flex-col items-end gap-3 pointer-events-none [&>*]:pointer-events-auto">
 
     {{-- Chat window --}}
     <div x-show="open" x-cloak
@@ -20,8 +20,8 @@
          x-transition:enter-end="opacity-100 translate-y-0 scale-100"
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-         class="w-80 sm:w-96 rounded-2xl shadow-2xl border flex flex-col overflow-hidden {{ $windowBg }}"
-         style="max-height:540px;">
+         class="w-full sm:w-96 max-w-full rounded-2xl shadow-2xl border flex flex-col overflow-hidden {{ $windowBg }}"
+         style="max-height:min(540px, calc(100dvh - 7rem));">
 
         {{-- Header --}}
         <div class="flex items-center justify-between px-4 py-3 {{ $headerBg }}">
@@ -77,9 +77,10 @@
         </div>
 
         {{-- Messages --}}
+        {{-- Grows with the panel instead of a fixed band, so short/landscape screens still show the composer. --}}
         <div id="chat-messages"
-             class="flex-1 overflow-y-auto px-4 py-3 space-y-3 scroll-smooth"
-             style="min-height:280px;max-height:340px;">
+             class="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3 scroll-smooth"
+             style="min-height:9rem;">
 
             {{-- Welcome --}}
             <div class="flex gap-2">

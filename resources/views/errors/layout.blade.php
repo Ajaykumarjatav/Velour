@@ -19,10 +19,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="h-full bg-gradient-to-br from-gray-50 to-velour-50 flex items-center justify-center p-6">
+<body class="min-h-full bg-gradient-to-br from-gray-50 to-velour-50 flex items-center justify-center p-4 sm:p-6 py-10">
     <div class="text-center max-w-md w-full">
         {{-- Logo --}}
-        <div class="inline-flex items-center gap-2 mb-10">
+        <div class="inline-flex items-center gap-2 mb-8 sm:mb-10">
             <div class="w-8 h-8 bg-velour-600 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -33,10 +33,10 @@
         </div>
 
         {{-- Error code --}}
-        <h1 class="text-8xl font-black text-velour-600 leading-none mb-4">@yield('code')</h1>
+        <h1 class="text-6xl sm:text-8xl font-black text-velour-600 leading-none mb-4">@yield('code')</h1>
 
         {{-- Title --}}
-        <h2 class="text-2xl font-bold text-gray-900 mb-3">@yield('title')</h2>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-3">@yield('title')</h2>
 
         {{-- Message --}}
         <p class="text-gray-500 text-sm leading-relaxed mb-8">@yield('message')</p>

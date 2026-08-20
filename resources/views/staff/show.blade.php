@@ -44,7 +44,7 @@
     </div>
     @endif
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 min-[420px]:grid-cols-3 gap-4">
         <div class="stat-card text-center">
             <p class="stat-value">@money($totalRevenue)</p>
             <p class="stat-label mt-1">Revenue</p>

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Marketing & Growth')
 {{-- Top bar: short label; full title lives in the hero (avoids duplicate + theme clash) --}}
 @section('page-title', 'Marketing')
@@ -247,7 +247,7 @@
         </div>
 
         <x-modal-overlay show="tierModal !== null" x-on:click.self="tierModal=null">
-            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-stone-200 dark:border-gray-700" x-show="tierModal !== null">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-stone-200 dark:border-gray-700 max-h-[90dvh] overflow-y-auto" x-show="tierModal !== null">
                 <form x-show="tierModal && tierModal.id != null" x-cloak :action="'{{ url('marketing/loyalty/tiers') }}/' + tierModal.id" method="POST" class="space-y-4">
                     @csrf
                     @method('PUT')
@@ -300,15 +300,15 @@
             </div>
             <h3 class="text-sm font-semibold text-heading mb-3">Current referral settings</h3>
             <dl class="divide-y divide-stone-200 dark:divide-gray-700 text-sm">
-                <div class="flex justify-between py-3"><dt class="text-muted">Referrer reward</dt><dd class="font-medium text-heading">@money((float) $referralSettings->referrer_reward_amount) credit on referral booking</dd></div>
-                <div class="flex justify-between py-3"><dt class="text-muted">Referee reward</dt><dd class="font-medium text-heading">@money((float) $referralSettings->referee_reward_amount) off first visit</dd></div>
-                <div class="flex justify-between py-3"><dt class="text-muted">Minimum spend</dt><dd class="font-medium text-heading">@money((float) $referralSettings->minimum_spend) to unlock referral credit</dd></div>
-                <div class="flex justify-between py-3"><dt class="text-muted">Expiry</dt><dd class="font-medium text-heading">Credits valid for {{ $referralSettings->credit_expiry_days }} days</dd></div>
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 py-3"><dt class="text-muted">Referrer reward</dt><dd class="font-medium text-heading sm:text-right">@money((float) $referralSettings->referrer_reward_amount) credit on referral booking</dd></div>
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 py-3"><dt class="text-muted">Referee reward</dt><dd class="font-medium text-heading sm:text-right">@money((float) $referralSettings->referee_reward_amount) off first visit</dd></div>
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 py-3"><dt class="text-muted">Minimum spend</dt><dd class="font-medium text-heading sm:text-right">@money((float) $referralSettings->minimum_spend) to unlock referral credit</dd></div>
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 py-3"><dt class="text-muted">Expiry</dt><dd class="font-medium text-heading sm:text-right">Credits valid for {{ $referralSettings->credit_expiry_days }} days</dd></div>
             </dl>
         </div>
 
         <x-modal-overlay show="referralOpen" x-on:click.self="referralOpen=false">
-            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-stone-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-stone-200 dark:border-gray-700 max-h-[90dvh] overflow-y-auto">
                 <form action="{{ route('marketing.referral-settings.update') }}" method="POST" class="space-y-4">
                     @csrf
                     @method('PUT')
@@ -381,7 +381,7 @@
         </div>
 
         <x-modal-overlay show="templateModal !== null" x-on:click.self="templateModal=null">
-            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full p-6 border border-stone-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto" x-show="templateModal !== null">
+            <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full p-6 border border-stone-200 dark:border-gray-700 max-h-[90dvh] overflow-y-auto" x-show="templateModal !== null">
                 <form x-show="templateModal" x-cloak :action="'{{ url('marketing/automation-templates') }}/' + templateModal.id" method="POST" class="space-y-4">
                     @csrf
                     @method('PUT')

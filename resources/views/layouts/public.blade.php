@@ -8,14 +8,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  body { font-family: 'DM Sans', sans-serif; color: #1C1915; background: #FDFCFA; }
+  body {
+    font-family: 'DM Sans', sans-serif; color: #1C1915; background: #FDFCFA;
+    overflow-x: hidden;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
   h1,h2,h3 { font-family: 'Playfair Display', serif; }
   .required-asterisk { color: #ef4444; font-weight: 600; margin-left: 0.15rem; }
 </style>
 </head>
 <body>
 <header class="border-b border-gray-100 bg-white sticky top-0 z-10">
-  <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 min-h-14 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
     <a href="{{ url('/') }}" class="text-xl font-bold" style="font-family:'Playfair Display',serif;color:#0F0E0C">
       EasyGrox<span style="color:#B8943A">.</span>
     </a>

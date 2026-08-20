@@ -15,7 +15,7 @@
 
 <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/40 p-4 sm:p-5 mb-6 overflow-visible">
     <form action="{{ route('reports.show', 'revenue') }}" method="GET">
-        <div class="flex flex-wrap xl:flex-nowrap items-end gap-3 sm:gap-4">
+        <div class="flex flex-wrap 2xl:flex-nowrap items-end gap-3 sm:gap-4">
             <div class="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[14rem] sm:max-w-xs xl:flex-1 xl:max-w-sm shrink-0">
                 <label class="form-label text-xs mb-0">Date range</label>
                 <x-date-range-picker

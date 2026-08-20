@@ -14,7 +14,7 @@
                        placeholder="Client name (optional)">
                 @error('name')<p class="form-error">{{ $message }}</p>@enderror
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">Mobile <span class="text-red-500">*</span></label>
                     <input type="tel" name="phone" value="{{ old('phone') }}" required
@@ -28,7 +28,7 @@
                     @error('email')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">Date of birth</label>
                     <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}"

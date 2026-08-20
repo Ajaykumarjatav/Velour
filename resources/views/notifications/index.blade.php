@@ -43,7 +43,7 @@
       ];
       [$icon, $iconBg] = $iconMap[$notification->type] ?? ['🔔','bg-gray-100 dark:bg-gray-800'];
     @endphp
-    <div class="flex items-start gap-4 px-5 py-4 border-b border-gray-100 dark:border-gray-800 last:border-0
+    <div class="flex flex-wrap items-start gap-3 sm:gap-4 px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-gray-800 last:border-0
                 {{ !$notification->is_read ? 'bg-velour-50/40 dark:bg-velour-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800/40' }} transition-colors">
       <div class="w-10 h-10 rounded-xl {{ $iconBg }} flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
         {{ $icon }}
@@ -57,7 +57,7 @@
         @endif
         <p class="text-xs text-muted mt-1">{{ $notification->created_at->diffForHumans() }}</p>
       </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex flex-wrap items-center gap-2 sm:flex-shrink-0 ml-[3.25rem] sm:ml-0">
         @if(!$notification->is_read)
         <x-unless-admin-browse>
         <form method="POST" action="{{ route('notifications.read', $notification->id) }}">

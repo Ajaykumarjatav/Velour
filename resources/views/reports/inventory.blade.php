@@ -5,7 +5,7 @@
 
 @include('reports._filter', ['type' => $type, 'from' => $from, 'to' => $to])
 
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
     <div class="stat-card text-center">
         <p class="text-2xl font-bold text-heading">{{ $total_products }}</p>
         <p class="text-xs text-muted mt-1 uppercase tracking-wide">Active SKUs</p>

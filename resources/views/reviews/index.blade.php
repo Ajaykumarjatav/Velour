@@ -18,7 +18,7 @@
                     type="text"
                     readonly
                     value="{{ route('reviews.public', ['store' => \App\Support\SalonUrl::key($salon), 'token' => $tenantReviewLink->token]) }}"
-                    class="form-input flex-1"
+                    class="form-input flex-1 min-w-0"
                     id="tenant-review-link"
                 >
                 <button type="button" class="btn-outline whitespace-nowrap copy-review-link-btn" data-target="tenant-review-link">Copy Link</button>
@@ -41,7 +41,7 @@
                         type="text"
                         readonly
                         value="{{ route('reviews.public', ['store' => \App\Support\SalonUrl::key($salon), 'token' => $link->token]) }}"
-                        class="form-input"
+                        class="form-input min-w-0"
                         id="{{ $inputId }}"
                     >
                     <button type="button" class="btn-outline copy-review-link-btn whitespace-nowrap" data-target="{{ $inputId }}">Copy Link</button>

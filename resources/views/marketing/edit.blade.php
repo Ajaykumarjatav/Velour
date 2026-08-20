@@ -23,7 +23,7 @@
                 <label class="form-label">Campaign name <span class="text-red-500">*</span></label>
                 <input type="text" name="name" value="{{ old('name', $campaign->name) }}" required placeholder="e.g. Spring Promotion 2025" class="form-input">
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label" for="mkt-edit-type-trigger">Type <span class="text-red-500">*</span></label>
                     <x-searchable-select

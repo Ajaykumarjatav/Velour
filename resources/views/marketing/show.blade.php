@@ -5,13 +5,13 @@
 
 <div class="max-w-2xl space-y-5">
     <div class="card p-6">
-        <div class="flex items-start justify-between mb-5">
-            <div>
-                <h2 class="text-xl font-bold text-heading">{{ $campaign->name }}</h2>
+        <div class="flex items-start justify-between gap-3 mb-5">
+            <div class="min-w-0">
+                <h2 class="text-xl font-bold text-heading break-words">{{ $campaign->name }}</h2>
                 <p class="text-sm text-muted mt-0.5">Created {{ $campaign->created_at->format('d M Y') }}</p>
             </div>
             @php $sc = ['draft'=>'badge-gray','scheduled'=>'badge-blue','sending'=>'badge-yellow','sent'=>'badge-green']; @endphp
-            <span class="{{ $sc[$campaign->status] ?? 'badge-gray' }} px-3 py-1.5 text-sm font-semibold rounded-xl">
+            <span class="{{ $sc[$campaign->status] ?? 'badge-gray' }} shrink-0 px-3 py-1.5 text-sm font-semibold rounded-xl">
                 {{ ucfirst($campaign->status) }}
             </span>
         </div>

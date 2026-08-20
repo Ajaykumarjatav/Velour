@@ -7,7 +7,7 @@
     <div {{ $attributes->merge([
         'class' => 'bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 w-full shadow-2xl '
             . $maxWidth
-            . ' max-h-[min(90vh,calc(100vh-2rem))] overflow-y-auto',
+            . ' max-h-[min(90dvh,calc(100dvh-2rem))] overflow-y-auto',
     ]) }} x-on:click.stop>
         {{ $slot }}
     </div>

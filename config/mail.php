@@ -10,5 +10,12 @@ return [
     'ops_notify' => env('MAIL_OPS_NOTIFY', 'ajayajatav439@gmail.com'),
     // Optional CC (comma-separated) for the same ops alerts
     'ops_notify_cc' => env('MAIL_OPS_NOTIFY_CC', ''),
+    /*
+    | Absolute URL for the header logo in transactional emails. Gmail and other
+    | clients cannot load http://localhost images — set MAIL_LOGO_URL in .env for
+    | local SMTP testing, or leave blank to use the public EasyGrox CDN fallback
+    | whenever APP_URL is local.
+    */
+    'logo_url' => env('MAIL_LOGO_URL'),
     'markdown'  => ['theme' => 'default', 'paths' => [resource_path('views/vendor/mail')]],
 ];

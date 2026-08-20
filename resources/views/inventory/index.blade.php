@@ -250,7 +250,7 @@
 
     {{-- Barcode lookup --}}
     <x-modal-overlay show="scanOpen" @click.self="scanOpen = false">
-        <div class="card max-w-md w-full p-6 shadow-xl" @click.stop>
+        <div class="card max-w-md w-full p-6 shadow-xl max-h-[90dvh] overflow-y-auto" @click.stop>
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-lg font-semibold text-heading">Barcode scanner</h2>
                 <button type="button" class="text-muted hover:text-body p-1" @click="scanOpen = false" aria-label="Close">✕</button>
@@ -343,7 +343,7 @@
 
     {{-- Reorder --}}
     <x-modal-overlay show="reorderOpen" @click.self="reorderOpen = false">
-        <div class="card max-w-md w-full p-6 shadow-xl" @click.stop>
+        <div class="card max-w-md w-full p-6 shadow-xl max-h-[90dvh] overflow-y-auto" @click.stop>
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-lg font-semibold text-heading">Reorder stock</h2>
                 <button type="button" class="text-muted hover:text-body p-1" @click="reorderOpen = false">✕</button>
@@ -376,7 +376,7 @@
 
     {{-- Add stock --}}
     <x-modal-overlay show="addStockOpen" @click.self="addStockOpen = false">
-        <div class="card max-w-md w-full p-6 shadow-xl" @click.stop>
+        <div class="card max-w-md w-full p-6 shadow-xl max-h-[90dvh] overflow-y-auto" @click.stop>
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-lg font-semibold text-heading">Add stock</h2>
                 <button type="button" class="text-muted hover:text-body p-1" @click="addStockOpen = false">✕</button>

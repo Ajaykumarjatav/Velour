@@ -36,7 +36,7 @@
                 <textarea name="description" rows="3" class="form-textarea @error('description') form-input-error @enderror" placeholder="What clients get in this bundle…">{{ old('description') }}</textarea>
                 @error('description')<p class="form-error">{{ $message }}</p>@enderror
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">Package price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }}) <span class="text-red-500">*</span></label>
                     <input type="number" name="price" value="{{ old('price') }}" required min="0" step="0.01"

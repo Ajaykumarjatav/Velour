@@ -31,7 +31,7 @@
       </div>
 
       {{-- Actions --}}
-      <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex flex-wrap items-center gap-2 flex-shrink-0">
         <button @click="openPreferences = true"
           class="text-xs text-gray-500 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
           Preferences

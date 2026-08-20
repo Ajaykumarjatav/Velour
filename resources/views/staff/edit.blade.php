@@ -9,7 +9,7 @@
             @csrf
             @method('PUT')
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <label class="form-label">Photo</label>
                     <div class="flex flex-col sm:flex-row sm:items-start gap-4">

@@ -1,11 +1,11 @@
-@php
+﻿@php
     $suspendUrlTemplate = preg_replace('#/\d+(/suspend)$#', '/__STORE__$1', route('admin.tenants.suspend', 1));
     $unsuspendUrlTemplate = preg_replace('#/\d+(/unsuspend)$#', '/__STORE__$1', route('admin.tenants.unsuspend', 1));
 @endphp
 
 {{-- Suspend single store (must live inside parent x-data scope) --}}
 <div x-show="suspendStore" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-  <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg" @click.outside="suspendStore = null">
+  <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg max-h-[90dvh] overflow-y-auto" @click.outside="suspendStore = null">
     <h2 class="text-lg font-bold text-white mb-1">Suspend store</h2>
     <p class="text-sm text-gray-500 mb-4"><span x-text="suspendStoreName"></span> — public website & booking will stop for this location only.</p>
     <form method="POST"
@@ -41,7 +41,7 @@
 
 {{-- Reactivate single store --}}
 <div x-show="unsuspendStore" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-  <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg" @click.outside="unsuspendStore = null">
+  <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg max-h-[90dvh] overflow-y-auto" @click.outside="unsuspendStore = null">
     <h2 class="text-lg font-bold text-white mb-1">Reactivate store</h2>
     <p class="text-sm text-gray-500 mb-4"><span x-text="unsuspendStoreName"></span> — website, booking & panel access will be restored.</p>
     <form method="POST"

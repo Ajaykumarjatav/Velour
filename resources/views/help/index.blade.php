@@ -6,13 +6,13 @@
 
   {{-- Header --}}
   <div class="text-center mb-12">
-    <h1 class="text-4xl font-bold text-gray-900 mb-3" style="font-family:'Playfair Display',serif">
+    <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-3" style="font-family:'Playfair Display',serif">
       How can we help?
     </h1>
     <form method="GET" action="{{ route('help.index') }}" class="max-w-xl mx-auto mt-4">
       <div class="relative">
         <input name="q" value="{{ $search }}" placeholder="Search articles..."
-          class="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-200 shadow-sm text-base focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none">
+          class="w-full pl-12 pr-24 py-4 rounded-2xl border border-gray-200 shadow-sm text-base focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none">
         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
         <button type="submit"
           class="absolute right-3 top-1/2 -translate-y-1/2 bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-amber-600 transition">

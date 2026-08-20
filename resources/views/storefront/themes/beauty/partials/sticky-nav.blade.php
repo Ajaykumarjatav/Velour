@@ -1,4 +1,4 @@
-@php
+﻿@php
     $navLinks = [
         ['label' => 'Who We are', 'href' => '#about'],
         ['label' => 'Services', 'href' => '#services'],
@@ -23,7 +23,7 @@
     :class="isSticky
         ? 'fixed top-0 left-0 right-0 shadow-lg bg-[#F5ECE7]/95 backdrop-blur-md py-1'
         : 'relative bg-section-lightest py-3'"
-    class="w-full z-50 transition-all duration-300 border-b border-[#F5ECE7]"
+    class="sf-sticky-nav w-full z-50 transition-all duration-300 border-b border-[#F5ECE7]"
 >
     <div class="max-w-[1360px] mx-auto px-4">
         <div class="flex items-center justify-between py-2 lg:hidden">

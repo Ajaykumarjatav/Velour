@@ -13,7 +13,7 @@
             @csrf
             @if($method === 'PUT') @method('PUT') @endif
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <label class="form-label">Photo <span class="text-red-500">*</span></label>
                     <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"

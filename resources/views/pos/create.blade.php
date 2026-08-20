@@ -38,8 +38,16 @@
 @push('styles')
 <style>
     .pos-shell { min-height: calc(100dvh - 3.25rem); }
-    @media (min-width: 1024px) {
+    /* Three panes only from 1280px: at 1024px the app sidebar plus the category
+       and cart columns leave the product grid about 300px, i.e. one card wide. */
+    @media (min-width: 1280px) {
         .pos-shell { height: calc(100dvh - 4rem); min-height: calc(100dvh - 4rem); }
+    }
+    /* The stacked-layout checkout bar is fixed, so it must clear the app sidebar
+       between 1024px and 1279px where that sidebar is already on screen. */
+    @media (min-width: 1024px) {
+        .pos-mobile-bar { left: 15rem; }
+        html.sidebar-is-collapsed .pos-mobile-bar { left: 4.5rem; }
     }
     .pos-sidebar-scroll::-webkit-scrollbar { width: 4px; }
     .pos-sidebar-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
@@ -67,7 +75,7 @@
         min-height: 0;
         overflow: hidden;
     }
-    @media (min-width: 1024px) {
+    @media (min-width: 1280px) {
         .pos-register-panel { height: calc(100dvh - 4rem); max-height: calc(100dvh - 4rem); }
     }
     .pos-section-label {
@@ -210,12 +218,12 @@
 <div
     x-data="posApp()"
     x-init="init()"
-    :class="cart.length > 0 ? 'pb-[4.5rem] lg:pb-0' : ''"
-    class="pos-shell flex flex-col lg:flex-row w-full min-w-0 max-w-full rounded-none lg:rounded-none border-y lg:border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden"
+    :class="cart.length > 0 ? 'pb-[4.5rem] xl:pb-0' : ''"
+    class="pos-shell flex flex-col xl:flex-row w-full min-w-0 max-w-full rounded-none border-y xl:border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden"
 >
 
     {{-- ── Left: category sidebar (desktop) ── --}}
-    <aside class="hidden lg:flex flex-col w-[13.5rem] xl:w-[14.5rem] shrink-0 self-stretch border-r border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/50">
+    <aside class="hidden xl:flex flex-col w-[13.5rem] 2xl:w-[14.5rem] shrink-0 self-stretch border-r border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/50">
         <nav class="flex flex-col p-3 gap-1 shrink-0">
             <a href="{{ route('pos.index') }}"
                class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-heading hover:bg-white/80 dark:hover:bg-gray-800 transition-colors">
@@ -271,10 +279,10 @@
     </aside>
 
     {{-- ── Center: search + grid ── --}}
-    <main class="flex flex-col flex-1 min-w-0 min-h-0 border-r border-gray-200 dark:border-gray-800">
+    <main class="flex flex-col flex-1 min-w-0 min-h-0 xl:border-r border-gray-200 dark:border-gray-800">
 
-        {{-- Mobile section switcher --}}
-        <div class="lg:hidden shrink-0 flex border-b border-gray-200 dark:border-gray-800">
+        {{-- Stacked-layout section switcher (below the three-pane breakpoint) --}}
+        <div class="xl:hidden shrink-0 flex border-b border-gray-200 dark:border-gray-800">
             <button type="button" @click="selectSection('service')"
                     :class="section === 'service' ? 'text-velour-600 border-b-2 border-velour-600' : 'text-muted'"
                     class="flex-1 py-2.5 text-sm font-semibold">Services</button>
@@ -291,15 +299,15 @@
 
         {{-- Search --}}
         <div class="shrink-0 px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950">
-            <div class="pos-search-field w-full lg:w-[70%]">
+            <div class="pos-search-field w-full xl:w-[70%]">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
                 <input id="pos-search" x-model="search" type="search" autocomplete="off"
                        :placeholder="section === 'product' ? 'Search products by name…' : 'Search services by name…'">
             </div>
-            {{-- Mobile category picker --}}
-            <div class="lg:hidden mt-2">
+            {{-- Category picker for the stacked layout --}}
+            <div class="xl:hidden mt-2">
                 <select x-model="activeCategory" class="form-select w-full text-sm py-2">
                     <option value="All">All categories</option>
                     <template x-for="cat in sidebarCategories" :key="cat">
@@ -353,7 +361,7 @@
 
     {{-- ── Right: current sale (sticky checkout) ── --}}
     <aside id="pos-register" tabindex="-1"
-           class="pos-register-panel w-full lg:w-[21rem] xl:w-[22rem] shrink-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800">
+           class="pos-register-panel w-full xl:w-[21rem] 2xl:w-[22rem] shrink-0 border-t xl:border-t-0 border-gray-200 dark:border-gray-800">
 
         <div class="pos-cart-header px-4 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
             <h2 class="text-base font-semibold text-heading">
@@ -572,7 +580,7 @@
 
     {{-- Mobile checkout bar --}}
     <div x-show="cart.length > 0" x-cloak
-         class="lg:hidden fixed left-0 right-0 z-[45] border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-3 flex items-center justify-between gap-3 shadow-lg"
+         class="pos-mobile-bar xl:hidden fixed left-0 right-0 z-[45] border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-3 flex items-center justify-between gap-3 shadow-lg"
          style="bottom: 0; padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px))">
         <div>
             <p class="text-xs text-muted" x-text="cartQtyCount + ' items'"></p>

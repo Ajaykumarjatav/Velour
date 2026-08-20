@@ -73,7 +73,7 @@
                     <span class="flex-shrink-0 mx-3 text-xs font-medium text-muted uppercase tracking-wider">{{ $periodLabel }}</span>
                     <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
                 </div>
-                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                <div class="grid grid-cols-2 min-[420px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     @foreach($slotPeriods[$periodKey] as $slotTime)
                     <button type="button"
                             data-slot="{{ $slotTime }}"

@@ -51,7 +51,7 @@
     {{-- Slider --}}
     <div class="relative group/slider">
         <button type="button" @click="scrollLeft()" aria-label="Scroll left"
-                class="analytics-slider-arrow left-0 rounded-r-xl opacity-0 group-hover/slider:opacity-100 transition-opacity">
+                class="analytics-slider-arrow left-0 rounded-r-xl opacity-70 lg:opacity-0 lg:group-hover/slider:opacity-100 transition-opacity">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
         <div x-ref="slider" class="analytics-slider flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 px-1">
@@ -73,7 +73,7 @@
             </template>
         </div>
         <button type="button" @click="scrollRight()" aria-label="Scroll right"
-                class="analytics-slider-arrow right-0 rounded-l-xl opacity-0 group-hover/slider:opacity-100 transition-opacity">
+                class="analytics-slider-arrow right-0 rounded-l-xl opacity-70 lg:opacity-0 lg:group-hover/slider:opacity-100 transition-opacity">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         </button>
     </div>

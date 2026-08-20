@@ -18,7 +18,14 @@
             {!! \App\Support\StorefrontAssets::cssVariables($theme) !!}
         }
         [x-cloak] { display: none !important; }
-        html { scroll-behavior: smooth; }
+        /* scroll-padding keeps section anchors clear of the nav once it goes fixed. */
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 5rem;
+        }
+        body {
+            overflow-x: hidden;
+        }
         .storefront-booking-overlay {
             position: fixed !important;
             inset: 0 !important;
@@ -34,6 +41,50 @@
         body.storefront-booking-active .storefront-site-content {
             visibility: hidden !important;
             pointer-events: none !important;
+        }
+
+        /* Theme stylesheets are pre-compiled, so responsive corrections live here. */
+        @supports (height: 100dvh) {
+            .storefront-booking-overlay .min-h-screen { min-height: 100dvh; }
+        }
+
+        .sf-logo { max-width: 100%; }
+
+        .sf-hero-title { line-height: 1.1; }
+
+        @media (max-width: 1023px) {
+            .sf-hero-title { font-size: clamp(2.25rem, 7.5vw, 3.5rem); }
+        }
+
+        @media (max-width: 639px) {
+            .sf-hero-pill { padding: 0.625rem 1rem; }
+            .sf-logo { min-width: 0; }
+        }
+
+        /* Opening-hours strings only fit on one line once the top bar is wide. */
+        @media (max-width: 1023px) {
+            .sf-hours { justify-content: center; }
+            .sf-hours span { white-space: normal; text-align: center; }
+        }
+
+        /* Landscape phones: the hero must not reserve more height than the screen has. */
+        @media (max-height: 520px) and (max-width: 1023px) {
+            .sf-hero { min-height: 0; }
+        }
+
+        @media (min-width: 640px) and (max-width: 767px) {
+            .sf-hero-perks { gap: 1.5rem; }
+        }
+
+        @media (max-width: 419px) {
+            .sf-slot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        /* Keeps the mobile section menu reachable when the nav is pinned on short screens. */
+        .sf-sticky-nav {
+            max-height: 100dvh;
+            overflow-y: auto;
+            overscroll-behavior: contain;
         }
     </style>
     @stack('head')
@@ -61,6 +112,42 @@
             window.addEventListener('hashchange', syncBookingHash);
             document.addEventListener('DOMContentLoaded', syncBookingHash);
             syncBookingHash();
+        })();
+
+        // The section nav switches to fixed positioning on scroll; a spacer keeps the
+        // page from jumping by the nav height when that happens.
+        (function () {
+            function initNavSpacer() {
+                var nav = document.querySelector('.sf-sticky-nav');
+                if (!nav || !nav.parentNode) return;
+
+                var spacer = document.createElement('div');
+                spacer.setAttribute('aria-hidden', 'true');
+                spacer.style.display = 'none';
+                nav.parentNode.insertBefore(spacer, nav.nextSibling);
+
+                var flowHeight = nav.offsetHeight;
+
+                function sync() {
+                    if (window.getComputedStyle(nav).position === 'fixed') {
+                        spacer.style.height = flowHeight + 'px';
+                        spacer.style.display = 'block';
+                    } else {
+                        flowHeight = nav.offsetHeight;
+                        spacer.style.display = 'none';
+                    }
+                }
+
+                window.addEventListener('scroll', sync, { passive: true });
+                window.addEventListener('resize', sync);
+                sync();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initNavSpacer);
+            } else {
+                initNavSpacer();
+            }
         })();
     </script>
     @stack('scripts')

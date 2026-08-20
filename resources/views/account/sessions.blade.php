@@ -34,13 +34,13 @@
     </div>
     <div class="divide-y divide-gray-50 dark:divide-gray-800">
       @foreach($sessions as $session)
-      <div class="flex items-center justify-between px-6 py-4">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center text-base">
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-9 h-9 shrink-0 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center text-base">
             {{ str_contains($session['user_agent'], 'iOS') || str_contains($session['user_agent'], 'Android') ? '📱' : '💻' }}
           </div>
-          <div>
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100 break-words">
               {{ $session['user_agent'] }}
               @if($session['is_current'])
               <span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">Current</span>
@@ -52,7 +52,7 @@
           </div>
         </div>
         @unless($session['is_current'])
-        <form method="POST" action="{{ route('account.sessions.revoke', $session['id']) }}">
+        <form method="POST" action="{{ route('account.sessions.revoke', $session['id']) }}" class="shrink-0">
           @csrf @method('DELETE')
           <button class="text-xs text-red-500 hover:underline">Revoke</button>
         </form>
@@ -121,13 +121,13 @@
     <div class="bg-red-50 dark:bg-red-900/20 px-6 py-3 border-b border-red-100 dark:border-red-900/50">
       <h2 class="font-semibold text-red-700 dark:text-red-300 text-sm">Danger Zone</h2>
     </div>
-    <div class="px-6 py-5 flex items-center justify-between bg-white dark:bg-gray-900">
+    <div class="px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-gray-900">
       <div>
         <p class="text-sm font-medium text-gray-800 dark:text-gray-100">Delete Account</p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Permanently delete your account and all associated data.</p>
       </div>
       <a href="{{ route('account.delete') }}"
-        class="text-sm text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-4 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition font-medium">
+        class="text-sm text-center shrink-0 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-4 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition font-medium">
         Delete Account
       </a>
     </div>

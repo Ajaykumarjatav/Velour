@@ -61,7 +61,7 @@
                             class="text-sm text-velour-600 dark:text-velour-400 font-medium whitespace-nowrap hover:underline">+ New</button>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">Duration (min) <span class="text-red-500">*</span></label>
                     <input type="number" name="duration_minutes" min="5" max="480"
@@ -128,7 +128,7 @@
 
 {{-- Inline Add Category Modal --}}
 <div id="inline-cat-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 max-h-[90dvh] overflow-y-auto">
         <h3 class="font-semibold text-heading text-lg mb-4">Add Category</h3>
         <div class="space-y-4">
             <div>

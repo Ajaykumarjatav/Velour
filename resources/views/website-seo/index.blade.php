@@ -51,13 +51,13 @@
                         <p class="text-xs text-body whitespace-pre-line">{{ $salon->awards_accolades }}</p>
                     </div>
                     @endif
-                    <div class="mt-4 flex items-center justify-center gap-2">
+                    <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
                         <a href="{{ $websiteUrl }}" target="_blank" class="btn-primary btn-sm">View Site</a>
                         <a href="{{ $bookingUrl }}" target="_blank" class="btn-outline btn-sm">Book Now</a>
                         <a href="{{ route('services.index') }}" class="btn-outline btn-sm">Our Services</a>
                     </div>
                 </div>
-                <div class="grid grid-cols-3 gap-3 mb-4">
+                <div class="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3 mb-4">
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3 text-center"><p class="font-semibold text-heading">Hair</p></div>
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3 text-center"><p class="font-semibold text-heading">Skin</p></div>
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3 text-center"><p class="font-semibold text-heading">Nails</p></div>
@@ -127,7 +127,7 @@
             @endif
             <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3">
                 <p class="text-muted">Canonical URL</p>
-                <p class="text-heading">{{ $bookingUrl }}</p>
+                <p class="text-heading break-all">{{ $bookingUrl }}</p>
             </div>
         </div>
         <p class="text-xs text-muted mt-4">Need custom SEO fields? Use <a href="{{ route('settings.index') }}" class="text-link">Settings</a>.</p>
