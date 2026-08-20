@@ -1,4 +1,4 @@
-﻿@php
+@php
     $navLinks = [
         ['label' => 'Who We are', 'href' => '#about'],
         ['label' => 'Services', 'href' => '#services'],

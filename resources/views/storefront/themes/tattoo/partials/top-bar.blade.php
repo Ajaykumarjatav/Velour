@@ -1,4 +1,4 @@
-﻿@php
+@php
     $lines = $data['salon']['opening_hours_lines'] ?? [];
     $weekdayLine = $lines[0] ?? 'Monday to Friday - 10 AM to 7 PM';
     $weekendLine = $lines[1] ?? 'Saturday & Sunday - 10 AM to 10 PM';

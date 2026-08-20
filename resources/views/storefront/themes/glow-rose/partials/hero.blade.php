@@ -1,4 +1,4 @@
-﻿@php
+@php
     $salon = $data['salon'] ?? null;
     if (!$salon) return;
     $branding = $data['branding'] ?? [];

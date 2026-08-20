@@ -149,6 +149,9 @@
             const data = await response.json().catch(function () { return {}; });
 
             if (!response.ok) {
+                if (response.status === 401 || response.status === 419) {
+                    throw new Error('Session expired. Refresh this page and try again.');
+                }
                 throw new Error(data.message || 'Could not save theme.');
             }
 

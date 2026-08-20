@@ -23,6 +23,12 @@
             scroll-behavior: smooth;
             scroll-padding-top: 5rem;
         }
+        /* Theme CSS does not always zero the browser default body margin — that
+           shows up as a thin white strip around the brown top bar. */
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
         body {
             overflow-x: hidden;
         }
