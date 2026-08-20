@@ -47,8 +47,8 @@
   </div>
 </form>
 
-<div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-  <table class="w-full text-sm">
+<div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
+  <table class="w-full text-sm min-w-[36rem]">
     <thead>
     <tr class="border-b border-gray-800 bg-gray-800/50">
       <th class="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase">Account</th>

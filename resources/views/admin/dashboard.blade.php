@@ -4,7 +4,7 @@
 @section('content')
 
 {{-- Stats --}}
-<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
   @foreach([
     ['label' => 'Total Salons',   'value' => $stats['total_tenants'],  'color' => 'text-white'],
     ['label' => 'Active Salons',  'value' => $stats['active_tenants'], 'color' => 'text-green-400'],
@@ -54,7 +54,8 @@
       <h2 class="text-sm font-semibold text-gray-300">Recent Salons</h2>
       <a href="{{ route('admin.tenants') }}" class="text-xs text-velour-400 hover:text-velour-300">View all →</a>
     </div>
-    <table class="w-full text-sm">
+    <div class="overflow-x-auto">
+    <table class="w-full text-sm min-w-[24rem]">
       <tbody class="divide-y divide-gray-800/50">
       @foreach($recentTenants as $tenant)
       <tr class="hover:bg-gray-800/30 transition-colors">
@@ -77,6 +78,7 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   </div>
 
   {{-- Recent Users --}}
@@ -85,7 +87,8 @@
       <h2 class="text-sm font-semibold text-gray-300">Recent Users</h2>
       <a href="{{ route('admin.users') }}" class="text-xs text-velour-400 hover:text-velour-300">View all →</a>
     </div>
-    <table class="w-full text-sm">
+    <div class="overflow-x-auto">
+    <table class="w-full text-sm min-w-[24rem]">
       <tbody class="divide-y divide-gray-800/50">
       @foreach($recentUsers as $user)
       <tr class="hover:bg-gray-800/30 transition-colors">
@@ -101,6 +104,7 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   </div>
 
 </div>

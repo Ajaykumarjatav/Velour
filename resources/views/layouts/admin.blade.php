@@ -43,15 +43,60 @@
     *::-webkit-scrollbar-thumb { background: rgb(55 65 81); border-radius: 4px; }
     *::-webkit-scrollbar-thumb:hover { background: rgb(75 85 99); }
     .nav-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; opacity: 0.9; }
+    [x-cloak] { display: none !important; }
     .required-asterisk { color: #f87171; font-weight: 600; margin-left: 0.15rem; }
 
   .admin-shell-sidebar {
     width: 14rem;
+    position: sticky;
+    top: 0;
     transition: width 0.2s ease;
     overflow: visible;
   }
   html.admin-sidebar-is-collapsed .admin-shell-sidebar {
     width: 4.5rem;
+  }
+  /* Below lg the sidebar becomes an off-canvas drawer: a 14rem column beside
+     the content would leave a phone with ~136px of usable width. */
+  @media (max-width: 1023.98px) {
+    .admin-shell-sidebar,
+    html.admin-sidebar-is-collapsed .admin-shell-sidebar {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 15rem;
+      z-index: 60;
+      transform: translateX(-100%);
+      transition: transform 0.2s ease;
+    }
+    body.admin-nav-open .admin-shell-sidebar {
+      transform: translateX(0);
+    }
+    /* Collapsed icon-rail is a desktop affordance only. */
+    html.admin-sidebar-is-collapsed .admin-sidebar-brand,
+    html.admin-sidebar-is-collapsed .admin-nav-label,
+    html.admin-sidebar-is-collapsed .admin-sidebar-footer-text,
+    html.admin-sidebar-is-collapsed .admin-nav-badge {
+      display: revert;
+    }
+    html.admin-sidebar-is-collapsed .admin-sidebar-logo-icon {
+      display: none;
+    }
+    html.admin-sidebar-is-collapsed .admin-nav-link {
+      justify-content: flex-start;
+      width: auto;
+      font-size: 13px;
+      gap: 0.625rem;
+      padding: 0.5rem 0.75rem;
+    }
+    html.admin-sidebar-is-collapsed .admin-nav-link::after,
+    html.admin-sidebar-is-collapsed .admin-footer-link::after {
+      display: none;
+    }
+    html.admin-sidebar-is-collapsed .admin-sidebar-wrapper nav {
+      align-items: stretch;
+    }
   }
   .admin-sidebar-logo-icon {
     display: none;
@@ -168,6 +213,8 @@
 </head>
 <body class="h-full min-h-screen flex min-h-0"
       x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('admin-sidebar-collapsed') === '1' }"
+      :class="{ 'admin-nav-open': sidebarOpen }"
+      @keydown.escape.window="sidebarOpen = false"
       x-init="
         document.documentElement.classList.toggle('admin-sidebar-is-collapsed', sidebarCollapsed);
         $watch('sidebarCollapsed', v => {
@@ -176,8 +223,13 @@
         });
       ">
 
+  {{-- Drawer backdrop (below lg only) --}}
+  <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
+       class="fixed inset-0 bg-black/60 z-50 lg:hidden"></div>
+
   {{-- Sidebar --}}
-  <aside class="admin-shell-sidebar flex-shrink-0 bg-gray-900 flex flex-col h-screen sticky top-0 z-30 border-r border-gray-800/80">
+  {{-- Positioning lives in CSS (sticky column on desktop, off-canvas drawer below lg). --}}
+  <aside class="admin-shell-sidebar flex-shrink-0 bg-gray-900 flex flex-col h-screen z-30 border-r border-gray-800/80">
     <div class="admin-sidebar-wrapper flex flex-col h-full min-h-0 overflow-visible">
     <div class="admin-sidebar-header border-b border-gray-800 px-5 py-5">
       <div class="admin-sidebar-header-inner">
@@ -269,13 +321,21 @@
   </aside>
 
   {{-- Main --}}
-  <main class="flex-1 min-h-0 overflow-y-auto bg-gray-950">
+  <main class="flex-1 min-w-0 min-h-0 overflow-y-auto bg-gray-950">
     {{-- Top bar --}}
     <div class="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
       <div class="flex items-center gap-2 min-w-0">
         <button type="button"
+                @click="sidebarOpen = true"
+                class="lg:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 shrink-0 transition-colors"
+                aria-label="Open menu">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <button type="button"
                 @click="sidebarCollapsed = !sidebarCollapsed"
-                class="flex p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 shrink-0 transition-colors"
+                class="hidden lg:flex p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 shrink-0 transition-colors"
                 title="Toggle sidebar"
                 aria-label="Toggle sidebar">
           <svg class="w-4 h-4 transition-transform duration-200" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -284,13 +344,13 @@
         </button>
         <h1 class="text-[15px] font-semibold text-white truncate">@yield('page-title', 'Admin')</h1>
       </div>
-      <span class="px-2.5 py-1 text-xs font-bold bg-red-900/50 text-red-300 rounded-lg border border-red-800/50 uppercase tracking-wider">
+      <span class="hidden sm:inline-block px-2.5 py-1 text-xs font-bold bg-red-900/50 text-red-300 rounded-lg border border-red-800/50 uppercase tracking-wider whitespace-nowrap">
         Super Admin
       </span>
     </div>
 
     {{-- Flash messages --}}
-    <div class="px-6 pt-4">
+    <div class="px-4 sm:px-6 pt-4">
       @if(session('success'))
       <div class="mb-4 px-4 py-3 rounded-xl text-sm bg-green-900/30 text-green-300 border border-green-800/50">
         {{ session('success') }}
@@ -313,7 +373,7 @@
       @endif
     </div>
 
-    <div class="p-5 text-[13px] leading-snug">
+    <div class="p-4 sm:p-5 text-[13px] leading-snug">
       @yield('content')
     </div>
   </main>

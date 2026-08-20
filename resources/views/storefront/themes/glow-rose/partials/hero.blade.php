@@ -1,4 +1,4 @@
-@php
+﻿@php
     $salon = $data['salon'] ?? null;
     if (!$salon) return;
     $branding = $data['branding'] ?? [];
@@ -11,7 +11,7 @@
 
 <section
     id="hero"
-    class="relative w-full bg-black min-h-[500px] lg:min-h-[800px] xl:min-h-[900px] overflow-hidden"
+    class="sf-hero relative w-full bg-black min-h-[500px] lg:min-h-[800px] xl:min-h-[900px] overflow-hidden"
 >
     <div class="absolute right-0 top-0 w-full lg:w-[60%] h-full opacity-50 lg:opacity-90">
         <img
@@ -28,7 +28,7 @@
     <div class="relative z-10 max-w-[1360px] mx-auto px-4 pt-16 md:pt-24 lg:pt-[80px] pb-24">
         <div class="max-w-[800px] text-center lg:text-left">
             <div
-                class="inline-flex items-center gap-2.5 px-5 py-3.5 rounded-full mb-6 mx-auto lg:mx-0 hover:scale-105 transition-transform duration-300 cursor-default"
+                class="sf-hero-pill inline-flex flex-wrap justify-center max-w-full items-center gap-2.5 px-5 py-3.5 rounded-full mb-6 mx-auto lg:mx-0 hover:scale-105 transition-transform duration-300 cursor-default"
                 style="background: linear-gradient(93deg, #161616 2.49%, #4A4A4A 96.02%, #000000 184.57%); border: 0.72px solid #353535;"
             >
                 <div class="flex items-center gap-[2.9px]">
@@ -49,7 +49,7 @@
                 </span>
             </div>
 
-            <h2 class="font-manrope font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-[75px] xl:text-[90px] leading-tight lg:leading-[90px] xl:leading-[100px] text-white mb-6 md:mb-8 tracking-tight">
+            <h2 class="sf-hero-title font-manrope font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-[75px] xl:text-[90px] leading-tight lg:leading-[90px] xl:leading-[100px] text-white mb-6 md:mb-8 tracking-tight">
                 {!! nl2br(e($branding['heading'] ?? '')) !!}
             </h2>
 
@@ -57,7 +57,7 @@
                 {{ $branding['subheading'] ?? '' }}
             </p>
 
-            <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 md:gap-12 mb-10 md:mb-12">
+            <div class="sf-hero-perks flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 md:gap-12 mb-10 md:mb-12">
                 @foreach(range(1, 3) as $i)
                     <div class="flex flex-col items-center lg:items-start gap-3 group/item cursor-default">
                         <div class="w-[50px] h-[50px] rounded-full bg-white/5 border border-white/10 flex items-center justify-center transition-all duration-300 group-hover/item:bg-primary/20 group-hover/item:border-primary/50 group-hover/item:scale-105">

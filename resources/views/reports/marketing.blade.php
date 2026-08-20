@@ -5,7 +5,7 @@
 
 @include('reports._filter', ['type' => $type, 'from' => $from, 'to' => $to])
 
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
     <div class="stat-card text-center">
         <p class="text-2xl font-bold text-heading">{{ $campaigns_sent }}</p>
         <p class="text-xs text-muted mt-1 uppercase tracking-wide">Campaigns sent</p>

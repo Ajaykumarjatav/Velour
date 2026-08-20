@@ -1,11 +1,11 @@
-@php
+﻿@php
     $salonData = $data['salon'] ?? [];
     $logoUrl = $data['branding']['logo_url'] ?? null;
     $salonName = $salonData['name'] ?? ($salon->name ?? '');
     $variant = $variant ?? 'header';
     $imageClass = $imageClass ?? match ($variant) {
-        'footer' => 'h-12 md:h-14 w-auto max-w-[320px] object-contain',
-        default => 'h-12 md:h-14 w-auto max-w-[400px] min-w-[160px] object-contain object-left',
+        'footer' => 'sf-logo h-12 md:h-14 w-auto max-w-[320px] object-contain',
+        default => 'sf-logo h-12 md:h-14 w-auto max-w-[400px] min-w-[160px] object-contain object-left',
     };
 @endphp
 

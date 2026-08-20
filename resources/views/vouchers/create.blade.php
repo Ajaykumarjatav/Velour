@@ -25,7 +25,7 @@
         @error('type')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1.5">
             Value <span class="text-red-500">*</span>
@@ -66,7 +66,7 @@
         @endforeach
       </x-relation-field-with-create>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1.5">Expires</label>
           <input type="date" name="expires_at" value="{{ old('expires_at') }}" min="{{ today()->addDay()->toDateString() }}"

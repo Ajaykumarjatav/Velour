@@ -93,7 +93,8 @@
                 <h2 class="text-lg font-semibold text-heading">Revenue vs Expenses</h2>
                 <button type="button" class="btn-outline btn-sm" onclick="window.print()">Download</button>
             </div>
-            <div class="h-56 flex items-end gap-2.5">
+            {{-- 12 columns with a 24px floor need ~400px, so the row scrolls on phones instead of pushing the page wide. --}}
+            <div class="h-56 flex items-end gap-2.5 overflow-x-auto sm:overflow-visible pb-6 -mb-6">
                 @foreach($monthlyBars as $m)
                     <div class="flex-1 min-w-[24px] h-full flex items-end gap-1 justify-center relative group">
                         <div class="w-[44%] bg-velour-600 rounded-t" style="height: {{ max(6, $m['revenue_h']) }}%"></div>
@@ -267,7 +268,7 @@
     </div>
 
     <x-modal-overlay show="customOpen" @click.self="customOpen=false">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full p-6">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full max-h-[90dvh] overflow-y-auto p-6">
             <h3 class="text-xl font-semibold text-heading mb-3">Custom Report</h3>
             <p class="text-sm text-muted mb-4">Use existing detailed reports with date ranges:</p>
             <div class="grid grid-cols-2 gap-2">
@@ -282,7 +283,7 @@
     </x-modal-overlay>
 
     <x-modal-overlay show="staffReportOpen" @click.self="staffReportOpen=false">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 max-w-lg w-full p-0 overflow-hidden">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 max-w-lg w-full p-0 max-h-[90dvh] overflow-y-auto">
             <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
                 <h3 class="text-xl font-semibold text-heading">Performance Report — <span x-text="selectedStaff ? selectedStaff.name : ''"></span></h3>
                 <button type="button" class="text-muted hover:text-body" @click="staffReportOpen=false">✕</button>

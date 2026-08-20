@@ -16,7 +16,12 @@
 @push('styles')
 <style>
     .staff-cal { --staff-sidebar: {{ $sidebarWidth }}; --staff-day-min: {{ $dayMinWidth }}; }
-    .staff-cal__scroll { overflow: auto; max-height: min(80vh, 960px); }
+    .staff-cal__scroll { overflow: auto; max-height: min(80dvh, 960px); }
+    /* Phones: a narrower pinned staff column leaves usable width for the day cells. */
+    @media (max-width: 640px) {
+        .staff-cal { --staff-sidebar: 7.5rem; }
+        .staff-cal__scroll { max-height: min(70dvh, 960px); }
+    }
     .staff-cal__table {
         display: grid;
         grid-template-columns: var(--staff-sidebar) repeat({{ $dayCount }}, minmax(var(--staff-day-min), 1fr));

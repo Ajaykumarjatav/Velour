@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        <div class="absolute -left-0 top-0 w-[380px] h-[680px] pointer-events-none opacity-30 lg:opacity-100 transition-opacity">
+        <div class="absolute -left-0 top-0 w-[380px] h-[680px] pointer-events-none hidden lg:block opacity-100 transition-opacity">
             <img
                 src="{{ $asset('hand_cream-removebg-preview 1.png') }}"
                 alt="Decoration Left"
@@ -67,7 +67,7 @@
             />
         </div>
 
-        <div class="absolute -right-0 top-0 w-[380px] h-[680px] pointer-events-none opacity-30 lg:opacity-100 transition-opacity">
+        <div class="absolute -right-0 top-0 w-[380px] h-[680px] pointer-events-none hidden lg:block opacity-100 transition-opacity">
             <img
                 src="{{ $asset('girl-removebg-preview 1.png') }}"
                 alt="Decoration Right"

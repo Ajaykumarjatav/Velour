@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Clients')
 @section('page-title', 'Clients')
 @section('content')
@@ -101,7 +101,7 @@
     @if(!($isScopedStaffPanel ?? false) && !($adminStoreBrowse ?? false))
     <x-modal-overlay show="openReviewRequest" @click.self="openReviewRequest = false">
         <div class="w-full max-w-3xl" @click.stop>
-            <div class="card p-6 max-h-[80vh] overflow-y-auto">
+            <div class="card p-6 max-h-[80dvh] overflow-y-auto">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-semibold text-heading">Select clients for review request</h3>
                     <button type="button" class="btn-outline btn-sm" @click="openReviewRequest = false">Close</button>
@@ -110,7 +110,7 @@
 
                 <form action="{{ route('clients.review-requests.send') }}" method="POST">
                     @csrf
-                    <div class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                    <div class="space-y-2 max-h-[50dvh] overflow-y-auto pr-1">
                         @forelse(($reviewRequestClients ?? collect()) as $row)
                             @php
                                 $statusLabel = $row['already_reviewed'] ? 'Already reviewed' : ($row['has_email'] ? 'Eligible' : 'No email');
@@ -305,9 +305,9 @@
                         <div class="w-9 h-9 rounded-full bg-velour-100 dark:bg-velour-900/40 flex items-center justify-center text-velour-700 dark:text-velour-300 font-bold text-sm flex-shrink-0">
                             {{ strtoupper(substr(trim($client->first_name ?: (string) $client->phone), 0, 1) ?: '?') }}
                         </div>
-                        <div>
-                            <p class="font-semibold text-heading">{{ $client->full_name }}</p>
-                            @if($client->email)<p class="text-xs text-muted">{{ $client->email }}</p>@endif
+                        <div class="min-w-0">
+                            <p class="font-semibold text-heading truncate">{{ $client->full_name }}</p>
+                            @if($client->email)<p class="text-xs text-muted truncate">{{ $client->email }}</p>@endif
                         </div>
                     </div>
                 </td>

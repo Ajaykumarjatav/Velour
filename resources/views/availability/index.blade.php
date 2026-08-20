@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Availability & Resources')
 @section('page-title', 'Availability & Resources')
 
@@ -362,7 +362,7 @@
     </div>
     {{-- Modal: Leave --}}
     <x-modal-overlay show="leaveOpen" @keydown.escape.window="leaveOpen = false">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4" @click.outside="leaveOpen = false">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90dvh] overflow-y-auto" @click.outside="leaveOpen = false">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-bold text-heading font-serif">Apply Leave / Block Time</h3>
                 <button type="button" class="text-muted hover:text-heading" @click="closeLeave()">&times;</button>
@@ -408,7 +408,7 @@
                         <option value="Other">Other</option>
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="form-label text-xs">From date <span class="text-red-500">*</span></label>
                         <input type="date" name="start_date" required class="form-input text-sm" value="{{ now()->toDateString() }}">
@@ -436,7 +436,7 @@
 
     {{-- Modal: Resource --}}
     <x-modal-overlay show="resourceOpen" @keydown.escape.window="resourceOpen = false">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto" @click.outside="closeResource()">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90dvh] overflow-y-auto" @click.outside="closeResource()">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-bold text-heading font-serif" x-text="resourceEditId ? 'Edit Resource' : 'Add Resource'"></h3>
                 <button type="button" class="text-muted hover:text-heading" @click="closeResource()">&times;</button>
@@ -464,7 +464,7 @@
                     <label class="form-label text-xs">Equipment (comma separated)</label>
                     <input type="text" name="equipment" x-model="resourceEquipment" class="form-input text-sm" placeholder="Shampoo Bowl, Styling Chair, Mirror">
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="form-label text-xs">Listing status</label>
                         <select name="status" x-model="resourceStatus" class="form-select text-sm">

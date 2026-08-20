@@ -20,7 +20,7 @@
         </div>
         <div class="auth-field auth-field--full">
             <label for="register-email" class="auth-label">Email</label>
-            <input id="register-email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" placeholder="you@salon.com"
+            <input id="register-email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" placeholder="you@business.com"
                    class="auth-input @error('email') is-invalid @enderror">
             @error('email')<p class="auth-error">{{ $message }}</p>@enderror
         </div>

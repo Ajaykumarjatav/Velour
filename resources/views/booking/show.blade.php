@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,14 +12,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f0f2f5; min-height: 100vh; }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
         [x-cloak] { display: none !important; }
 
         /* ── Gradient background ── */
         .page-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             min-height: 100vh;
-            padding: 0 0 60px;
+            min-height: 100dvh;
+            padding: 0 0 calc(60px + env(safe-area-inset-bottom));
         }
 
         /* ── Header ── */
@@ -57,6 +58,9 @@
         .step-pill.done .step-num { background: #10b981; color: white; }
         .step-pill.active .step-num { background: #7c3aed; color: white; }
         .step-pill.idle .step-num { background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); }
+        /* Step names only fit once there is room; the numbered dots carry the state below that. */
+        .step-pill-label { display: none; }
+        @media (min-width: 640px) { .step-pill-label { display: inline; } }
 
         /* ── Service cards ── */
         .svc-card {
@@ -81,6 +85,11 @@
         .staff-card.selected { border-color: #7c3aed; background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); box-shadow: 0 0 0 4px rgba(124,58,237,0.1); }
 
         /* ── Time slots ── */
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+        }
         .time-slot {
             border: 2px solid #e8ecf0; border-radius: 12px;
             padding: 11px 6px; text-align: center;
@@ -190,7 +199,7 @@
                         <div class="step-num">
                             <span x-text="step > {{ $i }} ? '✓' : '{{ $i+1 }}'"></span>
                         </div>
-                        <span style="display:none;" class="sm:inline">{{ $label }}</span>
+                        <span class="step-pill-label">{{ $label }}</span>
                     </div>
                     @if($i < count($stepLabels)-1)
                     <div style="width:16px;height:2px;border-radius:2px;opacity:0.3;background:white;"></div>
@@ -397,7 +406,7 @@
 
                     {{-- Loading --}}
                     <div x-show="slotsLoading" style="padding:20px 0;">
-                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                        <div class="slot-grid">
                             <template x-for="i in 12" :key="i">
                                 <div class="skeleton" style="height:44px;border-radius:12px;"></div>
                             </template>
@@ -414,7 +423,7 @@
                             </div>
                             <div style="font-size:12px;color:#9ca3af;" x-text="formatDate(selected.date)"></div>
                         </div>
-                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                        <div class="slot-grid">
                             <template x-for="slot in slots" :key="slot.time">
                                 <button @click="selectSlot(slot)"
                                         class="time-slot"

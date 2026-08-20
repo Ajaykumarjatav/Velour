@@ -43,7 +43,10 @@ class OnboardingController extends Controller
             return redirect()->to(\App\Support\SalonUrl::dashboardUrl($user));
         }
 
-        return view('onboarding.index', compact('user', 'salon', 'progress'));
+        // Welcome → first incomplete step's Settings page (skip intermediate step screens).
+        $startUrl = $this->nextIncompleteActionUrl($salon, $progress);
+
+        return view('onboarding.index', compact('user', 'salon', 'progress', 'startUrl'));
     }
 
     public function step(Request $request, string $step)
@@ -56,9 +59,9 @@ class OnboardingController extends Controller
         $this->syncProgressFromData($user->id, $salon);
         $progress = $this->getProgress($user->id, $salon->id);
 
-        $meta = $this->stepMeta($step, $salon, $progress);
-
-        return view("onboarding.steps.{$step}", compact('user', 'salon', 'meta', 'progress'));
+        // Never show the intermediate "Open Settings / Continue" screen — jump to Settings
+        // (or to the next incomplete step / completion when this one is already done).
+        return $this->redirectPastStepScreen($step, $salon, $progress);
     }
 
     public function completeStep(Request $request, string $step)
@@ -93,7 +96,14 @@ class OnboardingController extends Controller
             return redirect()->route('onboarding.complete');
         }
 
-        return redirect()->route('onboarding.step', $this->nextStep($step));
+        $next = $this->nextStep($step);
+        if ($next === 'complete') {
+            return redirect()->route('onboarding.complete');
+        }
+
+        $progress = $this->getProgress($user->id, $salon->id);
+
+        return $this->redirectPastStepScreen($next, $salon, $progress);
     }
 
     public function complete()
@@ -147,6 +157,42 @@ class OnboardingController extends Controller
         return $steps[$idx + 1] ?? 'complete';
     }
 
+    /**
+     * Intermediate onboarding step blades are skipped — send users straight into Settings.
+     */
+    private function redirectPastStepScreen(string $step, Salon $salon, ?object $progress)
+    {
+        $meta = $this->stepMeta($step, $salon, $progress);
+
+        if (! empty($meta['done'])) {
+            $next = $this->nextStep($step);
+            if ($next === 'complete') {
+                DB::table('onboarding_progress')
+                    ->where('user_id', Auth::id())
+                    ->where('salon_id', $salon->id)
+                    ->update(['completed' => true, 'completed_at' => now()]);
+
+                return redirect()->route('onboarding.complete');
+            }
+
+            return redirect($this->stepMeta($next, $salon, $progress)['action_url']);
+        }
+
+        return redirect($meta['action_url']);
+    }
+
+    private function nextIncompleteActionUrl(Salon $salon, ?object $progress): string
+    {
+        foreach (['salon-profile', 'opening-hours', 'first-service', 'invite-staff'] as $step) {
+            $meta = $this->stepMeta($step, $salon, $progress);
+            if (empty($meta['done'])) {
+                return $meta['action_url'];
+            }
+        }
+
+        return route('onboarding.complete', ['store' => \App\Support\SalonUrl::key($salon)]);
+    }
+
     private function syncProgressFromData(int $userId, Salon $salon): void
     {
         $hasSalonProfile = ! empty($salon->name) && (! empty($salon->phone) || ! empty($salon->address_line1));
@@ -189,15 +235,15 @@ class OnboardingController extends Controller
 
         return match ($step) {
             'salon-profile' => [
-                'title' => 'Salon profile',
-                'description' => 'Add core business details so customers can identify and contact your salon.',
+                'title' => 'Business profile',
+                'description' => 'Add core business details so customers can identify and contact you.',
                 'done' => (bool) ($progress?->step_salon_profile ?? false),
                 'action_url' => $settings('salon', 'salon-profile'),
                 'action_label' => 'Open Business Settings',
             ],
             'opening-hours' => [
                 'title' => 'Opening hours',
-                'description' => 'Set opening hours so the booking URL can generate valid slots.',
+                'description' => 'Set opening hours so the booking page can generate valid slots.',
                 'done' => (bool) ($progress?->step_opening_hours ?? false),
                 'action_url' => $settings('hours', 'opening-hours'),
                 'action_label' => 'Set Opening Hours',

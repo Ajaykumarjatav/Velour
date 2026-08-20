@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Services')
 @section('page-title', 'Services')
 
@@ -67,7 +67,8 @@
     {{-- Search & filters --}}
     <div class="rounded-2xl border border-gray-200/90 dark:border-gray-700/80 bg-white/85 dark:bg-gray-900/45 backdrop-blur-sm p-4 sm:p-5 shadow-sm dark:shadow-none space-y-4">
         <form method="GET" action="{{ route('services.index') }}">
-            <div class="svc-filters-row flex flex-nowrap items-end gap-3 overflow-x-auto pb-1 -mx-0.5 px-0.5">
+            {{-- Wraps into rows below xl; the single scrolling row only pays off when it actually fits. --}}
+            <div class="svc-filters-row flex flex-wrap xl:flex-nowrap items-end gap-3 xl:overflow-x-auto pb-1 -mx-0.5 px-0.5">
                 <div class="flex-[2] min-w-[11rem] space-y-1.5 shrink-0">
                     <label for="svc-search" class="form-label text-xs mb-0 uppercase tracking-wide text-muted">Search</label>
                     <div class="relative">
@@ -345,7 +346,7 @@
 
     {{-- Variants / add-ons modal --}}
     <x-modal-overlay show="variantOpen" @keydown.escape.window="closeVariants()">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90dvh] overflow-y-auto p-6 space-y-4"
              @click.outside="closeVariants()">
             <div class="flex items-center justify-between gap-2">
                 <h3 class="text-lg font-semibold text-heading">Edit Variants — <span x-text="variantTitle"></span></h3>

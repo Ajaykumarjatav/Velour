@@ -1,4 +1,4 @@
-@php
+﻿@php
     $salonData = $data['salon'] ?? [];
     $branding = $data['branding'] ?? [];
     $heroImage = $branding['banner_url'] ?? $asset('Rectangle 98.png');
@@ -14,7 +14,7 @@
 @if($salonData)
 <section
     id="hero"
-    class="relative w-full bg-black min-h-[500px] lg:min-h-[800px] xl:min-h-[900px] overflow-hidden"
+    class="sf-hero relative w-full bg-black min-h-[500px] lg:min-h-[800px] xl:min-h-[900px] overflow-hidden"
 >
     <div class="absolute right-0 top-0 w-full lg:w-[60%] h-full opacity-50 lg:opacity-90">
         <img
@@ -31,7 +31,7 @@
     <div class="relative z-10 max-w-[1360px] mx-auto px-4 pt-16 md:pt-24 lg:pt-[80px] pb-24">
         <div class="max-w-[800px] text-center lg:text-left">
             <div
-                class="inline-flex items-center gap-2.5 px-5 py-3.5 rounded-full mb-6 mx-auto lg:mx-0 hover:scale-105 transition-all duration-300 cursor-default hover:shadow-[0_0_15px_rgba(154,3,30,0.15)]"
+                class="sf-hero-pill inline-flex flex-wrap justify-center max-w-full items-center gap-2.5 px-5 py-3.5 rounded-full mb-6 mx-auto lg:mx-0 hover:scale-105 transition-all duration-300 cursor-default hover:shadow-[0_0_15px_rgba(154,3,30,0.15)]"
                 style="background: linear-gradient(93deg, #161616 2.49%, #2A2A2A 96.02%, #000000 184.57%); border: 1px solid rgba(255,255,255,0.1);"
             >
                 <div class="flex items-center gap-[2.9px]">
@@ -52,7 +52,7 @@
                 </span>
             </div>
 
-            <h2 class="font-manrope font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-[75px] xl:text-[90px] leading-tight lg:leading-[90px] xl:leading-[100px] text-white mb-6 md:mb-8 tracking-tight">
+            <h2 class="sf-hero-title font-manrope font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-[75px] xl:text-[90px] leading-tight lg:leading-[90px] xl:leading-[100px] text-white mb-6 md:mb-8 tracking-tight">
                 {{ $headingLead }}
                 @if($headingAccent !== '')
                 <br class="hidden sm:block" />
@@ -64,7 +64,7 @@
                 {{ $branding['subheading'] ?? '' }}
             </p>
 
-            <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 md:gap-12 mb-10 md:mb-12">
+            <div class="sf-hero-perks flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 md:gap-12 mb-10 md:mb-12">
                 @foreach(range(1, 2) as $i)
                 <div class="flex flex-col items-center lg:items-start gap-3 group/item cursor-default">
                     <div class="w-[50px] h-[50px] rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center transition-all duration-300 group-hover/item:bg-[#9a031e]/20 group-hover/item:border-[#9a031e]/50 group-hover/item:scale-105 group-hover/item:shadow-[0_0_15px_rgba(154,3,30,0.2)]">

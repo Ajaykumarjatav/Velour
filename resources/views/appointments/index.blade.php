@@ -157,9 +157,9 @@
                         : 'hover:bg-gray-50/90 dark:hover:bg-gray-800/40'"
                     class="cursor-pointer transition-colors">
                     <td>
-                        <div class="flex flex-col gap-0 leading-snug">
-                            <p class="font-semibold text-heading" x-text="apt.client_name"></p>
-                            <p class="text-xs text-muted" x-text="apt.reference"></p>
+                        <div class="flex flex-col gap-0 leading-snug min-w-0 max-w-[11rem] sm:max-w-none">
+                            <p class="font-semibold text-heading truncate" x-text="apt.client_name"></p>
+                            <p class="text-xs text-muted truncate" x-text="apt.reference"></p>
                         </div>
                     </td>
                     <td class="hidden md:table-cell text-body max-w-[150px]">

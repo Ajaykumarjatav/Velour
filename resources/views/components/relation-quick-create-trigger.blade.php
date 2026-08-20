@@ -1,4 +1,4 @@
-@props([
+﻿@props([
     'type' => 'client',
     'selectId',
     'buttonClass' => 'inline-flex items-center justify-center h-10 w-10 flex-shrink-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-velour-600 dark:text-velour-400 hover:bg-velour-50 dark:hover:bg-velour-900/30 hover:border-velour-300 dark:hover:border-velour-600 transition-colors focus:outline-none focus:ring-2 focus:ring-velour-400',
@@ -224,7 +224,7 @@ document.addEventListener('alpine:init', () => {
          role="dialog"
          aria-modal="true"
          :aria-labelledby="'rqc-title-' + cfg.selectId">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-800"
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-h-[90dvh] overflow-y-auto border border-gray-200 dark:border-gray-800"
              :class="(cfg.type === 'client' || cfg.type === 'staff') ? 'max-w-lg' : 'max-w-md'"
              @click.outside="closeModal()">
             <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
@@ -242,7 +242,7 @@ document.addEventListener('alpine:init', () => {
                             <p class="form-error text-xs mt-0.5" x-show="err('name')" x-text="err('name')"></p>
                             <p class="form-error text-xs mt-0.5" x-show="err('first_name')" x-text="err('first_name')"></p>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="form-label">Mobile <span class="text-red-500">*</span></label>
                                 <input type="tel" x-model="qcPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''" autocomplete="tel" required>
@@ -254,7 +254,7 @@ document.addEventListener('alpine:init', () => {
                                 <p class="form-error text-xs mt-0.5" x-show="err('email')" x-text="err('email')"></p>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="form-label">Date of birth</label>
                                 <input type="date" x-model="qcDateOfBirth" class="form-input" :class="err('date_of_birth') ? 'form-input-error' : ''">
@@ -322,7 +322,7 @@ document.addEventListener('alpine:init', () => {
                             <input type="text" x-model="qcName" class="form-input" :class="err('name') ? 'form-input-error' : ''" autocomplete="name">
                             <p class="form-error text-xs mt-0.5" x-show="err('name')" x-text="err('name')"></p>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="form-label">Email</label>
                                 <input type="email" x-model="qcStaffEmail" class="form-input" :class="err('email') ? 'form-input-error' : ''" autocomplete="email">
@@ -334,7 +334,7 @@ document.addEventListener('alpine:init', () => {
                                 <p class="form-error text-xs mt-0.5" x-show="err('phone')" x-text="err('phone')"></p>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="form-label">Role <span class="text-red-500">*</span></label>
                                 <select x-model="qcRole" class="form-select" :class="err('role') ? 'form-input-error' : ''">

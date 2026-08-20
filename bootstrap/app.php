@@ -186,6 +186,20 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // Email verification links — send user to login with a clear next step
             if ($request->is('verify-email/*') || $request->routeIs('verification.verify')) {
+                $id = $request->route('id');
+                $hash = (string) $request->route('hash', '');
+                $user = is_numeric($id) ? \App\Models\User::find((int) $id) : null;
+                if (
+                    $user
+                    && $hash !== ''
+                    && hash_equals(sha1($user->getEmailForVerification()), $hash)
+                    && $user->hasVerifiedEmail()
+                ) {
+                    return redirect()
+                        ->route('login')
+                        ->with('success', 'Your email is already verified. Please sign in to continue.');
+                }
+
                 return redirect()
                     ->route('login')
                     ->with('error', 'This verification link is invalid or expired. Sign in and use “Resend verification email”, or register again if needed.');

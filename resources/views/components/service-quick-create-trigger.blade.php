@@ -1,4 +1,4 @@
-@props([
+﻿@props([
     'listId' => 'appt-services-list',
     'buttonClass' => 'inline-flex items-center justify-center h-10 w-10 flex-shrink-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-velour-600 dark:text-velour-400 hover:bg-velour-50 dark:hover:bg-velour-900/30 hover:border-velour-300 dark:hover:border-velour-600 transition-colors focus:outline-none focus:ring-2 focus:ring-velour-400',
 ])
@@ -138,7 +138,7 @@ window.appendApptServiceRow = function (detail, listId) {
          role="dialog"
          aria-modal="true"
          aria-labelledby="svc-qc-title">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-800"
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full max-h-[90dvh] overflow-y-auto border border-gray-200 dark:border-gray-800"
              @click.outside="closeModal()">
             <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
                 <h3 id="svc-qc-title" class="text-lg font-bold text-heading">New service</h3>
@@ -152,7 +152,7 @@ window.appendApptServiceRow = function (detail, listId) {
                     <input type="text" x-model="svcName" class="form-input" :class="err('name') ? 'form-input-error' : ''" autocomplete="off" maxlength="150">
                     <p class="form-error text-xs mt-0.5" x-show="err('name')" x-text="err('name')"></p>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="form-label">Duration (min) <span class="text-red-500">*</span></label>
                         <input type="number" x-model="svcDuration" min="5" max="480" step="1" class="form-input" :class="err('duration_minutes') ? 'form-input-error' : ''">

@@ -327,7 +327,8 @@
         <template x-for="photo in photos" :key="photo.id">
           <div class="relative group aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 shadow-sm">
             <img :src="photo.url" :alt="'Salon photo'" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+            {{-- Touch devices have no hover, so the delete control stays visible below lg. --}}
+            <div class="absolute inset-0 bg-black/25 lg:bg-black/0 lg:group-hover:bg-black/40 transition-all flex items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
               <button @click.stop="deletePhoto(photo.id)"
                       class="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm transition-colors shadow-lg"
                       title="Delete photo">
@@ -378,8 +379,8 @@
             ])
           </div>
 
-          <div class="flex gap-2">
-            <div class="flex-1 flex items-center bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 gap-2 min-w-0">
+          <div class="flex flex-wrap gap-2">
+            <div class="flex-1 basis-full sm:basis-0 flex items-center bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 gap-2 min-w-0">
               <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
               </svg>
@@ -396,7 +397,7 @@
               ↗ Preview
             </a>
           </div>
-          <div class="flex gap-2 items-center pt-1 border-t border-gray-100 dark:border-gray-700">
+          <div class="flex flex-wrap gap-x-2 gap-y-1 items-center pt-1 border-t border-gray-100 dark:border-gray-700">
             <span class="text-xs text-muted flex-shrink-0">Booking only:</span>
             <a :href="bookingUrl" target="_blank" rel="noopener"
                class="text-xs text-link font-medium truncate hover:underline min-w-0"
@@ -419,8 +420,8 @@
               <input x-model="source"   placeholder="utm_source (e.g. instagram)"  class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none {{ ($adminStoreBrowse ?? false) ? 'opacity-60 cursor-not-allowed' : '' }}" @if($adminStoreBrowse ?? false) readonly @endif>
               <input x-model="medium"   placeholder="utm_medium (e.g. bio)"        class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none {{ ($adminStoreBrowse ?? false) ? 'opacity-60 cursor-not-allowed' : '' }}" @if($adminStoreBrowse ?? false) readonly @endif>
               <input x-model="campaign" placeholder="utm_campaign (e.g. summer25)"  class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-300 outline-none {{ ($adminStoreBrowse ?? false) ? 'opacity-60 cursor-not-allowed' : '' }}" @if($adminStoreBrowse ?? false) readonly @endif>
-              <div class="sm:col-span-3 flex gap-2 mt-1">
-                <div class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-lg px-3 py-2 text-xs text-gray-500 dark:text-gray-400 truncate font-mono"
+              <div class="sm:col-span-3 flex flex-wrap gap-2 mt-1">
+                <div class="flex-1 basis-full sm:basis-0 min-w-0 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-lg px-3 py-2 text-xs text-gray-500 dark:text-gray-400 truncate font-mono"
                      x-text="bookingUrl + (source||medium||campaign ? '?utm_source='+encodeURIComponent(source)+'&utm_medium='+encodeURIComponent(medium)+'&utm_campaign='+encodeURIComponent(campaign) : '')">
                 </div>
                 <button @click="copyUrl(bookingUrl + '?utm_source='+encodeURIComponent(source)+'&utm_medium='+encodeURIComponent(medium)+'&utm_campaign='+encodeURIComponent(campaign), 'utm')"
@@ -498,7 +499,7 @@
             <pre class="embed-code" x-show="embedTab === 'react'"  x-text="embedCodes.react"  x-cloak></pre>
             <button
               @click="copyUrl(embedCodes[embedTab], 'embed'); !readOnly && trackClick('embed')"
-              class="absolute top-3 right-3 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs px-3 py-1.5 rounded-lg transition opacity-0 group-hover:opacity-100">
+              class="absolute top-3 right-3 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs px-3 py-1.5 rounded-lg transition opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
               <span x-text="copied.embed ? '✅ Copied' : '📋 Copy'"></span>
             </button>
           </div>

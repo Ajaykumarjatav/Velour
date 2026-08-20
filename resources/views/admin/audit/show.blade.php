@@ -15,9 +15,9 @@
   @endphp
   <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
     <div class="px-6 py-5 flex items-start justify-between gap-4 border-b border-gray-800">
-      <div>
-        <p class="font-mono text-lg font-bold text-gray-100">{{ $auditLog->event }}</p>
-        <p class="text-sm text-gray-400 mt-1">{{ $auditLog->description }}</p>
+      <div class="min-w-0">
+        <p class="font-mono text-lg font-bold text-gray-100 break-all">{{ $auditLog->event }}</p>
+        <p class="text-sm text-gray-400 mt-1 break-words">{{ $auditLog->description }}</p>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         <span class="text-lg">{{ $auditLog->categoryIcon() }}</span>
@@ -35,9 +35,9 @@
         ['Event',         $auditLog->event],
         ['Request ID',    $auditLog->request_id ?? '—'],
       ] as [$label, $value])
-      <div class="grid grid-cols-3 px-6 py-3">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-0.5 sm:gap-0 px-4 sm:px-6 py-3">
         <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center">{{ $label }}</dt>
-        <dd class="col-span-2 text-sm text-gray-200 font-mono">{{ $value }}</dd>
+        <dd class="sm:col-span-2 text-sm text-gray-200 font-mono break-words">{{ $value }}</dd>
       </div>
       @endforeach
     </dl>
@@ -55,9 +55,9 @@
         ['Name',       $auditLog->user_name  ?? '—'],
         ['Salon ID',   $auditLog->salon_id   ?? '— (platform event)'],
       ] as [$label, $value])
-      <div class="grid grid-cols-3 px-6 py-2.5">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-0.5 sm:gap-0 px-4 sm:px-6 py-2.5">
         <dt class="text-xs text-gray-500 font-semibold uppercase tracking-wider">{{ $label }}</dt>
-        <dd class="col-span-2 text-sm text-gray-300">{{ $value }}</dd>
+        <dd class="sm:col-span-2 text-sm text-gray-300 break-words">{{ $value }}</dd>
       </div>
       @endforeach
     </dl>
@@ -76,9 +76,9 @@
         ['Session ID',   $auditLog->session_id   ?? '—'],
         ['User Agent',   $auditLog->user_agent   ?? '—'],
       ] as [$label, $value])
-      <div class="grid grid-cols-3 px-6 py-2.5">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-0.5 sm:gap-0 px-4 sm:px-6 py-2.5">
         <dt class="text-xs text-gray-500 font-semibold uppercase tracking-wider flex items-center">{{ $label }}</dt>
-        <dd class="col-span-2 text-xs text-gray-400 font-mono break-all">{{ $value }}</dd>
+        <dd class="sm:col-span-2 text-xs text-gray-400 font-mono break-all">{{ $value }}</dd>
       </div>
       @endforeach
     </dl>

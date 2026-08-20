@@ -15,7 +15,7 @@
                        class="form-input @error('name') form-input-error @enderror">
                 @error('name')<p class="form-error">{{ $message }}</p>@enderror
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">SKU</label>
                     <input type="text" name="sku" value="{{ old('sku', $item->sku) }}"
@@ -48,7 +48,7 @@
                        class="form-input @error('low_stock_threshold') form-input-error @enderror">
                 @error('low_stock_threshold')<p class="form-error">{{ $message }}</p>@enderror
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">Cost price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }})</label>
                     <input type="number" name="cost_price" min="0" step="0.01"

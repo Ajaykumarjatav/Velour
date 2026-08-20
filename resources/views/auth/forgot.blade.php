@@ -11,7 +11,7 @@
     @csrf
     <div class="auth-field">
         <label for="forgot-email" class="auth-label">Email</label>
-        <input id="forgot-email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" placeholder="you@salon.com"
+        <input id="forgot-email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" placeholder="you@business.com"
                class="auth-input @error('email') is-invalid @enderror">
         @error('email')<p class="auth-error">{{ $message }}</p>@enderror
     </div>

@@ -5,7 +5,7 @@
     $showRoute = fn ($id) => route('admin.tenants.'.$module.'.show', [$salon->id, $id]);
 @endphp
 
-<form method="GET" class="flex gap-2 mb-4">
+<form method="GET" class="flex flex-wrap gap-2 mb-4">
     <input type="search" name="search" value="{{ $search }}" placeholder="Search…"
            class="flex-1 px-4 py-2 text-sm bg-gray-900 border border-gray-800 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
     <button type="submit" class="px-4 py-2 text-sm font-semibold rounded-xl bg-gray-800 text-gray-200 hover:bg-gray-700">Search</button>

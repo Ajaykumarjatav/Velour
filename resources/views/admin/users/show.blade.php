@@ -126,7 +126,8 @@
   @if($tokens->isNotEmpty())
   <div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
     <h3 class="px-5 py-4 text-sm font-semibold text-gray-300 border-b border-gray-800">Recent API Tokens</h3>
-    <table class="w-full text-sm">
+    <div class="overflow-x-auto">
+    <table class="w-full text-sm min-w-[26rem]">
       <tbody class="divide-y divide-gray-800/50">
       @foreach($tokens as $token)
       <tr class="hover:bg-gray-800/30">
@@ -137,6 +138,7 @@
       @endforeach
       </tbody>
     </table>
+    </div>
   </div>
   @endif
 

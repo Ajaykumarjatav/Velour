@@ -4,7 +4,7 @@
 @section('content')
 
 {{-- MRR / ARR Stats --}}
-<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
   @foreach([
     ['label' => 'MRR',             'value' => '£'.number_format($mrr),          'color' => 'text-velour-400'],
     ['label' => 'ARR',             'value' => '£'.number_format($arr),           'color' => 'text-green-400'],
@@ -110,7 +110,8 @@
   <h2 class="px-5 py-4 text-sm font-semibold text-gray-300 border-b border-gray-800 uppercase tracking-wider">
     Recent Subscriptions
   </h2>
-  <table class="w-full text-sm">
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm min-w-[30rem]">
     <thead>
     <tr class="border-b border-gray-800 bg-gray-800/40">
       <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">User</th>
@@ -171,6 +172,7 @@
     @endforelse
     </tbody>
   </table>
+  </div>
 </div>
 
 @endsection

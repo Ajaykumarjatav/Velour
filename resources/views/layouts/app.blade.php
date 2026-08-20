@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
@@ -225,7 +225,7 @@
             margin-top: 0;
             min-width: 13rem;
             max-width: 16rem;
-            max-height: min(70vh, 24rem);
+            max-height: min(70dvh, 24rem);
             overflow-y: auto;
             padding: 0.5rem;
             border-radius: 0.75rem;
@@ -738,7 +738,7 @@
             <span class="app-ambient-orb app-ambient-orb--c"></span>
         </div>
         {{-- Top bar --}}
-        <header class="sticky top-0 z-50 min-h-14 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3
+        <header class="sticky top-0 z-50 min-h-14 px-4 sm:px-6 flex flex-wrap items-center justify-between gap-2 sm:gap-3
                        bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800
                        transition-colors duration-200 py-2 sm:py-0 isolate">
             <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -847,7 +847,7 @@
                         @endif
                     </button>
                     <div x-show="notifOpen" x-cloak @click.outside="notifOpen=false"
-                         class="absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl border z-[60] overflow-hidden
+                         class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl border z-[60] overflow-hidden
                                 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                             <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">Notifications</span>
@@ -897,7 +897,7 @@
                         </div>
                     </button>
                     <div x-show="open" x-cloak @click.outside="open=false"
-                         class="absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl border z-[60]
+                         class="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl border z-[60]
                                 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 overflow-hidden">
                         {{-- Profile header --}}
                         <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
@@ -954,10 +954,10 @@
 
         @include('partials.subscription-reminder-bar')
 
-        @if(isset($headerProfileCompletion) && is_array($headerProfileCompletion) && empty($hideSalonProfileBar) && !session('hide_profile_bar') && request()->routeIs('dashboard', 'settings.*'))
+        @if(($salonBusinessStatus ?? null) && empty($hideSalonProfileBar) && !session('hide_profile_bar') && request()->routeIs('dashboard', 'settings.*'))
         @php
-            $profilePct = (int) ($headerProfileCompletion['percentage'] ?? 0);
-            $profilePct = max(0, min(100, $profilePct));
+            // Same source as the sidebar "Setup Complete" % (SalonSetupProgress).
+            $profilePct = max(0, min(100, (int) ($salonBusinessStatus['setup_percent'] ?? 0)));
         @endphp
         @if($profilePct < 100)
         @php
@@ -984,11 +984,11 @@
             }
         @endphp
         <div id="profile-completion-bar" class="px-4 sm:px-6 py-2.5 border-b {{ $profileToneWrap }}">
-            <div class="flex items-center gap-3 min-h-8">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 min-h-8">
                 <span class="text-xs font-semibold leading-none tabular-nums whitespace-nowrap {{ $profileToneText }}">
-                    Profile {{ $profilePct }}%
+                    Setup {{ $profilePct }}%
                 </span>
-                <div class="flex-1 min-w-0 flex items-center">
+                <div class="flex-1 basis-full sm:basis-0 min-w-0 flex items-center order-last sm:order-none">
                     <div class="w-full h-2 rounded-full {{ $profileTrack }} overflow-hidden">
                         <div class="h-full rounded-full transition-all {{ $profileFill }}"
                              style="width: {{ $profilePct }}%"></div>
@@ -998,7 +998,7 @@
                     Complete setup
                 </a>
                 <button type="button"
-                        class="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-black/5 dark:hover:bg-white/10 shrink-0 opacity-80 hover:opacity-100 {{ $profileToneText }}"
+                        class="inline-flex items-center justify-center h-8 w-8 -my-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 shrink-0 opacity-80 hover:opacity-100 {{ $profileToneText }}"
                         onclick="window.hideProfileCompletionBarForSession()"
                         title="Hide for this session"
                         aria-label="Hide for this session">

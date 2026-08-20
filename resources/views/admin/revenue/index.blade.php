@@ -42,10 +42,11 @@
          class="text-xs text-velour-400 hover:text-velour-300">Export CSV ↓</a>
     </div>
     @php $maxMrr = max(array_values($mrrHistory)) ?: 1; @endphp
-    <div class="flex items-end gap-1.5 h-40">
+    <div class="flex items-end gap-1.5 h-40 overflow-x-auto">
       @foreach($mrrHistory as $label => $value)
       @php $h = max(4, round(($value / $maxMrr) * 100)); @endphp
-      <div class="flex-1 flex flex-col items-center gap-1 group">
+      {{-- Bars keep a floor width so 12 months stay readable; the row scrolls instead of crushing them. --}}
+      <div class="flex-1 min-w-[1.75rem] flex flex-col items-center gap-1 group">
         <div class="w-full bg-velour-600/80 hover:bg-velour-500 rounded-t transition-colors relative"
              style="height: {{ $h }}%"
              title="{{ $label }}: £{{ number_format($value) }}">
