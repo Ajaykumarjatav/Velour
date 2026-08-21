@@ -35,6 +35,7 @@
 
     <p data-branding-status class="text-xs text-amber-600 dark:text-amber-400 font-medium hidden" role="status"></p>
 
+    {{-- Side-by-side from sm+ (desktop restored); stack only on phone --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {{-- Logo --}}
         <div class="rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-3 space-y-2">
@@ -79,7 +80,7 @@
                     {{ $badgeLabel('banner') }}
                 </span>
             </div>
-            <div class="aspect-[16/9] rounded-lg bg-gray-900 overflow-hidden">
+            <div class="aspect-[16/9] max-sm:max-h-48 rounded-lg bg-gray-900 overflow-hidden">
                 <img data-branding-preview="banner" src="{{ $branding['banner_url'] }}" alt=""
                      class="w-full h-full object-cover {{ $branding['banner_url'] ? '' : 'hidden' }}">
             </div>

@@ -316,6 +316,11 @@ class AppointmentService
     }
 
     /** @param  array<int, mixed>  $serviceIds */
+    /**
+     * Previously enforced service↔staff pivot / allowed_roles.
+     * Online and in-panel booking now allow any active staff for any service;
+     * keep this hook so callers can still opt in with enforce_staff_services.
+     */
     private function assertStaffCanPerformServices(int $salonId, int $staffId, array $serviceIds): void
     {
         $ids = array_values(array_unique(array_map('intval', $serviceIds)));
@@ -323,24 +328,7 @@ class AppointmentService
             return;
         }
 
-        $staff = Staff::withoutGlobalScopes()->where('salon_id', $salonId)->findOrFail($staffId);
-        $linkedCount = $staff->services()
-            ->withoutTenantScope()
-            ->where('services.salon_id', $salonId)
-            ->whereIn('services.id', $ids)
-            ->count();
-        if ($linkedCount !== count($ids)) {
-            throw new \InvalidArgumentException('Selected staff does not offer all selected services.');
-        }
-
-        $blocked = Service::withoutTenantScope()
-            ->where('salon_id', $salonId)
-            ->whereIn('id', $ids)
-            ->withCount('staff')
-            ->get(['id', 'allowed_roles'])
-            ->contains(fn (Service $service) => ! $service->allowsStaffMember($staff));
-        if ($blocked) {
-            throw new \InvalidArgumentException('Selected staff is not permitted for one or more selected services.');
-        }
+        Staff::withoutGlobalScopes()->where('salon_id', $salonId)->findOrFail($staffId);
+        // Intentionally no service assignment / role checks.
     }
 }

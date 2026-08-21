@@ -105,7 +105,7 @@ class BookingController extends Controller
     /* ── GET /book/{slug}/staff ─────────────────────────────────────────── */
     public function staff(Request $request, string $salonSlug): JsonResponse
     {
-        $validated = $request->validate([
+        $request->validate([
             'service_id'    => ['nullable', 'integer'],
             'service_ids'   => ['nullable', 'array'],
             'service_ids.*' => ['integer'],
@@ -113,21 +113,12 @@ class BookingController extends Controller
 
         $salon = PublicSalonAccess::findBySlugOrFail($salonSlug);
 
-        $ids = array_values(array_unique(array_merge(
-            $validated['service_ids'] ?? [],
-            isset($validated['service_id']) ? [(int) $validated['service_id']] : []
-        )));
-
-        $query = Staff::withoutGlobalScope(TenantScope::class)
+        // Any bookable staff can be chosen for any service during online booking.
+        // service_id / service_ids remain accepted for backward-compatible clients.
+        $staff = Staff::withoutGlobalScope(TenantScope::class)
             ->where('salon_id', $salon->id)
             ->where('is_active', true)
-            ->where('bookable_online', true);
-
-        foreach ($ids as $serviceId) {
-            $query->whereHas('services', fn ($s) => $s->where('services.id', $serviceId));
-        }
-
-        $staff = $query
+            ->where('bookable_online', true)
             ->orderBy('sort_order')
             ->get(['id', 'first_name', 'last_name', 'role', 'initials', 'color', 'avatar', 'bio', 'specialisms']);
 

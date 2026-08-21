@@ -67,13 +67,13 @@ document.addEventListener('alpine:init', function () {
             openSchedule: function (payload) {
                 var days = payload.working_days && payload.working_days.length
                     ? payload.working_days.slice()
-                    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+                    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
                 this.scheduleStaff = {
                     id: payload.id,
                     name: payload.name,
                     working_days: days,
-                    start_time: payload.start_time || '09:00',
-                    end_time: payload.end_time || '18:00',
+                    start_time: (payload.start_time || '09:00').toString().slice(0, 5),
+                    end_time: (payload.end_time || '18:00').toString().slice(0, 5),
                 };
                 this.scheduleOpen = true;
                 this.menuOpenId = null;

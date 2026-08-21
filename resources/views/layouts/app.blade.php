@@ -1195,6 +1195,7 @@
 @include('partials.chatbot')
 @include('partials.form-client-validation')
 @include('partials.disable-double-submit')
+<script src="{{ asset('js/image-compress-upload.js') }}?v=1" defer></script>
 @stack('scripts')
 @include('partials.setup-focus-cue')
 </body>

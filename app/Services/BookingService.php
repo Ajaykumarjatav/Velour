@@ -111,15 +111,11 @@ class BookingService
             $staffQuery->where('id', $staffId);
         }
 
-        foreach ($collection as $svc) {
-            $staffQuery->whereHas('services', fn ($q) => $q->where('services.id', $svc->id));
-        }
-
+        // Online booking: any active, bookable staff may perform any service.
         $staffList = $staffQuery
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
-        $staffList = $staffList->filter(fn (Staff $staff) => $this->staffCanHandleServices($staff, $collection))->values();
 
         if ($staffList->isEmpty()) {
             Log::debug('No staff available', ['service_ids' => $collection->pluck('id')->all(), 'date' => $ymd]);
@@ -242,12 +238,7 @@ class BookingService
                 ->where('is_active', true)
                 ->where('bookable_online', true);
 
-            foreach ($ids as $sid) {
-                $staffQuery->whereHas('services', fn ($q) => $q->where('services.id', (int) $sid));
-            }
-
             $candidates = $staffQuery->orderBy('sort_order')->orderBy('id')->get();
-            $candidates = $candidates->filter(fn (Staff $staff) => $this->staffCanHandleServices($staff, $byId->values()))->values();
             $assigned   = null;
             foreach ($candidates as $s) {
                 if ($apptSvc->isAvailable($salonId, (int) $s->id, $startsAt, $endsAt, null, true)) {
@@ -300,29 +291,19 @@ class BookingService
         // Resolve staff
         $staffId = $hold['staff_id'];
         if (! $staffId) {
-            // Auto-assign first available (must offer every service on the booking)
+            // Auto-assign first available bookable staff (any service).
             $ids = array_map('intval', $hold['service_ids']);
             $snapshot = Service::summarizeForAppointment($salon->id, $ids, $hold['service_options'] ?? []);
             $startsAt = SalonTime::parseAppointmentStartsAt($salon, $hold['starts_at']);
             $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
 
-            $staffQuery = Staff::withoutGlobalScope(TenantScope::class)
+            $staff = Staff::withoutGlobalScope(TenantScope::class)
                 ->where('salon_id', $salon->id)
                 ->where('is_active', true)
-                ->where('bookable_online', true);
-
-            foreach ($hold['service_ids'] as $sid) {
-                $staffQuery->whereHas('services', fn ($q) => $q->where('services.id', (int) $sid));
-            }
-
-            $staff = $staffQuery
+                ->where('bookable_online', true)
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
-            $services = Service::where('salon_id', $salon->id)
-                ->whereIn('id', array_map('intval', $hold['service_ids']))
-                ->get(['id', 'allowed_roles']);
-            $staff = $staff->filter(fn (Staff $member) => $this->staffCanHandleServices($member, $services))->values();
 
             foreach ($staff as $s) {
                 $apptSvc = app(AppointmentService::class);
@@ -347,6 +328,8 @@ class BookingService
                 'source'          => 'online',
                 'status'          => 'pending',
                 'client_notes'    => $data['notes'] ?? null,
+            ], [
+                'enforce_staff_services' => false,
             ]);
         } catch (AvailabilityRejectedException $e) {
             throw new \InvalidArgumentException($e->result->firstMessage());
@@ -429,19 +412,5 @@ class BookingService
     private function holdKeyPattern(int $salonId, string $date): string
     {
         return "hold:{$salonId}:*";
-    }
-
-    private function staffCanHandleServices(Staff $staff, Collection $services): bool
-    {
-        foreach ($services as $service) {
-            if (! $service instanceof Service) {
-                continue;
-            }
-            if (! $service->allowsStaffMember($staff)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

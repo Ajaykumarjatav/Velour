@@ -239,7 +239,7 @@ class StaffController extends Controller
     /* ── Private ─────────────────────────────────────────────────────────── */
     private function calcUtilisation(Staff $staff, $appointments, Carbon $from, Carbon $to): float
     {
-        $workingDays = collect($staff->working_days ?? ['Mon','Tue','Wed','Thu','Fri']);
+        $workingDays = collect($staff->working_days ?? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']);
         $totalDays   = $from->diffInDays($to) + 1;
         $dayHours    = $staff->start_time && $staff->end_time
             ? Carbon::parse($staff->end_time)->diffInHours(Carbon::parse($staff->start_time))

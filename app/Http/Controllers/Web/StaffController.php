@@ -374,7 +374,7 @@ class StaffController extends Controller
             'awards_accolades'  => ['nullable', 'string', 'max:5000'],
             'color'             => ['nullable', 'string', 'max:7'],
             'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ]);
 
         $nameParts = explode(' ', trim($data['name']), 2);
@@ -467,7 +467,7 @@ class StaffController extends Controller
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'is_active'       => ['sometimes', 'boolean'],
-            'avatar'          => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'avatar'          => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ]);
 
         // Split 'name' into first_name / last_name for the Staff model
