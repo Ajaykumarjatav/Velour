@@ -14,11 +14,12 @@ use App\Services\ExpenseCategoryDefaults;
 use App\Services\StaffAttendanceService;
 use App\Services\StaffPayrollCalculator;
 use App\Support\LanguageProficiency;
+use App\Support\PublicStorage;
+use App\Support\SalonSetupProgress;
 use App\Support\SalonTime;
 use App\Support\StaffJobRoles;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Support\PublicStorage;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -395,6 +396,7 @@ class StaffController extends Controller
             'color'           => $data['color'] ?? '#7C3AED',
             'commission_rate' => $data['commission_rate'] ?? 0,
             'is_active'       => true,
+            'bookable_online' => true,
         ]);
 
         if ($avatarFile) {
@@ -403,7 +405,7 @@ class StaffController extends Controller
             ]);
         }
 
-        return redirect()->route('staff.index')->with('success', 'Staff member added.');
+        return $this->redirectAfterSetupProgress('Staff member added.', 'staff.index');
     }
 
     public function show(Staff $staff)
@@ -486,7 +488,7 @@ class StaffController extends Controller
 
         $this->syncStaffAvatarFromRequest($request, $staff);
 
-        return redirect()->route('staff.show', $staff)->with('success', 'Staff member updated.');
+        return $this->redirectAfterSetupProgress('Staff member updated.', 'staff.show', $staff);
     }
 
     public function destroy(Staff $staff)
@@ -517,6 +519,20 @@ class StaffController extends Controller
             PublicStorage::delete($staff->avatar);
             $staff->update(['avatar' => null]);
         }
+    }
+
+    private function redirectAfterSetupProgress(string $message, string $fallbackRoute, mixed $fallbackParam = null)
+    {
+        $nextUrl = SalonSetupProgress::nextIncompleteUrl($this->salon()->fresh());
+        if ($nextUrl) {
+            return redirect()->to($nextUrl)->with('success', $message);
+        }
+
+        if ($fallbackParam !== null) {
+            return redirect()->route($fallbackRoute, $fallbackParam)->with('success', $message);
+        }
+
+        return redirect()->route($fallbackRoute)->with('success', $message);
     }
 
 }

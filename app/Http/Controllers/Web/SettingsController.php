@@ -16,6 +16,7 @@ use App\Support\AuthPanel;
 use App\Support\LanguageProficiency;
 use App\Support\ProfileCompletion;
 use App\Support\RegistrationStarterServices;
+use App\Support\SalonSetupProgress;
 use App\Support\SettingsTabPermissions;
 use App\Support\StaffJobRoles;
 use App\Support\StaffServiceEligibility;
@@ -1306,6 +1307,19 @@ class SettingsController extends Controller
 
     private function redirectAfterSettingsSave(Request $request, string $message, string $tab)
     {
+        // Guided setup: after saves on setup-related tabs, jump to the next incomplete
+        // checklist step and blink the field the user needs to complete.
+        $setupGuideTabs = ['salon', 'services', 'hours', 'team', 'booking'];
+        if (in_array($tab, $setupGuideTabs, true)) {
+            $salon = $this->salon()->fresh();
+            $nextUrl = SalonSetupProgress::nextIncompleteUrl($salon);
+            if ($nextUrl) {
+                Cache::forget("share:checklist:{$salon->id}");
+
+                return redirect()->to($nextUrl)->with('success', $message);
+            }
+        }
+
         $returnTo = trim((string) $request->input('return_to', ''));
         if ($returnTo === '') {
             return redirect()
@@ -1353,7 +1367,7 @@ class SettingsController extends Controller
 
         // During initial setup, redirecting to blocked pages (e.g. multi-location) bounces back
         // to Settings with tab=salon. Keep users on the tab they saved instead.
-        $completion = ProfileCompletion::forSalon($this->salon());
+        $completion = ProfileCompletion::forSalon($salon);
         $isSetupIncomplete = (int) ($completion['percentage'] ?? 0) < 100;
         $isSettingsPath = str_starts_with($path, '/settings');
         if ($isSetupIncomplete && ! $isSettingsPath) {

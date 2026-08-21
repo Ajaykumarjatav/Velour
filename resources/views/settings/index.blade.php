@@ -244,8 +244,8 @@
                         <input type="email" name="email" value="{{ old('email', $salon->email) }}" class="form-input">
                     </div>
                     <div>
-                        <label class="form-label">Phone</label>
-                        <input type="tel" name="phone" value="{{ old('phone', $salon->phone) }}" class="form-input">
+                        <label class="form-label" for="settings-salon-phone">Phone</label>
+                        <input id="settings-salon-phone" type="tel" name="phone" value="{{ old('phone', $salon->phone) }}" class="form-input">
                     </div>
                     <div>
                         <label class="form-label">Website</label>
@@ -327,9 +327,9 @@
                         <textarea name="awards_accolades" rows="4" class="form-textarea" placeholder="Certifications, press, industry awards, memberships…">{{ old('awards_accolades', $salon->awards_accolades) }}</textarea>
                         <p class="form-hint">Shown on your profile and public site where supported. One item per line works well.</p>
                     </div>
-                    <div>
-                        <label class="form-label">Address line 1</label>
-                        <input type="text" name="address_line1" value="{{ old('address_line1', $salon->address_line1) }}" class="form-input">
+                    <div id="settings-salon-address">
+                        <label class="form-label" for="settings-salon-address-input">Address line 1</label>
+                        <input id="settings-salon-address-input" type="text" name="address_line1" value="{{ old('address_line1', $salon->address_line1) }}" class="form-input">
                     </div>
                     <div>
                         <label class="form-label">Address line 2</label>
@@ -706,7 +706,7 @@
         <p x-show="!canEditTab('hours')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Hours.</p>
         <div class="card">
             <h2 class="font-semibold text-heading mb-5">Opening Hours</h2>
-            <form action="{{ route('settings.hours') }}" method="POST" class="space-y-3">
+            <form id="settings-hours-form" action="{{ route('settings.hours') }}" method="POST" class="space-y-3">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <fieldset :disabled="!canEditTab('hours')" class="min-w-0 border-0 p-0 m-0 space-y-3 disabled:opacity-70">
@@ -716,8 +716,8 @@
                 @endphp
                 @foreach($days as $day)
                 @php $h = $current[$day] ?? ['open'=>true,'from'=>'09:00','to'=>'18:00']; @endphp
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                    <div class="w-28 shrink-0">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <div class="w-full sm:w-32 shrink-0">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" name="hours[{{ $day }}][open]" value="1"
                                    {{ ($h['open'] ?? false) ? 'checked' : '' }}
@@ -725,9 +725,17 @@
                             <span class="text-sm font-medium text-body capitalize">{{ $day }}</span>
                         </label>
                     </div>
-                    <input type="time" name="hours[{{ $day }}][from]" value="{{ $h['from'] ?? '09:00' }}" class="form-input w-auto min-w-0 flex-1 sm:flex-none">
-                    <span class="text-muted text-sm">to</span>
-                    <input type="time" name="hours[{{ $day }}][to]" value="{{ $h['to'] ?? '18:00' }}" class="form-input w-auto min-w-0 flex-1 sm:flex-none">
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+                        <input type="time"
+                               name="hours[{{ $day }}][from]"
+                               value="{{ $h['from'] ?? '09:00' }}"
+                               class="form-input !w-[8.5rem] sm:!w-[9.5rem] shrink-0 tabular-nums">
+                        <span class="text-muted text-sm shrink-0">to</span>
+                        <input type="time"
+                               name="hours[{{ $day }}][to]"
+                               value="{{ $h['to'] ?? '18:00' }}"
+                               class="form-input !w-[8.5rem] sm:!w-[9.5rem] shrink-0 tabular-nums">
+                    </div>
                 </div>
                 @endforeach
                 </fieldset>

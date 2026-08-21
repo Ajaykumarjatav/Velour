@@ -1196,5 +1196,6 @@
 @include('partials.form-client-validation')
 @include('partials.disable-double-submit')
 @stack('scripts')
+@include('partials.setup-focus-cue')
 </body>
 </html>
