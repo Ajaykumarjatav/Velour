@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\DynamicPricingRule;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Support\SalonSetupProgress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -185,7 +186,7 @@ class ServiceController extends Controller
             ]);
         }
 
-        return redirect()->route('services.index')->with('success', 'Service created successfully.');
+        return $this->redirectAfterSetupProgress('Service created successfully.', 'services.index');
     }
 
     public function edit(Service $service)
@@ -264,7 +265,7 @@ class ServiceController extends Controller
 
         $this->syncServiceImage($request, $service);
 
-        return redirect()->route('services.index')->with('success', 'Service updated.');
+        return $this->redirectAfterSetupProgress('Service updated.', 'services.index');
     }
 
     public function destroy(Service $service)
@@ -382,6 +383,16 @@ class ServiceController extends Controller
             }
             $service->update(['image' => null]);
         }
+    }
+
+    private function redirectAfterSetupProgress(string $message, string $fallbackRoute)
+    {
+        $nextUrl = SalonSetupProgress::nextIncompleteUrl($this->salon()->fresh());
+        if ($nextUrl) {
+            return redirect()->to($nextUrl)->with('success', $message);
+        }
+
+        return redirect()->route($fallbackRoute)->with('success', $message);
     }
 
 }

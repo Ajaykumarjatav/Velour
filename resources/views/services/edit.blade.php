@@ -126,7 +126,7 @@
                     <input type="checkbox" name="is_active" value="1" {{ old('is_active', ($service->status ?? 'active') === 'active') ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
                     <span class="text-sm text-body">Active</span>
                 </label>
-                <label class="flex items-center gap-2 cursor-pointer">
+                <label id="service-online-booking" class="flex items-center gap-2 cursor-pointer rounded-lg px-1 py-1">
                     <input type="checkbox" name="online_booking" value="1" {{ old('online_booking', $service->online_booking ?? true) ? 'checked' : '' }} class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
                     <span class="text-sm text-body">Online booking</span>
                 </label>
