@@ -155,7 +155,7 @@ class ServiceController extends Controller
             'addons_text'              => ['nullable', 'string', 'max:2000'],
             'dynamic_pricing_enabled'  => ['sometimes', 'boolean'],
             'service_location'         => ['required', 'in:onsite,home'],
-            'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ]);
 
         $imageFile = $request->file('image');
@@ -235,7 +235,7 @@ class ServiceController extends Controller
             'addons_text'              => ['nullable', 'string', 'max:2000'],
             'dynamic_pricing_enabled'  => ['sometimes', 'boolean'],
             'service_location'         => ['required', 'in:onsite,home'],
-            'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'image'                    => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ]);
 
         if (array_key_exists('is_active', $data)) {

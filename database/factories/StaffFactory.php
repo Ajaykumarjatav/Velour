@@ -22,7 +22,7 @@ class StaffFactory extends Factory
             'access_level'    => 'staff',
             'is_active'       => true,
             'bookable_online' => true,
-            'working_days'    => ['Mon','Tue','Wed','Thu','Fri'],
+            'working_days'    => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
             'start_time'      => '09:00:00',
             'end_time'        => '18:00:00',
             'sort_order'      => 0,

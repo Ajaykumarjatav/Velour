@@ -1022,9 +1022,9 @@
                     <div class="flex flex-col sm:flex-row sm:items-start gap-4">
                         <x-staff-avatar :staff="$profileStaff" size="lg" />
                         <div class="flex-1 min-w-0 space-y-2">
-                            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"
+                            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" data-compress-image
                                    class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
-                            <p class="form-hint">JPG, PNG or WebP · max 2 MB</p>
+                            <p class="form-hint" data-compress-hint>JPG, PNG or WebP · large images are auto-compressed</p>
                             @if($profileStaff->avatar)
                                 <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
                                     <input type="checkbox" name="remove_avatar" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
@@ -1197,7 +1197,10 @@
                 </h2>
                 <p class="form-hint text-xs sm:text-sm leading-relaxed">Add or update team members from your profile settings. Each row has its own arrow to show or hide that person’s fields, and its own Save button so you only submit one person at a time.</p>
             </div>
-            <div id="settings-staff-rows" class="space-y-3 sm:space-y-4">
+            <div id="settings-staff-rows" class="space-y-3 sm:space-y-4"
+                 data-account-name="{{ e($user->name ?? '') }}"
+                 data-account-email="{{ e($user->email ?? '') }}"
+                 data-account-phone="{{ e($user->phone ?? '') }}">
                 @foreach($staffRows as $idx => $st)
                     @php $st = is_array($st) ? $st : []; @endphp
                     <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-3 sm:p-4 min-w-0 overflow-hidden">
@@ -1238,10 +1241,10 @@
                                 <div class="flex flex-col sm:flex-row sm:items-start gap-3">
                                     <x-staff-avatar size="sm" :url="$avatarUrl" :initials="$nameInitials" :color="$st['color'] ?? '#7C3AED'" />
                                     <div class="flex-1 min-w-0 space-y-2">
-                                        <input type="file" name="staff_member_avatar" accept="image/jpeg,image/png,image/webp"
+                                        <input type="file" name="staff_member_avatar" accept="image/jpeg,image/png,image/webp" data-compress-image
                                                @if(!$avatarUrl) required @endif
                                                class="form-input text-xs w-full max-w-full file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200 file:max-w-[calc(100%-0.5rem)]">
-                                        <p class="text-[11px] text-muted">JPG, PNG or WebP · max 2 MB</p>
+                                        <p class="text-[11px] text-muted" data-compress-hint>JPG, PNG or WebP · large images are auto-compressed</p>
                                         @if($avatarUrl)
                                             <label class="inline-flex items-center gap-2 text-xs text-body cursor-pointer">
                                                 <input type="checkbox" name="staff_member_remove_avatar" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
@@ -1252,23 +1255,34 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="settings-use-my-details-wrap {{ $isExistingMember ? 'hidden' : '' }}">
+                                <label class="inline-flex items-start gap-2.5 rounded-xl border border-velour-200/80 dark:border-velour-800/50 bg-velour-50/60 dark:bg-velour-950/30 px-3 py-2.5 cursor-pointer">
+                                    <input type="checkbox"
+                                           class="settings-use-my-details mt-0.5 rounded border-gray-300 dark:border-gray-600 text-velour-600 focus:ring-velour-500"
+                                           value="1">
+                                    <span class="min-w-0">
+                                        <span class="block text-xs font-semibold text-heading">Use my account details</span>
+                                        <span class="block text-[11px] text-muted mt-0.5">Fill name, email and phone from your login profile so you can add yourself as a new team member.</span>
+                                    </span>
+                                </label>
+                            </div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div class="sm:col-span-2">
                                     <label class="block text-xs font-medium text-body mb-1">Full name <span class="text-red-500">*</span></label>
                                     <input type="text" name="staff_members[0][name]" value="{{ $st['name'] ?? '' }}"
                                            required
-                                           class="form-input"
+                                           class="form-input settings-staff-field-name"
                                            placeholder="e.g. Alex Smith">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Email</label>
                                     <input type="email" name="staff_members[0][email]" value="{{ $st['email'] ?? '' }}" autocomplete="off"
-                                           class="form-input">
+                                           class="form-input settings-staff-field-email">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Phone</label>
                                     <input type="tel" name="staff_members[0][phone]" value="{{ $st['phone'] ?? '' }}"
-                                           class="form-input">
+                                           class="form-input settings-staff-field-phone">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span></label>
@@ -1772,6 +1786,56 @@
     var addBtn = document.getElementById('settings-add-staff-member');
     if (!container || !addBtn) return;
 
+    function accountDetails() {
+        return {
+            name: container.getAttribute('data-account-name') || '',
+            email: container.getAttribute('data-account-email') || '',
+            phone: container.getAttribute('data-account-phone') || '',
+        };
+    }
+
+    function applyUseMyDetails(checkbox, checked) {
+        var row = checkbox.closest('.settings-staff-member-row');
+        if (!row) return;
+        // Never overwrite an existing saved staff member — only new (empty id) rows.
+        var idInput = row.querySelector('input[name="staff_members[0][id]"]');
+        if (idInput && String(idInput.value || '').trim() !== '') {
+            checkbox.checked = false;
+            return;
+        }
+        var nameEl = row.querySelector('.settings-staff-field-name');
+        var emailEl = row.querySelector('.settings-staff-field-email');
+        var phoneEl = row.querySelector('.settings-staff-field-phone');
+        if (!nameEl || !emailEl || !phoneEl) return;
+
+        if (checked) {
+            checkbox.dataset.prevName = nameEl.value;
+            checkbox.dataset.prevEmail = emailEl.value;
+            checkbox.dataset.prevPhone = phoneEl.value;
+            var acct = accountDetails();
+            nameEl.value = acct.name;
+            emailEl.value = acct.email;
+            phoneEl.value = acct.phone;
+            nameEl.dispatchEvent(new Event('input', { bubbles: true }));
+            emailEl.dispatchEvent(new Event('input', { bubbles: true }));
+            phoneEl.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+
+        nameEl.value = checkbox.dataset.prevName != null ? checkbox.dataset.prevName : '';
+        emailEl.value = checkbox.dataset.prevEmail != null ? checkbox.dataset.prevEmail : '';
+        phoneEl.value = checkbox.dataset.prevPhone != null ? checkbox.dataset.prevPhone : '';
+        delete checkbox.dataset.prevName;
+        delete checkbox.dataset.prevEmail;
+        delete checkbox.dataset.prevPhone;
+    }
+
+    container.addEventListener('change', function (e) {
+        var cb = e.target && e.target.closest ? e.target.closest('.settings-use-my-details') : null;
+        if (!cb || !container.contains(cb)) return;
+        applyUseMyDetails(cb, cb.checked);
+    });
+
     function renumberStaffRows() {
         var rows = container.querySelectorAll('.settings-staff-member-row');
         rows.forEach(function (row, i) {
@@ -1786,6 +1850,24 @@
         var rows = container.querySelectorAll('.settings-staff-member-row');
         if (rows.length >= maxRows) return;
         var clone = rows[0].cloneNode(true);
+        clone.querySelectorAll('input[type="file"]').forEach(function (el) {
+            el.value = '';
+            el.removeAttribute('data-compressing');
+            if (el.name === 'staff_member_avatar') {
+                el.setAttribute('required', 'required');
+            }
+        });
+        clone.querySelectorAll('[data-compress-hint]').forEach(function (el) {
+            var def = el.getAttribute('data-compress-hint-default');
+            if (def) el.textContent = def;
+            else el.textContent = 'JPG, PNG or WebP · large images are auto-compressed';
+        });
+        // Hide remove-photo for new empty rows
+        clone.querySelectorAll('input[name="staff_member_remove_avatar"]').forEach(function (el) {
+            var lab = el.closest('label');
+            if (lab) lab.classList.add('hidden');
+            el.checked = false;
+        });
         clone.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], textarea').forEach(function (el) {
             el.value = '';
         });
@@ -1797,10 +1879,18 @@
         });
         clone.querySelectorAll('input[type="checkbox"]').forEach(function (el) {
             el.checked = false;
+            if (el.classList.contains('settings-use-my-details')) {
+                delete el.dataset.prevName;
+                delete el.dataset.prevEmail;
+                delete el.dataset.prevPhone;
+            }
         });
         clone.querySelectorAll('input[type="hidden"]').forEach(function (el) {
             if (el.name && el.name.indexOf('[id]') !== -1) el.value = '';
         });
+        // New rows can use account autofill; existing saved members keep the control hidden.
+        var useWrap = clone.querySelector('.settings-use-my-details-wrap');
+        if (useWrap) useWrap.classList.remove('hidden');
         var toggle = clone.querySelector('.settings-staff-row-toggle');
         var body = clone.querySelector('.settings-staff-row-body');
         if (toggle) {

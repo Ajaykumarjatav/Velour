@@ -27,6 +27,7 @@
        class="text-xs text-amber-600 dark:text-amber-400 font-medium hidden"
        role="status"></p>
 
+    {{-- 1 col phone · 2 tablet · 3 desktop (xl) — same as before --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         @foreach($themes as $slug => $theme)
         @php
@@ -42,10 +43,10 @@
                data-theme-slug="{{ $slug }}"
                data-theme-label="{{ $theme['label'] }}">
         @endif
-            <div class="relative aspect-[16/10] bg-gray-100 dark:bg-gray-700 overflow-hidden">
+            <div class="relative aspect-[16/10] max-sm:max-h-44 bg-gray-100 dark:bg-gray-700 overflow-hidden">
                 @if($previewUrl)
                     <img src="{{ $previewUrl }}" alt="{{ $theme['label'] }} theme preview"
-                         class="w-full h-full object-cover object-center {{ $readOnly ? '' : 'transition-transform duration-300 group-hover:scale-[1.02]' }}">
+                         class="w-full h-full object-cover object-center max-sm:object-top {{ $readOnly ? '' : 'transition-transform duration-300 group-hover:scale-[1.02]' }}">
                 @else
                     <div class="w-full h-full flex items-center justify-center text-white text-2xl font-semibold"
                          style="background: linear-gradient(135deg, {{ $accent }}, #1a1a1a);">

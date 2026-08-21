@@ -312,9 +312,9 @@ document.addEventListener('alpine:init', () => {
                     <div class="space-y-4">
                         <div>
                             <label class="form-label">Photo <span class="text-red-500">*</span></label>
-                            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" x-ref="staffAvatarFile"
+                            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" data-compress-image x-ref="staffAvatarFile"
                                    class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
-                            <p class="form-hint">JPG, PNG or WebP · max 2&nbsp;MB</p>
+                            <p class="form-hint" data-compress-hint>JPG, PNG or WebP · large images are auto-compressed</p>
                             <p class="form-error text-xs mt-0.5" x-show="err('avatar')" x-text="err('avatar')"></p>
                         </div>
                         <div>

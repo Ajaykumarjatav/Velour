@@ -3,7 +3,7 @@
 @section('page-title', 'Go Live & Share')
 
 @push('styles')
-<style>
+<style type="text/tailwindcss">
   .stat-card   { @apply bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow; }
   .tab-btn     { @apply px-4 py-2 text-sm font-medium rounded-xl transition-all; }
   .tab-btn.on  { @apply bg-amber-500 text-white shadow-sm; }
@@ -15,10 +15,29 @@
   .badge-high  { @apply bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800 text-xs px-2 py-0.5 rounded-full font-medium; }
   .badge-med   { @apply bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800 text-xs px-2 py-0.5 rounded-full font-medium; }
   .badge-low   { @apply bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 text-xs px-2 py-0.5 rounded-full font-medium; }
-  {{-- Toggles use Tailwind utilities on the elements: @apply in this plain <style> block is NOT compiled (Tailwind CDN only processes app layout’s type="text/tailwindcss"). --}}
   .sparkline   { fill: none; stroke: #f59e0b; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .embed-code  { @apply font-mono text-xs bg-gray-900 text-green-300 rounded-xl p-4 overflow-x-auto whitespace-pre select-all leading-relaxed; }
   [x-cloak]   { display:none !important; }
+</style>
+<style>
+  /* Mobile-only tweaks — desktop stays as original */
+  @media (max-width: 639px) {
+    .go-live-page {
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .go-live-page .stat-card {
+      padding: 1rem;
+    }
+    .go-live-page .embed-code {
+      font-size: 11px;
+      padding: 0.75rem;
+    }
+    .go-live-page .copy-btn {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+  }
 </style>
 @endpush
 
@@ -29,13 +48,13 @@
 <div
   x-data="goLivePage()"
   x-init="init()"
-  class="max-w-7xl mx-auto px-4 sm:px-6 pb-16 space-y-8"
+  class="go-live-page max-w-7xl mx-auto px-4 sm:px-6 pb-16 space-y-8 min-w-0 max-sm:overflow-x-hidden"
 >
 
   {{-- ── HEADER ─────────────────────────────────────────────────────────── --}}
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
     <div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white" style="font-family:'Playfair Display',serif">
           Go Live &amp; Share
         </h1>
@@ -56,7 +75,7 @@
     </div>
 
     {{-- Master on/off toggle --}}
-    <div class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl px-5 py-3 shadow-sm"
+    <div class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl px-5 py-3 shadow-sm max-sm:w-full max-sm:justify-between"
          :class="readOnly ? 'opacity-80' : ''">
       <div>
         <p class="text-sm font-semibold text-gray-800 dark:text-white">Online Booking</p>
@@ -91,7 +110,7 @@
   {{-- ── READINESS CHECKLIST ─────────────────────────────────────────────── --}}
   <div x-show="checklist.score < 100" x-cloak
        class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-50 dark:border-gray-700">
+    <div class="flex items-center justify-between px-6 py-4 max-sm:px-4 border-b border-gray-50 dark:border-gray-700">
       <div class="flex items-center gap-3">
         <span class="text-lg">🚀</span>
         <div>
@@ -110,7 +129,7 @@
     </div>
     <ul class="divide-y divide-gray-50 dark:divide-gray-700 px-0">
       <template x-for="item in checklist.items" :key="item.key">
-        <li class="flex items-center gap-4 px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+        <li class="flex items-center gap-4 px-6 py-3 max-sm:px-4 max-sm:flex-wrap max-sm:gap-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
           {{-- Status icon --}}
           <div :class="item.done
               ? 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400'
@@ -119,24 +138,25 @@
             <span x-text="item.done ? '✓' : '·'"></span>
           </div>
           {{-- Label + tip --}}
-          <div class="flex-1 min-w-0">
+          <div class="flex-1 min-w-0 max-sm:basis-[calc(100%-2.5rem)]">
             <p class="text-sm font-medium text-gray-800 dark:text-gray-200" x-text="item.label"
                :class="item.done ? 'line-through text-gray-400 dark:text-gray-600' : ''"></p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 truncate" x-text="item.tip" x-show="!item.done"></p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 truncate max-sm:whitespace-normal max-sm:line-clamp-2" x-text="item.tip" x-show="!item.done"></p>
           </div>
-          {{-- Priority badge --}}
-          <span x-show="!item.done"
-            :class="{
-              'badge-high': item.priority === 'high',
-              'badge-med':  item.priority === 'medium',
-              'badge-low':  item.priority === 'low',
-            }"
-            x-text="item.priority"></span>
-          {{-- Fix link --}}
-          <a x-show="!item.done" :href="item.link"
-            class="text-xs text-amber-600 font-semibold hover:underline flex-shrink-0">
-            Fix →
-          </a>
+          {{-- Priority + Fix (wrap under label on phone only) --}}
+          <div class="flex items-center gap-2 flex-shrink-0 max-sm:w-full max-sm:pl-9" x-show="!item.done">
+            <span
+              :class="{
+                'badge-high': item.priority === 'high',
+                'badge-med':  item.priority === 'medium',
+                'badge-low':  item.priority === 'low',
+              }"
+              x-text="item.priority"></span>
+            <a :href="item.link"
+              class="text-xs text-amber-600 font-semibold hover:underline flex-shrink-0">
+              Fix →
+            </a>
+          </div>
         </li>
       </template>
     </ul>
@@ -347,21 +367,21 @@
   </div>
 
   {{-- ── MAIN CONTENT GRID ───────────────────────────────────────────────── --}}
-  <div class="grid lg:grid-cols-5 gap-6">
+  <div class="grid lg:grid-cols-5 gap-6 max-sm:min-w-0">
 
     {{-- LEFT COL (3/5) — Booking link + social sharing + embed --}}
-    <div class="lg:col-span-3 space-y-6">
+    <div class="lg:col-span-3 space-y-6 max-sm:min-w-0">
 
       {{-- ── SALON WEBSITE + BOOKING ───────────────────────────────────── --}}
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center gap-2">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden max-sm:min-w-0">
+        <div class="px-6 py-4 max-sm:px-4 border-b border-gray-50 dark:border-gray-700 flex items-center gap-2">
           <span class="text-lg">🌐</span>
           <h2 class="font-semibold text-gray-800 dark:text-white">Your Salon Website</h2>
         </div>
-        <div class="p-6 space-y-4">
+        <div class="p-6 max-sm:p-4 space-y-4 max-sm:min-w-0">
           <p class="text-xs text-muted">Public marketing site (React). Clients can browse services and book from the site.</p>
 
-          <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+          <div class="p-4 max-sm:p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 max-sm:overflow-hidden">
             @include('partials.storefront-theme-picker', [
               'action' => route('go-live.theme'),
               'themes' => $themes,
@@ -371,7 +391,7 @@
             ])
           </div>
 
-          <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+          <div class="p-4 max-sm:p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 max-sm:overflow-hidden">
             @include('partials.storefront-theme-branding', [
               'salon' => $salon,
               'themeSlug' => $themeSlug,
@@ -379,7 +399,7 @@
             ])
           </div>
 
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-2 max-sm:flex-col">
             <div class="flex-1 basis-full sm:basis-0 flex items-center bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 gap-2 min-w-0">
               <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
@@ -388,14 +408,16 @@
                  class="text-sm text-amber-700 dark:text-amber-400 font-medium truncate hover:underline"
                  x-text="websiteUrl"></a>
             </div>
-            <button @click="copyUrl(websiteUrl, 'main')"
-              class="copy-btn border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-amber-300 hover:text-amber-600 flex-shrink-0">
-              <span x-text="copied.main ? '✅ Copied' : '📋 Copy'"></span>
-            </button>
-            <a :href="websiteUrl" target="_blank" rel="noopener"
-              class="copy-btn border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-amber-300 hover:text-amber-600 flex-shrink-0">
-              ↗ Preview
-            </a>
+            <div class="flex gap-2 max-sm:w-full">
+              <button @click="copyUrl(websiteUrl, 'main')"
+                class="copy-btn max-sm:flex-1 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-amber-300 hover:text-amber-600 flex-shrink-0">
+                <span x-text="copied.main ? '✅ Copied' : '📋 Copy'"></span>
+              </button>
+              <a :href="websiteUrl" target="_blank" rel="noopener"
+                class="copy-btn max-sm:flex-1 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-amber-300 hover:text-amber-600 flex-shrink-0">
+                ↗ Preview
+              </a>
+            </div>
           </div>
           <div class="flex flex-wrap gap-x-2 gap-y-1 items-center pt-1 border-t border-gray-100 dark:border-gray-700">
             <span class="text-xs text-muted flex-shrink-0">Booking only:</span>
@@ -436,22 +458,22 @@
 
       {{-- ── SOCIAL SHARING ────────────────────────────────────────────── --}}
       <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
+        <div class="px-6 py-4 max-sm:px-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between gap-2 max-sm:flex-col max-sm:items-start">
           <div class="flex items-center gap-2">
             <span class="text-lg">📣</span>
             <h2 class="font-semibold text-gray-800 dark:text-white">Share on Social</h2>
           </div>
           <span class="text-xs text-gray-400 dark:text-gray-500">Click counts this month</span>
         </div>
-        <div class="p-6">
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div class="p-6 max-sm:p-4">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-sm:gap-2">
 
             <template x-for="channel in shareChannels" :key="channel.id">
               <a
                 :href="channel.href"
                 target="_blank" rel="noopener noreferrer"
                 @click="!readOnly && trackClick(channel.id)"
-                class="flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-100 hover:border-opacity-60 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
+                class="flex flex-col items-center gap-2 p-4 max-sm:p-3 rounded-2xl border border-gray-100 hover:border-opacity-60 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
                 :style="`background:${channel.bg}; border-color:${channel.border};`"
               >
                 <span class="flex items-center justify-center w-8 h-8" x-html="socialIcons[channel.id]"></span>
@@ -465,7 +487,7 @@
           </div>
 
           {{-- Copy link row --}}
-          <div class="mt-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3">
+          <div class="mt-4 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3 max-sm:flex-col max-sm:items-stretch max-sm:gap-2">
             <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
               <span>🔗</span>
               <span class="font-medium">Copy booking link</span>
@@ -480,20 +502,20 @@
 
       {{-- ── EMBED WIDGET ──────────────────────────────────────────────── --}}
       <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-50 dark:border-gray-700 flex items-center gap-2">
+        <div class="px-6 py-4 max-sm:px-4 border-b border-gray-50 dark:border-gray-700 flex items-center gap-2">
           <span class="text-lg">🖥</span>
           <h2 class="font-semibold text-gray-800 dark:text-white">Embed on Your Website</h2>
         </div>
-        <div class="p-6 space-y-4">
+        <div class="p-6 max-sm:p-4 space-y-4 max-sm:min-w-0">
           {{-- Tab switcher --}}
-          <div class="flex gap-1.5 bg-gray-100 dark:bg-gray-700 p-1 rounded-xl w-fit">
-            <button @click="embedTab = 'iframe'" :class="embedTab === 'iframe' ? 'tab-btn on' : 'tab-btn off'" class="tab-btn">iFrame</button>
-            <button @click="embedTab = 'js'"     :class="embedTab === 'js'    ? 'tab-btn on' : 'tab-btn off'" class="tab-btn">JavaScript</button>
-            <button @click="embedTab = 'react'"  :class="embedTab === 'react' ? 'tab-btn on' : 'tab-btn off'" class="tab-btn">React</button>
+          <div class="flex gap-1.5 bg-gray-100 dark:bg-gray-700 p-1 rounded-xl w-fit max-sm:w-full max-sm:overflow-x-auto">
+            <button @click="embedTab = 'iframe'" :class="embedTab === 'iframe' ? 'tab-btn on' : 'tab-btn off'" class="tab-btn max-sm:flex-1">iFrame</button>
+            <button @click="embedTab = 'js'"     :class="embedTab === 'js'    ? 'tab-btn on' : 'tab-btn off'" class="tab-btn max-sm:flex-1">JavaScript</button>
+            <button @click="embedTab = 'react'"  :class="embedTab === 'react' ? 'tab-btn on' : 'tab-btn off'" class="tab-btn max-sm:flex-1">React</button>
           </div>
 
           {{-- Code display --}}
-          <div class="relative group">
+          <div class="relative group max-sm:min-w-0 max-sm:max-w-full">
             <pre class="embed-code" x-show="embedTab === 'iframe'" x-text="embedCodes.iframe"></pre>
             <pre class="embed-code" x-show="embedTab === 'js'"     x-text="embedCodes.js"    x-cloak></pre>
             <pre class="embed-code" x-show="embedTab === 'react'"  x-text="embedCodes.react"  x-cloak></pre>
@@ -528,7 +550,7 @@
           <div class="w-full space-y-2">
             <a :href="qrUrl + '&format=png'" download="velour-booking-qr.png"
               @click="!readOnly && trackClick('qr_download')"
-              class="flex items-center justify-center gap-2 w-full bg-gray-900 dark:bg-gray-700 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-600 transition">
+              class="flex items-center justify-center gap-2 w-full bg-gray-900 dark:bg-gray-700 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-600 transition max-sm:min-h-[44px]">
               ⬇ Download PNG
             </a>
             <p class="text-xs text-gray-400 dark:text-gray-500 text-center">Print on receipts, menus, windows &amp; marketing materials</p>

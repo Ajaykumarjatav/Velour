@@ -178,13 +178,9 @@ class SettingsController extends Controller
         $selectedStarterCategories = $this->selectedStarterCategoryKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $selectedStarterServices = $this->selectedStarterServiceKeysForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
         $selectedStarterServiceMeta = $this->selectedStarterServiceMetaForSalon($salon, $starterCatalog, $selectedBusinessTypeIds);
-        // Same branch as Staff & HR: tenant scope + active_salon_id can disagree for multi-location.
+        // Same branch as Staff & HR: show every staff at this location (including owner-linked).
         $existingTeamMembers = Staff::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
-            ->where(function ($q) use ($salon) {
-                $q->whereNull('user_id')
-                    ->orWhere('user_id', '!=', (int) $salon->owner_id);
-            })
             ->orderBy('sort_order')
             ->get();
         $profileStaff = $this->resolveProfileStaff($salon, $user);
@@ -559,7 +555,7 @@ class SettingsController extends Controller
             'staff_bio' => ['nullable', 'string', 'max:1000'],
             'staff_awards_accolades' => ['nullable', 'string', 'max:5000'],
             'staff_is_active' => ['nullable', 'boolean'],
-            'avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'remove_avatar' => ['nullable', 'boolean'],
             'timezone'  => ['nullable', 'string', 'timezone:all'],
             'locale'    => ['nullable', 'string', 'in:' . implode(',', array_keys(\App\Support\DisplayFormatter::localeOptions()))],
@@ -652,7 +648,7 @@ class SettingsController extends Controller
             'staff_members.*.language_proficiency'   => ['nullable', 'array', 'max:30'],
             'staff_members.*.language_proficiency.*' => ['string', Rule::in($langCodes)],
             'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
-            'staff_member_avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'staff_member_avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'staff_member_remove_avatar' => ['nullable', 'boolean'],
         ]);
 
@@ -951,10 +947,6 @@ class SettingsController extends Controller
     {
         return Staff::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
-            ->where(function ($q) use ($salon) {
-                $q->whereNull('user_id')
-                    ->orWhere('user_id', '!=', (int) $salon->owner_id);
-            })
             ->orderBy('sort_order')
             ->get()
             ->map(fn (Staff $member) => [
@@ -1058,19 +1050,29 @@ class SettingsController extends Controller
                 ]);
             }
 
+            // Link all active services so online booking can find bookable staff.
+            $serviceIds = Service::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->where('status', 'active')
+                ->pluck('id')
+                ->all();
+            if ($serviceIds !== []) {
+                $staff->services()->syncWithoutDetaching($serviceIds);
+            }
+
             $keptIds[] = (int) $staff->id;
         }
 
         $toDelete = Staff::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
-            ->where(function ($q) use ($salon) {
-                $q->whereNull('user_id')
-                    ->orWhere('user_id', '!=', (int) $salon->owner_id);
-            })
             ->when($keptIds !== [], fn ($q) => $q->whereNotIn('id', $keptIds))
             ->get();
 
         foreach ($toDelete as $member) {
+            // Keep the salon owner’s linked staff profile — managed from Profile / Staff HR as well.
+            if ($salon->owner_id && (int) $member->user_id === (int) $salon->owner_id) {
+                continue;
+            }
             if ($member->user_id) {
                 User::query()->where('id', (int) $member->user_id)->update(['is_active' => false]);
             }

@@ -15,6 +15,8 @@ class Staff extends Model
     use \App\Traits\HasSupportId, AuditLog, BelongsToTenant;
     use HasFactory, SoftDeletes;
 
+    public const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
     protected static function supportIdPrefix(): string { return 'STF'; }
     protected static function supportIdOffset(): int { return 30001; }
 
@@ -34,6 +36,22 @@ class Staff extends Model
         'is_active'=>'boolean','bookable_online'=>'boolean',
         'commission_rate'=>'decimal:2','base_salary'=>'decimal:2','hired_at'=>'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Staff $staff) {
+            // New staff are available every day by default (schedule modal + booking).
+            if ($staff->working_days === null || $staff->working_days === []) {
+                $staff->working_days = self::WEEK_DAYS;
+            }
+            if ($staff->start_time === null || $staff->start_time === '') {
+                $staff->start_time = '09:00';
+            }
+            if ($staff->end_time === null || $staff->end_time === '') {
+                $staff->end_time = '18:00';
+            }
+        });
+    }
     // Virtual 'name' attribute so controllers/views can use $staff->name
     public function getNameAttribute(): string
     {

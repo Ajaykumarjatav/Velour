@@ -95,7 +95,7 @@ class RelationQuickCreateController extends Controller
             'bio'             => ['nullable', 'string', 'max:1000'],
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'avatar'          => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'avatar'          => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ]);
 
         $nameParts = explode(' ', trim($data['name']), 2);
