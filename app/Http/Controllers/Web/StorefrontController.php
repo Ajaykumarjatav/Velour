@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Services\SalonWebsitePayloadService;
 use App\Support\PublicSalonAccess;
+use App\Support\SocialShareClicks;
 use App\Support\StorefrontAssets;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class StorefrontController extends Controller
@@ -52,6 +55,28 @@ class StorefrontController extends Controller
             'apiBase'  => StorefrontUrl::laravelBaseUrl(),
             'asset'    => fn (string $file) => StorefrontAssets::assetUrl($theme, $file),
         ]);
+    }
+
+    public function socialOut(Request $request, string $slug, string $platform): RedirectResponse
+    {
+        $salon = PublicSalonAccess::findBySlug($slug);
+        if (! $salon || ! PublicSalonAccess::isAccessible($salon)) {
+            abort(404);
+        }
+
+        $platform = strtolower($platform);
+        if (! in_array($platform, SocialShareClicks::platforms(), true)) {
+            abort(404);
+        }
+
+        $destination = SocialShareClicks::destination($salon, $platform);
+        if (! $destination || ! SocialShareClicks::isSafeRedirect($destination)) {
+            abort(404);
+        }
+
+        SocialShareClicks::record((int) $salon->id, $platform, $request);
+
+        return redirect()->away($destination);
     }
 
     /** Serve theme static assets (images, theme.css). */

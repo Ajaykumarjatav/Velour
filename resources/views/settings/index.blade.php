@@ -32,6 +32,27 @@
     .settings-main-panel .card h2 {
         letter-spacing: -0.01em;
     }
+    .settings-shell,
+    .settings-main-panel,
+    .settings-main-panel .card,
+    .settings-main-panel form,
+    .settings-main-panel fieldset {
+        min-width: 0;
+        max-width: 100%;
+    }
+    @media (max-width: 767px) {
+        .settings-main-panel {
+            overflow-x: hidden;
+        }
+        .settings-main-panel .card {
+            padding: 0.875rem;
+        }
+        .settings-main-panel .form-input,
+        .settings-main-panel .form-select,
+        .settings-main-panel .form-textarea {
+            max-width: 100%;
+        }
+    }
     .settings-mobile-tabs {
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
@@ -43,6 +64,59 @@
     .settings-staff-member-row .form-select,
     .settings-staff-member-row .form-textarea {
         min-width: 0;
+    }
+    .awards-editor-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+    .awards-editor-btn {
+        min-width: 2rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgb(226 232 240);
+        background: #fff;
+        color: inherit;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+    .dark .awards-editor-btn {
+        border-color: rgb(51 65 85);
+        background: rgb(15 23 42 / 0.6);
+    }
+    .awards-editor-surface {
+        min-height: 8.5rem;
+        max-width: 100%;
+        overflow-x: hidden;
+        padding: 0.75rem 0.875rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgb(226 232 240);
+        background: #fff;
+        outline: none;
+    }
+    .dark .awards-editor-surface {
+        border-color: rgb(51 65 85);
+        background: rgb(15 23 42 / 0.45);
+    }
+    .awards-editor-surface:empty::before {
+        content: attr(data-placeholder);
+        color: rgb(148 163 184);
+        pointer-events: none;
+    }
+    .awards-editor-surface img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0.5rem 0;
+        border-radius: 0.5rem;
+    }
+    .settings-main-panel[data-settings-readonly] .awards-editor-surface {
+        pointer-events: none;
+    }
+    .settings-main-panel[data-settings-readonly] .awards-editor-toolbar {
+        display: none !important;
     }
     .settings-main-panel[data-settings-readonly] input:not([type="hidden"]),
     .settings-main-panel[data-settings-readonly] select,
@@ -75,10 +149,10 @@
     $settingsInitialTab = $settingsInitialTab ?? session('tab', request()->get('tab', $settingsPersonalOnly ? 'profile' : 'salon'));
 
     $settingsTabMeta = [
-        'salon' => ['phase' => 'Salon setup', 'title' => 'Salon Profile', 'description' => 'Your business identity, contact details, timezone, and how clients experience your brand online.'],
-        'booking' => ['phase' => 'Salon setup', 'title' => 'Booking Settings', 'description' => 'Control online booking, deposits, confirmation rules, buffer times, and scheduling limits.'],
-        'services' => ['phase' => 'Salon setup', 'title' => 'Services & Catalog', 'description' => 'Business types, categories, and which services appear on your public booking experience.'],
-        'hours' => ['phase' => 'Salon setup', 'title' => 'Opening Hours', 'description' => 'Set when your salon is open so availability and booking slots stay accurate.'],
+        'salon' => ['phase' => 'Business setup', 'title' => 'Business Profile', 'description' => 'Your business identity, contact details, timezone, and how clients experience your brand online.'],
+        'booking' => ['phase' => 'Business setup', 'title' => 'Booking Settings', 'description' => 'Control online booking, deposits, confirmation rules, buffer times, and scheduling limits.'],
+        'services' => ['phase' => 'Business setup', 'title' => 'Services & Catalog', 'description' => 'Business types, categories, and which services appear on your public booking experience.'],
+        'hours' => ['phase' => 'Business setup', 'title' => 'Opening Hours', 'description' => 'Set when your business is open so availability and booking slots stay accurate.'],
         'social' => ['phase' => 'Presence', 'title' => 'Social Links', 'description' => 'Connect Instagram, Facebook, and other profiles shown on your public site.'],
         'notifications' => ['phase' => 'Account', 'title' => 'Notifications', 'description' => 'Choose how you and your clients receive booking and marketing messages.'],
         'profile' => ['phase' => 'Account', 'title' => 'Your Profile', 'description' => 'Personal details, display preferences, and services you perform.'],
@@ -89,7 +163,7 @@
     $settingsNavGroupsAll = $settingsPersonalOnly
         ? [['label' => 'Your account', 'tabs' => ['profile', 'team', 'security']]]
         : [
-            ['label' => 'Salon setup', 'tabs' => ['salon', 'booking', 'services', 'hours']],
+            ['label' => 'Business setup', 'tabs' => ['salon', 'booking', 'services', 'hours']],
             ['label' => 'Presence', 'tabs' => ['social']],
             ['label' => 'Account', 'tabs' => ['notifications', 'profile', 'team', 'security']],
         ];
@@ -211,7 +285,7 @@
             @if($settingsPersonalOnly)
             <div class="mb-6 rounded-2xl border border-teal-200/80 bg-teal-50/70 dark:border-teal-900/50 dark:bg-teal-950/30 px-4 py-3.5 text-sm text-teal-950 dark:text-teal-100">
                 <p class="font-medium">Your account settings</p>
-                <p class="mt-1 text-teal-900/80 dark:text-teal-200/90">You can update your profile and security. Salon business, services, and team setup are managed by your admin.</p>
+                <p class="mt-1 text-teal-900/80 dark:text-teal-200/90">You can update your profile and security. Business, services, and team setup are managed by your admin.</p>
             </div>
             @endif
 
@@ -228,28 +302,52 @@
     {{-- ── Salon Settings ── --}}
     <div x-show="tab==='salon'" x-cloak>
         <p x-show="!canEditTab('salon')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Business settings.</p>
-        <div class="card">
-            <h2 class="font-semibold text-heading mb-4 sm:mb-5">Salon Profile</h2>
-            <form id="settings-salon-form" action="{{ route('settings.salon') }}" method="POST" class="space-y-4 scroll-mt-24">
+        <div class="card min-w-0 overflow-hidden">
+            <h2 class="font-semibold text-heading mb-4 sm:mb-5">Business Profile</h2>
+            <form id="settings-salon-form" action="{{ route('settings.salon') }}" method="POST" class="space-y-4 scroll-mt-24 min-w-0">
                 @csrf @method('PUT')
                 <input type="hidden" name="return_to" value="{{ $returnTo }}">
                 <fieldset :disabled="!canEditTab('salon')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div class="col-span-2">
-                        <label class="form-label">Salon name <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 min-w-0">
+                    <div class="md:col-span-2">
+                        <label class="form-label">Business name <span class="text-red-500">*</span></label>
                         <input type="text" name="name" value="{{ old('name', $salon->name) }}" required class="form-input">
                     </div>
                     <div>
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" value="{{ old('email', $salon->email) }}" class="form-input">
+                        @php
+                            $businessAccountEmail = $salon->owner?->email ?: (auth()->user()?->email ?? $salon->email);
+                        @endphp
+                        <input type="email" value="{{ $businessAccountEmail }}" readonly
+                               class="form-input bg-gray-50 dark:bg-gray-800/70 text-muted cursor-not-allowed">
+                        <p class="text-xs text-muted mt-1">Taken from your signup account. To change it, contact support.</p>
                     </div>
                     <div>
                         <label class="form-label" for="settings-salon-phone">Phone</label>
                         <input id="settings-salon-phone" type="tel" name="phone" value="{{ old('phone', $salon->phone) }}" class="form-input">
                     </div>
-                    <div>
-                        <label class="form-label">Website</label>
-                        <input type="url" name="website" value="{{ old('website', $salon->website) }}" class="form-input">
+                    @php
+                        $whatsappSameAsPhone = filter_var(old('whatsapp_same_as_phone', $salon->whatsapp_same_as_phone ?? true), FILTER_VALIDATE_BOOLEAN);
+                        $whatsappNumberValue = old('whatsapp_number', $whatsappSameAsPhone ? $salon->phone : $salon->whatsapp_number);
+                    @endphp
+                    <div class="md:col-span-2 min-w-0" data-whatsapp-number-block>
+                        <label class="form-label">WhatsApp number</label>
+                        <div class="flex flex-col sm:flex-row gap-3 mt-1 mb-2">
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="radio" name="whatsapp_same_as_phone" value="1" class="rounded-full border-gray-300 text-velour-600"
+                                       data-whatsapp-same="1"
+                                       {{ $whatsappSameAsPhone ? 'checked' : '' }}>
+                                Same as mobile number
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="radio" name="whatsapp_same_as_phone" value="0" class="rounded-full border-gray-300 text-velour-600"
+                                       data-whatsapp-same="0"
+                                       {{ ! $whatsappSameAsPhone ? 'checked' : '' }}>
+                                Different WhatsApp number
+                            </label>
+                        </div>
+                        <input id="settings-salon-whatsapp" type="tel" name="whatsapp_number" value="{{ $whatsappNumberValue }}" class="form-input" autocomplete="tel">
+                        <p class="form-hint">Used on your public website WhatsApp button. Same as mobile keeps it in sync with Phone.</p>
                     </div>
                     <div>
                         <label class="form-label" for="settings-salon-currency-trigger">Currency</label>
@@ -285,13 +383,13 @@
                         <p class="form-hint">Dashboard, revenue, and calendar “days” follow this clock.</p>
                         <p id="settings-location-autosave-hint" class="form-hint hidden"></p>
                     </div>
-                    <div class="col-span-2">
-                        <button type="button" id="settings-detect-location-btn" class="btn-outline">
+                    <div class="md:col-span-2">
+                        <button type="button" id="settings-detect-location-btn" class="btn-outline w-full sm:w-auto">
                             Auto detect from current location
                         </button>
                         <p class="form-hint">Click to detect and fill Currency and Timezone from your current location.</p>
                     </div>
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="form-label">Booking confirmations show times in</label>
                         <div class="flex flex-col sm:flex-row gap-3 mt-1">
                             <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
@@ -307,27 +405,40 @@
                         </div>
                         <p class="form-hint">Used for emails and online booking messages. Internal calendar always uses business time.</p>
                     </div>
-                    <div class="col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-4 space-y-3">
+                    <div class="md:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-3 sm:p-4 space-y-3 min-w-0">
                         <p class="text-sm font-semibold text-heading">Service delivery</p>
                         <label class="flex items-start gap-3 cursor-pointer">
                             <input type="checkbox" name="home_services_enabled" value="1" class="mt-1 rounded border-gray-300 text-velour-600"
                                    {{ old('home_services_enabled', $salon->home_services_enabled ?? false) ? 'checked' : '' }}>
-                            <span class="text-sm text-body leading-relaxed">
+                            <span class="text-sm text-body leading-relaxed min-w-0 break-words">
                                 <span class="font-medium text-heading">Enable home visits (client location)</span>
                                 — when on, services you mark as <strong>home visit</strong> appear on your public booking page and API. When off (default), you can still create and manage home services in your catalog; they stay hidden from online booking until you enable this.
                             </span>
                         </label>
                     </div>
-                    <div class="col-span-2">
+                    <div class="md:col-span-2">
                         <label class="form-label">Description</label>
                         <textarea name="description" rows="3" class="form-textarea">{{ old('description', $salon->description) }}</textarea>
                     </div>
-                    <div class="col-span-2">
+                    <div class="md:col-span-2 min-w-0">
                         <label class="form-label">Awards &amp; accolades</label>
-                        <textarea name="awards_accolades" rows="4" class="form-textarea" placeholder="Certifications, press, industry awards, memberships…">{{ old('awards_accolades', $salon->awards_accolades) }}</textarea>
-                        <p class="form-hint">Shown on your profile and public site where supported. One item per line works well.</p>
+                        @php
+                            $awardsEditorHtml = \App\Support\AwardsHtml::forEditor(old('awards_accolades', $salon->awards_accolades));
+                        @endphp
+                        <div class="awards-editor" data-awards-editor data-upload-url="{{ route('settings.awards-image') }}">
+                            <div class="awards-editor-toolbar">
+                                <button type="button" class="awards-editor-btn" data-cmd="bold" title="Bold">B</button>
+                                <button type="button" class="awards-editor-btn" data-cmd="italic" title="Italic"><em>I</em></button>
+                                <button type="button" class="awards-editor-btn" data-cmd="insertUnorderedList" title="List">List</button>
+                                <button type="button" class="awards-editor-btn" data-awards-image title="Insert image">Image</button>
+                            </div>
+                            <div class="awards-editor-surface form-textarea" contenteditable="true" data-placeholder="Certifications, press, industry awards, memberships…" role="textbox">{!! $awardsEditorHtml !!}</div>
+                            <textarea name="awards_accolades" class="hidden" aria-hidden="true">{{ old('awards_accolades', $salon->awards_accolades) }}</textarea>
+                            <input type="file" class="hidden" data-awards-file accept="image/jpeg,image/png,image/webp">
+                        </div>
+                        <p class="form-hint">Shown on your profile and public site. You can type text and insert award or certification images in the same editor.</p>
                     </div>
-                    <div id="settings-salon-address">
+                    <div id="settings-salon-address" class="min-w-0">
                         <label class="form-label" for="settings-salon-address-input">Address line 1</label>
                         <input id="settings-salon-address-input" type="text" name="address_line1" value="{{ old('address_line1', $salon->address_line1) }}" class="form-input">
                     </div>
@@ -437,7 +548,7 @@
                 <span class="text-lg" aria-hidden="true">⏱️</span>
                 <div>
                     <h2 class="font-semibold text-heading">Buffer time &amp; booking rules</h2>
-                    <p class="text-sm text-muted mt-1">Values are saved per salon. Adjust numbers below, then save.</p>
+                    <p class="text-sm text-muted mt-1">Values are saved per location. Adjust numbers below, then save.</p>
                 </div>
             </div>
             <form action="{{ route('settings.buffer-rules') }}" method="POST" class="space-y-0">
@@ -481,7 +592,7 @@
                 </div>
             </form>
             <p class="text-xs text-muted mt-4 leading-relaxed">
-                Booking today still uses each service’s own buffers and staff working days. Hooking these salon-wide rules into live availability can be added in a later release.
+                Booking today still uses each service’s own buffers and staff working days. Hooking these business-wide rules into live availability can be added in a later release.
             </p>
         </div>
         @endif
@@ -751,7 +862,7 @@
         <p x-show="!canEditTab('social')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Social Links.</p>
         <div class="card">
             <h2 class="font-semibold text-heading mb-1">Social Links</h2>
-            <p class="text-xs text-muted mb-5">Add your profile URLs. Each link redirects clients to your profile and tracks inbound clicks.</p>
+            <p class="text-xs text-muted mb-5">Each field starts with the platform URL. Add your handle, page name, or WhatsApp number after it.</p>
 
             <form action="{{ route('settings.social-links') }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
@@ -759,21 +870,18 @@
                 <fieldset :disabled="!canEditTab('social')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
 
                 @php
-                $platforms = [
-                    'instagram' => ['label' => 'Instagram',       'placeholder' => 'https://instagram.com/yoursalon'],
-                    'facebook'  => ['label' => 'Facebook',        'placeholder' => 'https://facebook.com/yoursalon'],
-                    'tiktok'    => ['label' => 'TikTok',          'placeholder' => 'https://tiktok.com/@yoursalon'],
-                    'whatsapp'  => ['label' => 'WhatsApp',        'placeholder' => 'https://wa.me/447700000000'],
-                    'google'    => ['label' => 'Google Business', 'placeholder' => 'https://g.page/yoursalon'],
-                    'twitter'   => ['label' => 'X / Twitter',     'placeholder' => 'https://x.com/yoursalon'],
-                    'youtube'   => ['label' => 'YouTube',         'placeholder' => 'https://youtube.com/@yoursalon'],
-                    'linkedin'  => ['label' => 'LinkedIn',        'placeholder' => 'https://linkedin.com/company/yoursalon'],
-                    'pinterest' => ['label' => 'Pinterest',       'placeholder' => 'https://pinterest.com/yoursalon'],
-                ];
+                $platforms = \App\Support\SocialLinkPlatforms::all();
                 $saved = $salon->social_links ?? [];
                 @endphp
 
                 @foreach($platforms as $key => $meta)
+                @php
+                    $savedUrl = old("social_links.{$key}", $saved[$key] ?? '');
+                    $fieldValue = $savedUrl !== '' && $savedUrl !== null
+                        ? $savedUrl
+                        : $meta['prefix'];
+                    $hasRealLink = $savedUrl !== '' && ! \App\Support\SocialLinkPlatforms::isPrefixOnly($savedUrl, $key);
+                @endphp
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center flex-shrink-0">
                         @include('partials.social-platform-icon', ['platform' => $key, 'class' => 'w-5 h-5'])
@@ -783,11 +891,11 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <input type="url"
                                    name="social_links[{{ $key }}]"
-                                   value="{{ old("social_links.{$key}", $saved[$key] ?? '') }}"
-                                   placeholder="{{ $meta['placeholder'] }}"
+                                   value="{{ $fieldValue }}"
+                                   placeholder="{{ $meta['prefix'] }}"
                                    class="form-input flex-1 min-w-0">
-                            @if(!empty($saved[$key]))
-                            <a href="{{ $saved[$key] }}"
+                            @if($hasRealLink)
+                            <a href="{{ $savedUrl }}"
                                target="_blank"
                                rel="noopener noreferrer"
                                class="flex-shrink-0 px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-muted hover:text-body transition-colors">
@@ -805,7 +913,7 @@
                 </fieldset>
                 <div class="pt-2 flex items-center gap-3">
                     <button type="submit" x-show="canEditTab('social')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('social')">Save Social Links</button>
-                    <p class="text-xs text-muted">Links appear on your booking page and Go Live &amp; Share panel.</p>
+                    <p class="text-xs text-muted">Links appear on your public website. Clicks there update Share on Social counts.</p>
                 </div>
             </form>
         </div>
@@ -950,7 +1058,7 @@
                 @php $qh = $notificationConfig['quiet_hours'] ?? []; @endphp
                 <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
                     <h3 class="font-semibold text-heading text-sm mb-1">Quiet hours</h3>
-                    <p class="text-xs text-muted mb-4">When enabled, scheduled client reminders are skipped during this window (salon timezone).</p>
+                    <p class="text-xs text-muted mb-4">When enabled, scheduled client reminders are skipped during this window (business timezone).</p>
                     <div class="flex flex-wrap items-center gap-4 mb-4">
                         <input type="hidden" name="qh_enabled" value="0">
                         <label class="flex items-center gap-2 cursor-pointer text-sm text-body">
@@ -1113,7 +1221,7 @@
                 <div>
                     <label class="form-label">Your timezone</label>
                     <select name="timezone" class="form-select">
-                        <option value="">Same as salon / browser</option>
+                        <option value="">Same as business / browser</option>
                         @foreach(\App\Helpers\TimezoneHelper::grouped() as $region => $zones)
                         <optgroup label="{{ $region }}">
                             @foreach($zones as $tz => $label)
@@ -1122,7 +1230,7 @@
                         </optgroup>
                         @endforeach
                     </select>
-                    <p class="form-hint">Used for account activity and notifications. Salon schedule and calendar use the <a href="{{ route('settings.index') }}?tab=salon" class="text-link">business timezone</a>.</p>
+                    <p class="form-hint">Used for account activity and notifications. Business schedule and calendar use the <a href="{{ route('settings.index') }}?tab=salon" class="text-link">business timezone</a>.</p>
                 </div>
                 --}}
                 <div>
@@ -1147,7 +1255,7 @@
         @if($settingsPersonalOnly)
         <div class="card">
             <h2 class="font-semibold text-heading mb-2">Team</h2>
-            <p class="text-sm text-muted">Team members are managed by your salon admin.</p>
+            <p class="text-sm text-muted">Team members are managed by your business admin.</p>
         </div>
         @else
         <div class="card">
@@ -1581,6 +1689,37 @@
 })();
 
 (function () {
+    var phone = document.getElementById('settings-salon-phone');
+    var whatsapp = document.getElementById('settings-salon-whatsapp');
+    var block = document.querySelector('[data-whatsapp-number-block]');
+    if (!phone || !whatsapp || !block) return;
+
+    function sameAsPhone() {
+        var checked = block.querySelector('input[name="whatsapp_same_as_phone"]:checked');
+        return checked && checked.value === '1';
+    }
+
+    function syncWhatsapp() {
+        if (sameAsPhone()) {
+            whatsapp.value = phone.value;
+            whatsapp.readOnly = true;
+            whatsapp.classList.add('bg-gray-50', 'dark:bg-gray-800/70', 'cursor-not-allowed');
+        } else {
+            whatsapp.readOnly = false;
+            whatsapp.classList.remove('bg-gray-50', 'dark:bg-gray-800/70', 'cursor-not-allowed');
+        }
+    }
+
+    block.querySelectorAll('input[name="whatsapp_same_as_phone"]').forEach(function (radio) {
+        radio.addEventListener('change', syncWhatsapp);
+    });
+    phone.addEventListener('input', function () {
+        if (sameAsPhone()) whatsapp.value = phone.value;
+    });
+    syncWhatsapp();
+})();
+
+(function () {
     var input = document.getElementById('settings-custom-business-type-input');
     var addBtn = document.getElementById('settings-add-custom-business-type-btn');
     var list = document.getElementById('settings-custom-business-type-list');
@@ -1932,6 +2071,87 @@
 
 @push('scripts')
 <script>
+(function () {
+    var root = document.querySelector('[data-awards-editor]');
+    if (!root) return;
+    var surface = root.querySelector('.awards-editor-surface');
+    var textarea = root.querySelector('textarea[name="awards_accolades"]');
+    var fileInput = root.querySelector('[data-awards-file]');
+    var uploadUrl = root.getAttribute('data-upload-url');
+    var form = root.closest('form');
+    if (!surface || !textarea) return;
+
+    function syncAwards() {
+        textarea.value = surface.innerHTML.trim();
+    }
+
+    root.querySelectorAll('[data-cmd]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            surface.focus();
+            document.execCommand(btn.getAttribute('data-cmd'), false, null);
+            syncAwards();
+        });
+    });
+
+    var imageBtn = root.querySelector('[data-awards-image]');
+    if (imageBtn && fileInput) {
+        imageBtn.addEventListener('click', function () {
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', function () {
+            var file = fileInput.files && fileInput.files[0];
+            fileInput.value = '';
+            if (!file || !uploadUrl) return;
+            var body = new FormData();
+            body.append('image', file);
+            var token = document.querySelector('meta[name="csrf-token"]');
+            fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': token ? token.getAttribute('content') : '',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: body
+            }).then(function (res) {
+                return res.json().then(function (data) {
+                    if (!res.ok) {
+                        var msg = data.message || data.error;
+                        if (data.errors && data.errors.image && data.errors.image[0]) msg = data.errors.image[0];
+                        throw new Error(msg || 'Upload failed');
+                    }
+                    return data;
+                });
+            }).then(function (data) {
+                if (!data.url) return;
+                surface.focus();
+                var img = document.createElement('img');
+                img.src = data.url;
+                img.alt = 'Award';
+                var sel = window.getSelection();
+                if (sel && sel.rangeCount) {
+                    var range = sel.getRangeAt(0);
+                    if (surface.contains(range.commonAncestorContainer) || surface === range.commonAncestorContainer) {
+                        range.deleteContents();
+                        range.insertNode(img);
+                    } else {
+                        surface.appendChild(img);
+                    }
+                } else {
+                    surface.appendChild(img);
+                }
+                syncAwards();
+            }).catch(function (err) {
+                alert(err.message || 'Could not upload image.');
+            });
+        });
+    }
+
+    surface.addEventListener('input', syncAwards);
+    surface.addEventListener('blur', syncAwards);
+    if (form) form.addEventListener('submit', syncAwards);
+    syncAwards();
+})();
 document.addEventListener('alpine:init', () => {
   Alpine.data('settingsPage', (cfg) => ({
     ...cfg,

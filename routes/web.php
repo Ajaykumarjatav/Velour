@@ -365,6 +365,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::get('set_socket_blocking', fn () => redirect()->route('settings.index', ['tab' => 'services']))->name('set_socket_blocking');
         Route::put('settings/salon',         [SettingsController::class, 'updateSalon'])->name('settings.salon');
+        Route::post('settings/awards-image', [SettingsController::class, 'uploadAwardsImage'])->name('settings.awards-image');
         Route::put('settings/booking',       [SettingsController::class, 'updateBooking'])->name('settings.booking');
         Route::put('settings/buffer-rules',  [SettingsController::class, 'updateBufferRules'])->name('settings.buffer-rules');
         Route::put('settings/services',      [SettingsController::class, 'updateServices'])->name('settings.services');
@@ -634,6 +635,9 @@ Route::get('website/{theme}/assets/{asset}', [\App\Http\Controllers\Web\Storefro
     ->where('asset', '.+')
     ->name('storefront.theme.asset');
 Route::get('s/{slug}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])->name('storefront.show');
+Route::get('s/{slug}/out/{platform}', [\App\Http\Controllers\Web\StorefrontController::class, 'socialOut'])
+    ->where('platform', '[a-z]+')
+    ->name('storefront.social.out');
 Route::get('s/{slug}/{path}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])
     ->where('path', '.*')
     ->name('storefront.show.path');

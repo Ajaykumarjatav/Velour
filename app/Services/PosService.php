@@ -23,7 +23,7 @@ class PosService
      */
     public function process(int $salonId, array $data): PosTransaction
     {
-        return DB::transaction(function () use ($salonId, $data) {
+        $tx = DB::transaction(function () use ($salonId, $data) {
             // Calculate totals
             $subtotal = 0;
             foreach ($data['items'] as $item) {
@@ -117,6 +117,17 @@ class PosService
 
             return $tx;
         });
+
+        try {
+            app(NotificationService::class)->notifyPosSaleCompleted($tx);
+        } catch (\Throwable $e) {
+            Log::error('POS sale notification failed', [
+                'transaction_id' => $tx->id,
+                'error'          => $e->getMessage(),
+            ]);
+        }
+
+        return $tx;
     }
 
     /**

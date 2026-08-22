@@ -5,6 +5,7 @@
 @include('storefront.themes.spa.partials.hero')
 @include('storefront.themes.spa.partials.sticky-nav')
 @include('storefront.themes.spa.partials.about')
+@include('storefront.partials.dynamic.awards')
 @include('storefront.partials.dynamic.services')
 @include('storefront.partials.dynamic.packages')
 @include('storefront.themes.spa.partials.relaxation')

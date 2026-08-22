@@ -5,6 +5,7 @@
 @include('storefront.themes.glow-rose.partials.hero')
 @include('storefront.themes.glow-rose.partials.sticky-nav')
 @include('storefront.themes.glow-rose.partials.about')
+@include('storefront.partials.dynamic.awards')
 @include('storefront.partials.dynamic.services')
 @include('storefront.partials.dynamic.packages')
 @include('storefront.themes.glow-rose.partials.relaxation')

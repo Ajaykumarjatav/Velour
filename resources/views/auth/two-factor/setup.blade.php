@@ -66,41 +66,20 @@
     </div>
   </div>
 
-  <div class="grid sm:grid-cols-2 gap-5">
-
-    {{-- TOTP Option --}}
-    <div class="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-4">
-      <div class="w-12 h-12 rounded-2xl bg-velour-100 flex items-center justify-center text-2xl">📱</div>
+  <div class="card p-6 flex flex-col gap-4 max-w-lg">
+      <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-2xl">📧</div>
       <div>
-        <h3 class="font-semibold text-gray-900">Authenticator App</h3>
-        <p class="text-sm text-gray-500 mt-1">Use Google Authenticator, Authy, or any TOTP app. Most secure option.</p>
-      </div>
-      <form method="POST" action="{{ route('two-factor.totp.setup') }}" class="mt-auto">
-        @csrf
-        <button type="submit"
-                class="w-full px-5 py-2.5 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
-          Set up authenticator app
-        </button>
-      </form>
-    </div>
-
-    {{-- Email OTP Option --}}
-    <div class="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-4">
-      <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-2xl">📧</div>
-      <div>
-        <h3 class="font-semibold text-gray-900">Email OTP</h3>
-        <p class="text-sm text-gray-500 mt-1">Receive a 6-digit code via email each time you sign in. Easier but less secure.</p>
+        <h3 class="font-semibold text-heading">Email OTP</h3>
+        <p class="text-sm text-muted mt-1">Each sign-in sends a 6-digit code to {{ $user->email }}. This is the 2FA method for the web panel.</p>
       </div>
       <form method="POST" action="{{ route('two-factor.email.setup') }}" class="mt-auto"
             onsubmit="return confirm('Enable email OTP two-factor authentication?')">
         @csrf
-        <button type="submit"
-                class="w-full px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors">
+        <button type="submit" class="btn-primary w-full">
           Set up email OTP
         </button>
       </form>
     </div>
-  </div>
   @endif
 
 </div>

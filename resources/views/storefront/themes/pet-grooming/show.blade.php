@@ -5,6 +5,7 @@
 @include('storefront.themes.pet-grooming.partials.hero')
 @include('storefront.themes.pet-grooming.partials.sticky-nav')
 @include('storefront.themes.pet-grooming.partials.about')
+@include('storefront.partials.dynamic.awards')
 @include('storefront.partials.dynamic.services')
 @include('storefront.partials.dynamic.packages')
 @include('storefront.themes.pet-grooming.partials.relaxation')

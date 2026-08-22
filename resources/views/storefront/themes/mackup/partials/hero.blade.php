@@ -77,10 +77,10 @@
                     'label' => 'Book Your Transformation <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>',
                 ])
                 <a
-                    href="{{ $salon['whatsapp_url'] ?? '#' }}"
+                    href="{{ ($salon['social_out_urls']['whatsapp'] ?? null) ?: ($salon['whatsapp_url'] ?? '#') }}"
                     target="_blank"
                     rel="noopener noreferrer"
-                    @if(empty($salon['whatsapp_url'])) style="pointer-events: none; opacity: 0.5" @endif
+                    @if(empty($salon['social_out_urls']['whatsapp']) && empty($salon['whatsapp_url'])) style="pointer-events: none; opacity: 0.5" @endif
                     class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-[#1C1C1C] hover:bg-[#25D366]/10 text-white hover:text-[#25D366] font-semibold text-sm md:text-base rounded-full px-8 py-4 border border-[#353535] hover:border-[#25D366]/30 transition-all duration-300"
                 >
                     <span>WhatsApp</span>

@@ -12,6 +12,7 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Expense;
 use App\Models\MarketingCampaign;
+use App\Models\PosTransaction;
 use App\Models\Salon;
 use App\Models\SalonActionItem;
 use App\Models\SalonNotification;
@@ -378,6 +379,43 @@ class NotificationService
     public function staffAlert(int $salonId, string $message, string $type = 'info'): void
     {
         $this->createNotification($salonId, $type, ['title' => $message, 'body' => null]);
+    }
+
+    /**
+     * In-app alert when a POS / checkout sale is completed.
+     */
+    public function notifyPosSaleCompleted(PosTransaction $transaction): void
+    {
+        $transaction->loadMissing(['client', 'staff', 'items', 'salon']);
+        if ($transaction->status !== 'completed') {
+            return;
+        }
+
+        $salon = $transaction->salon;
+        if (! $salon) {
+            return;
+        }
+
+        $client = trim(($transaction->client?->first_name ?? '').' '.($transaction->client?->last_name ?? ''));
+        if ($client === '') {
+            $client = 'Walk-in';
+        }
+
+        $amount = \App\Helpers\CurrencyHelper::format((float) $transaction->total, $salon->currency ?? 'INR');
+        $pay = ucfirst(str_replace('_', ' ', (string) ($transaction->payment_method ?: 'cash')));
+        $itemNames = $transaction->items->pluck('name')->filter()->unique()->take(3)->implode(', ');
+        $ref = $transaction->reference ?: ('#'.$transaction->id);
+        $url = route('pos.show', ['po' => $transaction->id, 'store' => SalonUrl::key($salon)]);
+
+        $this->createNotification((int) $transaction->salon_id, 'sale', [
+            'title'      => 'Sale completed',
+            'body'       => "{$client} — {$amount} · {$pay}".($itemNames !== '' ? " · {$itemNames}" : '')." · {$ref}",
+            'action_url' => $url,
+            'data'       => [
+                'pos_transaction_id' => $transaction->id,
+                'action_label'       => 'Invoice',
+            ],
+        ]);
     }
 
     /**
@@ -778,7 +816,7 @@ class NotificationService
     {
         SalonNotification::create([
             'salon_id'   => $salonId,
-            'staff_id'   => isset($payload['staff_id']) ? (int) $payload['staff_id'] : null,
+            'staff_id'   => ! empty($payload['staff_id']) ? (int) $payload['staff_id'] : null,
             'type'       => $type,
             'title'      => $payload['title'],
             'body'       => $payload['body'] ?? null,

@@ -59,7 +59,10 @@ class Tenant extends SpatieTenant
         'subdomain',    // Velour subdomain: mysalon  (→ mysalon.velour.app)
         'description',
         'awards_accolades',
+        'awards_images',
         'phone',
+        'whatsapp_number',
+        'whatsapp_same_as_phone',
         'email',
         'website',
         'address_line1',
@@ -93,8 +96,10 @@ class Tenant extends SpatieTenant
     protected $casts = [
         'social_links'               => 'array',
         'opening_hours'              => 'array',
+        'awards_images'              => 'array',
         'online_booking_enabled'     => 'boolean',
         'new_client_booking_enabled' => 'boolean',
+        'whatsapp_same_as_phone'     => 'boolean',
         'deposit_required'           => 'boolean',
         'instant_confirmation'       => 'boolean',
         'is_active'                  => 'boolean',
