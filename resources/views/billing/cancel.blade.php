@@ -49,7 +49,7 @@
 
   <div class="card p-6">
     <h2 class="font-semibold text-heading mb-4">Confirm cancellation</h2>
-    <form method="POST" action="{{ route('billing.cancel') }}" class="space-y-4">
+    <form method="POST" action="{{ route('billing.cancel.destroy') }}" class="space-y-4">
       @csrf @method('DELETE')
       <div>
         <label class="form-label">Reason for cancelling <span class="text-muted font-normal">(optional)</span></label>

@@ -52,11 +52,16 @@ class TenantAdminController extends Controller
 
         $salon = $this->currentSalon();
 
-        $members = User::whereHas('staffProfile', function ($q) use ($salon) {
-            $q->where('salon_id', $salon->id);
-        })->orWhere('id', $salon->owner_id)
-          ->with(['staffProfile', 'roles'])
-          ->get();
+        $members = User::query()
+            ->where(function ($q) use ($salon) {
+                $q->whereHas('staffProfile', function ($s) use ($salon) {
+                    $s->withoutGlobalScopes()->where('salon_id', $salon->id);
+                })->orWhere('id', $salon->owner_id);
+            })
+            ->with(['roles'])
+            ->get()
+            ->unique('id')
+            ->values();
 
         // Staff profiles created in Settings can exist without a linked user account.
         // Include them so team counts/listing match Staff & HR.
@@ -67,7 +72,7 @@ class TenantAdminController extends Controller
             ->orderBy('last_name')
             ->get();
 
-        $invitableStaff = $unlinkedStaff->filter(fn (Staff $s) => filled($s->email))->values();
+        $invitableStaff = $unlinkedStaff->values();
 
         $permissionRoles = StaffJobRoles::permissionRolesForSalon((int) $salon->id);
         $availableRoles = Role::whereIn('name', array_keys($permissionRoles))->get();
@@ -204,7 +209,11 @@ class TenantAdminController extends Controller
             ->whereNull('user_id')
             ->firstOrFail();
 
-        $email = mb_strtolower(trim((string) $staff->email));
+        $email = mb_strtolower(trim((string) $data['email']));
+        if ($staff->email !== $email) {
+            $staff->update(['email' => $email]);
+            $staff->refresh();
+        }
 
         $temporaryPassword = Str::password(12);
         $existingUser      = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
@@ -256,6 +265,33 @@ class TenantAdminController extends Controller
             : "Invitation sent to {$email} with a temporary password. They must change it after first login.";
 
         return back()->with('success', $message);
+    }
+
+    public function resendInvite(int $userId)
+    {
+        $this->abortIfAdminStoreBrowse();
+
+        $salon = $this->currentSalon();
+        $user = User::findOrFail($userId);
+
+        abort_if((int) $user->id === (int) $salon->owner_id, 403, 'The owner already has login access.');
+
+        $linked = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        abort_unless($linked, 404);
+
+        $temporaryPassword = Str::password(12);
+        $user->update([
+            'password'              => Hash::make($temporaryPassword),
+            'is_active'             => true,
+            'force_password_change' => true,
+        ]);
+        $user->notify(new StaffInviteCredentialsNotification($salon->name, $temporaryPassword));
+
+        return back()->with('success', "A new temporary password was sent to {$user->email}.");
     }
 
     public function updateMemberRole(Request $request, int $userId)

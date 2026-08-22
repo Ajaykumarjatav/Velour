@@ -8,12 +8,17 @@
   $currentKey = $user->plan ?? config('billing.default_plan', 'trial');
   $currentPlan = $plans[$currentKey] ?? null;
   $sub = $user->subscription('default');
+  $storeLimit = (int) ($currentPlan['stores'] ?? 0);
+  $usedStores = $user->salons()->count();
+  $storePct = $storeLimit > 0 ? min(100, round(($usedStores / $storeLimit) * 100)) : 100;
+  $statusLabel = $sub
+      ? ucfirst(str_replace('_', ' ', $sub->stripe_status ?? 'active'))
+      : ($currentKey === 'trial' ? 'Trial' : 'No subscription');
 @endphp
 
-<div class="max-w-3xl space-y-6">
+<div class="max-w-4xl space-y-6">
 
-  {{-- Current plan card --}}
-  <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+  <div class="card overflow-hidden">
     <div class="px-6 py-5 bg-gradient-to-r from-velour-600 to-velour-500 text-white">
       <p class="text-xs font-semibold uppercase tracking-widest opacity-75 mb-1">Current Plan</p>
       <div class="flex items-end justify-between gap-4 flex-wrap">
@@ -31,66 +36,75 @@
         <div class="text-right">
           @if($sub->onTrial())
           <span class="px-3 py-1.5 bg-white/20 border border-white/30 text-white text-sm font-bold rounded-xl">
-            Trial · {{ $sub->trial_ends_at->diffForHumans() }}
+            Trial ends {{ $sub->trial_ends_at?->format('d M Y') }}
           </span>
           @elseif($sub->canceled())
-          <span class="px-3 py-1.5 bg-red-500/30 border border-red-300/30 text-white text-sm font-bold rounded-xl">
-            Cancelled · ends {{ $sub->ends_at?->format('d M Y') }}
+          <span class="px-3 py-1.5 bg-red-500/80 text-white text-sm font-bold rounded-xl">
+            Cancels {{ $sub->ends_at?->format('d M Y') }}
           </span>
+          @elseif(method_exists($sub, 'pastDue') && $sub->pastDue())
+          <span class="px-3 py-1.5 bg-amber-500/80 text-white text-sm font-bold rounded-xl">Payment overdue</span>
           @else
-          <span class="px-3 py-1.5 bg-white/20 border border-white/30 text-white text-sm font-bold rounded-xl">
-            Active
-          </span>
+          <span class="px-3 py-1.5 bg-white/20 border border-white/30 text-white text-sm font-bold rounded-xl">Active</span>
           @endif
         </div>
         @endif
       </div>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
-      @foreach([
-        ['Stores', $currentPlan['stores'] ?? '—'],
-        ['Price', ($currentPlan['price'] ?? 0) > 0 ? $currency.($currentPlan['price'] ?? 0).'/mo' : 'Free trial'],
-        ['Status', $sub ? ucfirst($sub->stripe_status ?? 'active') : ($currentKey === 'trial' ? 'Trial' : 'No subscription')],
-      ] as [$label, $val])
-      <div class="px-5 py-4 text-center">
-        <p class="text-lg font-bold text-gray-900">{{ $val }}</p>
-        <p class="text-xs text-gray-400 mt-0.5">{{ $label }}</p>
+    <div class="px-6 py-5">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="text-center bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-4">
+          <p class="text-xl font-black text-heading">{{ $currentPlan['stores'] ?? '—' }}</p>
+          <p class="stat-label mt-0.5">Stores allowed</p>
+        </div>
+        <div class="text-center bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-4">
+          <p class="text-xl font-black text-heading">
+            @if(($currentPlan['price'] ?? 0) > 0)
+              {{ $currency }}{{ $currentPlan['price'] }}<span class="text-sm font-semibold text-muted">/mo</span>
+            @else
+              Free
+            @endif
+          </p>
+          <p class="stat-label mt-0.5">Price</p>
+        </div>
+        <div class="text-center bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-4">
+          <p class="text-xl font-black text-heading">{{ $statusLabel }}</p>
+          <p class="stat-label mt-0.5">Status</p>
+        </div>
       </div>
-      @endforeach
     </div>
   </div>
 
-  {{-- Plan comparison --}}
-  <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100">
-      <h2 class="font-semibold text-gray-900">All Plans</h2>
+  <div class="card overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+      <h2 class="font-semibold text-heading">All Plans</h2>
+      <p class="text-sm text-muted mt-0.5">Compare tiers, then change plan from billing.</p>
     </div>
-    <div class="divide-y divide-gray-100">
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
       @foreach($plans as $key => $plan)
-      <div class="px-6 py-4 flex items-center gap-4 {{ $key === $currentKey ? 'bg-velour-50' : '' }}">
-        <div class="flex-1">
-          <div class="flex items-center gap-2">
-            <p class="font-semibold text-gray-900">{{ $plan['name'] }}</p>
+      <div class="px-6 py-4 flex items-center gap-4 {{ $key === $currentKey ? 'bg-velour-50 dark:bg-velour-900/20' : '' }}">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <p class="font-semibold text-heading">{{ $plan['name'] }}</p>
             @if($key === $currentKey)
-            <span class="px-2 py-0.5 text-xs font-bold bg-velour-100 text-velour-700 rounded-lg">Current</span>
+            <span class="px-2 py-0.5 text-xs font-bold bg-velour-100 dark:bg-velour-900/50 text-velour-700 dark:text-velour-300 rounded-lg">Current</span>
             @endif
           </div>
-          <p class="text-sm text-gray-500 mt-0.5">
+          <p class="text-sm text-muted mt-0.5">
             Up to {{ $plan['stores'] }} stores · All features
           </p>
         </div>
         <div class="text-right flex-shrink-0">
-          <p class="text-lg font-bold text-gray-900">
+          <p class="text-lg font-bold text-heading">
             @if(($plan['price'] ?? 0) > 0)
-              {{ $currency }}{{ $plan['price'] }}<span class="text-sm font-normal text-gray-400">/mo</span>
+              {{ $currency }}{{ $plan['price'] }}<span class="text-sm font-normal text-muted">/mo</span>
             @else
               Free
             @endif
           </p>
           @if($key !== $currentKey)
-          <a href="{{ route('billing.plans') }}"
-             class="text-xs text-velour-600 hover:text-velour-700 font-medium">Change →</a>
+          <a href="{{ route('billing.plans') }}" class="text-xs text-link font-medium">Change →</a>
           @endif
         </div>
       </div>
@@ -98,52 +112,30 @@
     </div>
   </div>
 
-  {{-- Usage stats --}}
-  <div class="bg-white rounded-2xl border border-gray-200 p-6">
-    <h2 class="font-semibold text-gray-900 mb-4">Current Usage</h2>
-    <div class="space-y-4">
-      @php
-        $storeLimit = (int) ($currentPlan['stores'] ?? 0);
-        $usedStores = $user->salons()->count();
-        $storePct = $storeLimit > 0 ? min(100, round(($usedStores / $storeLimit) * 100)) : 100;
-      @endphp
-
-      <div>
-        <div class="flex justify-between text-sm mb-1">
-          <span class="text-gray-600">Stores</span>
-          <span class="font-semibold {{ $storePct >= 90 ? 'text-red-600' : 'text-gray-800' }}">
-            {{ $usedStores }} / {{ $storeLimit }}
-          </span>
-        </div>
-        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div class="h-full rounded-full transition-all {{ $storePct >= 90 ? 'bg-red-500' : 'bg-velour-500' }}"
-               style="width: {{ $storePct }}%"></div>
-        </div>
-      </div>
+  <div class="card p-6">
+    <h2 class="font-semibold text-heading mb-4">Current Usage</h2>
+    <div class="flex justify-between text-sm mb-2">
+      <span class="text-body">Stores</span>
+      <span class="font-semibold {{ $storePct >= 90 ? 'text-red-600 dark:text-red-400' : 'text-heading' }}">
+        {{ $usedStores }} / {{ $storeLimit > 0 ? $storeLimit : '∞' }}
+      </span>
     </div>
+    <div class="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+      <div class="h-full rounded-full transition-all {{ $storePct >= 90 ? 'bg-red-500' : 'bg-velour-500' }}"
+           style="width: {{ $storePct }}%"></div>
+    </div>
+    <p class="text-xs text-muted mt-2">Usage is counted across locations on this account.</p>
   </div>
 
-  {{-- Manage subscription --}}
-  <div class="bg-white rounded-2xl border border-gray-200 p-6 space-y-3">
-    <h2 class="font-semibold text-gray-900 mb-2">Manage Subscription</h2>
+  <div class="card p-6">
+    <h2 class="font-semibold text-heading mb-1">Manage Subscription</h2>
+    <p class="text-sm text-muted mb-4">Upgrade, invoices, billing home, or cancel from here.</p>
     <div class="flex flex-wrap gap-3">
-      <a href="{{ route('billing.plans') }}"
-         class="px-5 py-2.5 text-sm font-semibold rounded-xl bg-velour-600 hover:bg-velour-700 text-white transition-colors">
-        Upgrade plan
-      </a>
-      <a href="{{ route('billing.dashboard') }}"
-         class="px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors">
-        View invoices
-      </a>
-      <a href="{{ route('billing.dashboard') }}"
-         class="px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors">
-        Billing dashboard
-      </a>
+      <a href="{{ route('billing.plans') }}" class="btn-primary">Upgrade plan</a>
+      <a href="{{ route('billing.dashboard') }}#invoices" class="btn-outline">View invoices</a>
+      <a href="{{ route('billing.dashboard') }}" class="btn-outline">Billing dashboard</a>
       @if($sub && !$sub->canceled())
-      <a href="{{ route('billing.cancel') }}"
-         class="px-5 py-2.5 text-sm font-medium rounded-xl border border-red-200 hover:bg-red-50 text-red-600 transition-colors">
-        Cancel subscription
-      </a>
+      <a href="{{ route('billing.cancel') }}" class="btn border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">Cancel subscription</a>
       @endif
     </div>
   </div>

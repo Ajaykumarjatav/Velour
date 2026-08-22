@@ -31,6 +31,7 @@
                     <label class="form-label">Email</label>
                     <input type="email" name="email" value="{{ old('email', $staff->email ?? '') }}"
                            class="form-input @error('email') form-input-error @enderror">
+                    <p class="text-xs text-muted mt-1">Needed if they will log in. You can also add it later on Admin → Team invite.</p>
                     @error('email')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
                 <div>

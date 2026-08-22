@@ -20,12 +20,16 @@
         + Invite
       </button>
     </div>
-    <p class="text-sm text-muted mt-1">Add the person in <strong class="text-heading">Staff &amp; HR</strong> first (with an email). Then send an invitation with an app login role and permissions.</p>
+    <p class="text-sm text-muted mt-1">Pick a Staff &amp; HR profile that does not have an app login yet. Email can be added here if it was skipped on the profile.</p>
 
     <div x-show="open" x-cloak class="mt-5 border-t border-gray-100 dark:border-gray-800 pt-5">
       @if(($invitableStaff ?? collect())->isEmpty())
         <p class="text-sm text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800/80 rounded-xl px-4 py-3">
-          No staff profiles are ready to invite. Create a profile under <a href="{{ route('staff.index') }}" class="text-velour-600 dark:text-velour-400 font-medium underline">Staff &amp; HR</a> and enter an email address, then return here.
+          @if(($unlinkedStaff ?? collect())->isEmpty() && ($members ?? collect())->count() > 0)
+            Staff with an email login already appear under <strong>Team members</strong> below — they cannot be invited again. Use <strong>Resend login email</strong> if they did not get the password.
+          @else
+            No staff profile found to invite. Create one under <a href="{{ route('staff.create') }}" class="text-velour-600 dark:text-velour-400 font-medium underline">Staff &amp; HR</a>, then return here.
+          @endif
         </p>
       @else
       <form method="POST" action="{{ route('salon-admin.team.invite') }}" class="space-y-4" id="salon-invite-form">
@@ -33,20 +37,29 @@
         <div>
           <label class="block text-sm font-medium text-heading mb-1.5">Staff profile <span class="text-red-500">*</span></label>
           <select name="staff_id" id="invite-staff-id" required class="form-select w-full">
-            <option value="">Choose someone already on the team (no login yet)…</option>
+            <option value="">Choose someone (no app login yet)…</option>
             @foreach($invitableStaff as $s)
-            <option value="{{ $s->id }}" data-default-role="{{ Staff::defaultSpatieRoleForStaffJob($s->role) }}"
-                    {{ (string) old('staff_id') === (string) $s->id ? 'selected' : '' }}>
-              {{ $s->name }} — {{ $s->email }}
+            <option value="{{ $s->id }}"
+                    data-default-role="{{ Staff::defaultSpatieRoleForStaffJob($s->role) }}"
+                    data-email="{{ $s->email }}"
+                    @selected((string) old('staff_id') === (string) $s->id)>
+              {{ $s->name }}{{ $s->email ? ' - '.$s->email : ' - no email yet' }}
             </option>
             @endforeach
           </select>
+          @error('staff_id')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-heading mb-1.5">Email for login invite <span class="text-red-500">*</span></label>
+          <input type="email" name="email" id="invite-email" value="{{ old('email') }}" required class="form-input w-full" placeholder="name@example.com">
+          <p class="text-xs text-muted mt-1">Saved on the staff profile if it was empty. Invite is sent to this address.</p>
+          @error('email')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
         </div>
         <div>
           <label class="block text-sm font-medium text-heading mb-1.5">App role &amp; permissions <span class="text-red-500">*</span></label>
           <select name="role" id="invite-role" required class="form-select w-full">
             @foreach($loginRoles as $value => $label)
-            <option value="{{ $value }}" {{ old('role', 'hair_stylist') === $value ? 'selected' : '' }}>{{ $label }}</option>
+            <option value="{{ $value }}" @selected(old('role', 'hair_stylist') === $value)>{{ $label }}</option>
             @endforeach
           </select>
           <p class="text-xs text-muted mt-1">Suggested from their job title when you pick a profile. Permissions follow the role matrix below.</p>
@@ -61,14 +74,19 @@
         (function () {
           var staffSel = document.getElementById('invite-staff-id');
           var roleSel = document.getElementById('invite-role');
+          var emailInp = document.getElementById('invite-email');
           if (!staffSel || !roleSel) return;
-          function syncRole() {
+          function syncFromStaff() {
             var opt = staffSel.options[staffSel.selectedIndex];
-            var dr = opt && opt.getAttribute('data-default-role');
+            if (!opt) return;
+            var dr = opt.getAttribute('data-default-role');
             if (dr) roleSel.value = dr;
+            if (emailInp) {
+              emailInp.value = opt.getAttribute('data-email') || '';
+            }
           }
-          staffSel.addEventListener('change', syncRole);
-          if (staffSel.value) syncRole();
+          staffSel.addEventListener('change', syncFromStaff);
+          if (staffSel.value) syncFromStaff();
         })();
       </script>
       @endpush
@@ -120,6 +138,11 @@
               <button type="button" @click="editRole=false" class="text-xs text-muted">✕</button>
             </form>
           </div>
+          <form method="POST" action="{{ route('salon-admin.team.resend', $member->id) }}"
+                onsubmit="return confirm('Send a new temporary password to {{ $member->email }}?')">
+            @csrf
+            <button type="submit" class="text-xs text-velour-600 dark:text-velour-400 font-medium">Resend login email</button>
+          </form>
           <form method="POST" action="{{ route('salon-admin.team.remove', $member->id) }}"
                 onsubmit="return confirm('Remove {{ $member->name }} from the team?')">
             @csrf @method('DELETE')

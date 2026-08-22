@@ -5,13 +5,10 @@
 @section('content')
 <div class="space-y-6" x-data="{ tab: 'security' }">
     <div class="rounded-2xl border border-stone-200/90 dark:border-gray-800 bg-[#FFF9F2] dark:bg-gray-900 shadow-sm p-6 sm:p-7">
-        <div class="flex items-start justify-between gap-4">
-            <div>
-                <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight text-gray-900 dark:text-white leading-tight">Security &amp; Support</h1>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Data protection, privacy &amp; onboarding</p>
-            </div>
+        <div>
+            <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight text-heading leading-tight">Security &amp; Support</h1>
+            <p class="text-sm text-muted mt-1">Live status for this login — not placeholder toggles.</p>
         </div>
-
         <div class="mt-6 inline-flex flex-wrap gap-1 p-1.5 rounded-full bg-stone-100 dark:bg-gray-800">
             <button type="button" class="px-4 py-2 rounded-full text-sm font-semibold" :class="tab==='security' ? 'bg-velour-600 text-white' : 'text-muted'" @click="tab='security'">Security</button>
             <button type="button" class="px-4 py-2 rounded-full text-sm font-semibold" :class="tab==='privacy' ? 'bg-velour-600 text-white' : 'text-muted'" @click="tab='privacy'">Privacy</button>
@@ -22,112 +19,97 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
         <div class="card p-4">
-            <p class="text-sm text-muted">Security Score</p>
+            <p class="text-sm text-muted">Security score</p>
             <p class="text-2xl font-bold text-heading">{{ $securityScore }}/100</p>
+            <p class="text-xs text-muted mt-1">From 2FA, HTTPS, verified email, audit log, and card handling.</p>
         </div>
         <div class="card p-4">
-            <p class="text-sm text-muted">Last Audit</p>
-            <p class="text-2xl font-bold text-heading">{{ \Carbon\Carbon::parse($auditDate)->format('j M Y') }}</p>
+            <p class="text-sm text-muted">Last account activity</p>
+            <p class="text-2xl font-bold text-heading">
+                {{ $lastActivity ? \Carbon\Carbon::parse($lastActivity)->format('j M Y') : '—' }}
+            </p>
+            <p class="text-xs text-muted mt-1">
+                Last login: {{ $user->last_login_at ? \Carbon\Carbon::parse($user->last_login_at)->format('j M Y, H:i') : 'Unknown' }}
+            </p>
         </div>
         <div class="card p-4">
-            <p class="text-sm text-muted">SSL Certificate</p>
-            <p class="text-2xl font-bold text-heading">Valid · {{ $sslDays }} days</p>
+            <p class="text-sm text-muted">This connection</p>
+            <p class="text-2xl font-bold text-heading">{{ $httpsOn ? 'HTTPS' : 'HTTP' }}</p>
+            <p class="text-xs text-muted mt-1">{{ $httpsOn ? 'Encrypted in transit' : 'Local / not using SSL' }}</p>
         </div>
     </div>
 
-    <div x-show="tab==='security'" x-cloak class="card p-0 overflow-hidden"
-         x-data="{
-            s: {
-                two_factor_required: {{ $security['two_factor_required'] ? 'true' : 'false' }},
-                session_timeout: {{ $security['session_timeout'] ? 'true' : 'false' }},
-                ip_whitelist: {{ $security['ip_whitelist'] ? 'true' : 'false' }},
-                audit_logs: {{ $security['audit_logs'] ? 'true' : 'false' }},
-                encryption_at_rest: {{ $security['encryption_at_rest'] ? 'true' : 'false' }},
-                pci_dss: {{ $security['pci_dss'] ? 'true' : 'false' }},
-            },
-            toggle(k){ this.s[k] = !this.s[k] }
-         }">
+    <div x-show="tab==='security'" x-cloak class="card p-0 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-            <h2 class="text-xl font-semibold text-heading">Security Settings</h2>
-            @if($adminStoreBrowse ?? false)
-            <p class="text-xs text-amber-700 dark:text-amber-300 mt-1">Read-only admin browse — settings cannot be changed.</p>
+            <h2 class="text-xl font-semibold text-heading">Security status</h2>
+            <p class="text-sm text-muted mt-1">On means it is actually in effect. Off means it is not.</p>
+        </div>
+        <div class="divide-y divide-gray-100 dark:divide-gray-800">
+            @foreach($rows as $row)
+            <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-semibold text-heading">{{ $row['label'] }}</p>
+                    <p class="text-sm text-muted">{{ $row['hint'] }}</p>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    @if($row['on'])
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">On</span>
+                    @else
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-muted">Off</span>
+                    @endif
+                    @if($row['href'] && $row['action'])
+                    <a href="{{ $row['href'] }}" class="btn-outline btn-sm">{{ $row['action'] }}</a>
+                    @endif
+                </div>
+            </div>
+            @endforeach
+        </div>
+        <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex flex-wrap justify-end gap-2">
+            <a href="{{ route('two-factor.setup') }}" class="btn-primary">
+                {{ $twoFactorOn ? 'Manage 2FA' : 'Enable 2FA' }}
+            </a>
+            @if($twoFactorOn)
+            <a href="{{ route('two-factor.recovery') }}" class="btn-outline">Recovery codes</a>
             @endif
         </div>
-        <form method="POST" action="{{ route('security-support.security.update') }}">
-            @csrf
-            @method('PUT')
-            <div class="divide-y divide-gray-100 dark:divide-gray-800">
-                @php
-                    $rows = [
-                        ['two_factor_required','Two-Factor Authentication (2FA)','Require OTP for all admin logins'],
-                        ['session_timeout','Session Timeout','Auto-logout after 30 minutes of inactivity'],
-                        ['ip_whitelist','IP Whitelist','Restrict admin access to specific IP addresses'],
-                        ['audit_logs','Audit Logs','Track all user actions & data changes'],
-                        ['encryption_at_rest','Data Encryption at Rest','AES-256 encryption for all stored data'],
-                        ['pci_dss','PCI-DSS Compliance','Payment card data security standards'],
-                    ];
-                @endphp
-                @foreach($rows as [$key,$label,$desc])
-                    <div class="px-6 py-4 flex items-center justify-between gap-3">
-                        <div>
-                            <p class="font-semibold text-heading">{{ $label }}</p>
-                            <p class="text-sm text-muted">{{ $desc }}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <input type="hidden" name="{{ $key }}" :value="s.{{ $key }} ? 1 : 0">
-                            <button type="button"
-                                    @click="toggle('{{ $key }}')"
-                                    class="relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-velour-400"
-                                    :class="s.{{ $key }} ? 'bg-velour-600' : 'bg-gray-300 dark:bg-gray-600'"
-                                    :aria-checked="s.{{ $key }} ? 'true' : 'false'"
-                                    role="switch"
-                                    aria-label="{{ $label }}">
-                                <span class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition"
-                                      :class="s.{{ $key }} ? 'translate-x-6' : 'translate-x-1'"></span>
-                            </button>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-end salon-write-ui">
-                <button type="submit" class="btn-primary">Save Security Settings</button>
-            </div>
-        </form>
     </div>
 
     <div x-show="tab==='privacy'" x-cloak class="card p-6">
-        <h2 class="text-xl font-semibold text-heading mb-3">Privacy Controls</h2>
-        <p class="text-sm text-muted mb-4">Manage customer data export, retention and request handling.</p>
+        <h2 class="text-xl font-semibold text-heading mb-3">Privacy</h2>
+        <p class="text-sm text-muted mb-4">Export client data or review retention in Settings.</p>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('clients.export') }}" class="btn-outline btn-sm admin-browse-allow">Export client data</a>
-            <a href="{{ route('settings.index') }}" class="btn-outline btn-sm">Data retention settings</a>
+            <a href="{{ route('settings.index') }}" class="btn-outline btn-sm">Settings</a>
         </div>
     </div>
 
     <div x-show="tab==='support'" x-cloak class="card p-6">
         <h2 class="text-xl font-semibold text-heading mb-3">Support</h2>
-        <p class="text-sm text-muted mb-4">Fast links for account help and operational support.</p>
+        <p class="text-sm text-muted mb-4">Account help and operational links.</p>
         <div class="grid sm:grid-cols-2 gap-3">
-            <a class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50" href="{{ route('settings.index') }}">
-                <p class="font-semibold text-heading">Account Settings</p>
-                <p class="text-xs text-muted mt-1">Profile, password and business settings</p>
+            <a class="rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50" href="{{ route('settings.index') }}">
+                <p class="font-semibold text-heading">Account settings</p>
+                <p class="text-xs text-muted mt-1">Profile, password, business</p>
             </a>
-            <a class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50" href="{{ route('notifications.index') }}">
+            <a class="rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50" href="{{ route('notifications.index') }}">
                 <p class="font-semibold text-heading">Notifications</p>
-                <p class="text-xs text-muted mt-1">View alerts and system activity</p>
+                <p class="text-xs text-muted mt-1">Alerts and system activity</p>
+            </a>
+            <a class="rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50" href="{{ route('guide.index') }}">
+                <p class="font-semibold text-heading">Guide &amp; Setup</p>
+                <p class="text-xs text-muted mt-1">How the salon panel works</p>
             </a>
         </div>
     </div>
 
     <div x-show="tab==='migration'" x-cloak class="card p-6">
         <h2 class="text-xl font-semibold text-heading mb-3">Migration</h2>
-        <p class="text-sm text-muted mb-4">Move data from your current tools with CSV import/export.</p>
+        <p class="text-sm text-muted mb-4">Move data with CSV import/export.</p>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('clients.index') }}" class="btn-outline btn-sm">Clients import/export</a>
-            <a href="{{ route('services.index') }}" class="btn-outline btn-sm">Review services data</a>
-            <a href="{{ route('staff.index') }}" class="btn-outline btn-sm">Review team setup</a>
+            <a href="{{ route('clients.index') }}" class="btn-outline btn-sm">Clients</a>
+            <a href="{{ route('services.index') }}" class="btn-outline btn-sm">Services</a>
+            <a href="{{ route('staff.index') }}" class="btn-outline btn-sm">Staff &amp; HR</a>
         </div>
     </div>
 </div>
 @endsection
-

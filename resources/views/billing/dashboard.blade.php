@@ -70,8 +70,8 @@
   </div>
   @endif
 
-  <div class="card p-6">
-    <h2 class="font-semibold text-heading mb-4">Payment history</h2>
+  <div id="invoices" class="card p-6 scroll-mt-24">
+    <h2 class="font-semibold text-heading mb-4">Invoices & payment history</h2>
     @if($transactions->isEmpty())
     <p class="text-sm text-muted">No billing transactions yet.</p>
     @else
@@ -84,6 +84,7 @@
             <th class="py-2 px-2 font-medium">Amount</th>
             <th class="py-2 px-2 font-medium">Status</th>
             <th class="py-2 px-2 font-medium">Activates</th>
+            <th class="py-2 px-2 font-medium"></th>
           </tr>
         </thead>
         <tbody>
@@ -108,10 +109,13 @@
             <td class="py-3 px-2 text-body whitespace-nowrap">
               {{ $tx->activates_at?->format('d M Y') ?? '—' }}
             </td>
+            <td class="py-3 px-2 text-right whitespace-nowrap">
+              <a href="{{ route('billing.invoice.download', $tx->id) }}" class="text-link text-xs font-semibold">View invoice</a>
+            </td>
           </tr>
           @if($tx->status === 'failed' && $tx->failure_reason)
           <tr>
-            <td colspan="5" class="pb-3 px-2 text-xs text-red-600 dark:text-red-400">{{ $tx->failure_reason }}</td>
+            <td colspan="6" class="pb-3 px-2 text-xs text-red-600 dark:text-red-400">{{ $tx->failure_reason }}</td>
           </tr>
           @endif
           @endforeach
