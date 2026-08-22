@@ -11,6 +11,10 @@ final class SidebarNav
 {
     public static function show(User $user, string $item): bool
     {
+        if (! TenantModuleAccess::isEnabled($item)) {
+            return false;
+        }
+
         if ($user->isSuperAdmin()) {
             return true;
         }
@@ -88,6 +92,10 @@ final class SidebarNav
 
     public static function showDeletedItems(User $user): bool
     {
+        if (! TenantModuleAccess::isEnabled('deleted_items')) {
+            return false;
+        }
+
         return \App\Support\DeletedItemsRegistry::userCanAccessTrash($user);
     }
 }

@@ -262,6 +262,7 @@
           ['route' => 'admin.users',         'icon' => 'team',         'label' => 'Users'],
           ['route' => 'admin.revenue',       'icon' => 'revenue',      'label' => 'Revenue'],
           ['route' => 'admin.plans',         'icon' => 'packages',     'label' => 'Plans'],
+          ['route' => 'admin.tenant-modules','icon' => 'settings',     'label' => 'Tenant tabs'],
           ['route' => 'admin.support.index', 'icon' => 'support',      'label' => 'Support'],
           ['route' => 'admin.contact-queries.index', 'icon' => 'mail', 'label' => 'Contact queries'],
           ['route' => 'admin.analytics',     'icon' => 'analytics',    'label' => 'Analytics'],
@@ -279,7 +280,7 @@
         }
         $isActive = str_ends_with($item['route'], '.index')
             ? request()->routeIs(str_replace('.index', '.*', $item['route']))
-            : request()->routeIs($item['route']);
+            : request()->routeIs($item['route'], $item['route'].'.*');
       @endphp
       <a href="{{ route($item['route']) }}"
          data-title="{{ $navTitle }}"

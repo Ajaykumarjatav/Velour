@@ -1,7 +1,7 @@
 @php
   $reminder = $subscriptionReminder ?? null;
 @endphp
-@if($reminder && !($planExpired ?? false))
+@if($reminder && !($planExpired ?? false) && \App\Support\TenantModuleAccess::isEnabled('billing'))
 @php
   $days = $reminder['days_remaining'] ?? null;
   $kind = $reminder['kind'] ?? 'trial';

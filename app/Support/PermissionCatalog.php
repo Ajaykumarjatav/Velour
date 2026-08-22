@@ -276,6 +276,10 @@ final class PermissionCatalog
 
     public static function userCanAccessModule(User $user, string $moduleKey): bool
     {
+        if (! TenantModuleAccess::isEnabled($moduleKey)) {
+            return false;
+        }
+
         if ($user->isSuperAdmin() || $user->ownsCurrentSalon()) {
             return true;
         }
