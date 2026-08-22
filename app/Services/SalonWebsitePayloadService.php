@@ -111,11 +111,17 @@ class SalonWebsitePayloadService
                 'booking_url'         => StorefrontUrl::booking($salon),
                 'website_theme'       => $theme,
                 'website_theme_label' => StorefrontTheme::label($theme),
-                'whatsapp_url'        => $this->whatsappUrl($salon->phone),
+                'whatsapp_url'        => $this->whatsappUrl($salon->whatsappNumberForSite()),
                 'opening_hours'       => $salon->opening_hours,
                 'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),
                 'social_links'        => $salon->social_links ?? [],
+                'social_out_urls'     => \App\Support\SocialShareClicks::outUrls($salon),
                 'awards_accolades'    => $salon->awards_accolades,
+                'awards_image_urls'   => collect(is_array($salon->awards_images) ? $salon->awards_images : [])
+                    ->filter()
+                    ->map(fn ($path) => asset('storage/'.$path))
+                    ->values()
+                    ->all(),
                 'avg_rating'          => $avgRating > 0 ? round($avgRating, 1) : null,
                 'review_count'        => $reviewCount,
                 'service_count'       => $services->count(),

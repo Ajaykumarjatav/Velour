@@ -170,7 +170,7 @@ class AuthController extends Controller
         $user->assignRole('tenant_admin');
 
         // Create a default salon; richer setup now happens in Settings post-login.
-        $defaultSalonName = trim($data['name']) !== '' ? ($data['name'] . "'s Salon") : 'My Salon';
+        $defaultSalonName = trim($data['name']) !== '' ? ($data['name'] . "'s Business") : 'My Business';
         $slug  = Str::slug($defaultSalonName);
         if ($slug === '') {
             $slug = 'my-salon';
@@ -193,6 +193,7 @@ class AuthController extends Controller
             'name'             => $defaultSalonName,
             'slug'             => $slug,
             'subdomain'        => $slug,
+            'email'            => $data['email'],
             'phone'            => null,
             'currency'         => 'GBP',
             'timezone'         => 'Europe/London',

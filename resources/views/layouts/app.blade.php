@@ -861,8 +861,15 @@
                         <div class="max-h-72 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
                             @forelse($headerNotifications as $n)
                             @php
+                                $nPosId = (int) data_get($n->data, 'pos_transaction_id', 0);
                                 $nApptId = (int) data_get($n->data, 'appointment_id', 0);
-                                $nHref = $nApptId > 0 ? route('appointments.show', $nApptId) : route('notifications.index');
+                                if ($nPosId > 0) {
+                                    $nHref = route('pos.show', $nPosId);
+                                } elseif ($nApptId > 0) {
+                                    $nHref = route('appointments.show', $nApptId);
+                                } else {
+                                    $nHref = route('notifications.index');
+                                }
                             @endphp
                             <a href="{{ $nHref }}"
                                @click="notifOpen=false"

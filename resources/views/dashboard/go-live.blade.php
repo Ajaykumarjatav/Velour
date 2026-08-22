@@ -463,7 +463,7 @@
             <span class="text-lg">📣</span>
             <h2 class="font-semibold text-gray-800 dark:text-white">Share on Social</h2>
           </div>
-          <span class="text-xs text-gray-400 dark:text-gray-500">Click counts this month</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500">Website link clicks this month</span>
         </div>
         <div class="p-6 max-sm:p-4">
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-sm:gap-2">
@@ -472,7 +472,6 @@
               <a
                 :href="channel.href"
                 target="_blank" rel="noopener noreferrer"
-                @click="!readOnly && trackClick(channel.id)"
                 class="flex flex-col items-center gap-2 p-4 max-sm:p-3 rounded-2xl border border-gray-100 hover:border-opacity-60 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
                 :style="`background:${channel.bg}; border-color:${channel.border};`"
               >

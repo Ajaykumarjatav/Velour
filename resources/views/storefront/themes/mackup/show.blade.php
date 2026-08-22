@@ -5,6 +5,7 @@
 @include('storefront.themes.mackup.partials.hero')
 @include('storefront.themes.mackup.partials.sticky-nav')
 @include('storefront.themes.mackup.partials.about')
+@include('storefront.partials.dynamic.awards')
 @include('storefront.partials.dynamic.services')
 @include('storefront.partials.dynamic.packages')
 @include('storefront.themes.mackup.partials.relaxation')

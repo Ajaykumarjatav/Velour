@@ -34,12 +34,20 @@
     @php
       $iconMap = [
         'appointment'=>['📅','bg-blue-100 dark:bg-blue-900/30'],
+        'sale'=>['🧾','bg-emerald-100 dark:bg-emerald-900/30'],
         'payment'=>['💳','bg-green-100 dark:bg-green-900/30'],
         'review'=>['⭐','bg-amber-100 dark:bg-amber-900/30'],
         'client'=>['👤','bg-purple-100 dark:bg-purple-900/30'],
         'system'=>['⚙️','bg-gray-100 dark:bg-gray-800'],
         'marketing'=>['📢','bg-pink-100 dark:bg-pink-900/30'],
         'low_stock'=>['📦','bg-orange-100 dark:bg-orange-900/30'],
+        'cancellation'=>['🚫','bg-red-100 dark:bg-red-900/30'],
+        'reschedule'=>['🔁','bg-sky-100 dark:bg-sky-900/30'],
+        'task'=>['✅','bg-teal-100 dark:bg-teal-900/30'],
+        'leave'=>['🏖','bg-cyan-100 dark:bg-cyan-900/30'],
+        'salary'=>['💰','bg-lime-100 dark:bg-lime-900/30'],
+        'attendance'=>['📋','bg-indigo-100 dark:bg-indigo-900/30'],
+        'reminder'=>['⏰','bg-yellow-100 dark:bg-yellow-900/30'],
       ];
       [$icon, $iconBg] = $iconMap[$notification->type] ?? ['🔔','bg-gray-100 dark:bg-gray-800'];
     @endphp

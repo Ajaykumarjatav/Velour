@@ -54,50 +54,14 @@ class TwoFactorController extends Controller
 
     public function setupTotp(Request $request)
     {
-        $user   = $request->user();
-        $google2fa = app('pragmarx.google2fa');
-
-        // Generate a new secret and store temporarily in session (not DB yet —
-        // we only commit it once the user verifies a valid TOTP code)
-        $secret = $google2fa->generateSecretKey();
-        session(['two_factor_pending_secret' => $secret]);
-
-        $qrCodeUrl = $google2fa->getQRCodeUrl(
-            config('app.name', 'EasyGrox'),
-            $user->email,
-            $secret
-        );
-
-        return view('auth.two-factor.totp-setup', [
-            'user'      => $user,
-            'secret'    => $secret,
-            'qrCodeUrl' => $qrCodeUrl,
-        ]);
+        return redirect()->route('two-factor.setup')
+            ->with('info', 'Authenticator app 2FA is not offered on the web panel yet. Use email OTP.');
     }
 
     public function confirmTotp(Request $request)
     {
-        $request->validate(['code' => 'required|string|size:6|regex:/^\d{6}$/']);
-
-        $user   = $request->user();
-        $secret = session('two_factor_pending_secret');
-
-        if (! $secret) {
-            return back()->withErrors(['code' => 'Session expired. Please start 2FA setup again.']);
-        }
-
-        $google2fa = app('pragmarx.google2fa');
-        $valid     = $google2fa->verifyKey($secret, $request->code);
-
-        if (! $valid) {
-            return back()->withErrors(['code' => 'Invalid code. Check your authenticator app and try again.']);
-        }
-
-        $user->enableTotpTwoFactor($secret);
-        session()->forget('two_factor_pending_secret');
-
-        return redirect()->to(\App\Support\SalonUrl::route('two-factor.recovery'))
-            ->with('success', 'Authenticator app 2FA enabled. Save your recovery codes now.');
+        return redirect()->route('two-factor.setup')
+            ->with('info', 'Authenticator app 2FA is not offered on the web panel yet. Use email OTP.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────

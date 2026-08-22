@@ -55,7 +55,6 @@
                     <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
                         @if($salon?->phone)<span>Tel: <span class="text-body font-medium">{{ $salon->phone }}</span></span>@endif
                         @if($salon?->email)<span>Email: <span class="text-body font-medium">{{ $salon->email }}</span></span>@endif
-                        @if($salon?->website)<span>Web: <span class="text-body font-medium">{{ $salon->website }}</span></span>@endif
                     </div>
                 </div>
                 <div class="shrink-0 text-left sm:text-right w-full sm:w-auto">

@@ -14,6 +14,7 @@ use App\Models\Staff;
 use App\Mail\PosTransactionInvoiceMail;
 use App\Models\Tenant;
 use App\Services\PosWalkInAppointmentService;
+use App\Services\NotificationService;
 use App\Support\SalonTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -441,6 +442,15 @@ class PosController extends Controller
                     }
                 }
             }
+        }
+
+        try {
+            app(NotificationService::class)->notifyPosSaleCompleted($transaction);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('POS sale notification failed', [
+                'transaction_id' => $transaction->id,
+                'error'          => $e->getMessage(),
+            ]);
         }
 
         return redirect()

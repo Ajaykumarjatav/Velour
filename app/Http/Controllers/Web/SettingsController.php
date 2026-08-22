@@ -13,6 +13,7 @@ use App\Models\SalonBufferRule;
 use App\Models\SalonSetting;
 use App\Services\NotificationConfigService;
 use App\Support\AuthPanel;
+use App\Support\AwardsHtml;
 use App\Support\LanguageProficiency;
 use App\Support\ProfileCompletion;
 use App\Support\RegistrationStarterServices;
@@ -225,11 +226,11 @@ class SettingsController extends Controller
 
         $data = $request->validate([
             'name'                 => ['required', 'string', 'max:150'],
-            'email'                => ['nullable', 'email', 'max:150'],
             'phone'              => ['nullable', 'string', 'max:20'],
-            'website'            => ['nullable', 'url', 'max:200'],
+            'whatsapp_number'    => ['nullable', 'string', 'max:30'],
+            'whatsapp_same_as_phone' => ['required', 'in:0,1'],
             'description'        => ['nullable', 'string', 'max:1000'],
-            'awards_accolades'   => ['nullable', 'string', 'max:5000'],
+            'awards_accolades'   => ['nullable', 'string', 'max:50000'],
             'address_line1'      => ['nullable', 'string', 'max:200'],
             'address_line2'      => ['nullable', 'string', 'max:200'],
             'city'               => ['nullable', 'string', 'max:100'],
@@ -246,6 +247,25 @@ class SettingsController extends Controller
         unset($data['booking_time_display']);
 
         $data['home_services_enabled'] = $request->boolean('home_services_enabled');
+        $data['email'] = $salon->owner?->email ?: Auth::user()?->email;
+        $data['awards_accolades'] = AwardsHtml::sanitize($data['awards_accolades'] ?? null);
+        $data['awards_images'] = AwardsHtml::imagePaths($data['awards_accolades'], (int) $salon->id);
+        $data['whatsapp_same_as_phone'] = $request->boolean('whatsapp_same_as_phone');
+        if ($data['whatsapp_same_as_phone']) {
+            $data['whatsapp_number'] = $data['phone'] ?? null;
+        } else {
+            $customWa = trim((string) ($data['whatsapp_number'] ?? ''));
+            $data['whatsapp_number'] = $customWa !== '' ? $customWa : null;
+        }
+
+        $links = is_array($salon->social_links) ? $salon->social_links : [];
+        $waDigits = preg_replace('/\D+/', '', (string) ($data['whatsapp_same_as_phone'] ? ($data['phone'] ?? '') : ($data['whatsapp_number'] ?? '')));
+        if ($waDigits !== '') {
+            $links['whatsapp'] = 'https://wa.me/'.$waDigits;
+        } else {
+            unset($links['whatsapp']);
+        }
+        $data['social_links'] = $links;
 
         $salon->update($data);
 
@@ -256,7 +276,24 @@ class SettingsController extends Controller
             ['value' => $bookingTimeDisplay, 'type' => 'string']
         );
 
-        return $this->redirectAfterSettingsSave($request, 'Salon profile updated.', 'salon');
+        return $this->redirectAfterSettingsSave($request, 'Business profile updated.', 'salon');
+    }
+
+    public function uploadAwardsImage(Request $request)
+    {
+        $this->abortUnlessCanEditSettingsTab('salon');
+        $salon = $this->salon();
+
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $path = $request->file('image')->store("salons/{$salon->id}/awards", 'public');
+
+        return response()->json([
+            'url'  => asset('storage/'.$path),
+            'path' => $path,
+        ]);
     }
 
     public function updateBooking(Request $request)
@@ -778,7 +815,7 @@ class SettingsController extends Controller
         $this->abortUnlessCanEditSettingsTab('social');
         $salon = $this->salon();
 
-        $platforms = ['instagram', 'facebook', 'tiktok', 'whatsapp', 'google', 'twitter', 'youtube', 'linkedin', 'pinterest'];
+        $platforms = array_keys(\App\Support\SocialLinkPlatforms::all());
 
         $rules = [];
         foreach ($platforms as $p) {
@@ -787,13 +824,13 @@ class SettingsController extends Controller
 
         $data = $request->validate($rules);
 
-        // Build clean array — only keep non-empty URLs
         $links = [];
         foreach ($platforms as $p) {
-            $url = $data['social_links'][$p] ?? null;
-            if ($url) {
-                $links[$p] = $url;
+            $url = trim((string) ($data['social_links'][$p] ?? ''));
+            if ($url === '' || \App\Support\SocialLinkPlatforms::isPrefixOnly($url, $p)) {
+                continue;
             }
+            $links[$p] = $url;
         }
 
         $salon->update(['social_links' => $links]);

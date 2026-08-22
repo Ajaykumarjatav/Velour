@@ -16,7 +16,7 @@ class Salon extends Model
     protected static function supportIdOffset(): int { return 10001; }
 
     protected $fillable = [
-        'owner_id','business_type_id','name','slug','subdomain','description','awards_accolades','phone','email','website',
+        'owner_id','business_type_id','name','slug','subdomain','description','awards_accolades','awards_images','phone','whatsapp_number','whatsapp_same_as_phone','email','website',
         'address_line1','address_line2','city','county','postcode','country',
         'latitude','longitude','timezone','currency','locale',
         'logo','cover_image','social_links','booking_url','google_place_id',
@@ -26,12 +26,24 @@ class Salon extends Model
         'suspension_reason','suspended_at','suspended_by',
     ];
     protected $casts = [
-        'social_links'=>'array','opening_hours'=>'array',
-        'online_booking_enabled'=>'boolean','home_services_enabled'=>'boolean','new_client_booking_enabled'=>'boolean',
+        'social_links'=>'array','opening_hours'=>'array','awards_images'=>'array',
+        'online_booking_enabled'=>'boolean','home_services_enabled'=>'boolean','new_client_booking_enabled'=>'boolean','whatsapp_same_as_phone'=>'boolean',
         'deposit_required'=>'boolean','instant_confirmation'=>'boolean','is_active'=>'boolean',
         'deposit_percentage'=>'decimal:2','latitude'=>'decimal:7','longitude'=>'decimal:7',
         'suspended_at'=>'datetime',
     ];
+    public function whatsappNumberForSite(): ?string
+    {
+        if (! $this->whatsapp_same_as_phone) {
+            $custom = trim((string) $this->whatsapp_number);
+            if ($custom !== '') {
+                return $custom;
+            }
+        }
+
+        return $this->phone;
+    }
+
     public function owner()                { return $this->belongsTo(User::class,'owner_id'); }
 
     public function businessType(): BelongsTo

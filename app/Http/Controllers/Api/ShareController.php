@@ -9,6 +9,7 @@ use App\Models\LinkVisit;
 use App\Models\PosTransaction;
 use App\Models\Salon;
 use App\Support\SalonSetupProgress;
+use App\Support\SocialShareClicks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -305,16 +306,26 @@ class ShareController extends Controller
 
         $salonId = (int) $request->attributes->get('salon_id');
 
-        DB::table('social_share_clicks')->insert([
-            'salon_id'   => $salonId,
-            'user_id'    => $request->user()->id,
-            'platform'   => $data['platform'],
-            'ip_address' => $request->ip(),
-            'device'     => str_contains($request->userAgent() ?? '', 'Mobile') ? 'mobile' : 'desktop',
-            'clicked_at' => now(),
-        ]);
+        SocialShareClicks::record($salonId, $data['platform'], $request, $request->user()?->id);
 
         return $this->success(null, 'Click tracked.');
+    }
+
+    public function trackPublicSocialClick(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'salon_slug' => ['required', 'string', 'max:100'],
+            'platform'   => 'required|string|max:40|in:whatsapp,instagram,facebook,google,tiktok,email,twitter,youtube,linkedin,pinterest',
+        ]);
+
+        $salon = Salon::where('slug', $data['salon_slug'])->where('is_active', true)->first();
+        if (! $salon || ! SocialShareClicks::destination($salon, $data['platform'])) {
+            return response()->json(['tracked' => false]);
+        }
+
+        SocialShareClicks::record((int) $salon->id, $data['platform'], $request);
+
+        return response()->json(['tracked' => true]);
     }
 
     // ── Public: record a booking page visit ───────────────────────────────────

@@ -147,6 +147,13 @@ class NotificationController extends Controller
             return \App\Support\SalonUrl::route('appointments.show', ['appointment' => $appointmentId]);
         }
 
+        $posId = (int) data_get($notification->data, 'pos_transaction_id', 0);
+        if ($posId > 0 || data_get($notification->data, 'action_label') === 'Invoice') {
+            if ($posId > 0) {
+                return \App\Support\SalonUrl::route('pos.show', ['po' => $posId]);
+            }
+        }
+
         $taskId = (int) data_get($notification->data, 'task_id', 0);
         if ($taskId > 0 || data_get($notification->data, 'action_label') === 'tasks') {
             return \App\Support\SalonUrl::route('tasks.index');

@@ -5,6 +5,7 @@
 @include('storefront.themes.beauty.partials.hero')
 @include('storefront.themes.beauty.partials.sticky-nav')
 @include('storefront.themes.beauty.partials.about')
+@include('storefront.partials.dynamic.awards')
 @include('storefront.partials.dynamic.services')
 @include('storefront.partials.dynamic.packages')
 @include('storefront.themes.beauty.partials.relaxation')

@@ -45,10 +45,10 @@
                 <div class="rounded-xl bg-[#F7F2F4] dark:bg-gray-800/50 p-6 text-center mb-4">
                     <h3 class="text-2xl font-semibold text-heading">{{ $salon->name }}</h3>
                     <p class="text-sm text-muted mt-1">{{ $salon->description ?: ($salon->city ? $salon->city . '\'s premium salon for hair, skin & wellness' : 'Your brand showcase website') }}</p>
-                    @if(trim((string) ($salon->awards_accolades ?? '')) !== '')
+                    @if(! \App\Support\AwardsHtml::isEmpty($salon->awards_accolades ?? ''))
                     <div class="mt-3 text-left max-w-lg mx-auto rounded-lg bg-white/80 dark:bg-gray-900/40 px-4 py-3 border border-stone-200/80 dark:border-gray-700">
                         <p class="text-xs font-semibold text-heading uppercase tracking-wide mb-1">Awards &amp; accolades</p>
-                        <p class="text-xs text-body whitespace-pre-line">{{ $salon->awards_accolades }}</p>
+                        <div class="text-xs text-body [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2">{!! \App\Support\AwardsHtml::safe($salon->awards_accolades) !!}</div>
                     </div>
                     @endif
                     <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -119,10 +119,10 @@
                 <p class="text-muted">Meta description</p>
                 <p class="text-heading">{{ $salon->description ?: 'Book appointments online for services, staff and real-time slots.' }}</p>
             </div>
-            @if(trim((string) ($salon->awards_accolades ?? '')) !== '')
+            @if(! \App\Support\AwardsHtml::isEmpty($salon->awards_accolades ?? ''))
             <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3">
                 <p class="text-muted">Awards &amp; accolades (site content)</p>
-                <p class="text-heading whitespace-pre-line text-sm">{{ $salon->awards_accolades }}</p>
+                <div class="text-heading text-sm [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2">{!! \App\Support\AwardsHtml::safe($salon->awards_accolades) !!}</div>
             </div>
             @endif
             <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3">

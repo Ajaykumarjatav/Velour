@@ -5,6 +5,7 @@
 @include('storefront.themes.tattoo.partials.hero')
 @include('storefront.themes.tattoo.partials.sticky-nav')
 @include('storefront.themes.tattoo.partials.about')
+@include('storefront.partials.dynamic.awards')
 @include('storefront.partials.dynamic.services')
 @include('storefront.partials.dynamic.packages')
 @include('storefront.themes.tattoo.partials.relaxation')
