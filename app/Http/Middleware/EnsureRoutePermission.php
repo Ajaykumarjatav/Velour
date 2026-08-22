@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Support\MultiLocationPermissions;
 use App\Support\RoutePermissionMap;
 use App\Support\SettingsTabPermissions;
+use App\Support\TenantModuleAccess;
 use App\Support\WebsitePermissions;
 use Closure;
 use Illuminate\Http\Request;
@@ -20,11 +21,25 @@ class EnsureRoutePermission
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (! $user || $user->isSuperAdmin() || $user->ownsCurrentSalon()) {
+        if (! $user) {
             return $next($request);
         }
 
         $routeName = $request->route()?->getName() ?? '';
+
+        $module = TenantModuleAccess::moduleForRoute($routeName);
+        if ($module !== null && ! TenantModuleAccess::isEnabled($module)) {
+            abort(403, 'This section is currently unavailable.');
+        }
+
+        $settingsTab = TenantModuleAccess::settingsTabForRoute($routeName);
+        if ($settingsTab !== null && ! TenantModuleAccess::isSettingsTabEnabled($settingsTab)) {
+            abort(403, 'This settings tab is currently unavailable.');
+        }
+
+        if ($user->isSuperAdmin() || $user->ownsCurrentSalon()) {
+            return $next($request);
+        }
 
         if (str_starts_with($routeName, 'settings.')) {
             if (! SettingsTabPermissions::userCanAccessRoute($user, $routeName)) {

@@ -1,4 +1,10 @@
 <div class="flex flex-col h-full min-h-0 sidebar-wrapper">
+    @php
+        $navUser = auth()->user();
+        $navShow = fn (string $key): bool => $navUser
+            ? \App\Support\SidebarNav::show($navUser, $key)
+            : false;
+    @endphp
 
     {{-- Business status header --}}
     <div class="px-3 py-3 border-b border-gray-100 dark:border-gray-800 min-h-[3.75rem]">
@@ -29,7 +35,7 @@
                    class="text-gray-500 dark:text-gray-400 hover:text-velour-600 dark:hover:text-velour-300 transition-colors tabular-nums">
                     {{ $salonBusinessStatus['setup_percent'] }}% Setup Complete
                 </a>
-                @if(config('billing.subscriptions_enabled') && ($subscriptionReminder ?? null) && !($planExpired ?? false))
+                @if(config('billing.subscriptions_enabled') && $navShow('billing') && ($subscriptionReminder ?? null) && !($planExpired ?? false))
                 <span class="text-gray-400 dark:text-gray-600" aria-hidden="true">·</span>
                 @php
                   $sbDays = $subscriptionReminder['days_remaining'] ?? null;
@@ -77,13 +83,6 @@
         @endif
     </div>
 
-    @php
-        $navUser = auth()->user();
-        $navShow = fn (string $key): bool => $navUser
-            ? \App\Support\SidebarNav::show($navUser, $key)
-            : false;
-    @endphp
-
     {{-- Nav --}}
     <nav class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2.5 py-3 space-y-1"
          x-data="{ openMenu: null }">
@@ -91,6 +90,7 @@
         @if($planExpired ?? false)
         <div class="px-1 pb-3 mb-2 border-b border-amber-200/80 dark:border-amber-800/50">
             <p class="text-[11px] text-amber-700 dark:text-amber-300 font-medium mb-2 px-2">Plan expired — renew to unlock</p>
+            @if($navShow('billing'))
             <a href="{{ route('billing.plans') }}"
                class="sidebar-link {{ request()->routeIs('billing.plans', 'billing.checkout', 'billing.success', 'billing.change*') ? 'active' : '' }}">
                 @include('partials.sidebar-nav-icon', ['icon' => 'subscription'])
@@ -101,6 +101,7 @@
                 @include('partials.sidebar-nav-icon', ['icon' => 'billing'])
                 Billing
             </a>
+            @endif
         </div>
         @else
 
@@ -473,7 +474,7 @@
                 Team
             </a>
             @endif
-            @if(config('billing.subscriptions_enabled') && ($navShow('billing') || auth()->user()->salons()->exists()))
+            @if(config('billing.subscriptions_enabled') && $navShow('billing'))
             <a href="{{ route('salon-admin.subscription') }}"
                class="sidebar-sub-link {{ request()->routeIs('salon-admin.subscription*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
                 @include('partials.sidebar-nav-icon', ['icon' => 'subscription', 'small' => true])

@@ -581,6 +581,9 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin',
     Route::get('revenue/export',             [AdminRevenueController::class, 'export'])->name('revenue.export');
 
     // ── Plan Management ───────────────────────────────────────────────────────
+    Route::get('tenant-modules',             [\App\Http\Controllers\Admin\AdminTenantModuleAccessController::class, 'index'])->name('tenant-modules');
+    Route::put('tenant-modules',             [\App\Http\Controllers\Admin\AdminTenantModuleAccessController::class, 'update'])->name('tenant-modules.update');
+
     Route::get('plans',                      [AdminPlanController::class, 'index'])->name('plans');
     Route::post('plans/assign',              [AdminPlanController::class, 'assign'])->name('plans.assign');
     Route::post('plans/migrate',             [AdminPlanController::class, 'migratePlan'])->name('plans.migrate');

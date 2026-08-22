@@ -114,6 +114,10 @@ final class SettingsTabPermissions
     /** Show Settings link / allow GET settings.index */
     public static function canOpenSettings(User $user, ?Salon $salon = null): bool
     {
+        if (! TenantModuleAccess::isEnabled('settings')) {
+            return $user->isSuperAdmin();
+        }
+
         if ($user->isSuperAdmin()) {
             return true;
         }
@@ -198,16 +202,25 @@ final class SettingsTabPermissions
     /** @return list<string> */
     public static function visibleTabsForUser(User $user): array
     {
+        $tabs = array_keys(self::TABS);
+        if (! $user->isSuperAdmin()) {
+            $tabs = array_values(array_filter(
+                $tabs,
+                fn (string $tab) => TenantModuleAccess::isSettingsTabEnabled($tab)
+            ));
+        }
+
         if ($user->isSuperAdmin() || $user->ownsCurrentSalon()) {
-            return array_keys(self::TABS);
+            return $tabs;
         }
 
         if (self::hasLegacyFullAccess($user)) {
-            return array_keys(self::TABS);
+            return $tabs;
         }
 
         $visible = [];
-        foreach (self::TABS as $tabKey => $meta) {
+        foreach ($tabs as $tabKey) {
+            $meta = self::TABS[$tabKey];
             if ($user->hasExplicitPermission($meta['view'])) {
                 $visible[] = $tabKey;
             }
@@ -224,8 +237,16 @@ final class SettingsTabPermissions
 
     public static function userCanViewTab(User $user, string $tab): bool
     {
+        if (! isset(self::TABS[$tab])) {
+            return false;
+        }
+
+        if (! $user->isSuperAdmin() && ! TenantModuleAccess::isSettingsTabEnabled($tab)) {
+            return false;
+        }
+
         if ($user->isSuperAdmin() || $user->ownsCurrentSalon()) {
-            return isset(self::TABS[$tab]);
+            return true;
         }
 
         if (self::hasLegacyFullAccess($user)) {
@@ -239,8 +260,16 @@ final class SettingsTabPermissions
 
     public static function userCanEditTab(User $user, string $tab): bool
     {
+        if (! isset(self::TABS[$tab])) {
+            return false;
+        }
+
+        if (! $user->isSuperAdmin() && ! TenantModuleAccess::isSettingsTabEnabled($tab)) {
+            return false;
+        }
+
         if ($user->isSuperAdmin() || $user->ownsCurrentSalon()) {
-            return isset(self::TABS[$tab]);
+            return true;
         }
 
         if (self::hasLegacyFullAccess($user)) {
@@ -255,7 +284,22 @@ final class SettingsTabPermissions
     /** Whether the user may hit a named settings route. */
     public static function userCanAccessRoute(User $user, string $routeName): bool
     {
-        if ($user->isSuperAdmin() || $user->ownsCurrentSalon()) {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if (! TenantModuleAccess::isEnabled('settings')) {
+            return false;
+        }
+
+        if ($routeName !== 'settings.index') {
+            $tab = TenantModuleAccess::settingsTabForRoute($routeName);
+            if ($tab !== null && ! TenantModuleAccess::isSettingsTabEnabled($tab)) {
+                return false;
+            }
+        }
+
+        if ($user->ownsCurrentSalon()) {
             return true;
         }
 
