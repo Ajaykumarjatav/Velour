@@ -34,6 +34,7 @@ class InviteTeamMemberRequest extends FormRequest
                     fn ($q) => $q->where('salon_id', $salonId)->whereNull('user_id')->whereNull('deleted_at')
                 ),
             ],
+            'email' => ['required', 'email', 'max:150'],
             'role' => [
                 'required',
                 Rule::in(StaffJobRoles::permissionRoleSlugsForSalon($salonId)),
@@ -58,17 +59,17 @@ class InviteTeamMemberRequest extends FormRequest
                 return;
             }
 
-            $email = trim((string) $staff->email);
+            $email = mb_strtolower(trim((string) $this->input('email', $staff->email)));
             if ($email === '') {
                 $validator->errors()->add(
-                    'staff_id',
-                    'Add an email address on the staff profile (Staff & HR) before sending an invitation.'
+                    'email',
+                    'Enter an email for this staff member so we can send the login invite.'
                 );
 
                 return;
             }
 
-            $normalized = mb_strtolower($email);
+            $normalized = $email;
             $user       = User::query()->whereRaw('LOWER(email) = ?', [$normalized])->first();
 
             if ($user === null) {

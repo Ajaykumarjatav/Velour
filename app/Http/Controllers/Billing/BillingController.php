@@ -51,7 +51,7 @@ class BillingController extends Controller
         $plan = Plan::findOrFail($request->plan);
 
         if ($user->subscribed('default')) {
-            return redirect()->route('billing.change', $request->only('plan', 'interval'));
+            return redirect()->route('billing.change.show', $request->only('plan', 'interval'));
         }
 
         try {
@@ -168,7 +168,8 @@ class BillingController extends Controller
         $sub  = $user->subscription('default');
 
         if (! $sub || ! in_array($sub->stripe_status, ['active', 'past_due', 'trialing'], true)) {
-            return redirect()->route('billing.checkout', $request->only('plan', 'interval'));
+            return redirect()->route('billing.plans', $request->only('plan', 'interval'))
+                ->with('info', 'Start checkout from the plans page to subscribe.');
         }
 
         try {
@@ -223,7 +224,12 @@ class BillingController extends Controller
         try {
             $this->billing->cancel($user, immediately: false);
         } catch (\Throwable $e) {
-            return back()->withErrors(['password' => 'Could not cancel subscription. Please try again.']);
+            Log::error('[Billing] Cancel failed', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['password' => $e->getMessage() ?: 'Could not cancel subscription. Please try again.']);
         }
 
         Log::info('[Billing] Subscription cancelled', [
@@ -267,8 +273,14 @@ class BillingController extends Controller
 
     public function downloadInvoice(Request $request, string $invoiceId)
     {
-        return redirect()->route('billing.dashboard')
-            ->with('info', 'Invoices are sent by Cashfree to your registered email.');
+        $tx = Auth::user()->billingTransactions()->findOrFail($invoiceId);
+
+        return view('billing.invoice', [
+            'user' => Auth::user(),
+            'tx'   => $tx,
+            'plan' => $tx->plan(),
+            'sym'  => config('billing.currency_symbol', '₹'),
+        ]);
     }
 
     public function applyPromo(Request $request)

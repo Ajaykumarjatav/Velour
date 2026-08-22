@@ -1007,8 +1007,7 @@ class SettingsController extends Controller
                     ->first();
             }
 
-            $roleName = $this->mapStaffRoleToLoginRole((string) $row['role']);
-            $linkedUser = $this->resolveOrCreateStaffUser($salon->id, $first, $last, $row, $roleName);
+            $linkedUser = $this->resolveStaffLoginUser((int) $salon->id, $row);
 
             if ($staff) {
                 $staff->update([
@@ -1243,41 +1242,41 @@ class SettingsController extends Controller
     }
 
     /**
+     * Settings → Team only stores the staff profile.
+     * App logins are created by Admin → Team invite, not here.
+     *
      * @param  array<string, mixed>  $row
      */
-    private function resolveOrCreateStaffUser(int $salonId, string $firstName, string $lastName, array $row, string $roleName): ?User
+    private function resolveStaffLoginUser(int $salonId, array $row): ?User
     {
+        $staffId = isset($row['id']) ? (int) $row['id'] : 0;
+        if ($staffId > 0) {
+            $existing = Staff::withoutGlobalScopes()
+                ->where('salon_id', $salonId)
+                ->where('id', $staffId)
+                ->first();
+            if ($existing?->user_id) {
+                return User::query()->find($existing->user_id);
+            }
+        }
+
         $email = $this->optionalString($row['email'] ?? null);
         if ($email === null) {
             return null;
         }
 
-        $user = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->first();
-        if (! $user) {
-            $displayName = trim($firstName . ' ' . $lastName);
-            if ($displayName === '') {
-                $displayName = $email;
-            }
-            $user = User::query()->create([
-                'name' => $displayName,
-                'email' => $email,
-                'password' => Hash::make(Str::random(24)),
-                'is_active' => true,
-                'timezone' => null,
-                'locale' => null,
-            ]);
+        $salon = \App\Models\Salon::withoutGlobalScopes()->find($salonId);
+        $ownerId = $salon?->owner_id;
+        if (! $ownerId) {
+            return null;
         }
 
-        $staffProfile = Staff::withoutGlobalScopes()->where('user_id', $user->id)->first();
-        if ($staffProfile && (int) $staffProfile->salon_id !== $salonId) {
-            throw ValidationException::withMessages([
-                'staff_members' => ['A team member email is already linked to another business. Use a different email.'],
-            ]);
+        $owner = User::query()->find($ownerId);
+        if ($owner && strcasecmp((string) $owner->email, $email) === 0) {
+            return $owner;
         }
 
-        $user->syncRoles([$roleName]);
-
-        return $user;
+        return null;
     }
 
     private function optionalString(mixed $value): ?string

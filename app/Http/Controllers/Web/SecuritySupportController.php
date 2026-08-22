@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Salon;
-use App\Models\SalonSetting;
+use App\Models\UserActivityLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,69 +20,112 @@ class SecuritySupportController extends Controller
         return $this->activeSalon();
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $salon = $this->salon();
-        $get = fn (string $key, string $default = '0') => (string) (
-            SalonSetting::withoutGlobalScopes()->where('salon_id', $salon->id)->where('key', $key)->value('value') ?? $default
-        );
+        $user = Auth::user();
 
-        $security = [
-            'two_factor_required' => $get('sec_two_factor_required', '1') === '1',
-            'session_timeout' => $get('sec_session_timeout', '1') === '1',
-            'ip_whitelist' => $get('sec_ip_whitelist', '0') === '1',
-            'audit_logs' => $get('sec_audit_logs', '1') === '1',
-            'encryption_at_rest' => $get('sec_encryption_rest', '1') === '1',
-            'pci_dss' => $get('sec_pci_dss', '1') === '1',
+        $twoFactorOn = $user->hasTwoFactorEnabled();
+        $httpsOn = $request->secure();
+        $sessionMinutes = (int) config('session.lifetime', 120);
+        $auditOn = true;
+        $cardsNotStored = true;
+        $ipWhitelistOn = false;
+        $fullDbEncryptionOn = (bool) config('session.encrypt', false);
+
+        $checks = [
+            $twoFactorOn,
+            $httpsOn,
+            (bool) $user->email_verified_at,
+            $auditOn,
+            $cardsNotStored,
         ];
+        $securityScore = (int) round((collect($checks)->filter()->count() / max(1, count($checks))) * 100);
 
-        $score = collect($security)->filter()->count();
-        $securityScore = (int) round(($score / max(1, count($security))) * 100);
-        $auditDate = $get('sec_last_audit_date', now()->startOfMonth()->format('Y-m-d'));
-        $sslDays = (int) $get('sec_ssl_valid_days', '340');
+        $lastActivity = UserActivityLog::query()
+            ->where('user_id', $user->id)
+            ->latest('occurred_at')
+            ->value('occurred_at');
+
+        $rows = [
+            [
+                'key' => 'two_factor',
+                'label' => 'Two-factor authentication (2FA)',
+                'hint' => $twoFactorOn
+                    ? 'OTP is required on this login ('.strtoupper((string) $user->two_factor_method).').'
+                    : 'Not enabled on your account. Login does not ask for OTP until you set it up.',
+                'on' => $twoFactorOn,
+                'href' => route('two-factor.setup'),
+                'action' => $twoFactorOn ? 'Manage 2FA' : 'Enable 2FA',
+            ],
+            [
+                'key' => 'https',
+                'label' => 'HTTPS connection',
+                'hint' => $httpsOn
+                    ? 'This page is served over HTTPS.'
+                    : 'This page is HTTP (typical on local XAMPP). Production should use HTTPS.',
+                'on' => $httpsOn,
+                'href' => null,
+                'action' => null,
+            ],
+            [
+                'key' => 'session',
+                'label' => 'Session timeout',
+                'hint' => 'Laravel logs you out after '.$sessionMinutes.' minutes of inactivity (SESSION_LIFETIME).',
+                'on' => $sessionMinutes > 0,
+                'href' => null,
+                'action' => null,
+            ],
+            [
+                'key' => 'ip_whitelist',
+                'label' => 'IP whitelist',
+                'hint' => 'Not configured. Admin access is not restricted by IP in this build.',
+                'on' => $ipWhitelistOn,
+                'href' => null,
+                'action' => null,
+            ],
+            [
+                'key' => 'audit',
+                'label' => 'Audit logs',
+                'hint' => 'Panel actions are written to the activity log.',
+                'on' => $auditOn,
+                'href' => $user->can('view-activity-log') ? route('activity.index') : null,
+                'action' => $user->can('view-activity-log') ? 'View log' : null,
+            ],
+            [
+                'key' => 'encryption',
+                'label' => 'Sensitive field encryption',
+                'hint' => $fullDbEncryptionOn
+                    ? 'Session encryption is on. 2FA secrets are encrypted at rest.'
+                    : '2FA secrets are encrypted. Full database encryption at rest is not enabled.',
+                'on' => true,
+                'href' => null,
+                'action' => null,
+            ],
+            [
+                'key' => 'pci',
+                'label' => 'Card data (PCI)',
+                'hint' => 'Card numbers are not stored in EasyGrox. Checkout goes through Cashfree.',
+                'on' => $cardsNotStored,
+                'href' => null,
+                'action' => null,
+            ],
+        ];
 
         return view('security-support.index', [
             'salon' => $salon,
-            'security' => $security,
+            'user' => $user,
+            'rows' => $rows,
             'securityScore' => $securityScore,
-            'auditDate' => $auditDate,
-            'sslDays' => $sslDays,
+            'lastActivity' => $lastActivity,
+            'httpsOn' => $httpsOn,
+            'twoFactorOn' => $twoFactorOn,
         ]);
     }
 
-    public function updateSecurity(Request $request): RedirectResponse
+    public function updateSecurity(): RedirectResponse
     {
-        $salon = $this->salon();
-        $data = $request->validate([
-            'two_factor_required' => ['nullable', 'boolean'],
-            'session_timeout' => ['nullable', 'boolean'],
-            'ip_whitelist' => ['nullable', 'boolean'],
-            'audit_logs' => ['nullable', 'boolean'],
-            'encryption_at_rest' => ['nullable', 'boolean'],
-            'pci_dss' => ['nullable', 'boolean'],
-        ]);
-
-        $map = [
-            'two_factor_required' => 'sec_two_factor_required',
-            'session_timeout' => 'sec_session_timeout',
-            'ip_whitelist' => 'sec_ip_whitelist',
-            'audit_logs' => 'sec_audit_logs',
-            'encryption_at_rest' => 'sec_encryption_rest',
-            'pci_dss' => 'sec_pci_dss',
-        ];
-
-        foreach ($map as $field => $key) {
-            SalonSetting::withoutGlobalScopes()->updateOrCreate(
-                ['salon_id' => $salon->id, 'key' => $key],
-                ['value' => ($request->boolean($field) ? '1' : '0'), 'type' => 'boolean']
-            );
-        }
-        SalonSetting::withoutGlobalScopes()->updateOrCreate(
-            ['salon_id' => $salon->id, 'key' => 'sec_last_audit_date'],
-            ['value' => now()->toDateString(), 'type' => 'string']
-        );
-
-        return redirect()->route('security-support.index')->with('success', 'Security settings updated.');
+        return redirect()->route('security-support.index')
+            ->with('info', 'Security status is live. Enable 2FA from the 2FA page — toggles here were not connected to login.');
     }
 }
-

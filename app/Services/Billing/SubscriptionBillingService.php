@@ -279,7 +279,7 @@ class SubscriptionBillingService
     {
         $sub = $user->subscription('default');
         if (! $sub?->stripe_id) {
-            return;
+            throw new \RuntimeException('No payment subscription is linked to this account, so it cannot be cancelled online. Contact support.');
         }
 
         try {

@@ -391,6 +391,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::middleware('tenant_admin')->prefix('salon-admin')->name('salon-admin.')->group(function () {
             Route::get('team',                         [TenantAdminController::class, 'team'])->name('team');
             Route::post('team/invite',                 [TenantAdminController::class, 'invite'])->name('team.invite');
+            Route::post('team/{user}/resend-invite',   [TenantAdminController::class, 'resendInvite'])->name('team.resend');
             Route::patch('team/{user}/role',           [TenantAdminController::class, 'updateMemberRole'])->name('team.role');
             Route::put('team/role-permissions',        [TenantAdminController::class, 'updateRolePermissions'])->name('team.role-permissions');
             Route::patch('team/role-permissions/toggle', [TenantAdminController::class, 'toggleRolePermission'])->name('team.role-permission-toggle');
@@ -439,7 +440,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
             Route::get('change',       [BillingController::class, 'showChangePlan'])->name('change.show');
             Route::patch('change',     [BillingController::class, 'changePlan'])->name('change');
             Route::get('cancel',       [BillingController::class, 'showCancel'])->name('cancel');
-            Route::delete('cancel',    [BillingController::class, 'cancel']);
+            Route::delete('cancel',    [BillingController::class, 'cancel'])->name('cancel.destroy');
             Route::post('resume',      [BillingController::class, 'resume'])->name('resume');
             Route::get('portal',       [BillingController::class, 'portal'])->name('portal');
             Route::get('dashboard',    [BillingController::class, 'dashboard'])->name('dashboard');
