@@ -162,7 +162,16 @@ class AppointmentController extends Controller
         $appointment = Appointment::where('salon_id', $request->attributes->get('salon_id'))
             ->findOrFail($id);
 
+        $previous = $appointment->status;
         $appointment->update(['status' => $data['status']]);
+        $fresh = $appointment->fresh(['client', 'staff', 'services.service', 'salon']);
+
+        if ($data['status'] === 'confirmed' && $previous === 'pending') {
+            $this->notificationService->notifyClientBookingConfirmed($fresh, true);
+        } elseif (in_array($data['status'], ['cancelled', 'no_show'], true) && $previous !== $data['status']) {
+            $this->notificationService->appointmentCancellation($fresh, $previous === 'pending');
+        }
+
         return response()->json(['message' => 'Status updated.', 'status' => $data['status']]);
     }
 

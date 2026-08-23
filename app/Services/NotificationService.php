@@ -43,15 +43,42 @@ class NotificationService
     public function appointmentConfirmation(Appointment $appointment): void
     {
         $this->notifyTenantNewBooking($appointment);
-        $this->notifyClientBookingConfirmed($appointment);
+        if ($appointment->status === 'pending') {
+            $this->notifyClientBookingReceived($appointment);
+        } else {
+            $this->notifyClientBookingConfirmed($appointment);
+        }
+    }
+
+    /**
+     * Email the client when a booking request is submitted (pending approval).
+     */
+    public function notifyClientBookingReceived(Appointment $appointment): void
+    {
+        $appointment->loadMissing(['client', 'staff', 'services.service', 'salon']);
+        $client = $appointment->client;
+        $salon = $appointment->salon;
+        if (! $client?->email || ! $salon) {
+            return;
+        }
+
+        $cfg = $this->notificationConfig();
+        $ctx = $cfg->buildAppointmentContext($appointment);
+        $subject = $cfg->render('Booking request received — {{reference}}', $ctx);
+        $body = $cfg->render(
+            "Hi {{client_first_name}},\n\nWe received your booking request at {{salon_name}} for {{appointment_date}} at {{appointment_time}} with {{staff_name}}.\nServices: {{service_names}}\nReference: {{reference}}\n\nThe salon will confirm shortly.",
+            $ctx
+        );
+
+        $this->queueClientHtmlMail($client->email, $subject, $body, $appointment->id, 'Client booking-received email failed');
     }
 
     /**
      * Email / WhatsApp to the client after their booking is confirmed (admin or instant online).
      */
-    public function notifyClientBookingConfirmed(Appointment $appointment): void
+    public function notifyClientBookingConfirmed(Appointment $appointment, bool $forceEmail = false): void
     {
-        $this->sendClientBookingConfirmationIfEnabled($appointment);
+        $this->sendClientBookingConfirmationIfEnabled($appointment, $forceEmail);
         $this->sendClientBookingConfirmationWhatsAppIfEnabled($appointment);
     }
 
@@ -69,7 +96,7 @@ class NotificationService
      * Instant client email after online booking (queued; requires queue worker unless QUEUE_CONNECTION=sync).
      * Also sends when only the WhatsApp confirmation rule is on, so every confirmation channel emails the client.
      */
-    public function sendClientBookingConfirmationIfEnabled(Appointment $appointment): void
+    public function sendClientBookingConfirmationIfEnabled(Appointment $appointment, bool $forceEmail = false): void
     {
         $salon = $appointment->salon ?? $appointment->load('salon')->salon;
         if (! $salon) {
@@ -80,7 +107,7 @@ class NotificationService
         $pluck = $this->salonSettingsPluck($salon);
         $emailOn = $cfg->isRuleEnabled($salon, 'client_booking_confirmation_email', $pluck);
         $whatsAppOn = $cfg->isRuleEnabled($salon, 'client_booking_confirmation_whatsapp', $pluck);
-        if (! $emailOn && ! $whatsAppOn) {
+        if (! $forceEmail && ! $emailOn && ! $whatsAppOn) {
             return;
         }
 
@@ -101,14 +128,23 @@ class NotificationService
             $body = $cfg->render($tpl['whatsapp_body'] ?? '', $ctx);
         }
 
-        $bodyHtml = $this->clientConfirmationBodyAsHtml($body);
+        $this->queueClientHtmlMail(
+            $client->email,
+            $subject,
+            $body,
+            $appointment->id,
+            'Client booking confirmation email failed'
+        );
+    }
 
+    private function queueClientHtmlMail(string $to, string $subject, string $body, int $appointmentId, string $logLabel): void
+    {
         try {
-            Mail::to($client->email)->queue(new ClientBookingConfirmationMail($subject, $bodyHtml));
+            Mail::to($to)->queue(new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
         } catch (\Throwable $e) {
-            Log::error('Client booking confirmation email failed', [
-                'appointment_id' => $appointment->id,
-                'to'             => $client->email,
+            Log::error($logLabel, [
+                'appointment_id' => $appointmentId,
+                'to'             => $to,
                 'error'          => $e->getMessage(),
             ]);
         }
@@ -302,13 +338,13 @@ class NotificationService
         }
     }
 
-    public function appointmentCancellation(Appointment $appointment): void
+    public function appointmentCancellation(Appointment $appointment, bool $declinedRequest = false): void
     {
         $this->notifyTenantCancellation($appointment);
-        $this->sendClientCancellationConfirmation($appointment);
+        $this->sendClientCancellationConfirmation($appointment, $declinedRequest);
     }
 
-    public function sendClientCancellationConfirmation(Appointment $appointment): void
+    public function sendClientCancellationConfirmation(Appointment $appointment, bool $declinedRequest = false): void
     {
         $appointment->loadMissing(['client', 'salon', 'staff', 'services.service']);
         $client = $appointment->client;
@@ -317,24 +353,24 @@ class NotificationService
         }
 
         $salon = $appointment->salon;
-        $cfg = $this->notificationConfig();
-        $pluck = $this->salonSettingsPluck($salon);
-        if (! $cfg->isRuleEnabled($salon, 'client_booking_confirmation_email', $pluck)) {
+        if (! $salon) {
             return;
         }
 
+        $cfg = $this->notificationConfig();
         $ctx = $cfg->buildAppointmentContext($appointment);
-        $subject = $cfg->render('Appointment cancelled — {{reference}}', $ctx);
+        $subject = $cfg->render(
+            $declinedRequest ? 'Booking request declined — {{reference}}' : 'Appointment cancelled — {{reference}}',
+            $ctx
+        );
         $body = $cfg->render(
-            "Hi {{client_first_name}},\n\nYour appointment on {{appointment_date}} at {{appointment_time}} has been cancelled.\n\nRef: {{reference}}",
+            $declinedRequest
+                ? "Hi {{client_first_name}},\n\nYour booking request on {{appointment_date}} at {{appointment_time}} was not approved.\n\nRef: {{reference}}\n\n{{salon_name}}"
+                : "Hi {{client_first_name}},\n\nYour appointment on {{appointment_date}} at {{appointment_time}} has been cancelled.\n\nRef: {{reference}}",
             $ctx
         );
 
-        try {
-            Mail::to($client->email)->queue(new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
-        } catch (\Throwable $e) {
-            Log::error('Client cancellation email failed', ['appointment_id' => $appointment->id, 'error' => $e->getMessage()]);
-        }
+        $this->queueClientHtmlMail($client->email, $subject, $body, $appointment->id, 'Client cancellation email failed');
     }
 
     public function sendClientRescheduleConfirmation(Appointment $appointment, Carbon $originalStartsAt): void
@@ -346,12 +382,11 @@ class NotificationService
         }
 
         $salon = $appointment->salon;
-        $cfg = $this->notificationConfig();
-        $pluck = $this->salonSettingsPluck($salon);
-        if (! $cfg->isRuleEnabled($salon, 'client_booking_confirmation_email', $pluck)) {
+        if (! $salon) {
             return;
         }
 
+        $cfg = $this->notificationConfig();
         $ctx = $cfg->buildAppointmentContext($appointment);
         $subject = $cfg->render('Appointment rescheduled — {{reference}}', $ctx);
         $body = $cfg->render(
@@ -359,16 +394,14 @@ class NotificationService
             $ctx
         );
 
-        try {
-            Mail::to($client->email)->queue(new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
-        } catch (\Throwable $e) {
-            Log::error('Client reschedule email failed', ['appointment_id' => $appointment->id, 'error' => $e->getMessage()]);
-        }
+        $this->queueClientHtmlMail($client->email, $subject, $body, $appointment->id, 'Client reschedule email failed');
     }
 
     public function appointmentRescheduled(Appointment $appointment, ?Carbon $originalStartsAt = null): void
     {
-        $this->notifyTenantReschedule($appointment, $originalStartsAt ?? $appointment->starts_at);
+        $original = $originalStartsAt ?? $appointment->starts_at;
+        $this->notifyTenantReschedule($appointment, $original);
+        $this->sendClientRescheduleConfirmation($appointment, $original);
     }
 
     public function requestReview(Appointment $appointment): void
@@ -685,14 +718,14 @@ class NotificationService
         // 1b. Email assigned staff (if different channel / they have an email)
         $this->notifyStaffBookingAssigned($appointment);
 
-        // 2. Email to tenant
-        $recipient = $this->resolveTenantEmail($appointment);
-        if ($recipient) {
+        // 2. Email to salon inbox and tenant owner
+        foreach ($this->resolveTenantEmails($appointment) as $recipient) {
             try {
                 Mail::to($recipient)->queue(new TenantNewBookingMail($appointment));
             } catch (\Throwable $e) {
                 Log::error('Tenant new-booking email failed', [
                     'appointment_id' => $appointment->id,
+                    'to'             => $recipient,
                     'error'          => $e->getMessage(),
                 ]);
             }
@@ -792,24 +825,36 @@ class NotificationService
     /* ── Private helpers ─────────────────────────────────────────────────── */
 
     /**
-     * Resolve the tenant email: salon email → owner email → null.
+     * Resolve tenant inboxes: salon email and owner email (unique).
+     *
+     * @return list<string>
      */
-    private function resolveTenantEmail(Appointment $appointment): ?string
+    private function resolveTenantEmails(Appointment $appointment): array
     {
         $salon = $appointment->salon ?? $appointment->load('salon')->salon;
+        $salon?->loadMissing('owner');
 
-        $email = $salon?->email
-            ?: optional($salon?->owner)->email;
+        $emails = [];
+        foreach ([$salon?->email, $salon?->owner?->email] as $email) {
+            $email = strtolower(trim((string) $email));
+            if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $emails[$email] = $email;
+            }
+        }
 
-        if (! $email) {
+        if ($emails === []) {
             Log::warning('No tenant email found for notification', [
                 'salon_id'       => $appointment->salon_id,
                 'appointment_id' => $appointment->id,
             ]);
-            return null;
         }
 
-        return $email;
+        return array_values($emails);
+    }
+
+    private function resolveTenantEmail(Appointment $appointment): ?string
+    {
+        return $this->resolveTenantEmails($appointment)[0] ?? null;
     }
 
     private function createNotification(int $salonId, string $type, array $payload): void

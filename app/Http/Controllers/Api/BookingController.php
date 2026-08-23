@@ -277,12 +277,7 @@ class BookingController extends Controller
         try {
             $appointment = $this->bookingService->confirmFromHold($salon, $data);
             $appointment->loadMissing(['client', 'staff', 'services.service', 'salon']);
-
-            if ($appointment->status === 'confirmed') {
-                $this->notificationService->appointmentConfirmation($appointment);
-            } else {
-                $this->notificationService->notifyTenantNewBooking($appointment);
-            }
+            $this->notificationService->appointmentConfirmation($appointment);
 
             $tz     = SalonTime::timezone($salon);
             $starts = $appointment->starts_at->timezone($tz);
@@ -376,7 +371,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $this->notificationService->notifyTenantReschedule($appointment, $originalStartsAt);
+        $this->notificationService->appointmentRescheduled($appointment, $originalStartsAt);
 
         return response()->json([
             'message'    => 'Appointment rescheduled.',

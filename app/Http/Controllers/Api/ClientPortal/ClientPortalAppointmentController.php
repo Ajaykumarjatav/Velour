@@ -143,8 +143,7 @@ class ClientPortalAppointmentController extends Controller
             ], 422);
         }
 
-        $this->notificationService->notifyTenantReschedule($appointment, $originalStartsAt);
-        $this->notificationService->sendClientRescheduleConfirmation($appointment, $originalStartsAt);
+        $this->notificationService->appointmentRescheduled($appointment, $originalStartsAt);
 
         $tz = SalonTime::timezone($salon);
 

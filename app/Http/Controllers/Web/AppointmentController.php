@@ -481,7 +481,7 @@ class AppointmentController extends Controller
         $relaxedBookingDay = SalonTime::isTodayOrTomorrow($salon, $startsAtLocal->toDateString());
 
         try {
-            app(AppointmentBookingService::class)->create($salon->id, [
+            $appointment = app(AppointmentBookingService::class)->create($salon->id, [
                 'client_id'         => (int) $data['client_id'],
                 'staff_id'          => (int) $data['staff_id'],
                 'starts_at'         => $data['starts_at'],
@@ -500,6 +500,10 @@ class AppointmentController extends Controller
         } catch (\InvalidArgumentException $e) {
             return back()->withErrors(['services' => $e->getMessage()])->withInput();
         }
+
+        $this->notificationService->appointmentConfirmation(
+            $appointment->fresh(['client', 'staff', 'services.service', 'salon'])
+        );
 
         return redirect()->route('appointments.index')->with('success', 'Appointment booked successfully.');
     }
@@ -673,7 +677,16 @@ class AppointmentController extends Controller
         if (Auth::user()->dashboardScopedStaffId() !== null && $data['status'] === 'cancelled') {
             return back()->withErrors(['status' => 'Staff users cannot cancel bookings.']);
         }
+
+        $previous = $appointment->status;
         $appointment->update(['status' => $data['status']]);
+        $fresh = $appointment->fresh(['client', 'staff', 'services.service', 'salon']);
+
+        if ($data['status'] === 'confirmed' && $previous === 'pending') {
+            $this->notificationService->notifyClientBookingConfirmed($fresh, true);
+        } elseif (in_array($data['status'], ['cancelled', 'no_show'], true) && $previous !== $data['status']) {
+            $this->notificationService->appointmentCancellation($fresh, $previous === 'pending');
+        }
 
         return back()->with('success', 'Status updated.');
     }
@@ -694,7 +707,8 @@ class AppointmentController extends Controller
         ]);
 
         $this->notificationService->notifyClientBookingConfirmed(
-            $appointment->fresh(['client', 'staff', 'services.service', 'salon'])
+            $appointment->fresh(['client', 'staff', 'services.service', 'salon']),
+            true
         );
 
         return back()->with('success', 'Appointment confirmed and client notified.');
@@ -715,13 +729,18 @@ class AppointmentController extends Controller
             'cancellation_reason' => ['nullable', 'string', 'max:500'],
         ]);
 
+        $wasPending = $appointment->status === 'pending';
+
         $appointment->update([
             'status'              => 'cancelled',
             'cancelled_at'        => now(),
             'cancellation_reason' => $data['cancellation_reason'] ?? null,
         ]);
 
-        $this->notificationService->notifyTenantCancellation($appointment->fresh(['client', 'staff', 'services.service', 'salon']));
+        $this->notificationService->appointmentCancellation(
+            $appointment->fresh(['client', 'staff', 'services.service', 'salon']),
+            $wasPending
+        );
 
         return back()->with('success', 'Appointment cancelled.');
     }
@@ -750,7 +769,7 @@ class AppointmentController extends Controller
             return back()->withErrors(['starts_at' => $e->result->firstMessage()])->withInput();
         }
 
-        $this->notificationService->notifyTenantReschedule(
+        $this->notificationService->appointmentRescheduled(
             $appointment->fresh(['client', 'staff', 'services.service', 'salon']),
             $originalStartsAt
         );

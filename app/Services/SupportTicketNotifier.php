@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Staff;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\User;
 use App\Notifications\Support\SupportTicketMailNotification;
 use App\Support\SupportTicketUrls;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
@@ -22,6 +24,12 @@ class SupportTicketNotifier
             $ticket,
             'created',
             "We received your support ticket {$ticket->ticket_number}. Our team will review it shortly.",
+            $excerpt,
+        );
+        $this->mailTenantAdmins(
+            $ticket,
+            'created',
+            "New support ticket {$ticket->ticket_number} was submitted for {$store}.",
             $excerpt,
         );
         $this->mailStaff(
@@ -48,12 +56,25 @@ class SupportTicketNotifier
                 "EasyGrox support replied to ticket {$ticket->ticket_number}.",
                 $excerpt,
             );
+            $this->mailTenantAdmins(
+                $ticket,
+                'replied',
+                "EasyGrox support replied to ticket {$ticket->ticket_number}.",
+                $excerpt,
+            );
         } else {
             $this->mailStaff(
                 $ticket,
                 'replied',
                 "Tenant reply on {$ticket->ticket_number} ({$store}).",
                 $excerpt,
+            );
+            $this->mailTenantAdmins(
+                $ticket,
+                'replied',
+                "A reply was added to ticket {$ticket->ticket_number} ({$store}).",
+                $excerpt,
+                $reply->user_id,
             );
         }
 
@@ -75,8 +96,87 @@ class SupportTicketNotifier
         $summary = "Ticket {$ticket->ticket_number} is now {$label}.";
 
         $this->mailTenant($ticket, 'status', $summary, null);
+        $this->mailTenantAdmins($ticket, 'status', $summary, null);
         $this->mailStaff($ticket, 'status', $summary, null);
         $this->inApp($ticket, 'Support ticket updated', $summary);
+    }
+
+    /** Salon owner and tenant_admin users for this store, excluding the ticket author. */
+    private function mailTenantAdmins(SupportTicket $ticket, string $event, string $summary, ?string $excerpt, ?int $exceptUserId = null): void
+    {
+        $skip = [];
+        $authorEmail = strtolower(trim((string) ($ticket->user?->email ?? '')));
+        if ($authorEmail !== '') {
+            $skip[$authorEmail] = true;
+        }
+        if ($exceptUserId) {
+            $except = User::query()->find($exceptUserId);
+            $exceptEmail = strtolower(trim((string) ($except?->email ?? '')));
+            if ($exceptEmail !== '') {
+                $skip[$exceptEmail] = true;
+            }
+        }
+
+        foreach ($this->tenantAdminRecipients($ticket) as $admin) {
+            $email = strtolower(trim((string) $admin->email));
+            if ($email === '' || isset($skip[$email])) {
+                continue;
+            }
+            $skip[$email] = true;
+            try {
+                $admin->notify(new SupportTicketMailNotification($ticket, $event, 'tenant', $summary, $excerpt));
+            } catch (\Throwable $e) {
+                Log::warning('Support ticket tenant-admin mail failed', [
+                    'ticket' => $ticket->id,
+                    'user' => $admin->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /** @return Collection<int, User> */
+    private function tenantAdminRecipients(SupportTicket $ticket): Collection
+    {
+        $salon = $ticket->salon;
+        if (! $salon) {
+            return collect();
+        }
+
+        $ids = [];
+        if ($salon->owner_id) {
+            $ids[] = (int) $salon->owner_id;
+        }
+
+        $staffUserIds = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->all();
+
+        $query = User::query()
+            ->whereNotNull('email')
+            ->where(function ($q) use ($ids, $staffUserIds, $salon) {
+                if ($ids !== []) {
+                    $q->orWhereIn('id', $ids);
+                }
+                if ($staffUserIds !== []) {
+                    $q->orWhereIn('id', $staffUserIds);
+                }
+                $q->orWhereHas('salons', fn ($s) => $s->where('salons.id', $salon->id));
+            });
+
+        return $query->get()->filter(function (User $user) use ($salon) {
+            if ($user->isSuperAdmin()) {
+                return false;
+            }
+
+            if ((int) $salon->owner_id === (int) $user->id) {
+                return true;
+            }
+
+            return $user->hasRole('tenant_admin');
+        })->values();
     }
 
     private function mailTenant(SupportTicket $ticket, string $event, string $summary, ?string $excerpt): void
