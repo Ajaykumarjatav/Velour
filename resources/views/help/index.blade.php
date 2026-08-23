@@ -83,10 +83,17 @@
         class="bg-gray-900 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-700 transition text-sm">
         ✉ Email Support
       </a>
-      <a href="{{ route('admin.support.index') }}"
+      @auth
+      <a href="{{ \App\Support\SalonUrl::route('support-tickets.index') }}"
         class="border border-gray-200 text-gray-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition text-sm">
         🎟 View My Tickets
       </a>
+      @else
+      <a href="{{ route('login') }}"
+        class="border border-gray-200 text-gray-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition text-sm">
+        🎟 Log in to open a ticket
+      </a>
+      @endauth
     </div>
   </div>
 

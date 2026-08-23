@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
+use App\Models\Appointment;
 use App\Models\SalonActionItem;
 use App\Models\Staff;
+use App\Support\AppointmentLifecycle;
 use App\Support\SalonTime;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -87,6 +89,34 @@ class TaskController extends Controller
         $columnProgress = $items->where('status', 'in_progress')->values();
         $columnDone = $items->where('status', 'done')->values();
 
+        [$todayStartUtc, $todayEndUtc] = SalonTime::dayRangeUtcFromYmd($salon, $todayLocal->toDateString());
+        $appointmentsQuery = Appointment::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->whereBetween('starts_at', [$todayStartUtc, $todayEndUtc])
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->with(['client', 'staff', 'services']);
+
+        if ($staffScopeId !== null) {
+            $appointmentsQuery->where('staff_id', $staffScopeId);
+        }
+
+        $todayAppointments = $appointmentsQuery->orderBy('starts_at')->get();
+
+        $appointmentTodo = $todayAppointments->filter(function (Appointment $apt) {
+            return in_array($apt->status, ['pending', 'confirmed', 'hold'], true);
+        })->values();
+        $appointmentProgress = $todayAppointments->filter(function (Appointment $apt) {
+            return in_array($apt->status, ['checked_in', 'in_progress'], true);
+        })->values();
+        $appointmentDone = $todayAppointments->where('status', 'completed')->values();
+
+        $countOpen += $appointmentTodo->count();
+        $countInProgress += $appointmentProgress->count();
+        $countDone += $appointmentDone->count();
+        $countOverdue += $todayAppointments->filter(
+            fn (Appointment $apt) => AppointmentLifecycle::isPastUnresolved($apt, $salon)
+        )->count();
+
         $staffForAssign = collect();
         if ($canManage) {
             $staffForAssign = Staff::withoutGlobalScopes()
@@ -112,6 +142,9 @@ class TaskController extends Controller
             'columnTodo',
             'columnProgress',
             'columnDone',
+            'appointmentTodo',
+            'appointmentProgress',
+            'appointmentDone',
             'staffForAssign',
             'deskKindLabels'
         ));

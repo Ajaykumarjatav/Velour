@@ -11,8 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Public storefront / booking surfaces must not mint or overwrite panel cookies.
  *
- * Admin sessions use Path=/vellor/admin (SESSION_PATH). Preview opens
- * http://…/vellor/s/{slug} which does not send that cookie, so StartSession
+ * Admin sessions use Path=SESSION_PATH (APP_URL subdirectory). Preview opens
+ * http://…/s/{slug} which does not send that cookie, so StartSession
  * would create a guest session and Set-Cookie would overwrite the logged-in
  * admin session — causing "Unauthenticated." on the next go-live AJAX call
  * (theme save, etc.).

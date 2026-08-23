@@ -31,7 +31,7 @@
 <body>
 <div class="wrapper">
   <div class="header">
-    <img src="{{ \App\Support\MailAssets::logoUrl() }}" alt="EasyGrox" width="160" height="82" style="display:block;margin:0 auto;max-width:160px;height:auto;border:0;outline:none;text-decoration:none;">
+    <img src="{{ $logoUrl ?? \App\Support\MailAssets::logoUrl() }}" alt="EasyGrox" width="160" height="82" style="display:block;margin:0 auto;max-width:160px;height:auto;border:0;outline:none;text-decoration:none;">
   </div>
   <div class="body">
     @yield('body')

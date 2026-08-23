@@ -66,6 +66,7 @@ class GuideController extends Controller
         $account = array_values(array_filter([
             $show('settings') ? ['title' => 'Settings', 'hint' => 'Business, booking, hours, team, notifications, profile.', 'href' => route('settings.index')] : null,
             $show('security_support') ? ['title' => 'Security & 2FA', 'hint' => 'Password and two-factor login.', 'href' => route('security-support.index')] : null,
+            $show('support') ? ['title' => 'Support tickets', 'hint' => 'Report a store issue. Super admin sees it and both of you get email updates.', 'href' => route('support-tickets.index')] : null,
             $show('notifications') ? ['title' => 'Notifications', 'hint' => 'Salon alerts for bookings and payments.', 'href' => route('notifications.index')] : null,
             config('billing.subscriptions_enabled') && $show('billing')
                 ? ['title' => 'Billing', 'hint' => 'Plan, invoices, and Cashfree checkout.', 'href' => route('billing.dashboard')]

@@ -13,7 +13,7 @@ return [
     | Local Vite preview (optional)
     |--------------------------------------------------------------------------
     | Only used when STOREFRONT_USE_VITE_PREVIEW=true and Vite is running.
-    | Otherwise Go Live / Website preview use Laravel: /vellor/s/{slug}.
+    | Otherwise Go Live / Website preview use Laravel: /s/{slug} under APP_URL.
     */
     'dev_url' => env('SALON_WEBSITE_DEV_URL'),
     'use_vite_preview' => (bool) env('STOREFRONT_USE_VITE_PREVIEW', false),

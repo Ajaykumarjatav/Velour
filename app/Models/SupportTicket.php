@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int         $id
- * @property string      $ticket_number      VLR-00042
+ * @property string      $ticket_number      EGX-00042
  * @property int|null    $user_id
  * @property int|null    $salon_id
  * @property int|null    $assigned_to
@@ -28,18 +28,46 @@ class SupportTicket extends Model
 {
     protected $fillable = [
         'ticket_number', 'user_id', 'salon_id', 'assigned_to',
-        'subject', 'body', 'category', 'priority', 'status',
+        'subject', 'body', 'attachments', 'category', 'priority', 'status',
         'satisfaction_rating', 'satisfaction_feedback',
         'first_replied_at', 'resolved_at', 'closed_at',
     ];
 
     protected $casts = [
+        'attachments'      => 'array',
         'first_replied_at' => 'datetime',
         'resolved_at'      => 'datetime',
         'closed_at'        => 'datetime',
     ];
 
-    const CATEGORIES = ['billing', 'technical', 'feature_request', 'account', 'general', 'bug'];
+    const CATEGORIES = [
+        'booking_issue',
+        'store_issue',
+        'payment_billing',
+        'staff_services',
+        'notifications',
+        'technical_issue',
+        'account_issue',
+        'other',
+    ];
+
+    const CATEGORY_LABELS = [
+        'booking_issue' => 'Booking Issue',
+        'store_issue' => 'Store Issue',
+        'payment_billing' => 'Payment & Billing',
+        'staff_services' => 'Staff & Services',
+        'notifications' => 'Notifications',
+        'technical_issue' => 'Technical Issue',
+        'account_issue' => 'Account Issue',
+        'other' => 'Other',
+        'billing' => 'Payment & Billing',
+        'technical' => 'Technical Issue',
+        'feature_request' => 'Other',
+        'account' => 'Account Issue',
+        'general' => 'Other',
+        'bug' => 'Technical Issue',
+    ];
+
     const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
     const STATUSES   = ['open', 'in_progress', 'waiting_on_customer', 'resolved', 'closed'];
 
@@ -94,25 +122,57 @@ class SupportTicket extends Model
     public function priorityColor(): string
     {
         return match ($this->priority) {
-            'urgent' => 'text-red-400 bg-red-900/30 border-red-800/50',
-            'high'   => 'text-orange-400 bg-orange-900/30 border-orange-800/50',
-            'normal' => 'text-blue-400 bg-blue-900/30 border-blue-800/50',
-            default  => 'text-gray-400 bg-gray-800 border-gray-700',
+            'urgent' => 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800/50',
+            'high'   => 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800/50',
+            'normal' => 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50',
+            default  => 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
         };
+    }
+
+    public static function categoryLabel(?string $slug): string
+    {
+        $slug = (string) $slug;
+
+        return self::CATEGORY_LABELS[$slug] ?? ucwords(str_replace('_', ' ', $slug));
     }
 
     public function statusColor(): string
     {
         return match ($this->status) {
-            'open'                 => 'text-green-400 bg-green-900/30',
-            'in_progress'          => 'text-blue-400 bg-blue-900/30',
-            'waiting_on_customer'  => 'text-amber-400 bg-amber-900/30',
-            'resolved', 'closed'   => 'text-gray-400 bg-gray-800',
+            'open'                 => 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/40',
+            'in_progress'          => 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/40',
+            'waiting_on_customer'  => 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/40',
+            'resolved', 'closed'   => 'text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700/80',
         };
     }
 
     public function isOpen(): bool    { return in_array($this->status, ['open', 'in_progress']); }
     public function isClosed(): bool  { return in_array($this->status, ['resolved', 'closed']); }
+
+    /** @return list<array{name: string, path: string, mime: string, size: int}> */
+    public function attachmentFiles(): array
+    {
+        $rows = $this->attachments ?? [];
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || empty($row['path'])) {
+                continue;
+            }
+            $out[] = [
+                'name' => (string) ($row['name'] ?? basename((string) $row['path'])),
+                'path' => (string) $row['path'],
+                'mime' => (string) ($row['mime'] ?? ''),
+                'size' => (int) ($row['size'] ?? 0),
+                'url' => \App\Support\PublicStorage::url((string) $row['path']),
+            ];
+        }
+
+        return $out;
+    }
 
     public function responseTime(): ?string
     {
@@ -125,6 +185,6 @@ class SupportTicket extends Model
     private static function generateNumber(): string
     {
         $last = static::max('id') ?? 0;
-        return 'VLR-' . str_pad($last + 1, 5, '0', STR_PAD_LEFT);
+        return 'EGX-' . str_pad($last + 1, 5, '0', STR_PAD_LEFT);
     }
 }

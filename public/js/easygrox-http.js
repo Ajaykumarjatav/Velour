@@ -36,7 +36,7 @@
     if (!url) return url;
     if (typeof url !== 'string') return url;
     if (url.startsWith('/') || url.startsWith('?') || url.startsWith('#')) {
-      // Root-absolute API paths need the app subdirectory (e.g. /vellor/admin).
+      // Root-absolute API paths need the app subdirectory (from APP_URL).
       if (basePath && url.startsWith('/api/')) {
         return basePath + url;
       }

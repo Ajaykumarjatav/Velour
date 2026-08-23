@@ -17,7 +17,7 @@
           <span class="px-2 py-0.5 rounded-lg text-xs font-semibold {{ $ticket->statusColor() }} capitalize">
             {{ str_replace('_',' ',$ticket->status) }}
           </span>
-          <span class="text-xs text-gray-500 capitalize">{{ str_replace('_',' ',$ticket->category) }}</span>
+          <span class="text-xs text-gray-500">{{ \App\Models\SupportTicket::categoryLabel($ticket->category) }}</span>
         </div>
         <h2 class="text-lg font-bold text-white">{{ $ticket->subject }}</h2>
         <div class="flex flex-wrap gap-3 mt-1.5 text-xs text-gray-500">
@@ -36,32 +36,11 @@
             <span>First reply: {{ $ticket->responseTime() }}</span>
           @endif
         </div>
-      </div>
-
-      {{-- Quick actions --}}
-      <div class="flex flex-wrap gap-2 flex-shrink-0">
-        {{-- Assign --}}
-        <form method="POST" action="{{ route('admin.support.assign', $ticket) }}" class="flex flex-wrap gap-2">
-          @csrf @method('PATCH')
-          <select name="assigned_to"
-                  class="px-3 py-2 text-xs bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
-            <option value="">Unassigned</option>
-            @foreach($admins as $admin)
-            <option value="{{ $admin->id }}" {{ $ticket->assigned_to == $admin->id ? 'selected' : '' }}>
-              {{ $admin->name }}
-            </option>
-            @endforeach
-          </select>
-          <button type="submit"
-                  class="px-3 py-2 text-xs font-medium rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-            Assign
-          </button>
-        </form>
-      </div>
+        </div>
     </div>
 
     {{-- Status / priority controls --}}
-    <form method="POST" action="{{ route('admin.support.status', $ticket) }}"
+    <form method="POST" action="{{ \App\Support\AppUrl::path('admin.support.status', ['ticket' => $ticket]) }}"
           class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-800">
       @csrf @method('PATCH')
       <select name="status"
@@ -100,7 +79,9 @@
         </div>
         <span class="text-xs text-gray-500">{{ $ticket->created_at->format('d M Y H:i') }}</span>
       </div>
-      <div class="px-5 py-4 text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{{ $ticket->body }}</div>
+      <div class="px-5 py-4 text-sm text-gray-300 leading-relaxed">
+        @include('support-tickets.partials.body')
+      </div>
     </div>
 
     {{-- Replies --}}
@@ -149,7 +130,7 @@
       </button>
     </div>
 
-    <form method="POST" action="{{ route('admin.support.reply', $ticket) }}" class="p-5">
+    <form method="POST" action="{{ \App\Support\AppUrl::path('admin.support.reply', ['ticket' => $ticket]) }}" class="p-5">
       @csrf
       <input type="hidden" name="is_internal" :value="replyTab==='note' ? 1 : 0" x-bind:value="replyTab==='note' ? 1 : 0">
 

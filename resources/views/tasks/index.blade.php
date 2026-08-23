@@ -29,7 +29,7 @@
 <div class="max-w-7xl mx-auto space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-            <p class="mt-1 max-w-xl text-[11px] leading-snug text-gray-400 dark:text-gray-500">Assign and track work across your team. Tasks stay in sync with the dashboard action center.</p>
+            <p class="mt-1 max-w-xl text-[11px] leading-snug text-gray-400 dark:text-gray-500">Assign and track work across your team. Today’s appointments appear on this board so you can confirm, complete, or follow up in one place.</p>
         </div>
         @if($canManage)
         <x-unless-admin-browse>
@@ -128,9 +128,9 @@
 
     @php
         $columns = [
-            ['key' => 'todo', 'title' => 'To do', 'dot' => 'bg-sky-500', 'items' => $columnTodo],
-            ['key' => 'progress', 'title' => 'In progress', 'dot' => 'bg-amber-500', 'items' => $columnProgress],
-            ['key' => 'done', 'title' => 'Done', 'dot' => 'bg-emerald-500', 'items' => $columnDone],
+            ['key' => 'todo', 'title' => 'To do', 'dot' => 'bg-sky-500', 'items' => $columnTodo, 'appointments' => $appointmentTodo],
+            ['key' => 'progress', 'title' => 'In progress', 'dot' => 'bg-amber-500', 'items' => $columnProgress, 'appointments' => $appointmentProgress],
+            ['key' => 'done', 'title' => 'Done', 'dot' => 'bg-emerald-500', 'items' => $columnDone, 'appointments' => $appointmentDone],
         ];
     @endphp
 
@@ -142,9 +142,12 @@
                     <span class="w-2 h-2 rounded-full {{ $col['dot'] }} shrink-0" aria-hidden="true"></span>
                     <h2 class="text-sm font-semibold text-heading truncate">{{ $col['title'] }}</h2>
                 </div>
-                <span class="text-xs text-muted tabular-nums">{{ $col['items']->count() }}</span>
+                <span class="text-xs text-muted tabular-nums">{{ $col['items']->count() + $col['appointments']->count() }}</span>
             </div>
             <div class="p-3 space-y-3 flex-1">
+                @foreach($col['appointments'] as $appointment)
+                    @include('tasks.partials.appointment-card', ['appointment' => $appointment])
+                @endforeach
                 @forelse($col['items'] as $item)
                 <article class="card p-4 shadow-sm border-gray-200 dark:border-gray-800">
                     <div class="flex items-start justify-between gap-2">
@@ -285,7 +288,9 @@
                     @endif
                 </article>
                 @empty
-                <p class="text-sm text-muted text-center py-8">No tasks</p>
+                    @if($col['appointments']->isEmpty())
+                    <p class="text-sm text-muted text-center py-8">No tasks</p>
+                    @endif
                 @endforelse
             </div>
         </div>

@@ -59,7 +59,7 @@
   <select name="category" class="px-3 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-velour-500">
     <option value="">All categories</option>
     @foreach(\App\Models\SupportTicket::CATEGORIES as $c)
-    <option value="{{ $c }}" {{ request('category')===$c ? 'selected' : '' }}>{{ ucwords(str_replace('_',' ',$c)) }}</option>
+    <option value="{{ $c }}" {{ request('category')===$c ? 'selected' : '' }}>{{ \App\Models\SupportTicket::categoryLabel($c) }}</option>
     @endforeach
   </select>
 
@@ -116,7 +116,7 @@
         @endif
       </td>
       <td class="px-4 py-3.5 hidden lg:table-cell">
-        <span class="text-xs text-gray-400 capitalize">{{ str_replace('_',' ',$ticket->category) }}</span>
+        <span class="text-xs text-gray-400">{{ \App\Models\SupportTicket::categoryLabel($ticket->category) }}</span>
       </td>
       <td class="px-4 py-3.5">
         <span class="px-2 py-0.5 rounded-lg text-xs font-semibold border {{ $ticket->priorityColor() }} capitalize">

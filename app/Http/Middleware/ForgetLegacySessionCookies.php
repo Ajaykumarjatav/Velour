@@ -20,6 +20,7 @@ class ForgetLegacySessionCookies
     /** @var list<string> */
     private const LEGACY_COOKIES = [
         'easygrox_session',
+        'easygrox_vellor_local_session',
         'laravel_session',
         'velour_session',
     ];

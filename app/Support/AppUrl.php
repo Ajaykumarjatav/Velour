@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 /**
  * Build absolute URLs that include the APP_URL subdirectory when the app
- * runs under a path prefix (e.g. /vellor/admin on XAMPP).
+ * runs under a path prefix (e.g. /easygrox/admin or the APP_URL path on XAMPP).
  */
 final class AppUrl
 {
@@ -43,20 +43,115 @@ final class AppUrl
     }
 
     /**
-     * Same-origin path for fetch/form actions (keeps subdirectory, drops host).
-     * Avoids CSRF failures when APP_URL host differs from the browser host.
+     * Same-origin path for fetch/form actions.
+     * Always prefixes the live request subdirectory so forms never POST to
+     * /admin/... or /login at the Apache document root.
      */
     public static function path(string $name, mixed $parameters = [], bool $absolute = true): string
     {
-        $url = route($name, $parameters, $absolute);
-        $path = parse_url($url, PHP_URL_PATH) ?: '/';
-        $query = parse_url($url, PHP_URL_QUERY);
+        $relative = route($name, $parameters, false);
+        $query = '';
+        if (str_contains($relative, '?')) {
+            [$relative, $qs] = explode('?', $relative, 2);
+            $query = '?'.$qs;
+        }
 
-        return $query ? $path.'?'.$query : $path;
+        $rel = '/'.ltrim($relative, '/');
+        $base = self::requestBasePath();
+
+        if ($base !== '' && ($rel === $base || str_starts_with($rel, $base.'/'))) {
+            return $rel.$query;
+        }
+
+        return ($base === '' ? $rel : $base.$rel).$query;
     }
 
     /**
-     * App subdirectory from APP_URL (e.g. "/vellor/admin" or "/admin" or "").
+     * Absolute login URL for the current request (subdirectory-safe).
+     * Never return host-root /login — Apache 404s that on XAMPP.
+     */
+    public static function login(): string
+    {
+        $base = self::requestBasePath();
+        $host = '';
+        try {
+            $host = request()->getSchemeAndHttpHost();
+        } catch (\Throwable) {
+            $host = '';
+        }
+
+        if ($host !== '' && $base !== '') {
+            return $host.$base.'/login';
+        }
+
+        if ($base !== '') {
+            return $base.'/login';
+        }
+
+        try {
+            $url = route('login');
+            $path = parse_url($url, PHP_URL_PATH) ?: '/login';
+            if ($path === '/login' && $host !== '') {
+                $fallback = self::basePath();
+
+                return $fallback !== '' ? $host.$fallback.'/login' : $host.'/login';
+            }
+
+            return $url;
+        } catch (\Throwable) {
+            return ($host !== '' ? $host : '').'/login';
+        }
+    }
+
+    /**
+     * Subdirectory the browser used, e.g. "/easygrox/admin" from APP_URL.
+     * Never keep "/public" in the path — that produces .../public/login.
+     */
+    public static function requestBasePath(): string
+    {
+        $configured = self::basePath();
+
+        $detected = '';
+        try {
+            $request = request();
+            $detected = rtrim((string) $request->getBasePath(), '/');
+            $detected = self::stripPublicDir($detected);
+
+            if ($detected === '' || $detected === '/') {
+                $script = str_replace('\\', '/', (string) $request->server->get('SCRIPT_NAME', ''));
+                if (str_ends_with($script, '/index.php')) {
+                    $detected = self::stripPublicDir(
+                        rtrim(substr($script, 0, -strlen('/index.php')), '/')
+                    );
+                }
+            }
+        } catch (\Throwable) {
+            $detected = '';
+        }
+
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        if ($detected !== '' && $detected !== '/') {
+            return $detected;
+        }
+
+        return $configured;
+    }
+
+    private static function stripPublicDir(string $path): string
+    {
+        $path = rtrim($path, '/');
+        if (str_ends_with($path, '/public')) {
+            $path = rtrim(substr($path, 0, -strlen('/public')), '/');
+        }
+
+        return $path;
+    }
+
+    /**
+     * App subdirectory from APP_URL (e.g. "/easygrox/admin" or "/admin" or "").
      */
     public static function basePath(): string
     {
@@ -82,7 +177,7 @@ final class AppUrl
      */
     public static function faviconHref(): string
     {
-        $base = self::basePath();
+        $base = self::requestBasePath();
         if ($base === '') {
             $base = rtrim((string) request()->getBasePath(), '/');
         }

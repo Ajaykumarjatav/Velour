@@ -13,7 +13,7 @@ return [
     'debug'           => (bool) env('APP_DEBUG', true),
     'url'             => env('APP_URL', 'http://localhost'),
     // Public / marketing / booking origin. Falls back to APP_URL without trailing /admin
-    // so local → localhost/vellor, staging → staging host, production → production host.
+    // so local → localhost/{app folder}, staging → staging host, production → production host.
     'frontend_url'    => rtrim(
         (string) (env('APP_FRONTEND_URL') ?: preg_replace('#/admin/?$#', '', rtrim((string) env('APP_URL', 'http://localhost'), '/'))),
         '/'

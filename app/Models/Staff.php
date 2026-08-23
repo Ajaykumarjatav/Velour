@@ -137,7 +137,7 @@ class Staff extends Model
 
     /**
      * Public URL for a stored avatar, or null when missing / not on disk.
-     * Uses asset() so URLs match subdirectory deployments (e.g. /vellor/public).
+     * Uses asset() so URLs match subdirectory deployments (e.g. APP_URL path).
      */
     public static function resolvePublicAvatarUrl(?string $avatar): ?string
     {

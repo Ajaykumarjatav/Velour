@@ -394,6 +394,6 @@
         }
     }, true);
 
-    window.vellorMarkRequiredFields = markRequiredFields;
+    window.easygroxMarkRequiredFields = markRequiredFields;
 })();
 </script>

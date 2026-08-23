@@ -1391,7 +1391,7 @@ class SettingsController extends Controller
                 ->with('tab', $tab);
         }
 
-        // return_to often carries the full path from the browser (e.g. /vellor/public/dashboard).
+        // return_to often carries the full path from the browser (e.g. /easygrox/public/dashboard).
         // redirect() prepends the app URL again, which already includes the base path — strip once
         // so we pass a path relative to the application root (e.g. /dashboard).
         $basePath = rtrim($request->getBasePath(), '/') ?: '';

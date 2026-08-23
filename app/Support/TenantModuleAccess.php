@@ -202,6 +202,7 @@ final class TenantModuleAccess
             'settings.*' => 'settings',
             'two-factor.*' => 'security_support',
             'security-support.*' => 'security_support',
+            'support-tickets.*' => 'support',
             'notifications.*' => 'notifications',
             'deleted-items.*' => 'deleted_items',
             'guide.*' => 'guide',

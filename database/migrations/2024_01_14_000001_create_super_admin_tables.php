@@ -22,7 +22,7 @@ return new class extends Migration
         Schema::create('support_tickets', function (Blueprint $table) {
             $table->id();
 
-            // Unique ticket reference shown to users (e.g. VLR-00042)
+            // Unique ticket reference shown to users (e.g. EGX-00042)
             $table->string('ticket_number', 20)->unique();
 
             // Requester context

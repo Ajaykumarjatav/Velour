@@ -758,7 +758,7 @@ class AppointmentController extends Controller
         return back()->with('success', 'Appointment rescheduled.');
     }
 
-    public function complete(Appointment $appointment): RedirectResponse
+    public function complete(Request $request, Appointment $appointment): RedirectResponse
     {
         $this->authorise($appointment);
 
@@ -779,9 +779,14 @@ class AppointmentController extends Controller
         $client->increment('visit_count');
         $client->update(['last_visit_at' => $appointment->starts_at]);
 
+        $success = __('Appointment completed successfully.');
+        if ($request->input('redirect') === 'tasks') {
+            return redirect()->route('tasks.index')->with('success', $success);
+        }
+
         return redirect()
             ->route('appointments.show', $appointment->id)
-            ->with('success', __('Appointment completed successfully.'));
+            ->with('success', $success);
     }
 
     public function destroy(Appointment $appointment)

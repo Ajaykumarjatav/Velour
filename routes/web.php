@@ -28,6 +28,7 @@ use App\Http\Controllers\Web\ReviewController;
 use App\Http\Controllers\Web\CustomizationController;
 use App\Http\Controllers\Web\DeletedItemsController;
 use App\Http\Controllers\Web\SecuritySupportController;
+use App\Http\Controllers\Web\TenantSupportController;
 use App\Http\Controllers\Web\WebsiteSeoController;
 use App\Http\Controllers\Web\RelationQuickCreateController;
 use App\Http\Controllers\Web\TenantLookupController;
@@ -387,6 +388,11 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::post('website-seo/publish', [WebsiteSeoController::class, 'publish'])->name('website-seo.publish');
         Route::get('security-support', [SecuritySupportController::class, 'index'])->name('security-support.index');
         Route::put('security-support/security', [SecuritySupportController::class, 'updateSecurity'])->name('security-support.security.update');
+        Route::get('support-tickets', [TenantSupportController::class, 'index'])->name('support-tickets.index');
+        Route::get('support-tickets/create', [TenantSupportController::class, 'create'])->name('support-tickets.create');
+        Route::post('support-tickets', [TenantSupportController::class, 'store'])->name('support-tickets.store');
+        Route::get('support-tickets/{ticket}', [TenantSupportController::class, 'show'])->name('support-tickets.show');
+        Route::post('support-tickets/{ticket}/reply', [TenantSupportController::class, 'reply'])->name('support-tickets.reply');
         Route::get('customization', [CustomizationController::class, 'index'])->name('customization.index');
         Route::post('customization/brand', [CustomizationController::class, 'updateBrand'])->name('customization.brand.update');
         Route::put('customization/options', [CustomizationController::class, 'updateOptions'])->name('customization.options.update');
@@ -486,7 +492,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
     // Do not catch public share URLs (reviews/share/{token}) — those are guest routes.
     Route::middleware(['salon.panel'])->group(function () {
         Route::any('{legacy}', LegacySalonUrlController::class)
-            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|security-support|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking|account|billing|onboarding)(/.*)?$')
+            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|security-support|support-tickets|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking|account|billing|onboarding)(/.*)?$')
             ->name('legacy.salon.redirect');
     });
 

@@ -94,7 +94,10 @@
                 <p class="text-sm font-semibold text-heading">Notifications</p>
                 <p class="text-xs text-muted mt-1">Alerts and system activity</p>
             </a>
-            <a class="rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50" href="{{ route('guide.index') }}">
+            <a class="rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50" href="{{ route('support-tickets.index') }}">
+                <p class="text-sm font-semibold text-heading">Support tickets</p>
+                <p class="text-xs text-muted mt-1">Report a store issue to EasyGrox support</p>
+            </a>
                 <p class="text-sm font-semibold text-heading">Guide &amp; Setup</p>
                 <p class="text-xs text-muted mt-1">How the salon panel works</p>
             </a>

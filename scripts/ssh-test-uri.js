@@ -5,15 +5,15 @@ const php = `<?php
 \\$_SERVER['REQUEST_URI']='/s/ak-salon';
 \\$_SERVER['SCRIPT_NAME']='/admin/public/index.php';
 require 'domains/easygrox.com/public_html/admin/bootstrap/request.php';
-vellor_normalize_request_uri();
+easygrox_normalize_request_uri();
 echo \\$_SERVER['REQUEST_URI'];
 `;
 
 const cmd = [
   'cd domains/easygrox.com/public_html/admin',
-  'php -r \'$_SERVER["REQUEST_URI"]="/s/ak-salon"; $_SERVER["SCRIPT_NAME"]="/admin/public/index.php"; require "bootstrap/request.php"; vellor_normalize_request_uri(); echo $_SERVER["REQUEST_URI"], PHP_EOL;\'',
-  'php -r \'$_SERVER["REQUEST_URI"]="/admin/s/ak-salon"; $_SERVER["SCRIPT_NAME"]="/admin/public/index.php"; require "bootstrap/request.php"; vellor_normalize_request_uri(); echo $_SERVER["REQUEST_URI"], PHP_EOL;\'',
-  'php -r \'$_SERVER["REQUEST_URI"]="/admin/public/index.php"; $_SERVER["SCRIPT_NAME"]="/admin/public/index.php"; $_SERVER["REDIRECT_URL"]="/s/ak-salon"; require "bootstrap/request.php"; vellor_normalize_request_uri(); echo $_SERVER["REQUEST_URI"], PHP_EOL;\'',
+  'php -r \'$_SERVER["REQUEST_URI"]="/s/ak-salon"; $_SERVER["SCRIPT_NAME"]="/admin/public/index.php"; require "bootstrap/request.php"; easygrox_normalize_request_uri(); echo $_SERVER["REQUEST_URI"], PHP_EOL;\'',
+  'php -r \'$_SERVER["REQUEST_URI"]="/admin/s/ak-salon"; $_SERVER["SCRIPT_NAME"]="/admin/public/index.php"; require "bootstrap/request.php"; easygrox_normalize_request_uri(); echo $_SERVER["REQUEST_URI"], PHP_EOL;\'',
+  'php -r \'$_SERVER["REQUEST_URI"]="/admin/public/index.php"; $_SERVER["SCRIPT_NAME"]="/admin/public/index.php"; $_SERVER["REDIRECT_URL"]="/s/ak-salon"; require "bootstrap/request.php"; easygrox_normalize_request_uri(); echo $_SERVER["REQUEST_URI"], PHP_EOL;\'',
 ].join(' && ');
 
 conn.on('ready', () => {

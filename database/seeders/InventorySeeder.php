@@ -100,7 +100,7 @@ class InventorySeeder extends Seeder
             ['cat' => 'consumables', 'name' => 'Cotton Wool Balls 150pk',             'sku' => 'COT-150',  'supplier' => 'Salon Supplies Ltd', 'unit' => 'Pack',     'cost' => 2.00,  'retail' => 0,     'stock' => 30, 'min' => 8,  'reorder' => 10, 'type' => 'professional'],
             ['cat' => 'consumables', 'name' => 'Spatulas (Pack of 100)',              'sku' => 'SPAT-100', 'supplier' => 'Salon Supplies Ltd', 'unit' => 'Pack',     'cost' => 2.50,  'retail' => 0,     'stock' => 12, 'min' => 4,  'reorder' => 6,  'type' => 'professional'],
             ['cat' => 'consumables', 'name' => 'Lint-Free Eye Pads (50pk)',           'sku' => 'EYEPAD-50','supplier' => 'Salon Supplies Ltd', 'unit' => 'Pack',     'cost' => 3.00,  'retail' => 0,     'stock' => 14, 'min' => 4,  'reorder' => 5,  'type' => 'professional'],
-            ['cat' => 'consumables', 'name' => 'EasyGrox Branded Tote Bags (pk 50)',    'sku' => 'VLR-BAG50','supplier' => 'EasyGrox Internal',    'unit' => 'Pack',     'cost' => 22.00, 'retail' => 0,     'stock' => 4,  'min' => 1,  'reorder' => 2,  'type' => 'professional'],
+            ['cat' => 'consumables', 'name' => 'EasyGrox Branded Tote Bags (pk 50)',    'sku' => 'EGX-BAG50','supplier' => 'EasyGrox Internal',    'unit' => 'Pack',     'cost' => 22.00, 'retail' => 0,     'stock' => 4,  'min' => 1,  'reorder' => 2,  'type' => 'professional'],
 
             // ── RETAIL ────────────────────────────────────────────────
             ['cat' => 'retail', 'name' => 'Olaplex No.3 & No.4 Duo Gift Set',      'sku' => 'OL-DUO',   'supplier' => 'Olaplex',            'unit' => 'Set',      'cost' => 32.00, 'retail' => 55.00, 'stock' => 8,  'min' => 2,  'reorder' => 4,  'type' => 'retail'],
@@ -111,7 +111,7 @@ class InventorySeeder extends Seeder
             ['cat' => 'retail', 'name' => 'K18 Molecular Repair Travel Kit',       'sku' => 'K18-TRVL', 'supplier' => 'K18',                'unit' => 'Kit',      'cost' => 25.00, 'retail' => 42.00, 'stock' => 7,  'min' => 2,  'reorder' => 3,  'type' => 'retail'],
             ['cat' => 'retail', 'name' => 'Elemis Pro-Collagen Marine Cream 50ml', 'sku' => 'EPC-50',   'supplier' => 'Elemis',             'unit' => '50ml',     'cost' => 42.00, 'retail' => 98.00, 'stock' => 5,  'min' => 2,  'reorder' => 3,  'type' => 'retail'],
             ['cat' => 'retail', 'name' => 'Moroccanoil Moisture Repair Shampoo',   'sku' => 'MOI-SH',   'supplier' => 'Moroccanoil',        'unit' => '200ml',    'cost' => 14.00, 'retail' => 26.00, 'stock' => 10, 'min' => 3,  'reorder' => 5,  'type' => 'retail'],
-            ['cat' => 'retail', 'name' => 'EasyGrox Silk Hair Wrap (Branded)',       'sku' => 'VLR-WRAP', 'supplier' => 'EasyGrox Internal',    'unit' => 'Each',     'cost' => 8.00,  'retail' => 22.00, 'stock' => 15, 'min' => 4,  'reorder' => 6,  'type' => 'retail'],
+            ['cat' => 'retail', 'name' => 'EasyGrox Silk Hair Wrap (Branded)',       'sku' => 'EGX-WRAP', 'supplier' => 'EasyGrox Internal',    'unit' => 'Each',     'cost' => 8.00,  'retail' => 22.00, 'stock' => 15, 'min' => 4,  'reorder' => 6,  'type' => 'retail'],
         ];
 
         foreach ($products as $p) {

@@ -7,6 +7,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\SupportTicketNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,7 +27,10 @@ use Illuminate\Support\Facades\Auth;
  */
 class AdminSupportController extends Controller
 {
-    public function __construct(protected AuditLogService $audit) {}
+    public function __construct(
+        protected AuditLogService $audit,
+        protected SupportTicketNotifier $notifier,
+    ) {}
 
     // ── Ticket Queue ──────────────────────────────────────────────────────────
 
@@ -115,7 +119,7 @@ class AdminSupportController extends Controller
 
         $isInternal = $request->boolean('is_internal');
 
-        SupportTicketReply::create([
+        $reply = SupportTicketReply::create([
             'ticket_id'    => $ticket->id,
             'user_id'      => Auth::id(),
             'body'         => $request->body,
@@ -128,24 +132,25 @@ class AdminSupportController extends Controller
             $ticket->first_replied_at = now();
         }
 
-        // Update status
-        $newStatus = $request->status ?? ($isInternal ? $ticket->status : 'in_progress');
+        $newStatus = $request->status ?? ($isInternal ? $ticket->status : 'waiting_on_customer');
         $ticket->status = $newStatus;
 
         if ($newStatus === 'resolved') {
             $ticket->resolved_at = $ticket->resolved_at ?? now();
         }
+        if ($newStatus === 'closed') {
+            $ticket->closed_at = $ticket->closed_at ?? now();
+        }
 
         $ticket->save();
 
-        // Notify tenant owner (if public reply)
-        if (! $isInternal && $ticket->user) {
-            $ticket->user->notify(
-                new \App\Notifications\Admin\SupportTicketReplyNotification($ticket, $request->body)
-            );
+        if (! $isInternal) {
+            $this->notifier->publicReply($ticket->fresh(['user', 'salon']), $reply);
         }
 
-        return back()->with('success', $isInternal ? 'Internal note added.' : 'Reply sent.');
+        return redirect()
+            ->route('admin.support.show', $ticket)
+            ->with('success', $isInternal ? 'Internal note added.' : 'Reply sent. The tenant was emailed.');
     }
 
     // ── Assign ────────────────────────────────────────────────────────────────
@@ -158,7 +163,9 @@ class AdminSupportController extends Controller
 
         $ticket->update(['assigned_to' => $request->assigned_to]);
 
-        return back()->with('success', 'Ticket assigned.');
+        return redirect()
+            ->route('admin.support.show', $ticket)
+            ->with('success', 'Ticket assigned.');
     }
 
     // ── Update Status / Priority ──────────────────────────────────────────────
@@ -171,6 +178,7 @@ class AdminSupportController extends Controller
         ]);
 
         $changes = array_filter($request->only('status', 'priority'));
+        $previousStatus = $ticket->status;
 
         if (isset($changes['status'])) {
             if ($changes['status'] === 'resolved') $changes['resolved_at'] = now();
@@ -179,7 +187,13 @@ class AdminSupportController extends Controller
 
         $ticket->update($changes);
 
-        return back()->with('success', 'Ticket updated.');
+        if (isset($changes['status'])) {
+            $this->notifier->statusChanged($ticket->fresh(['user', 'salon']), $previousStatus);
+        }
+
+        return redirect()
+            ->route('admin.support.show', $ticket)
+            ->with('success', 'Ticket updated.');
     }
 
     // ── Create Ticket (admin-initiated) ───────────────────────────────────────
@@ -200,6 +214,8 @@ class AdminSupportController extends Controller
             'status'      => 'open',
             'assigned_to' => Auth::id(),
         ]);
+
+        $this->notifier->created($ticket->fresh(['user', 'salon']));
 
         return redirect()->route('admin.support.show', $ticket)
             ->with('success', "Ticket {$ticket->ticket_number} created.");

@@ -312,10 +312,10 @@
 
         {{-- ACCOUNT --}}
         @php
-            $supportMenuActive = request()->routeIs('guide.*');
+            $supportMenuActive = request()->routeIs('guide.*', 'support-tickets.*');
             $accountMenuActive = request()->routeIs(
                 'billing.*', 'settings.*', 'two-factor.*', 'security-support.*',
-                'notifications.*', 'deleted-items.*', 'guide.*', 'activity.*'
+                'notifications.*', 'deleted-items.*', 'guide.*', 'activity.*', 'support-tickets.*'
             );
         @endphp
         @if(\App\Support\SidebarNav::showAccountGroup(auth()->user()))
@@ -439,6 +439,11 @@
                 </button>
                 <div x-show="supportOpen" x-transition class="ml-3 space-y-0.5">
                     @if($navShow('support'))
+                    <a href="{{ route('support-tickets.index') }}"
+                       class="sidebar-sub-link text-sm {{ request()->routeIs('support-tickets.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                        @include('partials.sidebar-nav-icon', ['icon' => 'support', 'small' => true])
+                        Support tickets
+                    </a>
                     <button type="button"
                             class="sidebar-sub-link w-full text-left text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                             @click="window.dispatchEvent(new CustomEvent('velour-chat-open'))"

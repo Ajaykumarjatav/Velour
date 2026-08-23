@@ -119,7 +119,7 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        // Subdirectory installs (e.g. /vellor/admin): paginator must not use raw
+        // Subdirectory installs (APP_URL path): paginator must not use raw
         // request paths like /ak/appointments (browser resolves that to localhost/ak/…).
         Paginator::currentPathResolver(function () {
             return url()->current();

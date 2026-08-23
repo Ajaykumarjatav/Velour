@@ -14,7 +14,7 @@ conn.on('ready', () => {
     ws.on('close', () => {
       conn.exec([
         'cd domains/easygrox.com/public_html/admin',
-        'php -r \'$_SERVER["REQUEST_URI"]="/admin/public/index.php"; $_SERVER["SCRIPT_NAME"]="/admin/public/index.php"; $_SERVER["REDIRECT_URL"]="/s/ak-salon"; require "bootstrap/request.php"; vellor_normalize_request_uri(); echo $_SERVER["REQUEST_URI"], PHP_EOL;\'',
+        'php -r \'$_SERVER["REQUEST_URI"]="/admin/public/index.php"; $_SERVER["SCRIPT_NAME"]="/admin/public/index.php"; $_SERVER["REDIRECT_URL"]="/s/ak-salon"; require "bootstrap/request.php"; easygrox_normalize_request_uri(); echo $_SERVER["REQUEST_URI"], PHP_EOL;\'',
         'curl -sI https://easygrox.com/s/ak-salon 2>&1 | head -5',
       ].join(' && '), (e, stream) => {
         stream.on('data', (d) => process.stdout.write(d));

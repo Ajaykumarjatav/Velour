@@ -40,9 +40,19 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureStoreUrlDefaults::class,
         ]);
 
+        $middleware->redirectGuestsTo(fn () => \App\Support\AppUrl::login());
+        $middleware->redirectUsersTo(function () {
+            $user = auth()->user();
+
+            return $user
+                ? \App\Support\AuthPanel::homeUrl($user)
+                : \App\Support\AppUrl::login();
+        });
+
         // Must run before StartSession so public storefront/booking never
         // overwrite the admin panel session cookie after "Preview".
         $middleware->web(prepend: [
+            \App\Http\Middleware\AlignUrlWithRequest::class,
             \App\Http\Middleware\PreventPublicSessionClobber::class,
         ]);
 
@@ -64,7 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         // Cashfree subscription checkout redirects back via POST (no CSRF token).
-        // Public guest booking widget posts from /vellor/s/* (session path is /vellor/admin).
+        // Public guest booking widget posts from /s/* (session path is the APP_URL subdirectory).
         $middleware->validateCsrfTokens(except: [
             'billing/return',
             'api/v1/book/*/hold',
@@ -157,6 +167,8 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Unauthenticated.'], 401);
             }
+
+            return redirect()->guest(\App\Support\AppUrl::login());
         });
 
         $exceptions->render(function (AuthorizationException $e, Request $request) {
@@ -172,7 +184,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 419);
             }
 
-            $fallback = $request->headers->get('referer') ?: url('/');
+            $referer = $request->headers->get('referer');
+            $refererPath = is_string($referer) ? (parse_url($referer, PHP_URL_PATH) ?: '') : '';
+            $fallback = (is_string($referer) && $referer !== '' && ! str_ends_with($refererPath, '/login'))
+                ? $referer
+                : $request->getSchemeAndHttpHost().rtrim((string) $request->getBasePath(), '/').'/';
 
             return redirect()
                 ->to($fallback)

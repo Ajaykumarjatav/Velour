@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Normalize REQUEST_URI when the app runs in a subdirectory (e.g. /vellor)
+ * Normalize REQUEST_URI when EasyGrox runs in a subdirectory
  * or behind a root .htaccess that rewrites to /public without changing the
  * browser URL.
  */
-function vellor_normalize_request_uri(): void
+function easygrox_normalize_request_uri(): void
 {
     if (PHP_SAPI === 'cli' || ! isset($_SERVER['REQUEST_URI'])) {
         return;
@@ -18,7 +18,7 @@ function vellor_normalize_request_uri(): void
 
     // Root .htaccess on easygrox.com rewrites /s/{slug} → admin/public/index.php.
     // LiteSpeed often leaves REQUEST_URI as /admin/public/index.php; recover /s/... from redirect env.
-    $storefrontPath = vellor_storefront_redirect_path();
+    $storefrontPath = easygrox_storefront_redirect_path();
     if ($storefrontPath !== null) {
         $_SERVER['REQUEST_URI'] = $storefrontPath.$suffix;
 
@@ -85,7 +85,7 @@ function vellor_normalize_request_uri(): void
     $_SERVER['REQUEST_URI'] = $path.$suffix;
 }
 
-function vellor_storefront_redirect_path(): ?string
+function easygrox_storefront_redirect_path(): ?string
 {
     foreach (['REDIRECT_URL', 'REDIRECT_URI'] as $key) {
         $raw = $_SERVER[$key] ?? '';
@@ -100,4 +100,10 @@ function vellor_storefront_redirect_path(): ?string
     }
 
     return null;
+}
+
+/** @deprecated Use easygrox_normalize_request_uri() */
+function vellor_normalize_request_uri(): void
+{
+    easygrox_normalize_request_uri();
 }
