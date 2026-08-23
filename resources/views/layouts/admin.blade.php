@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-950">
+<html lang="en" class="h-full bg-gray-950 css-pending">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>EasyGrox Admin · @yield('title', 'Dashboard')</title>
-  <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+  @include('partials.favicon')
+  @include('partials.prevent-fouc-start')
   @include('partials.easygrox-http')
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -384,5 +385,6 @@
   @include('partials.form-client-validation')
   @include('partials.disable-double-submit')
   @stack('scripts')
+  @include('partials.prevent-fouc-end')
 </body>
 </html>

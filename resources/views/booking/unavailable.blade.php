@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="css-pending">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Booking Unavailable</title>
+    @include('partials.favicon')
+    @include('partials.prevent-fouc-start')
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-violet-600 via-indigo-700 to-slate-900 text-white">
@@ -31,6 +33,7 @@
             </div>
         </div>
     </div>
+    @include('partials.prevent-fouc-end')
 </body>
 </html>
 

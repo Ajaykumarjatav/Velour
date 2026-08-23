@@ -58,6 +58,7 @@ use Illuminate\Support\Facades\Route;
 // ── Home ─────────────────────────────────────────────────────────────────────
 
 use App\Support\AuthPanel;
+use Illuminate\Support\Facades\Response;
 
 Route::get('/', function () {
     if (! auth()->check()) {
@@ -66,6 +67,36 @@ Route::get('/', function () {
 
     return redirect()->to(AuthPanel::homeUrl(auth()->user()));
 })->name('home');
+
+Route::get('favicon.ico', function () {
+    $file = public_path('favicon.png');
+    abort_unless(is_file($file), 404);
+
+    return Response::file($file, [
+        'Content-Type' => 'image/png',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->name('favicon.ico');
+
+Route::get('s/favicon.ico', function () {
+    $file = public_path('favicon.png');
+    abort_unless(is_file($file), 404);
+
+    return Response::file($file, [
+        'Content-Type' => 'image/png',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+});
+
+Route::get('s/favicon.png', function () {
+    $file = public_path('favicon.png');
+    abort_unless(is_file($file), 404);
+
+    return Response::file($file, [
+        'Content-Type' => 'image/png',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+});
 
 // ── Guest Routes ──────────────────────────────────────────────────────────────
 

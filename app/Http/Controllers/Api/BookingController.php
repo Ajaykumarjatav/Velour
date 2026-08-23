@@ -117,8 +117,7 @@ class BookingController extends Controller
         // service_id / service_ids remain accepted for backward-compatible clients.
         $staff = Staff::withoutGlobalScope(TenantScope::class)
             ->where('salon_id', $salon->id)
-            ->where('is_active', true)
-            ->where('bookable_online', true)
+            ->onlineBookable()
             ->orderBy('sort_order')
             ->get(['id', 'first_name', 'last_name', 'role', 'initials', 'color', 'avatar', 'bio', 'specialisms']);
 
@@ -230,16 +229,10 @@ class BookingController extends Controller
             $stylist = Staff::withoutGlobalScope(TenantScope::class)
                 ->where('salon_id', $salon->id)
                 ->where('id', $data['staff_id'])
-                ->where('is_active', true)
-                ->where('bookable_online', true)
+                ->onlineBookable()
                 ->first();
             if (! $stylist) {
                 return response()->json(['message' => 'That stylist is not available for online booking.'], 422);
-            }
-            foreach ($data['service_ids'] as $sid) {
-                if (! $stylist->services()->where('services.id', (int) $sid)->exists()) {
-                    return response()->json(['message' => 'That stylist cannot perform one of the selected services.'], 422);
-                }
             }
         }
 

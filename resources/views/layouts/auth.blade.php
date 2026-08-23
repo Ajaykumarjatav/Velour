@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full css-pending">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sign In') — EasyGrox</title>
-    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    @include('partials.favicon')
+    @include('partials.prevent-fouc-start')
     @include('partials.easygrox-http')
     <script>
         (function () {
@@ -163,5 +164,6 @@
 </script>
 @include('partials.form-client-validation')
 @include('partials.disable-double-submit')
+@include('partials.prevent-fouc-end')
 </body>
 </html>

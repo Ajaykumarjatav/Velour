@@ -67,8 +67,7 @@ class BookingController extends Controller
             ->count();
         $bookableStaffCount = Staff::query()
             ->where('salon_id', $salon->id)
-            ->where('is_active', true)
-            ->where('bookable_online', true)
+            ->onlineBookable()
             ->count();
         $avgRating = (float) Review::query()
             ->where('salon_id', $salon->id)

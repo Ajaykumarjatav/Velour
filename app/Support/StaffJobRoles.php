@@ -176,4 +176,24 @@ final class StaffJobRoles
 
         return ! in_array($roleSlug, ['tenant_admin', 'salon_manager', 'receptionist'], true);
     }
+
+    /**
+     * Front-desk / admin jobs must not appear as stylists on the public booking page.
+     *
+     * @return list<string>
+     */
+    public static function onlineBookingExcludedJobSlugs(): array
+    {
+        return ['receptionist', 'junior'];
+    }
+
+    public static function isOnlineBookableJob(?string $role): bool
+    {
+        $normalized = self::normalize($role);
+        if ($normalized === null || $normalized === '') {
+            return true;
+        }
+
+        return ! in_array($normalized, ['receptionist'], true);
+    }
 }

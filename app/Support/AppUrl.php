@@ -76,4 +76,17 @@ final class AppUrl
 
         return self::absolute($path);
     }
+
+    /**
+     * Root-relative favicon path (avoids APP_URL host mismatch on localhost/XAMPP).
+     */
+    public static function faviconHref(): string
+    {
+        $base = self::basePath();
+        if ($base === '') {
+            $base = rtrim((string) request()->getBasePath(), '/');
+        }
+
+        return ($base === '' ? '' : $base).'/favicon.png?v=5';
+    }
 }

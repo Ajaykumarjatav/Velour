@@ -1,10 +1,12 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="css-pending">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Book at {{ $salon->name }}</title>
+    @include('partials.favicon')
+    @include('partials.prevent-fouc-start')
     @include('partials.easygrox-http')
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -913,5 +915,6 @@ function bookingApp() {
     };
 }
 </script>
+@include('partials.prevent-fouc-end')
 </body>
 </html>

@@ -100,8 +100,7 @@ class BookingService
         // Get relevant staff
         $staffQuery = Staff::withoutGlobalScope(TenantScope::class)
             ->where('salon_id', $salonId)
-            ->where('is_active', true)
-            ->where('bookable_online', true)
+            ->onlineBookable()
             ->where(function ($q) use ($dowTag) {
                 $q->whereNull('working_days')
                     ->orWhereJsonContains('working_days', $dowTag);
@@ -235,8 +234,7 @@ class BookingService
         } else {
             $staffQuery = Staff::withoutGlobalScope(TenantScope::class)
                 ->where('salon_id', $salonId)
-                ->where('is_active', true)
-                ->where('bookable_online', true);
+                ->onlineBookable();
 
             $candidates = $staffQuery->orderBy('sort_order')->orderBy('id')->get();
             $assigned   = null;
@@ -299,8 +297,7 @@ class BookingService
 
             $staff = Staff::withoutGlobalScope(TenantScope::class)
                 ->where('salon_id', $salon->id)
-                ->where('is_active', true)
-                ->where('bookable_online', true)
+                ->onlineBookable()
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
@@ -358,31 +355,40 @@ class BookingService
 
     private function findOrCreateClient(int $salonId, array $data): Client
     {
+        $first = trim((string) ($data['first_name'] ?? ''));
+        $last  = trim((string) ($data['last_name'] ?? ''));
+        $email = $this->normalizeClientEmail($data['email'] ?? null);
+        $phone = trim((string) ($data['phone'] ?? ''));
+
         $client = null;
 
-        if (! empty($data['email'])) {
+        if ($email !== '') {
             $client = Client::withoutGlobalScope(TenantScope::class)
-                ->where('salon_id', $salonId)->where('email', $data['email'])->first();
+                ->where('salon_id', $salonId)
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->first();
         }
 
-        if (! $client && ! empty($data['phone'])) {
-            $client = Client::withoutGlobalScope(TenantScope::class)
-                ->where('salon_id', $salonId)->where('phone', $data['phone'])->first();
+        if (! $client && $phone !== '') {
+            $byPhone = $this->findClientByPhone($salonId, $phone);
+            if ($byPhone && $this->isSameBookingClient($byPhone, $first, $last, $email)) {
+                $client = $byPhone;
+            }
         }
 
         if ($client) {
             $updates = [];
-            if (empty($client->email) && ! empty($data['email'])) {
-                $updates['email'] = $data['email'];
+            if (empty($client->email) && $email !== '') {
+                $updates['email'] = $email;
             }
-            if (empty($client->phone) && ! empty($data['phone'])) {
-                $updates['phone'] = $data['phone'];
+            if (empty($client->phone) && $phone !== '') {
+                $updates['phone'] = $phone;
             }
-            if (! empty($data['first_name'])) {
-                $updates['first_name'] = trim((string) $data['first_name']);
+            if ($first !== '' && trim((string) $client->first_name) === '') {
+                $updates['first_name'] = $first;
             }
-            if (! empty($data['last_name'])) {
-                $updates['last_name'] = trim((string) $data['last_name']);
+            if ($last !== '' && trim((string) $client->last_name) === '') {
+                $updates['last_name'] = $last;
             }
             if ($updates !== []) {
                 $client->update($updates);
@@ -392,21 +398,88 @@ class BookingService
             return $client;
         }
 
-        // Create new client
         $colors = ['#C4556B','#B8943A','#5A8A72','#3B82F6','#8B5CF6','#D97706','#059669'];
 
         return Client::create([
             'salon_id'          => $salonId,
-            'first_name'        => $data['first_name'],
-            'last_name'         => $data['last_name'] ?? '',
-            'email'             => $data['email'] ?? null,
-            'phone'             => $data['phone'],
+            'first_name'        => $first !== '' ? $first : 'Guest',
+            'last_name'         => $last,
+            'email'             => $email !== '' ? $email : null,
+            'phone'             => $phone !== '' ? $phone : null,
             'marketing_consent' => $data['marketing_consent'] ?? false,
             'email_consent'     => true,
             'sms_consent'       => true,
             'source'            => 'online_booking',
             'color'             => $colors[array_rand($colors)],
         ]);
+    }
+
+    private function findClientByPhone(int $salonId, string $phone): ?Client
+    {
+        $digits = $this->phoneDigits($phone);
+        if ($digits === '') {
+            return null;
+        }
+
+        $exact = Client::withoutGlobalScope(TenantScope::class)
+            ->where('salon_id', $salonId)
+            ->where('phone', $phone)
+            ->first();
+        if ($exact) {
+            return $exact;
+        }
+
+        return Client::withoutGlobalScope(TenantScope::class)
+            ->where('salon_id', $salonId)
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->get(['id', 'salon_id', 'first_name', 'last_name', 'email', 'phone'])
+            ->first(function (Client $client) use ($digits) {
+                $existing = $this->phoneDigits((string) $client->phone);
+                if ($existing === $digits) {
+                    return true;
+                }
+                $len = min(10, strlen($digits), strlen($existing));
+
+                return $len >= 10 && substr($existing, -10) === substr($digits, -10);
+            });
+    }
+
+    /** Same person: matching email, or same phone with compatible email and the same name. */
+    private function isSameBookingClient(Client $client, string $first, string $last, string $email): bool
+    {
+        $existingEmail = $this->normalizeClientEmail($client->email);
+        if ($email !== '' && $existingEmail !== '' && $email === $existingEmail) {
+            return true;
+        }
+        if ($email !== '' && $existingEmail !== '' && $email !== $existingEmail) {
+            return false;
+        }
+
+        return $this->bookingNamesMatch($client, $first, $last);
+    }
+
+    private function bookingNamesMatch(Client $client, string $first, string $last): bool
+    {
+        $incoming = $this->nameKey($first, $last);
+        $existing = $this->nameKey((string) $client->first_name, (string) $client->last_name);
+
+        return $incoming !== '' && $incoming === $existing;
+    }
+
+    private function nameKey(string $first, string $last): string
+    {
+        return strtolower(preg_replace('/\s+/', ' ', trim($first.' '.$last)) ?? '');
+    }
+
+    private function normalizeClientEmail(mixed $email): string
+    {
+        return strtolower(trim((string) $email));
+    }
+
+    private function phoneDigits(string $phone): string
+    {
+        return preg_replace('/\D+/', '', $phone) ?? '';
     }
 
     private function holdKeyPattern(int $salonId, string $date): string

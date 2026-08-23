@@ -396,7 +396,7 @@ class StaffController extends Controller
             'color'           => $data['color'] ?? '#7C3AED',
             'commission_rate' => $data['commission_rate'] ?? 0,
             'is_active'       => true,
-            'bookable_online' => true,
+            'bookable_online' => \App\Support\StaffJobRoles::isOnlineBookableJob($data['role']),
         ]);
 
         if ($avatarFile) {

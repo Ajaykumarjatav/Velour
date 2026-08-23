@@ -74,6 +74,19 @@ class Staff extends Model
         ]);
     }
 
+    /** Active staff customers can pick on the public booking flow (excludes receptionist). */
+    public function scopeOnlineBookable($query)
+    {
+        return $query
+            ->where('is_active', true)
+            ->where('bookable_online', true)
+            ->where(function ($q) {
+                $q->whereNull('role')
+                    ->orWhere('role', '')
+                    ->orWhereNotIn('role', \App\Support\StaffJobRoles::onlineBookingExcludedJobSlugs());
+            });
+    }
+
     // Allow $staff->name = 'John Smith' → splits automatically
     public function setNameAttribute(string $value): void
     {

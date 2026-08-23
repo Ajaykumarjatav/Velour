@@ -46,6 +46,10 @@ class AvailabilityService
             $reasons[] = ['code' => 'staff_not_bookable_online', 'message' => 'This staff member is not available for online booking.'];
         }
 
+        if ($requireBookableOnline && ! \App\Support\StaffJobRoles::isOnlineBookableJob($staff->role)) {
+            $reasons[] = ['code' => 'staff_not_bookable_online', 'message' => 'This staff member is not available for online booking.'];
+        }
+
         if ($reasons !== []) {
             return ScheduleValidationResult::failure($reasons);
         }

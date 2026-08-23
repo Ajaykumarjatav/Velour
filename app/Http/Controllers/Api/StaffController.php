@@ -54,6 +54,9 @@ class StaffController extends Controller
 
         $data['salon_id']  = $request->attributes->get('salon_id');
         $data['initials']  = strtoupper(substr($data['first_name'], 0, 1) . substr($data['last_name'], 0, 1));
+        if (! \App\Support\StaffJobRoles::isOnlineBookableJob($data['role'] ?? null)) {
+            $data['bookable_online'] = false;
+        }
 
         $staff = Staff::create($data);
 

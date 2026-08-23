@@ -1062,7 +1062,7 @@ class SettingsController extends Controller
                     'commission_rate' => $commission,
                     'initials' => $initials,
                     'is_active' => true,
-                    'bookable_online' => true,
+                    'bookable_online' => \App\Support\StaffJobRoles::isOnlineBookableJob($role),
                 ]);
             } else {
                 $staff = Staff::create([
@@ -1082,7 +1082,7 @@ class SettingsController extends Controller
                     'initials' => $initials,
                     'sort_order' => ++$maxSort,
                     'is_active' => true,
-                    'bookable_online' => true,
+                    'bookable_online' => \App\Support\StaffJobRoles::isOnlineBookableJob($role),
                 ]);
             }
 

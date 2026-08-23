@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="css-pending">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $data['salon']['name'] ?? $salon->name }} — Book Online</title>
+    @include('partials.favicon')
+    @include('partials.prevent-fouc-start')
     @include('partials.easygrox-http')
     @if(!empty($data['salon']['description']))
     <meta name="description" content="{{ $data['salon']['description'] }}">
@@ -157,5 +159,6 @@
         })();
     </script>
     @stack('scripts')
+    @include('partials.prevent-fouc-end')
 </body>
 </html>

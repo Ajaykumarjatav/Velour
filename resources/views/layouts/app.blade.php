@@ -1,11 +1,12 @@
 ﻿<!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full css-pending">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') — EasyGrox</title>
-    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    @include('partials.favicon')
+    @include('partials.prevent-fouc-start')
     @include('partials.easygrox-http')
     {{-- Apply theme BEFORE any CSS loads to prevent flash of wrong theme --}}
     <script>
@@ -1205,5 +1206,6 @@
 <script src="{{ asset('js/image-compress-upload.js') }}?v=1" defer></script>
 @stack('scripts')
 @include('partials.setup-focus-cue')
+@include('partials.prevent-fouc-end')
 </body>
 </html>

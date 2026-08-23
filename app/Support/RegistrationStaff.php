@@ -67,7 +67,7 @@ class RegistrationStaff
                 'color'           => $color,
                 'commission_rate' => $comm,
                 'is_active'       => true,
-                'bookable_online' => true,
+                'bookable_online' => StaffJobRoles::isOnlineBookableJob($row['role'] ?? null),
                 'initials'        => $initials,
                 'sort_order'      => ++$maxSort,
             ]);
