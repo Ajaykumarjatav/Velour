@@ -12,6 +12,7 @@ use App\Models\SalonPhoto;
 use App\Models\SalonSetting;
 use App\Models\SalonThemeAsset;
 use App\Support\AuthPanel;
+use App\Support\GoLiveDashboardHint;
 use App\Support\SalonSetupProgress;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
@@ -57,6 +58,7 @@ class GoLiveController extends Controller
     public function index(Request $request)
     {
         $salon = $this->activeSalon();
+        GoLiveDashboardHint::markCurrentUserVisited($salon);
         $salon->load([
             'staff' => fn ($q) => $q->withoutGlobalScopes()->where('staff.salon_id', $salon->id),
             'services' => fn ($q) => $q->withoutGlobalScopes()->where('services.salon_id', $salon->id),
