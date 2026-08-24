@@ -11,6 +11,7 @@ use App\Models\ServiceCategory;
 use App\Models\ServicePackage;
 use App\Models\Staff;
 use App\Scopes\TenantScope;
+use App\Support\PublicStorage;
 use App\Support\StaffJobRoles;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
@@ -65,7 +66,7 @@ class SalonWebsitePayloadService
         $photos = SalonPhoto::where('salon_id', $salonId)
             ->orderBy('sort_order')
             ->get()
-            ->map(fn ($p) => asset('storage/' . $p->path))
+            ->map(fn ($p) => PublicStorage::url($p->path))
             ->values()
             ->all();
 
@@ -104,7 +105,7 @@ class SalonWebsitePayloadService
                     $salon->postcode,
                 ]))),
                 'logo_url'            => $this->resolveLogoUrl($salon),
-                'cover_image_url'     => $salon->cover_image ? asset('storage/' . $salon->cover_image) : null,
+                'cover_image_url'     => PublicStorage::url($salon->cover_image),
                 'currency'            => $currency,
                 'currency_symbol'     => CurrencyHelper::symbol($currency),
                 'website_url'         => StorefrontUrl::website($salon),
@@ -119,7 +120,7 @@ class SalonWebsitePayloadService
                 'awards_accolades'    => $salon->awards_accolades,
                 'awards_image_urls'   => collect(is_array($salon->awards_images) ? $salon->awards_images : [])
                     ->filter()
-                    ->map(fn ($path) => asset('storage/'.$path))
+                    ->map(fn ($path) => PublicStorage::url($path))
                     ->values()
                     ->all(),
                 'avg_rating'          => $avgRating > 0 ? round($avgRating, 1) : null,
@@ -128,6 +129,8 @@ class SalonWebsitePayloadService
                 'staff_count'         => $staff->count(),
                 'online_booking_enabled' => (bool) $salon->online_booking_enabled,
             ],
+            'about'              => \App\Support\StorefrontAbout::resolve($salon, $theme),
+            'about_gallery'      => \App\Support\StorefrontAbout::galleryUrls($salon, $theme),
             'service_categories' => $categories,
             'staff'              => $staff->map(fn (Staff $s) => [
                 'id'           => $s->id,
@@ -192,6 +195,7 @@ class SalonWebsitePayloadService
             ->get([
                 'id', 'name', 'slug', 'address_line1', 'address_line2',
                 'city', 'postcode', 'country', 'latitude', 'longitude', 'opening_hours',
+                'cover_image',
             ]);
 
         return $rows->map(fn (Salon $s) => $this->mapLocation($s, $current))->values()->all();
@@ -204,9 +208,14 @@ class SalonWebsitePayloadService
             ->orderBy('sort_order')
             ->limit(4)
             ->get()
-            ->map(fn ($p) => asset('storage/' . $p->path))
+            ->map(fn ($p) => PublicStorage::url($p->path))
             ->values()
             ->all();
+
+        $theme = StorefrontTheme::forSalon($salon);
+        $bannerUrl = ThemeBranding::resolve($salon, $theme)['banner_url']
+            ?? PublicStorage::url($salon->cover_image)
+            ?? ($photos[0] ?? null);
 
         return [
             'id'                  => $salon->id,
@@ -222,6 +231,7 @@ class SalonWebsitePayloadService
             'map_embed_url'       => $this->mapEmbedUrl($salon),
             'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),
             'photos'              => $photos,
+            'banner_url'          => $bannerUrl,
         ];
     }
 
@@ -259,7 +269,7 @@ class SalonWebsitePayloadService
             'duration_minutes'   => (int) $s->duration_minutes,
             'price'              => (float) $s->price,
             'price_formatted'    => CurrencyHelper::format((float) $s->price, $currency),
-            'image_url'          => $s->image ? asset('storage/' . $s->image) : null,
+            'image_url'          => PublicStorage::url($s->image),
         ];
 
         $grouped = $services->groupBy(fn (Service $s) => (int) ($s->category_id ?: 0));
@@ -549,7 +559,7 @@ class SalonWebsitePayloadService
             return null;
         }
 
-        return asset('storage/' . $path);
+        return PublicStorage::url($path);
     }
 
     private function whatsappUrl(?string $phone): ?string

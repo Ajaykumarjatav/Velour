@@ -7,7 +7,7 @@
 <div class="w-full bg-black py-4 md:py-5 px-4 border-b border-white/5">
     <div class="max-w-[1360px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <a
-            href="#hero"
+            href="{{ $storefrontHome ?? '#hero' }}"
             class="inline-flex items-center flex-shrink-0 text-center sm:text-left transition-opacity duration-300 hover:opacity-90"
         >
             @include('storefront.partials.salon-logo', ['variant' => 'header'])

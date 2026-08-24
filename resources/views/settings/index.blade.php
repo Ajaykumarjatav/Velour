@@ -65,6 +65,67 @@
     .settings-staff-member-row .form-textarea {
         min-width: 0;
     }
+    .settings-service-offer-option {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+    .settings-service-offer-option .required-asterisk {
+        display: none;
+    }
+    .settings-service-offer-name {
+        min-width: 0;
+    }
+    .settings-service-meta-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.35rem 0.5rem;
+        width: 100%;
+        min-width: 0;
+        align-items: start;
+    }
+    .settings-service-meta-field {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        gap: 0.125rem;
+    }
+    .settings-service-offer-option .form-error,
+    .settings-service-offer-option [data-cv-msg] {
+        display: none !important;
+    }
+    .settings-service-meta-grid .settings-service-meta-input {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+    @media (min-width: 640px) {
+        .settings-service-offer-option {
+            grid-template-columns: minmax(0, 1fr) 13.5rem;
+            align-items: start;
+            column-gap: 0.75rem;
+        }
+        .settings-service-meta-grid {
+            width: 13.5rem;
+            justify-self: end;
+        }
+        .settings-service-offer-cols {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 13.5rem;
+            column-gap: 0.75rem;
+            align-items: end;
+            padding: 0 0.25rem;
+        }
+        .settings-service-offer-cols-meta {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 0.5rem;
+            width: 13.5rem;
+            justify-self: end;
+        }
+    }
     .awards-editor-toolbar {
         display: flex;
         flex-wrap: wrap;
@@ -709,6 +770,13 @@
                                     @foreach($grouped as $grp)
                                         <div class="settings-service-offers-cat-bundle rounded-xl border border-gray-200/90 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 space-y-2">
                                             <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ $grp['catName'] }}</p>
+                                            <div class="settings-service-offer-cols hidden sm:grid text-[10px] font-semibold uppercase tracking-wide text-muted">
+                                                <span>Service</span>
+                                                <span class="settings-service-offer-cols-meta">
+                                                    <span>Time (min)</span>
+                                                    <span>Price</span>
+                                                </span>
+                                            </div>
                                             <div class="space-y-2">
                                                 @foreach($grp['rows'] as $item)
                                                     @php
@@ -729,69 +797,93 @@
                                                         $oldWomenDuration = old("starter_service_meta.$token.women.duration_minutes", $savedMeta['women']['duration_minutes'] ?? null);
                                                         $oldWomenPrice = old("starter_service_meta.$token.women.price", $savedMeta['women']['price'] ?? null);
                                                     @endphp
-                                                    <label class="settings-service-offer-option flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 text-sm text-body cursor-pointer hidden rounded-lg border border-transparent px-1 py-1" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}">
-                                                        <span class="flex items-start gap-2 min-w-0 sm:min-w-[200px]">
+                                                    <div class="settings-service-offer-option text-sm text-body hidden rounded-lg border border-transparent px-1 py-1" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}" data-no-required-asterisk>
+                                                        <label class="settings-service-offer-name flex items-center gap-2 cursor-pointer min-w-0">
                                                             <input type="checkbox" name="starter_services[]" value="{{ $val }}"
-                                                                   class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500 settings-service-checkbox shrink-0"
+                                                                   class="rounded border-gray-300 text-velour-600 focus:ring-velour-500 settings-service-checkbox shrink-0"
                                                                    {{ $checked ? 'checked' : '' }}>
-                                                            <span class="leading-snug">{{ $item['name'] }}</span>
-                                                        </span>
+                                                            <span class="leading-snug break-words">{{ $item['name'] }}</span>
+                                                        </label>
                                                         @if($isUnisex)
-                                                            <span class="settings-service-meta-grid grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:max-w-xl {{ $checked ? '' : 'hidden' }}">
+                                                            <div class="settings-service-meta-grid {{ $checked ? '' : 'hidden' }}">
+                                                                <div class="settings-service-meta-field">
                                                                 <input type="number"
                                                                        min="1"
                                                                        step="1"
                                                                        name="starter_service_meta[{{ $token }}][men][duration_minutes]"
                                                                        value="{{ $oldMenDuration }}"
                                                                        placeholder="Men time (min)"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
                                                                        class="form-input text-xs w-full settings-service-meta-input"
                                                                        {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                                <div class="settings-service-meta-field">
                                                                 <input type="number"
                                                                        min="0.01"
                                                                        step="0.01"
                                                                        name="starter_service_meta[{{ $token }}][men][price]"
                                                                        value="{{ $oldMenPrice }}"
                                                                        placeholder="Men price"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
                                                                        class="form-input text-xs w-full settings-service-meta-input"
                                                                        {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                                <div class="settings-service-meta-field">
                                                                 <input type="number"
                                                                        min="1"
                                                                        step="1"
                                                                        name="starter_service_meta[{{ $token }}][women][duration_minutes]"
                                                                        value="{{ $oldWomenDuration }}"
                                                                        placeholder="Women time (min)"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
                                                                        class="form-input text-xs w-full settings-service-meta-input"
                                                                        {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                                <div class="settings-service-meta-field">
                                                                 <input type="number"
                                                                        min="0.01"
                                                                        step="0.01"
                                                                        name="starter_service_meta[{{ $token }}][women][price]"
                                                                        value="{{ $oldWomenPrice }}"
                                                                        placeholder="Women price"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
                                                                        class="form-input text-xs w-full settings-service-meta-input"
                                                                        {{ $checked ? 'required' : 'disabled' }}>
-                                                            </span>
+                                                                </div>
+                                                            </div>
                                                         @else
-                                                            <span class="settings-service-meta-grid grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:max-w-md {{ $checked ? '' : 'hidden' }}">
+                                                            <div class="settings-service-meta-grid {{ $checked ? '' : 'hidden' }}">
+                                                                <div class="settings-service-meta-field">
                                                                 <input type="number"
                                                                        min="1"
                                                                        step="1"
                                                                        name="starter_service_meta[{{ $token }}][duration_minutes]"
                                                                        value="{{ $oldDuration }}"
                                                                        placeholder="Time (min)"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
                                                                        class="form-input text-xs w-full settings-service-meta-input"
                                                                        {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                                <div class="settings-service-meta-field">
                                                                 <input type="number"
                                                                        min="0.01"
                                                                        step="0.01"
                                                                        name="starter_service_meta[{{ $token }}][price]"
                                                                        value="{{ $oldPrice }}"
                                                                        placeholder="Price"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
                                                                        class="form-input text-xs w-full settings-service-meta-input"
                                                                        {{ $checked ? 'required' : 'disabled' }}>
-                                                            </span>
+                                                                </div>
+                                                            </div>
                                                         @endif
-                                                    </label>
+                                                    </div>
                                                 @endforeach
                                             </div>
                                         </div>

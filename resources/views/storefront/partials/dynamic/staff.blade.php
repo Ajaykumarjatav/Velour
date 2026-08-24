@@ -26,12 +26,20 @@
                     }
                     $visible = count($labels) >= $visibleCount ? array_slice($labels, 0, $visibleCount) : $labels;
                     $moreCount = count($labels) - count($visible);
-                    $initials = strtoupper(substr($member['first_name'] ?? '', 0, 1).substr($member['last_name'] ?? '', 0, 1));
+                    $avatarUrl = $member['avatar_url'] ?? $member['photo_url'] ?? null;
+                    $initials = strtoupper(trim((string) ($member['initials'] ?? '')));
+                    if ($initials === '') {
+                        $nameParts = preg_split('/\s+/', trim((string) ($member['name'] ?? ''))) ?: [];
+                        $initials = strtoupper(
+                            substr($member['first_name'] ?? ($nameParts[0] ?? ''), 0, 1)
+                            .substr($member['last_name'] ?? ($nameParts[1] ?? ''), 0, 1)
+                        );
+                    }
                 @endphp
                 <article class="group shrink-0 snap-start w-[240px] sm:w-[252px] h-[288px] relative flex flex-col items-center bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] pt-20 pb-10 px-6 mt-16 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-[0_18px_50px_rgba(0,0,0,0.14)] hover:ring-1 hover:ring-primary/15">
                     <div class="absolute -top-16 left-1/2 -translate-x-1/2 w-[128px] h-[128px] rounded-full overflow-hidden border-[5px] border-white shadow-lg bg-gray-100 transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-hover:border-primary/20">
-                        @if(!empty($member['photo_url']))
-                            <img src="{{ $member['photo_url'] }}" alt="{{ $member['name'] }}" class="w-full h-full object-cover">
+                        @if(!empty($avatarUrl))
+                            <img src="{{ $avatarUrl }}" alt="{{ $member['name'] }}" class="w-full h-full object-cover">
                         @else
                             <div class="w-full h-full flex items-center justify-center bg-primary/20 text-primary font-bold text-2xl">{{ $initials ?: '?' }}</div>
                         @endif

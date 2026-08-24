@@ -69,6 +69,8 @@
                     <div class="rounded-lg bg-stone-50 dark:bg-gray-800/50 p-3"><p class="text-xs text-muted">Mobile</p><p class="font-semibold text-heading">{{ $stats['mobile'] }}</p></div>
                 </div>
 
+                </div>
+
                 <div>
                     @include('partials.storefront-theme-picker', [
                         'action' => route('website-seo.theme'),

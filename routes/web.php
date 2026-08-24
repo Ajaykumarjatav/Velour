@@ -30,6 +30,7 @@ use App\Http\Controllers\Web\DeletedItemsController;
 use App\Http\Controllers\Web\SecuritySupportController;
 use App\Http\Controllers\Web\TenantSupportController;
 use App\Http\Controllers\Web\WebsiteSeoController;
+use App\Http\Controllers\Web\WebsiteAboutController;
 use App\Http\Controllers\Web\RelationQuickCreateController;
 use App\Http\Controllers\Web\TenantLookupController;
 use App\Http\Controllers\Web\SettingsController;
@@ -386,6 +387,11 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::get('website-seo', [WebsiteSeoController::class, 'index'])->name('website-seo.index');
         Route::post('website-seo/theme', [WebsiteSeoController::class, 'updateTheme'])->name('website-seo.theme');
         Route::post('website-seo/publish', [WebsiteSeoController::class, 'publish'])->name('website-seo.publish');
+        Route::get('website-about', [WebsiteAboutController::class, 'index'])->name('website-about.index');
+        Route::put('website-about', [WebsiteAboutController::class, 'update'])->name('website-about.update');
+        Route::post('website-about/gallery', [WebsiteAboutController::class, 'updateGallery'])->name('website-about.gallery.update');
+        Route::delete('website-about/gallery', [WebsiteAboutController::class, 'resetGallery'])->name('website-about.gallery.reset');
+        Route::put('website-seo/about', fn () => redirect()->route('website-about.index'))->name('website-seo.about');
         Route::get('security-support', [SecuritySupportController::class, 'index'])->name('security-support.index');
         Route::put('security-support/security', [SecuritySupportController::class, 'updateSecurity'])->name('security-support.security.update');
         Route::get('support-tickets', [TenantSupportController::class, 'index'])->name('support-tickets.index');
@@ -492,7 +498,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
     // Do not catch public share URLs (reviews/share/{token}) — those are guest routes.
     Route::middleware(['salon.panel'])->group(function () {
         Route::any('{legacy}', LegacySalonUrlController::class)
-            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|security-support|support-tickets|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking|account|billing|onboarding)(/.*)?$')
+            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|website-about|security-support|support-tickets|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking|account|billing|onboarding)(/.*)?$')
             ->name('legacy.salon.redirect');
     });
 
@@ -662,9 +668,13 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin',
 
 
 // ── Uploaded files, for hosts where `public/storage` cannot be a symlink ──────
-Route::get('storage/{path}', [\App\Http\Controllers\Web\PublicStorageController::class, 'show'])
+// Use /media/… (not /storage/…) so Apache does not serve the Laravel storage/ directory.
+Route::get('media/{path}', [\App\Http\Controllers\Web\PublicStorageController::class, 'show'])
     ->where('path', '.*')
     ->name('public-storage.show');
+Route::get('storage/{path}', [\App\Http\Controllers\Web\PublicStorageController::class, 'show'])
+    ->where('path', '.*')
+    ->name('public-storage.legacy');
 
 // ── Public salon website (Blade themes + legacy React fallback) ───────────────
 Route::get('website/{theme}/assets/{asset}', [\App\Http\Controllers\Web\StorefrontController::class, 'themeAsset'])
@@ -672,6 +682,8 @@ Route::get('website/{theme}/assets/{asset}', [\App\Http\Controllers\Web\Storefro
     ->where('asset', '.+')
     ->name('storefront.theme.asset');
 Route::get('s/{slug}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])->name('storefront.show');
+Route::get('s/{slug}/terms', [\App\Http\Controllers\Web\StorefrontController::class, 'terms'])->name('storefront.terms');
+Route::get('s/{slug}/privacy', [\App\Http\Controllers\Web\StorefrontController::class, 'privacy'])->name('storefront.privacy');
 Route::get('s/{slug}/out/{platform}', [\App\Http\Controllers\Web\StorefrontController::class, 'socialOut'])
     ->where('platform', '[a-z]+')
     ->name('storefront.social.out');

@@ -57,6 +57,46 @@ class StorefrontController extends Controller
         ]);
     }
 
+    public function terms(string $slug): Response|View
+    {
+        return $this->legalDocument($slug, 'storefront.legal.terms');
+    }
+
+    public function privacy(string $slug): Response|View
+    {
+        return $this->legalDocument($slug, 'storefront.legal.privacy');
+    }
+
+    private function legalDocument(string $slug, string $view): Response|View
+    {
+        $salon = PublicSalonAccess::findBySlug($slug);
+
+        if (! $salon || ! PublicSalonAccess::isAccessible($salon)) {
+            if ($salon) {
+                return response()
+                    ->view('booking.unavailable', [
+                        'salon'   => $salon,
+                        'reasons' => PublicSalonAccess::unavailableReasons($salon),
+                    ], 503)
+                    ->header('Content-Type', 'text/html');
+            }
+
+            abort(404);
+        }
+
+        $theme = StorefrontTheme::forSalon($salon);
+        $payload = app(SalonWebsitePayloadService::class)->build($salon);
+
+        return view($view, [
+            'salon'    => $salon,
+            'theme'    => $theme,
+            'data'     => $payload,
+            'p'        => \App\Support\StorefrontLegal::placeholders($salon),
+            'apiBase'  => StorefrontUrl::laravelBaseUrl(),
+            'asset'    => fn (string $file) => StorefrontAssets::assetUrl($theme, $file),
+        ]);
+    }
+
     public function socialOut(Request $request, string $slug, string $platform): RedirectResponse
     {
         $salon = PublicSalonAccess::findBySlug($slug);

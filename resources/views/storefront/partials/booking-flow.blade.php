@@ -13,6 +13,7 @@
 ]))"
      x-init="init()"
      @storefront-booking-toggle.window="onBookingToggle($event.detail.open)"
+     @storefront-book-preselect.window="onBookPreselect($event.detail)"
      x-show="open"
      x-cloak
      class="storefront-booking-overlay">
@@ -145,12 +146,40 @@
                          class="sf-sticky-bar sticky bg-black/90 backdrop-blur border border-white/10 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4"
                          style="bottom: max(1rem, env(safe-area-inset-bottom))">
                         <span class="text-sm" x-text="selected.services.length + ' selected · ' + currency + totalPrice().toFixed(2)"></span>
-                        <button type="button" @click="step = 1" class="bg-primary hover:bg-primary-dark text-white font-semibold rounded-full px-6 py-2.5 text-sm">Continue</button>
+                        <button type="button" @click="goToStylist()" class="bg-primary hover:bg-primary-dark text-white font-semibold rounded-full px-6 py-2.5 text-sm">Continue</button>
                     </div>
                 </div>
 
-                {{-- Step 1: Date & time --}}
-                <div x-show="step === 1" class="space-y-4">
+                {{-- Step 1: Stylist --}}
+                <div x-show="step === 1">
+                    <h2 class="font-bold text-lg">Choose your stylist</h2>
+                    <p class="text-white/70 text-sm mb-4">Pick a stylist first, then we’ll show dates and times that work for them.</p>
+                    <div x-show="staffLoading" class="flex items-center justify-center gap-2 py-6 text-white/50 text-sm">
+                        <span class="inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></span>
+                        Loading stylists…
+                    </div>
+                    <div class="space-y-2" x-show="!staffLoading">
+                        <button type="button" @click="chooseStaff(null)"
+                                :class="selected.staff === null ? 'border-primary bg-primary/15' : 'border-white/10 bg-white/5 hover:border-primary'"
+                                class="w-full rounded-xl border-2 p-4 text-left">
+                            <span class="font-semibold">Any available stylist</span>
+                        </button>
+                        <template x-for="member in availableStaff()" :key="member.id">
+                            <button type="button" @click="chooseStaff(member)"
+                                    :class="selected.staff?.id === member.id ? 'border-primary bg-primary/15' : 'border-white/10 bg-white/5 hover:border-primary'"
+                                    class="w-full rounded-xl border-2 p-4 text-left flex items-center gap-3">
+                                <span class="w-10 h-10 rounded-full bg-primary/30 flex items-center justify-center text-sm font-bold"
+                                      x-text="((member.first_name || '')[0] || '') + ((member.last_name || '')[0] || '')"></span>
+                                <span class="font-semibold" x-text="member.first_name + ' ' + member.last_name"></span>
+                            </button>
+                        </template>
+                    </div>
+                    <p x-show="!staffLoading && availableStaff().length === 0" class="text-white/50 text-sm py-4">No stylists are available for online booking.</p>
+                    <button type="button" @click="step = 0" class="mt-6 text-sm text-white/50 hover:text-white">← Back</button>
+                </div>
+
+                {{-- Step 2: Date & time --}}
+                <div x-show="step === 2" class="space-y-4">
                     <div class="text-center sm:text-left">
                         <h2 class="font-manrope font-bold text-base sm:text-lg">When would you like to visit?</h2>
                         <p class="text-xs sm:text-sm text-white/50 mt-0.5">Pick a date, then choose a time.</p>
@@ -255,27 +284,7 @@
                             </template>
                         </div>
                     </template>
-                    <button type="button" @click="step = 0" class="text-sm text-white/50 hover:text-white">← Back</button>
-                </div>
-
-                {{-- Step 2: Stylist --}}
-                <div x-show="step === 2">
-                    <p class="text-white/70 text-sm mb-4">Choose your stylist (or any available)</p>
-                    <p x-show="selected.slot" class="text-xs text-white/50 mb-4" x-text="'Available for ' + formatDate(selected.date) + ' at ' + selected.slot.time"></p>
-                    <div class="space-y-2">
-                        <button type="button" @click="selected.staff = null; step = 3" class="w-full rounded-xl border-2 border-white/10 bg-white/5 p-4 text-left hover:border-primary">
-                            <span class="font-semibold">Any available stylist</span>
-                        </button>
-                        <template x-for="member in availableStaff()" :key="member.id">
-                            <button type="button" @click="selected.staff = member; step = 3"
-                                    class="w-full rounded-xl border-2 border-white/10 bg-white/5 p-4 text-left hover:border-primary flex items-center gap-3">
-                                <span class="w-10 h-10 rounded-full bg-primary/30 flex items-center justify-center text-sm font-bold"
-                                      x-text="((member.first_name || '')[0] || '') + ((member.last_name || '')[0] || '')"></span>
-                                <span class="font-semibold" x-text="member.first_name + ' ' + member.last_name"></span>
-                            </button>
-                        </template>
-                    </div>
-                    <button type="button" @click="step = 1" class="mt-6 text-sm text-white/50 hover:text-white">← Back</button>
+                    <button type="button" @click="step = 1" class="text-sm text-white/50 hover:text-white">← Back</button>
                 </div>
 
                 {{-- Step 3: Details --}}
@@ -320,7 +329,8 @@ function storefrontBooking(config) {
         ...config,
         onlineBookingEnabled: Boolean(config.onlineBookingEnabled),
         open: Boolean(config.onlineBookingEnabled) && window.location.hash === '#book',
-        steps: ['Services', 'Date & time', 'Stylist', 'Your details', 'Confirm'],
+        pendingIntent: null,
+        steps: ['Services', 'Stylist', 'Date & time', 'Your details', 'Confirm'],
         step: 0,
         loading: true,
         globalError: '',
@@ -330,6 +340,8 @@ function storefrontBooking(config) {
         slots: [],
         combinedInfo: null,
         slotsError: '',
+        bookStaff: [],
+        staffLoading: false,
         selected: { services: [], staff: null, date: '', slot: null },
         client: { name: '', email: '', phone: '', notes: '', marketing_consent: false },
         detailsError: '',
@@ -442,7 +454,30 @@ function storefrontBooking(config) {
                 this.allServices = this.parseServicesResponse(d);
                 this.bookPackages = Array.isArray(d.packages) ? d.packages : [];
             }).catch(() => { this.globalError = 'Failed to load services. Please refresh the page.'; })
-              .finally(() => { this.loading = false; });
+              .finally(() => { this.loading = false; this.applyPendingIntent(); });
+        },
+        onBookPreselect(detail) {
+            this.pendingIntent = detail || {};
+            this.step = 0;
+            this.applyPendingIntent();
+        },
+        applyPendingIntent() {
+            const intent = this.pendingIntent;
+            if (!intent || this.loading) return;
+            const packageIds = [...(intent.packageIds || [])];
+            if (intent.packageId != null && intent.packageId !== '') packageIds.push(intent.packageId);
+            const serviceIds = [...(intent.serviceIds || [])];
+            if (intent.serviceId != null && intent.serviceId !== '') serviceIds.push(intent.serviceId);
+            this.pendingIntent = null;
+            if (!packageIds.length && !serviceIds.length) return;
+            this.clearSlotSelection();
+            const idSet = new Set();
+            packageIds.forEach(pid => {
+                const pkg = this.bookPackages.find(p => Number(p.id) === Number(pid));
+                if (pkg) this.packageServiceIds(pkg).forEach(id => idSet.add(Number(id)));
+            });
+            serviceIds.forEach(id => idSet.add(Number(id)));
+            this.selected.services = this.flatServices.filter(s => idSet.has(Number(s.id)));
         },
         packageServiceIds(pkg) { return pkg.service_ids ?? (pkg.services ?? []).map(s => s.id); },
         packageServiceNames(pkg) { return (pkg.services ?? []).map(s => s.name).join(' · '); },
@@ -581,13 +616,33 @@ function storefrontBooking(config) {
         },
         selectSlot(slot) {
             this.selected.slot = slot;
-            if (this.selected.staff && !slot.available_staff?.some(s => s.id === this.selected.staff.id)) {
-                this.selected.staff = null;
-            }
+            this.step = 3;
+        },
+        goToStylist() {
+            this.fetchStaff().then(() => { this.step = 1; });
+        },
+        goToDateTime() {
             this.step = 2;
+            if (this.selected.date) this.loadSlots();
+        },
+        chooseStaff(member) {
+            this.selected.staff = member;
+            this.selected.date = '';
+            this.selected.slot = null;
+            this.slots = [];
+            this.combinedInfo = null;
+            this.goToDateTime();
+        },
+        fetchStaff() {
+            this.staffLoading = true;
+            const params = new URLSearchParams();
+            this.selected.services.forEach(s => params.append('service_ids[]', s.id));
+            return this.api('/staff?' + params).then(d => {
+                this.bookStaff = d.staff ?? d.data?.staff ?? [];
+            }).catch(() => { this.bookStaff = []; }).finally(() => { this.staffLoading = false; });
         },
         availableStaff() {
-            const list = this.selected.slot?.available_staff ?? [];
+            const list = this.bookStaff.length ? this.bookStaff : (this.selected.slot?.available_staff ?? []);
             return [...list].sort((a, b) => (`${a.first_name} ${a.last_name}`).localeCompare(`${b.first_name} ${b.last_name}`));
         },
         staffDisplayName() {
@@ -642,6 +697,7 @@ function storefrontBooking(config) {
         },
         resetBooking() {
             this.step = 0;
+            this.bookStaff = [];
             this.selected = { services: [], staff: null, date: '', slot: null };
             this.client = { name: '', email: '', phone: '', notes: '', marketing_consent: false };
             this.bookingRef = ''; this.bookingStatus = ''; this.confirmDisplay = null;

@@ -50,6 +50,7 @@ final class PermissionCatalog
         'expenses' => 'expenses.view',
         'pos' => 'pos.view',
         'go_live' => 'website.view',
+        'website_about' => 'website.view',
         'website_seo' => 'website.view',
         'customization' => 'website.view',
         'marketing' => 'marketing.view',
@@ -288,7 +289,7 @@ final class PermissionCatalog
             return SettingsTabPermissions::canOpenSettings($user);
         }
 
-        if ($moduleKey === 'go_live' || $moduleKey === 'website_seo' || $moduleKey === 'customization') {
+        if ($moduleKey === 'go_live' || $moduleKey === 'website_about' || $moduleKey === 'website_seo' || $moduleKey === 'customization') {
             return WebsitePermissions::canView($user);
         }
 

@@ -10,11 +10,12 @@
     ];
 @endphp
 <nav
+    data-overlay-nav
     x-data="{ active: 'Who We are', isSticky: false, menuOpen: false }"
     x-init="window.addEventListener('scroll', () => { isSticky = window.scrollY > 120 })"
     :class="isSticky
         ? 'fixed top-0 left-0 right-0 shadow-[0_4px_30px_rgba(0,0,0,0.5)] bg-black/90 backdrop-blur-md py-1'
-        : 'relative bg-black py-3'"
+        : 'absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm py-3'"
     class="sf-sticky-nav w-full z-50 transition-all duration-300 border-b border-white/5"
 >
     <div class="max-w-[1360px] mx-auto px-4">

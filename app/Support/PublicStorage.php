@@ -76,6 +76,11 @@ final class PublicStorage
         return null;
     }
 
+    /**
+     * Public URL that does not use `/storage/…`.
+     * On XAMPP the Laravel `storage/` directory is a real folder under /admin,
+     * so Apache never reaches the upload fallback route for those URLs.
+     */
     public static function url(?string $path): ?string
     {
         $resolved = self::resolveExistingPath($path);
@@ -83,7 +88,7 @@ final class PublicStorage
             return null;
         }
 
-        return asset('storage/' . $resolved);
+        return url('media/'.$resolved);
     }
 
     public static function delete(?string $path): void

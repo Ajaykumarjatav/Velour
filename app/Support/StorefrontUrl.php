@@ -52,6 +52,13 @@ final class StorefrontUrl
         return self::publicAppUrl() . '/s/' . $salon->slug;
     }
 
+    public static function legal(Salon $salon, string $page = 'terms'): string
+    {
+        $page = trim($page, '/');
+
+        return rtrim(self::website($salon), '/').'/'.$page;
+    }
+
     /** In-site booking on the React storefront (#book), not the legacy /book/ blade. */
     public static function booking(Salon $salon): string
     {

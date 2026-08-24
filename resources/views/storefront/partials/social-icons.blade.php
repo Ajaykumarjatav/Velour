@@ -21,14 +21,6 @@
         >
             @include('partials.social-platform-icon', ['platform' => $platform, 'class' => $iconClass])
         </a>
-        @else
-        <span
-            class="{{ $linkClass }} opacity-40 cursor-not-allowed"
-            aria-label="{{ $label }} (not linked)"
-            title="Add this link in Settings → Social Links"
-        >
-            @include('partials.social-platform-icon', ['platform' => $platform, 'class' => $iconClass])
-        </span>
         @endif
     @endforeach
 </div>

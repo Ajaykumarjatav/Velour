@@ -51,8 +51,17 @@ class GuideController extends Controller
             $featureGroups[] = ['label' => 'Business', 'items' => $business];
         }
 
-        $growth = array_values(array_filter([
+        $website = array_values(array_filter([
             $show('go_live') ? ['title' => 'Go Live & Share', 'hint' => 'Booking website, theme, photos, and share link.', 'href' => route('go-live')] : null,
+            $show('website_about') ? ['title' => 'About Us', 'hint' => 'Who we are heading, story, and stats on the booking site.', 'href' => route('website-about.index')] : null,
+            $show('website_seo') ? ['title' => 'Website & SEO', 'hint' => 'Theme, booking widget, and SEO.', 'href' => route('website-seo.index')] : null,
+            $show('customization') ? ['title' => 'Customization', 'hint' => 'Brand identity, colours, and white-label options.', 'href' => route('customization.index')] : null,
+        ]));
+        if ($website !== []) {
+            $featureGroups[] = ['label' => 'Website', 'items' => $website];
+        }
+
+        $growth = array_values(array_filter([
             $show('marketing') ? ['title' => 'Marketing', 'hint' => 'Email / SMS campaigns. Audience follows client consent.', 'href' => route('marketing.growth')] : null,
             $show('reviews') ? ['title' => 'Reviews', 'hint' => 'Client feedback after visits.', 'href' => route('reviews.index')] : null,
             $show('analytics') ? ['title' => 'Analytics', 'hint' => 'Trends across bookings and revenue.', 'href' => route('reports.analytics')] : null,

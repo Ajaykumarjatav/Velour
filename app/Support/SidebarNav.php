@@ -38,9 +38,20 @@ final class SidebarNav
         return false;
     }
 
+    public static function showWebsiteGroup(User $user): bool
+    {
+        foreach (['go_live', 'website_about', 'website_seo', 'customization'] as $key) {
+            if (self::show($user, $key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function showGrowthGroup(User $user): bool
     {
-        foreach (['go_live', 'website_seo', 'customization', 'marketing', 'reviews', 'analytics', 'reports_menu', 'growth_tips'] as $key) {
+        foreach (['marketing', 'reviews', 'analytics', 'reports_menu', 'growth_tips'] as $key) {
             if (self::show($user, $key)) {
                 return true;
             }

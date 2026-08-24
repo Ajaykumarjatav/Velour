@@ -9,7 +9,7 @@
 @include('storefront.partials.dynamic.services')
 @include('storefront.partials.dynamic.packages')
 @include('storefront.themes.spa.partials.relaxation')
-@include('storefront.themes.spa.partials.special-offer')
+{{-- Special offer banner hidden for now --}}
 @include('storefront.partials.dynamic.staff')
 @include('storefront.themes.spa.partials.premium-banner')
 @include('storefront.partials.dynamic.locations')

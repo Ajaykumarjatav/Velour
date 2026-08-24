@@ -10,13 +10,15 @@
             'map_embed_url' => null,
             'opening_hours_lines' => $salonData['opening_hours_lines'] ?? [],
             'photos' => [],
+            'banner_url' => $data['branding']['banner_url'] ?? ($salonData['cover_image_url'] ?? null),
         ]];
     }
     $gallery = \App\Support\StorefrontAssets::assets($theme)['locationGallery'] ?? ['Rectangle 58.png', 'Rectangle 59.png', 'Rectangle 60.png'];
+    $galleryFallback = array_map(fn ($f) => $asset($f), $gallery);
 @endphp
 @if($salonData && count($locations) > 0)
 <section id="locations" class="w-full bg-white py-20 lg:py-24"
-         x-data="locationsSection(@js($locations), @js($salonData), @js(array_map(fn ($f) => $asset($f), $gallery)))">
+         x-data="locationsSection(@js($locations), @js($salonData), @js($galleryFallback))">
     <div class="max-w-[1360px] mx-auto px-4">
         <div class="text-center mb-12 md:mb-16">
             <span class="text-primary font-manrope font-semibold text-sm uppercase tracking-widest block mb-2">Locations</span>
@@ -71,9 +73,9 @@
             </div>
 
             <div class="lg:col-span-4 flex flex-col gap-5 lg:min-h-[548px]">
-                <template x-for="(src, index) in galleryImages" :key="index">
+                <template x-for="(src, index) in galleryImages" :key="'loc-img-' + index">
                     <div class="rounded-2xl overflow-hidden shadow-md bg-section-light w-full aspect-[11/5] lg:aspect-auto lg:flex-1 lg:min-h-0">
-                        <img :src="src" :alt="(activeLocation?.name || 'Location') + ' interior ' + (index + 1)" class="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105" loading="lazy">
+                        <img :src="src" :alt="(locations[index]?.name || 'Store') + ' banner'" class="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105" loading="lazy">
                     </div>
                 </template>
             </div>
@@ -85,13 +87,16 @@
 @once
 @push('scripts')
 <script>
-function locationsSection(locations, salon, galleryImages) {
+function locationsSection(locations, salon, fallbackGallery) {
     const current = locations.find(l => l.is_current)?.id ?? locations[0]?.id ?? null;
+    const fallbacks = Array.isArray(fallbackGallery) ? fallbackGallery : [];
     return {
         locations,
         salon,
-        galleryImages,
         activeId: current,
+        get galleryImages() {
+            return this.locations.map((loc, i) => loc.banner_url || fallbacks[i % Math.max(fallbacks.length, 1)] || fallbacks[0] || '');
+        },
         get activeLocation() {
             return this.locations.find(l => l.id === this.activeId) ?? this.locations[0] ?? null;
         },

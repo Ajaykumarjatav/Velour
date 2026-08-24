@@ -41,6 +41,7 @@ final class RoutePermissionMap
         'payments.gateway*' => 'settings.business.edit',
         'payments.charge*' => 'pos.view',
         'go-live*' => 'website.view',
+        'website-about.*' => 'website.view',
         'website-seo.*' => 'website.view',
         'customization.*' => 'website.view',
         'salon-admin.team*' => 'users.view',

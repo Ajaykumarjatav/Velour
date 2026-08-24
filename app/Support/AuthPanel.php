@@ -122,7 +122,7 @@ final class AuthPanel
             'dashboard', 'calendar', 'appointments', 'clients', 'staff', 'services',
             'service-packages', 'service-categories', 'availability', 'inventory', 'expenses',
             'pos', 'marketing', 'reports', 'revenue', 'reviews', 'settings', 'payments',
-            'go-live', 'website-seo', 'customization', 'multi-location', 'tasks',
+            'go-live', 'website-seo', 'website-about', 'customization', 'multi-location', 'tasks',
             'action-items', 'notifications', 'guide', 'deleted-items', 'security-support',
             'salon-admin', 'setup-progress', 'billing', 'onboarding',
         ];

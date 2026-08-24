@@ -7,7 +7,7 @@ namespace App\Support;
 use App\Models\User;
 
 /**
- * Go Live, website SEO, customization / branding.
+ * Go Live, about, website SEO, customization / branding.
  */
 final class WebsitePermissions
 {

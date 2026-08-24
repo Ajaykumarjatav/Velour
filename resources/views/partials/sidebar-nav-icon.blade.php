@@ -78,6 +78,11 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/>
     </svg>
     @break
+@case('about')
+    <svg class="{{ $iconClass }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 3a9 9 0 100 18 9 9 0 000-18z"/>
+    </svg>
+    @break
 @case('customization')
     <svg class="{{ $iconClass }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1-2v2m0 14v2m-7-9H3m18 0h-2M6.8 6.8L5.4 5.4m13.2 13.2-1.4-1.4M6.8 17.2l-1.4 1.4m13.2-13.2-1.4 1.4M12 8a4 4 0 100 8 4 4 0 000-8z"/>

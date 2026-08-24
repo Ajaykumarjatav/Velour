@@ -6,7 +6,7 @@ class AwardsHtml
 {
     public static function looksLikeHtml(?string $value): bool
     {
-        return (bool) preg_match('/<(p|br|img|ul|ol|li|strong|b|em|i|div)\b/i', (string) $value);
+        return (bool) preg_match('/<(p|br|img|ul|ol|li|strong|b|em|i|u|div)\b/i', (string) $value);
     }
 
     public static function sanitize(?string $html): ?string
@@ -16,7 +16,7 @@ class AwardsHtml
             return null;
         }
 
-        $html = strip_tags($html, '<p><br><strong><b><em><i><ul><ol><li><div><img>');
+        $html = strip_tags($html, '<p><br><strong><b><em><i><u><ul><ol><li><div><img>');
 
         $previous = libxml_use_internal_errors(true);
         $dom = new \DOMDocument('1.0', 'UTF-8');
@@ -118,7 +118,7 @@ class AwardsHtml
 
     private static function cleanElement(\DOMElement $el): void
     {
-        $allowed = ['p', 'br', 'strong', 'b', 'em', 'i', 'ul', 'ol', 'li', 'div', 'img'];
+        $allowed = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'div', 'img'];
         $toProcess = [];
         foreach ($el->childNodes as $child) {
             $toProcess[] = $child;

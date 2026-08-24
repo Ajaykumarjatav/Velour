@@ -215,19 +215,12 @@
         </x-sidebar-nav-submenu>
         @endif
 
-        {{-- GROWTH --}}
+        {{-- WEBSITE --}}
         @php
-            $isAnalyticsActive = request()->routeIs('reports.analytics');
-            $isReportsMenuActive = request()->routeIs('reports.index', 'reports.show', 'revenue.index');
-            $growthMenuActive = request()->routeIs(
-                'go-live', 'marketing.*',
-                'reviews.*', 'reports.analytics', 'reports.index', 'reports.show',
-                'revenue.index', 'reports.growth-tips'
-            );
-            $reportsOpen = $isReportsMenuActive;
+            $websiteMenuActive = request()->routeIs('go-live', 'website-seo.*', 'website-about.*', 'customization.*');
         @endphp
-        @if(\App\Support\SidebarNav::showGrowthGroup(auth()->user()))
-        <x-sidebar-nav-submenu name="growth" label="Growth" icon="growth" :open="$growthMenuActive" :active="$growthMenuActive">
+        @if(\App\Support\SidebarNav::showWebsiteGroup(auth()->user()))
+        <x-sidebar-nav-submenu name="website" label="Website" icon="website" :open="$websiteMenuActive" :active="$websiteMenuActive">
             @if($navShow('go_live'))
             <a href="{{ route('go-live') }}"
                class="sidebar-sub-link {{ request()->routeIs('go-live') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
@@ -235,7 +228,13 @@
                 Go Live &amp; Share
             </a>
             @endif
-            {{-- Temporarily hidden — unused for now
+            @if($navShow('website_about'))
+            <a href="{{ route('website-about.index') }}"
+               class="sidebar-sub-link {{ request()->routeIs('website-about.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'about', 'small' => true])
+                About Us
+            </a>
+            @endif
             @if($navShow('website_seo'))
             <a href="{{ route('website-seo.index') }}"
                class="sidebar-sub-link {{ request()->routeIs('website-seo.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
@@ -250,7 +249,22 @@
                 Customization
             </a>
             @endif
-            --}}
+        </x-sidebar-nav-submenu>
+        @endif
+
+        {{-- GROWTH --}}
+        @php
+            $isAnalyticsActive = request()->routeIs('reports.analytics');
+            $isReportsMenuActive = request()->routeIs('reports.index', 'reports.show', 'revenue.index');
+            $growthMenuActive = request()->routeIs(
+                'marketing.*',
+                'reviews.*', 'reports.analytics', 'reports.index', 'reports.show',
+                'revenue.index', 'reports.growth-tips'
+            );
+            $reportsOpen = $isReportsMenuActive;
+        @endphp
+        @if(\App\Support\SidebarNav::showGrowthGroup(auth()->user()))
+        <x-sidebar-nav-submenu name="growth" label="Growth" icon="growth" :open="$growthMenuActive" :active="$growthMenuActive">
             @if($navShow('marketing'))
             <a href="{{ route('marketing.growth') }}"
                class="sidebar-sub-link {{ request()->routeIs('marketing.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">

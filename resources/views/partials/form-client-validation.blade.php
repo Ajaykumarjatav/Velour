@@ -281,7 +281,10 @@
         if (wrap) {
             var nested = wrap.querySelector(':scope > label, label');
             if (nested) {
-                if (!nested.contains(control) || nested.querySelector('input, select, textarea') === null) {
+                // Only use a nearby label that is for this control (empty label, or it wraps this field).
+                // Do not steal a sibling label that already wraps another input (e.g. a checkbox row).
+                var nestedControl = nested.querySelector('input, select, textarea');
+                if (!nested.contains(control) && nestedControl === null) {
                     return nested;
                 }
                 if (nested.contains(control)) return nested;

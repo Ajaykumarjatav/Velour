@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $data['salon']['name'] ?? $salon->name }} — Book Online</title>
+    <title>@yield('title', ($data['salon']['name'] ?? $salon->name).' — Book Online')</title>
     @include('partials.favicon')
     @include('partials.prevent-fouc-start')
     @include('partials.easygrox-http')
@@ -110,16 +110,76 @@
         window.__STOREFRONT_BOOKING_ENABLED__ = @json((bool) ($data['salon']['online_booking_enabled'] ?? $salon->online_booking_enabled ?? false));
         (function () {
             function syncBookingHash() {
-                var open = window.location.hash === '#book';
+                var open = window.location.hash === '#book' || window.location.hash.indexOf('#book') === 0;
                 document.body.classList.toggle('storefront-booking-active', open);
                 window.dispatchEvent(new CustomEvent('storefront-booking-toggle', { detail: { open: open } }));
             }
-            if (window.location.hash === '#book') {
+            if (window.location.hash === '#book' || window.location.hash.indexOf('#book') === 0) {
                 document.body.classList.add('storefront-booking-active');
             }
             window.addEventListener('hashchange', syncBookingHash);
             document.addEventListener('DOMContentLoaded', syncBookingHash);
             syncBookingHash();
+            window.storefrontOpenBooking = function (opts) {
+                opts = opts || {};
+                window.dispatchEvent(new CustomEvent('storefront-book-preselect', { detail: opts }));
+                if (window.location.hash !== '#book') {
+                    window.location.hash = 'book';
+                } else {
+                    window.dispatchEvent(new CustomEvent('storefront-booking-toggle', { detail: { open: true } }));
+                }
+            };
+            window.storefrontHomeCart = (function () {
+                var serviceIds = {};
+                var packageIds = {};
+                function snapshot() {
+                    return {
+                        serviceIds: Object.keys(serviceIds).map(Number),
+                        packageIds: Object.keys(packageIds).map(Number),
+                    };
+                }
+                function emit() {
+                    var snap = snapshot();
+                    window.dispatchEvent(new CustomEvent('storefront-home-cart-change', { detail: snap }));
+                    document.querySelectorAll('[data-home-package]').forEach(function (el) {
+                        var on = !!packageIds[String(el.getAttribute('data-home-package'))];
+                        el.classList.toggle('ring-2', on);
+                        el.classList.toggle('ring-primary', on);
+                        el.classList.toggle('border-primary', on);
+                        el.classList.toggle('border-gray-100', !on);
+                        var label = el.querySelector('[data-home-package-label]');
+                        if (label) {
+                            label.textContent = on ? 'Selected' : 'Select';
+                            label.classList.toggle('bg-primary', on);
+                            label.classList.toggle('text-white', on);
+                            label.classList.toggle('bg-[#FFEFEF]', !on);
+                            label.classList.toggle('text-primary', !on);
+                        }
+                    });
+                }
+                return {
+                    toggleService: function (id) {
+                        id = String(id);
+                        if (serviceIds[id]) delete serviceIds[id]; else serviceIds[id] = true;
+                        emit();
+                    },
+                    togglePackage: function (id) {
+                        id = String(id);
+                        if (packageIds[id]) delete packageIds[id]; else packageIds[id] = true;
+                        emit();
+                    },
+                    hasService: function (id) { return !!serviceIds[String(id)]; },
+                    snapshot: snapshot,
+                    bookSelected: function () {
+                        var s = snapshot();
+                        if (s.serviceIds.length || s.packageIds.length) {
+                            window.storefrontOpenBooking(s);
+                            return;
+                        }
+                        window.location.hash = 'book';
+                    },
+                };
+            })();
         })();
 
         // The section nav switches to fixed positioning on scroll; a spacer keeps the
@@ -127,19 +187,31 @@
         (function () {
             function initNavSpacer() {
                 var nav = document.querySelector('.sf-sticky-nav');
-                if (!nav || !nav.parentNode) return;
+                if (!nav || !nav.parentNode || nav.hasAttribute('data-overlay-nav')) return;
 
                 var spacer = document.createElement('div');
                 spacer.setAttribute('aria-hidden', 'true');
+                spacer.className = 'sf-sticky-nav-spacer';
                 spacer.style.display = 'none';
                 nav.parentNode.insertBefore(spacer, nav.nextSibling);
 
                 var flowHeight = nav.offsetHeight;
 
+                function spacerFill() {
+                    var bg = window.getComputedStyle(nav).backgroundColor;
+                    var m = bg && bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                    if (m && (+m[1] + +m[2] + +m[3]) < 90) {
+                        spacer.style.backgroundColor = 'rgb(' + m[1] + ',' + m[2] + ',' + m[3] + ')';
+                    } else {
+                        spacer.style.backgroundColor = bg || 'transparent';
+                    }
+                }
+
                 function sync() {
                     if (window.getComputedStyle(nav).position === 'fixed') {
                         spacer.style.height = flowHeight + 'px';
                         spacer.style.display = 'block';
+                        spacerFill();
                     } else {
                         flowHeight = nav.offsetHeight;
                         spacer.style.display = 'none';
