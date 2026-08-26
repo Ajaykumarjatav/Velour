@@ -78,75 +78,162 @@
                 <div x-show="loading && step === 0" class="text-white/60 text-center py-12">Loading services…</div>
 
                 {{-- Step 0: Services --}}
-                <div x-show="step === 0 && !loading" class="space-y-6">
-                    <div class="rounded-2xl border border-white/10 bg-[#1a1f2e] p-5 sm:p-6">
-                        <h2 class="font-manrope font-bold text-base text-white mb-4">Select Services</h2>
+                <div x-show="step === 0 && !loading" class="space-y-5">
+                    <div class="rounded-2xl border border-white/10 bg-[#1a1f2e] p-4 sm:p-5">
+                        <h2 class="font-manrope font-bold text-lg text-white mb-3">Select Services</h2>
+
+                        <div class="mb-4" x-show="bookCategories.length > 0 || bookPackages.length > 0">
+                            <div class="flex items-center gap-2.5 rounded-xl border border-white/15 bg-black/25 px-3 py-2.5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/25 transition-shadow">
+                                <svg class="w-4 h-4 shrink-0 text-white/45" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/>
+                                </svg>
+                                <input type="search" x-model="serviceSearch" placeholder="Search services or packages…"
+                                       class="min-w-0 flex-1 bg-transparent border-0 p-0 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-0 appearance-none"
+                                       style="-webkit-appearance:none;">
+                                <button type="button" x-show="serviceSearch" @click="serviceSearch = ''" x-cloak
+                                        class="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-white/45 hover:text-white px-1">Clear</button>
+                            </div>
+                        </div>
+
                         <template x-if="bookCategories.length === 0 && bookPackages.length === 0">
                             <p class="text-white/50 text-sm py-8 text-center">No services available for booking.</p>
                         </template>
+
                         <template x-if="bookCategories.length > 0 || bookPackages.length > 0">
-                            <div class="overflow-y-auto scrollbar-none -mx-1 px-1 space-y-6" style="max-height:min(60dvh,28rem)">
-                                <template x-if="bookPackages.length > 0">
-                                    <div>
-                                        <div class="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
-                                            <div class="min-w-0">
-                                                <h3 class="font-manrope font-semibold text-base text-white leading-snug">Packages</h3>
-                                                <p class="text-xs text-white/50 mt-0.5">Bundle deals — select a package or pick individual services below</p>
-                                            </div>
-                                            <span class="shrink-0 inline-flex items-center rounded-full bg-white/10 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/70 tabular-nums"
-                                                  x-text="bookPackages.length + ' ' + (bookPackages.length === 1 ? 'package' : 'packages')"></span>
-                                        </div>
-                                        <div class="divide-y divide-white/10">
-                                            <template x-for="pkg in bookPackages" :key="'pkg-' + pkg.id">
-                                                <label :class="isPackageSelected(pkg) ? 'bg-white/5' : 'hover:bg-white/[0.03]'"
-                                                       class="flex items-center gap-3 py-3.5 cursor-pointer group transition-colors rounded-lg px-1 -mx-1">
-                                                    <input type="checkbox" :checked="isPackageSelected(pkg)" @change="togglePackage(pkg)" class="h-4 w-4 shrink-0 rounded border-white/30 bg-transparent text-teal-500 focus:ring-teal-500/40 focus:ring-offset-0 accent-teal-500">
-                                                    <span class="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-amber-500/90 to-orange-700/90 flex items-center justify-center text-white shadow-sm text-lg">📦</span>
-                                                    <span class="flex-1 min-w-0">
-                                                        <span class="block font-semibold text-sm text-white leading-snug" x-text="pkg.name"></span>
-                                                        <span class="mt-0.5 block text-xs text-white/50" x-text="packageServiceNames(pkg)"></span>
-                                                        <span class="mt-0.5 flex items-center gap-1.5 text-xs text-white/50" x-text="pkg.duration_minutes + ' min'"></span>
+                            <div class="overflow-y-auto scrollbar-none space-y-2.5" style="max-height:min(58dvh,26rem)">
+
+                                {{-- Search results --}}
+                                <template x-if="serviceSearch.trim()">
+                                    <div class="space-y-2">
+                                        <p class="text-[11px] font-medium uppercase tracking-wider text-white/40"
+                                           x-text="searchResultCount() + ' result' + (searchResultCount() === 1 ? '' : 's')"></p>
+                                        <template x-for="pkg in filteredPackages()" :key="'search-pkg-' + pkg.id">
+                                            <label :class="isPackageSelected(pkg) ? 'border-primary/40 bg-primary/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'"
+                                                   class="flex items-center gap-3 p-3 cursor-pointer rounded-xl border transition-colors">
+                                                <input type="checkbox" :checked="isPackageSelected(pkg)" @change="togglePackage(pkg)" class="h-4 w-4 shrink-0 rounded border-white/30 accent-teal-500">
+                                                <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-amber-500/90 to-orange-700/90 flex items-center justify-center text-white text-sm">📦</span>
+                                                <span class="flex-1 min-w-0">
+                                                    <span class="block font-semibold text-sm text-white truncate" x-text="pkg.name"></span>
+                                                    <span class="block text-[11px] text-amber-300/80 mt-0.5">Package · <span x-text="(pkg.duration_minutes || 0) + ' min'"></span></span>
+                                                </span>
+                                                <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(pkg.price)"></span>
+                                            </label>
+                                        </template>
+                                        <template x-for="svc in filteredServices()" :key="'search-svc-' + svc.id">
+                                            <label :class="isSelected(svc) ? 'border-primary/40 bg-primary/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'"
+                                                   class="flex items-center gap-3 p-3 cursor-pointer rounded-xl border transition-colors">
+                                                <input type="checkbox" :checked="isSelected(svc)" @change="toggleService(svc)" class="h-4 w-4 shrink-0 rounded border-white/30 accent-teal-500">
+                                                <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/90 to-purple-800/90 flex items-center justify-center text-white text-sm">✂</span>
+                                                <span class="flex-1 min-w-0">
+                                                    <span class="block font-semibold text-sm text-white truncate" x-text="svc.name"></span>
+                                                    <span class="block text-[11px] text-white/45 mt-0.5 truncate">
+                                                        <span x-text="svc._categoryName || ''"></span>
+                                                        <span x-show="svc._categoryName"> · </span>
+                                                        <span x-text="(svc.duration_minutes || 0) + ' min'"></span>
                                                     </span>
-                                                    <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(pkg.price)"></span>
-                                                </label>
-                                            </template>
-                                        </div>
+                                                </span>
+                                                <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(svc.price)"></span>
+                                            </label>
+                                        </template>
+                                        <p x-show="searchResultCount() === 0" class="text-white/50 text-sm text-center py-8">No matching services or packages.</p>
                                     </div>
                                 </template>
-                                <template x-for="cat in bookCategories" :key="cat.id">
-                                    <div>
-                                        <div class="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
-                                            <div class="min-w-0">
-                                                <h3 class="font-manrope font-semibold text-base text-white leading-snug" x-text="cat.name"></h3>
-                                                <p x-show="cat.business_type" class="text-xs text-white/50 mt-0.5" x-text="cat.business_type"></p>
-                                            </div>
-                                            <span class="shrink-0 inline-flex items-center rounded-full bg-white/10 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/70 tabular-nums"
-                                                  x-text="(cat.services?.length ?? 0) + ' ' + ((cat.services?.length ?? 0) === 1 ? 'service' : 'services')"></span>
-                                        </div>
-                                        <div class="divide-y divide-white/10">
-                                            <template x-for="svc in cat.services" :key="svc.id">
-                                                <label :class="isSelected(svc) ? 'bg-white/5' : 'hover:bg-white/[0.03]'"
-                                                       class="flex items-center gap-3 py-3.5 cursor-pointer group transition-colors rounded-lg px-1 -mx-1">
-                                                    <input type="checkbox" :checked="isSelected(svc)" @change="toggleService(svc)" class="h-4 w-4 shrink-0 rounded border-white/30 bg-transparent text-teal-500 focus:ring-teal-500/40 focus:ring-offset-0 accent-teal-500">
-                                                    <span class="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/90 to-purple-800/90 flex items-center justify-center text-white shadow-sm">✂</span>
-                                                    <span class="flex-1 min-w-0">
-                                                        <span class="block font-semibold text-sm text-white leading-snug" x-text="svc.name"></span>
-                                                        <span class="mt-0.5 flex items-center gap-1.5 text-xs text-white/50" x-text="svc.duration_minutes + ' min'"></span>
+
+                                {{-- Accordion browse --}}
+                                <template x-if="!serviceSearch.trim()">
+                                    <div class="space-y-2.5">
+                                        <template x-if="bookPackages.length > 0">
+                                            <div class="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                                                <button type="button" @click="toggleSection('packages')"
+                                                        class="w-full grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.04] transition-colors">
+                                                    <div class="min-w-0">
+                                                        <h3 class="font-manrope font-semibold text-[15px] text-white leading-tight">Packages</h3>
+                                                        <p class="text-xs text-white/45 mt-1">Bundle deals</p>
+                                                    </div>
+                                                    <span class="flex items-center gap-2.5 shrink-0">
+                                                        <span class="inline-flex items-center justify-center min-w-[4.5rem] rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/75 tabular-nums"
+                                                              x-text="bookPackages.length + (bookPackages.length === 1 ? ' package' : ' packages')"></span>
+                                                        <svg class="w-4 h-4 text-white/55 transition-transform duration-200"
+                                                             :class="openSection === 'packages' ? 'rotate-180' : ''"
+                                                             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                                                     </span>
-                                                    <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(svc.price)"></span>
-                                                </label>
-                                            </template>
-                                        </div>
+                                                </button>
+                                                <div x-show="openSection === 'packages'" x-cloak
+                                                     x-transition:enter="transition ease-out duration-200"
+                                                     x-transition:enter-start="opacity-0"
+                                                     x-transition:enter-end="opacity-100"
+                                                     class="border-t border-white/10 bg-black/20">
+                                                    <div class="divide-y divide-white/8">
+                                                        <template x-for="pkg in bookPackages" :key="'pkg-' + pkg.id">
+                                                            <label :class="isPackageSelected(pkg) ? 'bg-primary/10' : 'hover:bg-white/[0.04]'"
+                                                                   class="flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors">
+                                                                <input type="checkbox" :checked="isPackageSelected(pkg)" @change="togglePackage(pkg)" class="h-4 w-4 shrink-0 rounded border-white/30 accent-teal-500">
+                                                                <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-amber-500/90 to-orange-700/90 flex items-center justify-center text-white text-base">📦</span>
+                                                                <span class="flex-1 min-w-0 pr-2">
+                                                                    <span class="block font-semibold text-sm text-white leading-snug" x-text="pkg.name"></span>
+                                                                    <span class="mt-0.5 block text-xs text-white/50 line-clamp-1" x-text="packageServiceNames(pkg)"></span>
+                                                                    <span class="mt-0.5 block text-xs text-white/40" x-text="(pkg.duration_minutes || 0) + ' min'"></span>
+                                                                </span>
+                                                                <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(pkg.price)"></span>
+                                                            </label>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <template x-for="cat in bookCategories" :key="cat.id">
+                                            <div class="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                                                <button type="button" @click="toggleSection('cat-' + cat.id)"
+                                                        class="w-full grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.04] transition-colors">
+                                                    <div class="min-w-0">
+                                                        <h3 class="font-manrope font-semibold text-[15px] text-white leading-tight truncate" x-text="cat.name"></h3>
+                                                        <p x-show="cat.business_type" class="text-xs text-white/45 mt-1 truncate" x-text="cat.business_type"></p>
+                                                    </div>
+                                                    <span class="flex items-center gap-2.5 shrink-0">
+                                                        <span class="inline-flex items-center justify-center min-w-[4.5rem] rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/75 tabular-nums"
+                                                              x-text="(cat.services?.length ?? 0) + ((cat.services?.length ?? 0) === 1 ? ' service' : ' services')"></span>
+                                                        <svg class="w-4 h-4 text-white/55 transition-transform duration-200"
+                                                             :class="openSection === ('cat-' + cat.id) ? 'rotate-180' : ''"
+                                                             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                                    </span>
+                                                </button>
+                                                <div x-show="openSection === ('cat-' + cat.id)" x-cloak
+                                                     x-transition:enter="transition ease-out duration-200"
+                                                     x-transition:enter-start="opacity-0"
+                                                     x-transition:enter-end="opacity-100"
+                                                     class="border-t border-white/10 bg-black/20">
+                                                    <div class="divide-y divide-white/8">
+                                                        <template x-for="svc in cat.services" :key="svc.id">
+                                                            <label :class="isSelected(svc) ? 'bg-primary/10' : 'hover:bg-white/[0.04]'"
+                                                                   class="flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors">
+                                                                <input type="checkbox" :checked="isSelected(svc)" @change="toggleService(svc)" class="h-4 w-4 shrink-0 rounded border-white/30 accent-teal-500">
+                                                                <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/90 to-purple-800/90 flex items-center justify-center text-white text-sm">✂</span>
+                                                                <span class="flex-1 min-w-0 pr-2">
+                                                                    <span class="block font-semibold text-sm text-white leading-snug truncate" x-text="svc.name"></span>
+                                                                    <span class="mt-0.5 block text-xs text-white/45" x-text="(svc.duration_minutes || 0) + ' min'"></span>
+                                                                </span>
+                                                                <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(svc.price)"></span>
+                                                            </label>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
                                     </div>
                                 </template>
                             </div>
                         </template>
                     </div>
                     <div x-show="selected.services.length > 0"
-                         class="sf-sticky-bar sticky bg-black/90 backdrop-blur border border-white/10 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4"
+                         class="sf-sticky-bar sticky bg-black/90 backdrop-blur border border-white/10 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3"
                          style="bottom: max(1rem, env(safe-area-inset-bottom))">
-                        <span class="text-sm" x-text="selected.services.length + ' selected · ' + currency + totalPrice().toFixed(2)"></span>
-                        <button type="button" @click="goToStylist()" class="bg-primary hover:bg-primary-dark text-white font-semibold rounded-full px-6 py-2.5 text-sm">Continue</button>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-white leading-snug line-clamp-2" x-text="selectedSummaryNames()"></p>
+                            <p class="text-xs text-white/55 mt-1 tabular-nums"
+                               x-text="selected.services.length + ' selected · ' + currency + totalPrice().toFixed(2)"></p>
+                        </div>
+                        <button type="button" @click="goToStylist()" class="shrink-0 bg-primary hover:bg-primary-dark text-white font-semibold rounded-full px-5 py-2.5 text-sm">Continue</button>
                     </div>
                 </div>
 
@@ -336,6 +423,8 @@ function storefrontBooking(config) {
         globalError: '',
         allServices: [],
         bookPackages: [],
+        serviceSearch: '',
+        openSection: null,
         slotsLoading: false,
         slots: [],
         combinedInfo: null,
@@ -355,6 +444,52 @@ function storefrontBooking(config) {
         get maxDate() { const d = new Date(); d.setDate(d.getDate() + 60); return d.toISOString().slice(0, 10); },
         get bookCategories() { return this.allServices.filter(c => (c.services?.length ?? 0) > 0); },
         get flatServices() { return this.bookCategories.flatMap(c => c.services ?? []); },
+        toggleSection(id) {
+            this.openSection = this.openSection === id ? null : id;
+        },
+        searchQuery() {
+            return (this.serviceSearch || '').trim().toLowerCase();
+        },
+        filteredPackages() {
+            const q = this.searchQuery();
+            if (!q) return [];
+            return this.bookPackages.filter(pkg => {
+                const name = (pkg.name || '').toLowerCase();
+                const names = this.packageServiceNames(pkg).toLowerCase();
+                return name.includes(q) || names.includes(q);
+            });
+        },
+        filteredServices() {
+            const q = this.searchQuery();
+            if (!q) return [];
+            const out = [];
+            this.bookCategories.forEach(cat => {
+                (cat.services || []).forEach(svc => {
+                    const name = (svc.name || '').toLowerCase();
+                    if (name.includes(q) || (cat.name || '').toLowerCase().includes(q)) {
+                        out.push({ ...svc, _categoryName: cat.name });
+                    }
+                });
+            });
+            return out;
+        },
+        searchResultCount() {
+            return this.filteredPackages().length + this.filteredServices().length;
+        },
+        selectedSummaryNames() {
+            const covered = new Set();
+            const labels = [];
+            for (const pkg of this.bookPackages) {
+                if (!this.isPackageSelected(pkg)) continue;
+                labels.push(pkg.name);
+                this.packageServiceIds(pkg).forEach(id => covered.add(Number(id)));
+            }
+            for (const s of this.selected.services) {
+                if (covered.has(Number(s.id))) continue;
+                labels.push(s.name);
+            }
+            return labels.join(' · ');
+        },
         calendarCursor: null,
         calendarOpen: false,
         get calendarMonthLabel() {
@@ -698,6 +833,8 @@ function storefrontBooking(config) {
         resetBooking() {
             this.step = 0;
             this.bookStaff = [];
+            this.serviceSearch = '';
+            this.openSection = null;
             this.selected = { services: [], staff: null, date: '', slot: null };
             this.client = { name: '', email: '', phone: '', notes: '', marketing_consent: false };
             this.bookingRef = ''; this.bookingStatus = ''; this.confirmDisplay = null;
