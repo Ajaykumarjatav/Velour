@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSalon } from '@salon/core/context/SalonContext'
-import BookButton from '@salon/core/components/BookButton'
-import { assetUrl } from '@salon/core/lib/assetUrl'
+import { useSalon } from '../context/SalonContext'
+import BookButton from './BookButton'
+import { assetUrl } from '../lib/assetUrl'
 
 const pinIcon = (active) => (
   <svg
@@ -33,6 +33,13 @@ const calendarIcon = (
   </svg>
 )
 
+// Fixed salon interior gallery — same as local project design (always these 3).
+const locationGallery = [
+  assetUrl('assets/Rectangle 58.png'),
+  assetUrl('assets/Rectangle 59.png'),
+  assetUrl('assets/Rectangle 60.png'),
+]
+
 function LocationCard({ location, isActive, onSelect }) {
   return (
     <button
@@ -58,12 +65,6 @@ function LocationCard({ location, isActive, onSelect }) {
 export default function LocationsSection() {
   const { salon, locations } = useSalon()
 
-  const locationGallery = [
-  assetUrl('assets/Rectangle 58.png'),
-  assetUrl('assets/Rectangle 59.png'),
-  assetUrl('assets/Rectangle 60.png'),
-]
-
   const locationList = useMemo(() => {
     if (locations?.length) return locations
     if (!salon?.full_address && !salon?.name) return []
@@ -72,6 +73,7 @@ export default function LocationsSection() {
       name: salon.name,
       address: salon.full_address,
       is_current: true,
+      map_url: salon.map_url ?? null,
       map_embed_url: null,
       opening_hours_lines: salon.opening_hours_lines ?? [],
       photos: [],
@@ -106,6 +108,11 @@ export default function LocationsSection() {
       ? `https://www.google.com/maps?q=${encodeURIComponent(activeLocation.address)}&z=15&output=embed`
       : null)
 
+  const mapOpenUrl = activeLocation.map_url
+    || (activeLocation.address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeLocation.address)}`
+      : null)
+
   return (
     <section id="locations" className="w-full bg-white py-20 lg:py-24">
       <div className="max-w-[1360px] mx-auto px-4">
@@ -133,7 +140,7 @@ export default function LocationsSection() {
 
           {/* Center — map, hours, CTA */}
           <div className="lg:col-span-5 flex flex-col gap-5 lg:min-h-[548px]">
-            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-section-light shrink-0">
+            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-section-light shrink-0 relative">
               {mapSrc ? (
                 <iframe
                   title={`Map — ${activeLocation.name}`}
@@ -148,6 +155,16 @@ export default function LocationsSection() {
                   Map unavailable for this location
                 </div>
               )}
+              {mapOpenUrl ? (
+                <a
+                  href={mapOpenUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-semibold text-primary shadow-sm hover:bg-white"
+                >
+                  Open in Maps
+                </a>
+              ) : null}
             </div>
 
             <div>

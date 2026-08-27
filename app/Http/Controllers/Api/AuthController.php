@@ -102,8 +102,8 @@ class AuthController extends Controller
             'slug'             => $slug,
             'subdomain'        => $slug,
             'phone'            => $data['salon_phone'] ?? null,
-            'currency'         => 'GBP',
-            'timezone'         => 'Europe/London',
+            'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
+            'timezone'         => \App\Support\SalonTime::defaultTimezone(),
             'is_active'        => true,
         ]);
 

@@ -25,7 +25,7 @@ final class ClientHistory
      */
     public static function forClient(Client $client, int $limit = 15): Collection
     {
-        $currency = $client->salon?->currency ?? 'GBP';
+        $currency = $client->salon?->currency ?? \App\Helpers\CurrencyHelper::defaultCode();
 
         $appointments = Appointment::withoutGlobalScopes()
             ->where('client_id', $client->id)

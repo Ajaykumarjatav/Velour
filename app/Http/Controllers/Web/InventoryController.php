@@ -150,7 +150,7 @@ class InventoryController extends Controller
                     $statusLabel,
                     $item->retail_price,
                     $item->supplier ?? '',
-                    $salon->currency ?? 'GBP',
+                    $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode(),
                 ]);
             }
 

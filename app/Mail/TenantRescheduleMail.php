@@ -25,7 +25,9 @@ class TenantRescheduleMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         $client  = $this->appointment->client;
-        $newDate = $this->appointment->starts_at->format('D j M, g:ia');
+        $salon   = $this->appointment->salon;
+        $tz      = \App\Support\SalonTime::timezone($salon);
+        $newDate = $this->appointment->starts_at->copy()->timezone($tz)->format('D j M, g:ia');
 
         return new Envelope(
             subject: "Booking rescheduled: {$client->first_name} {$client->last_name} — {$newDate}",

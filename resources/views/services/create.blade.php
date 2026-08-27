@@ -70,7 +70,7 @@
                     @error('duration_minutes')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="form-label">Price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }}) <span class="text-red-500">*</span></label>
+                    <label class="form-label">Price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}) <span class="text-red-500">*</span></label>
                     <input type="number" name="price" min="0" step="0.01"
                            value="{{ old('price', $service?->price ?? '') }}" required
                            class="form-input @error('price') form-input-error @enderror">

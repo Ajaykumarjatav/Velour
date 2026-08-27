@@ -765,9 +765,13 @@ class NotificationService
      */
     public function notifyTenantReschedule(Appointment $appointment, Carbon $originalStartsAt): void
     {
+        $appointment->loadMissing(['client', 'salon']);
+        $tz = \App\Support\SalonTime::timezone($appointment->salon);
+        $when = $appointment->starts_at->copy()->timezone($tz)->format('D j M, g:ia');
+
         $this->createNotification($appointment->salon_id, 'reschedule', [
             'title' => 'Booking Rescheduled',
-            'body'  => "{$appointment->client->first_name} {$appointment->client->last_name} rescheduled to {$appointment->starts_at->format('D j M, g:ia')}.",
+            'body'  => "{$appointment->client->first_name} {$appointment->client->last_name} rescheduled to {$when}.",
             'staff_id' => $appointment->staff_id,
             'data'  => ['appointment_id' => $appointment->id],
         ]);

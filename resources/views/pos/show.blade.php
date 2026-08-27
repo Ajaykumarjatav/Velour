@@ -5,22 +5,14 @@
 @php
     use App\Support\PosInvoiceFormatting;
 
-    $transaction->loadMissing(['salon', 'client', 'items', 'staff']);
-    $salon = $transaction->salon;
-    $sym = $salon ? \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP') : '£';
-    $addressLines = PosInvoiceFormatting::salonAddressLines($salon);
-    $taxLabel = PosInvoiceFormatting::taxSummaryLabel($transaction);
-    $tz = $salon?->timezone ?? config('app.timezone');
-    $invoiceDate = ($transaction->completed_at ?? $transaction->created_at)?->timezone($tz);
-    $client = $transaction->client;
-    $clientName = $client ? trim(($client->first_name ?? '').' '.($client->last_name ?? '')) : '';
+    $invoice = PosInvoiceFormatting::viewContext($transaction);
     $invoicePdfSignedUrl = \App\Support\SignedUrl::temporaryRoute(
         'pos.invoice.pdf.signed',
         now()->addDays(14),
         ['transaction' => $transaction->id]
     );
     $waText = PosInvoiceFormatting::whatsappBody($transaction, $invoicePdfSignedUrl);
-    $clientPhone = preg_replace('/\D+/', '', (string) ($client?->phone ?? ''));
+    $clientPhone = preg_replace('/\D+/', '', (string) ($transaction->client?->phone ?? ''));
     $waHref = $clientPhone !== ''
         ? 'https://wa.me/'.$clientPhone.'?text='.rawurlencode($waText)
         : 'https://wa.me/?text='.rawurlencode($waText);
@@ -30,134 +22,50 @@
 @push('styles')
 <style>
     @media print {
-        .no-print { display: none !important; }
-        .invoice-sheet { box-shadow: none !important; border: 1px solid #ccc !important; }
+        .no-print,
+        .app-shell-sidebar,
+        header.sticky,
+        #profile-completion-bar,
+        [data-flash] { display: none !important; }
+
+        html, body {
+            background: #fff !important;
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        .app-shell-main {
+            padding-left: 0 !important;
+            margin: 0 !important;
+        }
+
+        main.flex-1 {
+            padding: 0 !important;
+        }
+
+        .max-w-3xl {
+            max-width: none !important;
+            margin: 0 !important;
+        }
+
+        .invoice-sheet {
+            box-shadow: none !important;
+            border: 1px solid #ccc !important;
+            overflow: visible !important;
+            break-inside: avoid;
+        }
+
+        .invoice-sheet * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
     }
 </style>
 @endpush
 
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
-    {{-- Printable invoice --}}
-    <article class="invoice-sheet rounded-2xl border border-gray-200/90 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm overflow-hidden text-gray-900 dark:text-gray-100">
-        <header class="border-b border-gray-200 dark:border-gray-700 px-6 py-6 sm:px-8 sm:py-8">
-            <div class="flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-start">
-                <div class="min-w-0">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-velour-600 dark:text-velour-400 mb-1">Tax invoice</p>
-                    <h1 class="text-xl sm:text-2xl font-bold text-heading tracking-tight">{{ $salon->name ?? config('app.name') }}</h1>
-                    @if($addressLines !== [])
-                        <address class="not-italic text-sm text-muted mt-2 space-y-0.5">
-                            @foreach($addressLines as $line)
-                                <p>{{ $line }}</p>
-                            @endforeach
-                        </address>
-                    @endif
-                    <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-                        @if($salon?->phone)<span>Tel: <span class="text-body font-medium">{{ $salon->phone }}</span></span>@endif
-                        @if($salon?->email)<span>Email: <span class="text-body font-medium">{{ $salon->email }}</span></span>@endif
-                    </div>
-                </div>
-                <div class="shrink-0 text-left sm:text-right w-full sm:w-auto">
-                    <p class="text-3xl sm:text-4xl font-bold tabular-nums text-velour-600 dark:text-velour-400">{{ $sym }}{{ number_format((float) $transaction->total, 2) }}</p>
-                    <p class="text-xs text-muted mt-1">Amount due</p>
-                    <dl class="mt-4 space-y-1 text-sm">
-                        <div class="flex sm:justify-end gap-4">
-                            <dt class="text-muted">Invoice no.</dt>
-                            <dd class="font-mono font-semibold text-heading">{{ $transaction->reference }}</dd>
-                        </div>
-                        <div class="flex sm:justify-end gap-4">
-                            <dt class="text-muted">Date</dt>
-                            <dd class="font-medium text-heading">{{ $invoiceDate?->format('D, j M Y') }}</dd>
-                        </div>
-                        <div class="flex sm:justify-end gap-4">
-                            <dt class="text-muted">Time</dt>
-                            <dd class="font-medium text-heading">{{ $invoiceDate?->format('g:i A T') }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
-        </header>
-
-        <div class="px-6 py-5 sm:px-8 sm:py-6 grid grid-cols-1 sm:grid-cols-2 gap-6 border-b border-gray-100 dark:border-gray-800">
-            <div>
-                <p class="text-[10px] font-bold uppercase tracking-wider text-muted mb-2">Bill to</p>
-                @if($client)
-                    <p class="font-semibold text-heading">{{ $clientName !== '' ? $clientName : 'Customer' }}</p>
-                    @if($client->phone)<p class="text-sm text-muted mt-1">{{ $client->phone }}</p>@endif
-                    @if($client->email)<p class="text-sm text-muted">{{ $client->email }}</p>@endif
-                @else
-                    <p class="font-semibold text-heading">Walk-in customer</p>
-                    <p class="text-sm text-muted mt-1">No client record linked to this sale.</p>
-                @endif
-            </div>
-            <div class="sm:text-right sm:justify-self-end w-full max-w-xs">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-muted mb-2">Payment &amp; status</p>
-                <p class="font-medium text-heading capitalize">{{ str_replace('_', ' ', $transaction->payment_method) }}</p>
-                @php $colors = ['completed'=>'badge-green','refunded'=>'badge-yellow','voided'=>'badge-red']; @endphp
-                <p class="mt-2"><span class="{{ $colors[$transaction->status] ?? 'badge-gray' }}">{{ ucfirst($transaction->status) }}</span></p>
-                @if($transaction->staff)
-                    <p class="text-sm text-muted mt-3">Staff: <span class="text-body font-medium">{{ $transaction->staff->name }}</span></p>
-                @endif
-            </div>
-        </div>
-
-        <div class="px-6 sm:px-8 py-5 overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b border-gray-200 dark:border-gray-700 text-left text-[10px] font-bold uppercase tracking-wider text-muted">
-                        <th class="pb-3 pr-4 font-semibold">Description</th>
-                        <th class="pb-3 px-2 font-semibold text-center w-16">Qty</th>
-                        <th class="pb-3 px-2 font-semibold text-right whitespace-nowrap">Unit</th>
-                        <th class="pb-3 pl-4 font-semibold text-right whitespace-nowrap">Amount</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    @foreach($transaction->items as $item)
-                    <tr>
-                        <td class="py-3 pr-4 align-top">
-                            <span class="font-medium text-heading">{{ $item->name }}</span>
-                            <span class="block text-[11px] text-muted capitalize mt-0.5">{{ $item->type }}</span>
-                        </td>
-                        <td class="py-3 px-2 text-center tabular-nums align-top">{{ $item->quantity }}</td>
-                        <td class="py-3 px-2 text-right tabular-nums text-muted align-top">{{ $sym }}{{ number_format((float) $item->unit_price, 2) }}</td>
-                        <td class="py-3 pl-4 text-right font-semibold tabular-nums text-heading align-top">{{ $sym }}{{ number_format((float) $item->total, 2) }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        <div class="px-6 sm:px-8 py-5 bg-gray-50/80 dark:bg-gray-950/50 border-t border-gray-100 dark:border-gray-800">
-            <div class="flex justify-end">
-                <dl class="w-full max-w-xs space-y-2 text-sm">
-                    <div class="flex justify-between gap-8 text-muted">
-                        <dt>Subtotal</dt>
-                        <dd class="tabular-nums text-heading font-medium">{{ $sym }}{{ number_format((float) $transaction->subtotal, 2) }}</dd>
-                    </div>
-                    @if((float) $transaction->discount_amount > 0)
-                    <div class="flex justify-between gap-8 text-green-600 dark:text-green-400">
-                        <dt>Discount</dt>
-                        <dd class="tabular-nums font-medium">−{{ $sym }}{{ number_format((float) $transaction->discount_amount, 2) }}</dd>
-                    </div>
-                    @endif
-                    @if((float) $transaction->tax_amount > 0)
-                    <div class="flex justify-between gap-8 text-muted">
-                        <dt>{{ $taxLabel }}</dt>
-                        <dd class="tabular-nums text-heading font-medium">{{ $sym }}{{ number_format((float) $transaction->tax_amount, 2) }}</dd>
-                    </div>
-                    @endif
-                    <div class="flex justify-between gap-8 text-base font-bold text-heading pt-2 border-t border-gray-200 dark:border-gray-700">
-                        <dt>Total</dt>
-                        <dd class="tabular-nums text-velour-600 dark:text-velour-400">{{ $sym }}{{ number_format((float) $transaction->total, 2) }}</dd>
-                    </div>
-                </dl>
-            </div>
-            @if($transaction->notes)
-                <p class="mt-4 text-xs text-muted italic border-t border-gray-200 dark:border-gray-700 pt-4">{{ $transaction->notes }}</p>
-            @endif
-            <p class="mt-4 text-xs text-muted">Thank you for your business.</p>
-        </div>
-    </article>
+    @include('pos.partials.customer-invoice-screen', $invoice)
 
     <div class="no-print card p-5 sm:p-6 space-y-4">
         <h2 class="text-sm font-semibold text-heading">Share invoice</h2>
@@ -188,9 +96,8 @@
 
     <div class="no-print flex flex-wrap gap-3 pb-8">
         <a href="{{ route('pos.invoice.pdf', $transaction) }}" class="btn-outline inline-flex items-center justify-center">Download PDF</a>
-        <button type="button" onclick="window.print()" class="btn-outline">Print</button>
+        <a href="{{ route('pos.invoice.print', $transaction) }}" target="_blank" rel="noopener" class="btn-outline">Print</a>
         <a href="{{ route('pos.index') }}" class="btn text-muted hover:text-body">Back to sales</a>
     </div>
 </div>
-
 @endsection

@@ -5,7 +5,7 @@
 
 @php
     $filterStaffId = $filterStaffId ?? null;
-    $salonTz = $salonTz ?? ($salon->timezone ?? config('app.timezone'));
+    $salonTz = $salonTz ?? ($salon->timezone ?? \App\Support\SalonTime::defaultTimezone());
     $salonTodayYmd = $salonTodayYmd ?? \Carbon\Carbon::now($salonTz)->toDateString();
     $tzAbbrev = $tzAbbrev ?? '';
     $customRangeActive = (bool) ($customRangeActive ?? false);

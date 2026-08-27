@@ -292,7 +292,9 @@ class PosController extends Controller
 
         $subtotal = collect($resolvedItems)->sum(fn ($i) => $i['qty'] * $i['price']);
         $discount = $data['discount_amount'] ?? 0;
-        $taxRate  = $data['tax_rate'] ?? 18;
+        $taxRate  = \App\Support\PosInvoiceFormatting::isGstRegistered($salon)
+            ? (float) ($data['tax_rate'] ?? \App\Support\PosInvoiceFormatting::defaultTaxRatePercent($salon))
+            : 0.0;
         $taxMode  = $data['tax_mode'] ?? 'excluded';
         $gross    = max(0, $subtotal - $discount);
         if ($taxMode === 'included') {
@@ -501,6 +503,15 @@ class PosController extends Controller
         $this->authorize('view', $po);
 
         return $this->respondInvoicePdf($po);
+    }
+
+    /** Browser print — standalone page with full invoice (no admin chrome). */
+    public function invoicePrint(PosTransaction $po)
+    {
+        $this->authorize('view', $po);
+        $po->loadMissing(['client', 'items', 'salon', 'staff']);
+
+        return view('pos.invoice-print', ['transaction' => $po]);
     }
 
     /**

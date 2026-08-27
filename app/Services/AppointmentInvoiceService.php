@@ -55,8 +55,8 @@ class AppointmentInvoiceService
             }
 
             $subtotal = round(collect($lines)->sum('price'), 2);
-            $taxRate = 0.20;
-            $taxAmount = round($subtotal * $taxRate, 2);
+            $taxRatePct = \App\Support\PosInvoiceFormatting::defaultTaxRatePercent($appointment->salon);
+            $taxAmount = $taxRatePct > 0 ? round($subtotal * ($taxRatePct / 100), 2) : 0.0;
             $total = round($subtotal + $taxAmount, 2);
             $paid = (float) $appointment->amount_paid;
             if ($paid <= 0) {

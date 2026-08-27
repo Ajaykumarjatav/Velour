@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 @section('title', $salon->name)
 @section('page-title', $salon->name)
 @section('content')
@@ -147,7 +147,7 @@
           'City'     => $salon->city  ?? '—',
           'Country'  => $salon->country ?? '—',
           'Timezone' => $salon->timezone,
-          'Currency' => strtoupper($salon->currency ?? 'GBP'),
+          'Currency' => strtoupper($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()),
           'Created'  => $salon->created_at->format('d M Y'),
           'All-time revenue' => '£'.number_format($revenueAllTime, 2),
         ] as $label => $value)

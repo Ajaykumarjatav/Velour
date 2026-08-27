@@ -19,7 +19,12 @@ return [
         '/'
     ),
     'asset_url'       => env('ASSET_URL'),
-    'timezone'        => 'UTC',
+    // Keep UTC for Eloquent datetime casts — appointments are stored as UTC instants.
+    'timezone'           => 'UTC',
+    // Default business / display timezone when a salon has none set (India).
+    'business_timezone'  => env('APP_BUSINESS_TIMEZONE', 'Asia/Kolkata'),
+    // Default business currency when a salon has none set (India).
+    'business_currency'  => env('APP_BUSINESS_CURRENCY', 'INR'),
     'locale'          => 'en',
     'fallback_locale' => 'en',
     'faker_locale'    => 'en_GB',

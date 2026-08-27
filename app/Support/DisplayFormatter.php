@@ -46,7 +46,7 @@ final class DisplayFormatter
 
     public static function money(Salon $salon, float $amount): string
     {
-        $code = $salon->currency ?? 'GBP';
+        $code = $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode();
 
         return \App\Helpers\CurrencyHelper::format($amount, $code);
     }
@@ -61,7 +61,7 @@ final class DisplayFormatter
         }
 
         $c = $at instanceof CarbonInterface ? $at->copy() : Carbon::parse($at);
-        $tz = $salon ? SalonTime::timezone($salon) : (string) config('app.timezone', 'UTC');
+        $tz = $salon ? SalonTime::timezone($salon) : SalonTime::defaultTimezone();
         $local = $c->timezone($tz);
 
         return $local->format('D, j M Y, H:i') . ' ' . $local->format('T');
@@ -74,7 +74,7 @@ final class DisplayFormatter
         }
 
         $c = $at instanceof CarbonInterface ? $at->copy() : Carbon::parse($at);
-        $tz = $salon ? SalonTime::timezone($salon) : (string) config('app.timezone', 'UTC');
+        $tz = $salon ? SalonTime::timezone($salon) : SalonTime::defaultTimezone();
 
         return $c->timezone($tz)->format('j M Y');
     }
@@ -87,7 +87,7 @@ final class DisplayFormatter
 
         $a = self::businessClock($salon, $start);
         $b = self::businessClock($salon, $end);
-        $abbr = $salon ? SalonTime::abbrev($salon) : 'UTC';
+        $abbr = $salon ? SalonTime::abbrev($salon) : Carbon::now(SalonTime::defaultTimezone())->format('T');
 
         return "{$a} – {$b} ({$abbr})";
     }
@@ -100,7 +100,7 @@ final class DisplayFormatter
         }
 
         $c = $at instanceof CarbonInterface ? $at->copy() : Carbon::parse($at);
-        $tz = $salon ? SalonTime::timezone($salon) : (string) config('app.timezone', 'UTC');
+        $tz = $salon ? SalonTime::timezone($salon) : SalonTime::defaultTimezone();
 
         return $c->timezone($tz)->format('j M');
     }
@@ -112,7 +112,7 @@ final class DisplayFormatter
         }
 
         $c = $at instanceof CarbonInterface ? $at->copy() : Carbon::parse($at);
-        $tz = $salon ? SalonTime::timezone($salon) : (string) config('app.timezone', 'UTC');
+        $tz = $salon ? SalonTime::timezone($salon) : SalonTime::defaultTimezone();
         $local = $c->timezone($tz);
 
         return $local->format('H:i') . ' ' . $local->format('T');
@@ -126,7 +126,7 @@ final class DisplayFormatter
         }
 
         $c = $at instanceof CarbonInterface ? $at->copy() : Carbon::parse($at);
-        $tz = $salon ? SalonTime::timezone($salon) : (string) config('app.timezone', 'UTC');
+        $tz = $salon ? SalonTime::timezone($salon) : SalonTime::defaultTimezone();
 
         return $c->timezone($tz)->format('H:i');
     }
@@ -143,7 +143,7 @@ final class DisplayFormatter
         $c = $at instanceof CarbonInterface ? $at->copy() : Carbon::parse($at);
         $tz = $user && $user->timezone
             ? $user->timezone
-            : ($salon ? SalonTime::timezone($salon) : (string) config('app.timezone', 'UTC'));
+            : ($salon ? SalonTime::timezone($salon) : SalonTime::defaultTimezone());
         $local = $c->timezone($tz);
 
         return $local->format('j M Y, H:i') . ' ' . $local->format('T');

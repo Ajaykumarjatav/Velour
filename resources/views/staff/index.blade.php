@@ -1,10 +1,10 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Staff & HR')
 @section('page-title', 'Staff & HR')
 
 @php
-    $sym = \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP');
-    $fmtMoney = fn (float $n) => \App\Helpers\CurrencyHelper::format($n, $salon->currency ?? 'GBP');
+    $sym = \App\Helpers\CurrencyHelper::symbol($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
+    $fmtMoney = fn (float $n) => \App\Helpers\CurrencyHelper::format($n, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
     $fmtShort = function (float $v) use ($sym) {
         if ($v >= 1000) {
             return $sym . round($v / 1000) . 'k';

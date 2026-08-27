@@ -90,7 +90,7 @@
                                        class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
                                 <span class="flex-1 text-sm font-medium text-body">{{ $svc->name }}</span>
                                 <span class="text-xs text-muted whitespace-nowrap">{{ $svc->duration_minutes }} min</span>
-                                <span class="text-sm font-semibold text-heading whitespace-nowrap">{{ \App\Helpers\CurrencyHelper::format($svc->price, $currentSalon->currency ?? 'GBP') }}</span>
+                                <span class="text-sm font-semibold text-heading whitespace-nowrap">{{ \App\Helpers\CurrencyHelper::format($svc->price, $currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}</span>
                             </label>
                             @if(count($vOpts) || count($aOpts))
                                 <div class="mt-2 ml-8 space-y-2 text-xs border-t border-gray-100 dark:border-gray-800 pt-2">
@@ -98,10 +98,10 @@
                                         <div>
                                             <span class="text-muted block mb-1">Variant</span>
                                             <select name="service_variant[{{ $svc->id }}]" class="form-select text-xs py-1.5">
-                                                <option value="">Base price ({{ \App\Helpers\CurrencyHelper::format($svc->price, $currentSalon->currency ?? 'GBP') }})</option>
+                                                <option value="">Base price ({{ \App\Helpers\CurrencyHelper::format($svc->price, $currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }})</option>
                                                 @foreach($vOpts as $vo)
                                                     <option value="{{ $vo['name'] }}" {{ old('service_variant.'.$svc->id) === $vo['name'] ? 'selected' : '' }}>
-                                                        {{ $vo['name'] }} — {{ \App\Helpers\CurrencyHelper::format($vo['price'], $currentSalon->currency ?? 'GBP') }}
+                                                        {{ $vo['name'] }} — {{ \App\Helpers\CurrencyHelper::format($vo['price'], $currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}
                                                     </option>
                                                 @endforeach
                                             </select>
@@ -116,7 +116,7 @@
                                                         <input type="checkbox" name="service_addons[{{ $svc->id }}][]" value="{{ $ao['name'] }}"
                                                                {{ is_array(old('service_addons.'.$svc->id, [])) && in_array($ao['name'], old('service_addons.'.$svc->id, []), true) ? 'checked' : '' }}
                                                                class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
-                                                        <span>{{ $ao['name'] }} +{{ \App\Helpers\CurrencyHelper::format($ao['price'], $currentSalon->currency ?? 'GBP') }}</span>
+                                                        <span>{{ $ao['name'] }} +{{ \App\Helpers\CurrencyHelper::format($ao['price'], $currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}</span>
                                                     </label>
                                                 @endforeach
                                             </div>

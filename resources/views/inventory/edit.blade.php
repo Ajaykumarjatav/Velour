@@ -50,14 +50,14 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="form-label">Cost price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }})</label>
+                    <label class="form-label">Cost price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }})</label>
                     <input type="number" name="cost_price" min="0" step="0.01"
                            value="{{ old('cost_price', $item->cost_price) }}"
                            class="form-input @error('cost_price') form-input-error @enderror">
                     @error('cost_price')<p class="form-error">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="form-label">Retail price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }})</label>
+                    <label class="form-label">Retail price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }})</label>
                     <input type="number" name="retail_price" min="0" step="0.01"
                            value="{{ old('retail_price', $item->retail_price) }}"
                            class="form-input @error('retail_price') form-input-error @enderror">

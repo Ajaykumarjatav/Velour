@@ -80,8 +80,8 @@ return [
     | POS / payments
     */
     'pos' => [
-        'tax_rate'             => 0.20,   // UK VAT
-        'default_currency'     => 'GBP',
+        'tax_rate'             => 0.18,   // India GST (typical)
+        'default_currency'     => 'INR',
         'stripe_fee_percent'   => 1.4,
         'stripe_fee_fixed'     => 0.20,
     ],

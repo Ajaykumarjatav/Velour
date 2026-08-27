@@ -22,7 +22,8 @@ class TenantNewBookingMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         $client = $this->appointment->client;
-        $date   = $this->appointment->starts_at->format('D j M, g:ia');
+        $tz     = \App\Support\SalonTime::timezone($this->appointment->salon);
+        $date   = $this->appointment->starts_at->copy()->timezone($tz)->format('D j M, g:ia');
 
         return new Envelope(
             subject: "New booking: {$client->first_name} {$client->last_name} — {$date}",

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSalon } from '@salon/core/context/SalonContext'
-import BookButton from '@salon/core/components/BookButton'
-import { assetUrl } from '@salon/core/lib/assetUrl'
+import { useSalon } from '../context/SalonContext'
+import BookButton from './BookButton'
+import { assetUrl } from '../lib/assetUrl'
 
 const pinIcon = (active) => (
   <svg
@@ -10,7 +10,7 @@ const pinIcon = (active) => (
     height="18"
     viewBox="0 0 24 24"
     fill="currentColor"
-    className="w-full bg-[#F8F8F8] py-20 lg:py-24"
+    className="shrink-0 mt-0.5"
     aria-hidden
   >
     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
@@ -73,6 +73,7 @@ export default function LocationsSection() {
       name: salon.name,
       address: salon.full_address,
       is_current: true,
+      map_url: salon.map_url ?? null,
       map_embed_url: null,
       opening_hours_lines: salon.opening_hours_lines ?? [],
       photos: [],
@@ -107,10 +108,15 @@ export default function LocationsSection() {
       ? `https://www.google.com/maps?q=${encodeURIComponent(activeLocation.address)}&z=15&output=embed`
       : null)
 
+  const mapOpenUrl = activeLocation.map_url
+    || (activeLocation.address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeLocation.address)}`
+      : null)
+
   return (
-    <section id="locations" className="text-center mb-16">
+    <section id="locations" className="w-full bg-white py-20 lg:py-24">
       <div className="max-w-[1360px] mx-auto px-4">
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-[52px]">
+        <div className="text-center mb-12 md:mb-16">
           <span className="text-primary font-manrope font-semibold text-sm uppercase tracking-widest block mb-2">
             Locations
           </span>
@@ -119,9 +125,9 @@ export default function LocationsSection() {
           </h2>
         </div>
 
-        <div className="w-full lg:w-[400px] flex flex-col gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-[30px] lg:items-stretch">
           {/* Left — location list */}
-          <div className="font-manrope font-bold text-lg md:text-xl mb-3">
+          <div className="lg:col-span-3 flex flex-col gap-4 md:gap-5">
             {locationList.map((loc) => (
               <LocationCard
                 key={loc.id}
@@ -133,35 +139,45 @@ export default function LocationsSection() {
           </div>
 
           {/* Center — map, hours, CTA */}
-          <div className="flex items-start gap-2.5">
-            <div className="flex-1 flex flex-col gap-6 lg:gap-9">
+          <div className="lg:col-span-5 flex flex-col gap-5 lg:min-h-[548px]">
+            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-section-light shrink-0 relative">
               {mapSrc ? (
                 <iframe
                   title={`Map — ${activeLocation.name}`}
                   src={mapSrc}
-                  className="w-full h-[250px] md:h-[336px] bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 shadow-sm"
+                  className="w-full h-[200px] md:h-[240px] lg:h-[286px] border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   allowFullScreen
                 />
               ) : (
-                <div className="w-full h-full object-cover">
+                <div className="w-full h-[200px] md:h-[240px] lg:h-[286px] flex items-center justify-center text-text-muted text-sm px-6 text-center">
                   Map unavailable for this location
                 </div>
               )}
+              {mapOpenUrl ? (
+                <a
+                  href={mapOpenUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-semibold text-primary shadow-sm hover:bg-white"
+                >
+                  Open in Maps
+                </a>
+              ) : null}
             </div>
 
             <div>
-              <h3 className="font-manrope font-bold text-xl text-black mb-5">
+              <h3 className="font-manrope font-bold text-xl md:text-2xl text-black mb-4">
                 Opening Hours
               </h3>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-3">
                 {hourLines.map((line) => (
                   <div
                     key={line}
-                    className="inline-flex items-center gap-2 bg-primary/[0.06] rounded-full px-5 py-3"
+                    className="inline-flex items-center gap-3 w-fit max-w-full bg-[#FFEFEF] text-black font-inter text-sm md:text-base rounded-full px-5 py-3"
                   >
-                    <span className="text-primary">{clockIcon}</span>
+                    <span className="text-primary shrink-0">{clockIcon}</span>
                     <span>{line}</span>
                   </div>
                 ))}
@@ -169,7 +185,7 @@ export default function LocationsSection() {
             </div>
 
             <BookButton
-              className="font-manrope font-semibold text-xs md:text-sm text-black"
+              className="inline-flex items-center justify-center gap-3 w-full bg-primary hover:bg-primary-dark text-white font-manrope font-bold text-sm md:text-base uppercase tracking-wider rounded-full px-8 py-4 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-primary/25 outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Book Your Transformation
               {calendarIcon}
@@ -177,16 +193,16 @@ export default function LocationsSection() {
           </div>
 
           {/* Right — gallery (3 equal landscape tiles, reference size) */}
-          <div className="inline-flex items-center gap-2 bg-primary/[0.06] rounded-full px-5 py-3">
+          <div className="lg:col-span-4 flex flex-col gap-5 lg:min-h-[548px]">
             {galleryImages.map((src, index) => (
               <div
                 key={`${src}-${index}`}
-                className="text-primary"
+                className="rounded-2xl overflow-hidden shadow-md bg-section-light w-full aspect-[11/5] lg:aspect-auto lg:flex-1 lg:min-h-0"
               >
                 <img
                   src={src}
                   alt={`${activeLocation.name} interior ${index + 1}`}
-                  className="font-manrope font-semibold text-xs md:text-sm text-black"
+                  className="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105"
                   loading="lazy"
                   onError={(e) => {
                     const fallback = locationGallery[index % locationGallery.length]

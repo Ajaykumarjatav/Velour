@@ -212,7 +212,7 @@ class RelationQuickCreateController extends Controller
             'sort_order' => $sortOrder + 1,
         ]);
 
-        $currency = $salon->currency ?? 'GBP';
+        $currency = $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode();
 
         return response()->json([
             'id' => $service->id,

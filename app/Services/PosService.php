@@ -54,9 +54,10 @@ class PosService
                 }
             }
 
-            $taxRate      = 0.20; // VAT 20%
+            $salon = \App\Models\Salon::withoutGlobalScopes()->find($salonId);
+            $taxRatePct   = \App\Support\PosInvoiceFormatting::defaultTaxRatePercent($salon);
             $netAfterDisc = $subtotal - $discountAmount;
-            $taxAmount    = round($netAfterDisc * $taxRate, 2);
+            $taxAmount    = $taxRatePct > 0 ? round($netAfterDisc * ($taxRatePct / 100), 2) : 0.0;
             $tipAmount    = $data['tip_amount'] ?? 0;
             $total        = $netAfterDisc + $taxAmount + $tipAmount;
             $changeDue    = isset($data['amount_tendered'])

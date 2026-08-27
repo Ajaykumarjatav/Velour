@@ -35,7 +35,7 @@ class SalonWebsitePayloadService
             ->orderBy('name')
             ->get(['id', 'category_id', 'name', 'description', 'duration_minutes', 'price', 'image', 'sort_order']);
 
-        $categories = $this->groupServices($services, $salon->currency ?? 'GBP', $salonId);
+        $categories = $this->groupServices($services, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode(), $salonId);
 
         $staff = Staff::withoutGlobalScope(TenantScope::class)
             ->with(['services' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)
@@ -79,7 +79,7 @@ class SalonWebsitePayloadService
             ->where('is_public', true)
             ->avg('rating');
 
-        $currency = $salon->currency ?? 'GBP';
+        $currency = $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode();
         $theme = StorefrontTheme::forSalon($salon);
 
         return [
@@ -113,6 +113,8 @@ class SalonWebsitePayloadService
                 'website_theme'       => $theme,
                 'website_theme_label' => StorefrontTheme::label($theme),
                 'whatsapp_url'        => $this->whatsappUrl($salon->whatsappNumberForSite()),
+                'map_url'             => $salon->map_url,
+                'gst_number'          => $salon->gst_number,
                 'opening_hours'       => $salon->opening_hours,
                 'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),
                 'social_links'        => $salon->social_links ?? [],
@@ -194,7 +196,7 @@ class SalonWebsitePayloadService
             ->orderBy('name')
             ->get([
                 'id', 'name', 'slug', 'address_line1', 'address_line2',
-                'city', 'postcode', 'country', 'latitude', 'longitude', 'opening_hours',
+                'city', 'postcode', 'country', 'latitude', 'longitude', 'map_url', 'opening_hours',
                 'cover_image',
             ]);
 
@@ -228,6 +230,7 @@ class SalonWebsitePayloadService
                 $salon->postcode,
             ]))),
             'is_current'          => (int) $salon->id === (int) $current->id,
+            'map_url'             => $salon->map_url,
             'map_embed_url'       => $this->mapEmbedUrl($salon),
             'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),
             'photos'              => $photos,
@@ -237,6 +240,10 @@ class SalonWebsitePayloadService
 
     private function mapEmbedUrl(Salon $salon): ?string
     {
+        if (trim((string) ($salon->map_url ?? '')) !== '') {
+            return \App\Support\MapLink::embedUrl($salon->map_url);
+        }
+
         if ($salon->latitude !== null && $salon->longitude !== null) {
             $lat = (float) $salon->latitude;
             $lng = (float) $salon->longitude;

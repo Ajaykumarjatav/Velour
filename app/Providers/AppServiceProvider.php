@@ -188,21 +188,21 @@ class AppServiceProvider extends ServiceProvider
 
         // ── @money(amount) Blade directive — uses currentSalon currency ────
         Blade::directive('money', function ($expression) {
-            return "<?php echo \\App\\Helpers\\CurrencyHelper::format((float)($expression), isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? 'GBP' : 'GBP'); ?>";
+            return "<?php echo \\App\\Helpers\\CurrencyHelper::format((float)($expression), isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? \\App\\Helpers\\CurrencyHelper::defaultCode() : \\App\\Helpers\\CurrencyHelper::defaultCode()); ?>";
         });
 
         // ── @moneycode(amount) — include ISO code when symbol is ambiguous ─
         Blade::directive('moneycode', function ($expression) {
-            return "<?php echo \\App\\Helpers\\CurrencyHelper::formatWithCode((float)($expression), isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? 'GBP' : 'GBP'); ?>";
+            return "<?php echo \\App\\Helpers\\CurrencyHelper::formatWithCode((float)($expression), isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? \\App\\Helpers\\CurrencyHelper::defaultCode() : \\App\\Helpers\\CurrencyHelper::defaultCode()); ?>";
         });
 
         // ── @currency Blade directive — outputs just the symbol ───────────
         Blade::directive('currency', function ($expression) {
-            return "<?php echo \\App\\Helpers\\CurrencyHelper::symbol($expression ?? (isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? 'GBP' : 'GBP')); ?>";
+            return "<?php echo \\App\\Helpers\\CurrencyHelper::symbol($expression ?? (isset(\$currentSalon) && \$currentSalon ? \$currentSalon->currency ?? \\App\\Helpers\\CurrencyHelper::defaultCode() : \\App\\Helpers\\CurrencyHelper::defaultCode())); ?>";
         });
 
         Blade::directive('currencyLabel', function () {
-            return "<?php echo \\App\\Helpers\\CurrencyHelper::label(isset(\$currentSalon) && \$currentSalon ? (\$currentSalon->currency ?? 'GBP') : 'GBP'); ?>";
+            return "<?php echo \\App\\Helpers\\CurrencyHelper::label(isset(\$currentSalon) && \$currentSalon ? (\$currentSalon->currency ?? \\App\\Helpers\\CurrencyHelper::defaultCode()) : \\App\\Helpers\\CurrencyHelper::defaultCode()); ?>";
         });
 
         Blade::directive('bizdatetime', function ($expression) {

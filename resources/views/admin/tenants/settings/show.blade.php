@@ -11,7 +11,7 @@
             'Phone' => $salon->phone ?? '—',
             'City' => $salon->city ?? '—',
             'Timezone' => $salon->timezone ?? '—',
-            'Currency' => strtoupper($salon->currency ?? 'GBP'),
+            'Currency' => strtoupper($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()),
             'Slug' => $salon->slug,
             'Domain' => $salon->domain ?? '—',
         ] as $label => $value)

@@ -19,7 +19,7 @@ class Salon extends Model
         'owner_id','business_type_id','name','slug','subdomain','description','awards_accolades','awards_images','phone','whatsapp_number','whatsapp_same_as_phone','email','website',
         'address_line1','address_line2','city','county','postcode','country',
         'latitude','longitude','timezone','currency','locale',
-        'logo','cover_image','social_links','booking_url','google_place_id',
+        'logo','cover_image','social_links','booking_url','google_place_id','map_url','gst_number',
         'stripe_account_id','online_booking_enabled','home_services_enabled','new_client_booking_enabled',
         'deposit_required','deposit_percentage','instant_confirmation',
         'booking_advance_days','cancellation_hours','opening_hours','is_active',

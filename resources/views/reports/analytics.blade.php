@@ -10,7 +10,7 @@
         '3m' => '3m',
         '12m' => '12m',
     ];
-    $currencySymbol = \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP');
+    $currencySymbol = \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
 @endphp
 
 <div class="space-y-6"

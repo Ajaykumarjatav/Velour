@@ -1,5 +1,9 @@
 @extends('emails.auth._layout', ['subject' => 'Booking cancelled'])
 @section('body')
+@php
+  $tz = \App\Support\SalonTime::timezone($salon);
+  $whenLabel = $appointment->starts_at->copy()->timezone($tz)->format('l, d M Y \a\t g:ia');
+@endphp
 <p class="greeting" style="color:#dc2626">❌ Booking Cancelled</p>
 <p class="text">Hi {{ $salon->name }}, an appointment has been cancelled.</p>
 
@@ -16,7 +20,7 @@
   </tr>
   <tr style="border-bottom:1px solid #f1f5f9;">
     <td style="padding:10px 0;font-size:13px;color:#6b7280;">Original Date</td>
-    <td style="padding:10px 0;font-size:14px;font-weight:600;color:#111827;">{{ $appointment->starts_at->format('l, d M Y \a\t g:ia') }}</td>
+    <td style="padding:10px 0;font-size:14px;font-weight:600;color:#111827;">{{ $whenLabel }}</td>
   </tr>
   <tr style="border-bottom:1px solid #f1f5f9;">
     <td style="padding:10px 0;font-size:13px;color:#6b7280;">Staff</td>
@@ -37,5 +41,5 @@
 </div>
 
 <hr class="divider">
-<p class="note">Ref: {{ $appointment->reference }}</p>
+<p class="note">Ref: {{ $appointment->reference }} · Times shown in salon timezone ({{ $tz }})</p>
 @endsection

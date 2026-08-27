@@ -144,7 +144,7 @@ class MultiLocationController extends Controller
             'city' => $data['city'],
             'timezone' => $data['timezone'],
             'phone' => $data['phone'],
-            'currency' => $baseSalon?->currency ?? 'GBP',
+            'currency' => $baseSalon?->currency ?? \App\Helpers\CurrencyHelper::defaultCode(),
             'country' => $baseSalon?->country,
             'locale' => $baseSalon?->locale ?? 'en',
             'is_active' => true,

@@ -77,7 +77,7 @@
                                     <p class="text-xs text-muted mt-1">{{ $pkg->services_count }} {{ Str::plural('service', $pkg->services_count) }}</p>
                                 </div>
                                 <p class="text-xl font-bold tabular-nums text-velour-600 dark:text-velour-400 shrink-0">
-                                    {{ \App\Helpers\CurrencyHelper::format((float) $pkg->price, $salon->currency ?? 'GBP') }}
+                                    {{ \App\Helpers\CurrencyHelper::format((float) $pkg->price, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}
                                 </p>
                             </div>
                             <div class="mt-4 flex flex-wrap gap-2">

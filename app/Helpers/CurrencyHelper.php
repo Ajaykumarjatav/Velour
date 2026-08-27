@@ -4,6 +4,14 @@ namespace App\Helpers;
 
 class CurrencyHelper
 {
+    /** App-wide default when a salon has no currency set. */
+    public static function defaultCode(): string
+    {
+        $code = strtoupper((string) config('app.business_currency', 'INR'));
+
+        return isset(static::all()[$code]) ? $code : 'INR';
+    }
+
     /**
      * All supported currencies: code => [name, symbol, position]
      * position: 'before' | 'after'

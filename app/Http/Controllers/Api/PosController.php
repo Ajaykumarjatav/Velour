@@ -183,7 +183,7 @@ class PosController extends Controller
 
         $intent = PaymentIntent::create([
             'amount'              => $data['amount'],
-            'currency'            => strtolower($data['currency'] ?? 'gbp'),
+            'currency'            => strtolower($data['currency'] ?? \App\Helpers\CurrencyHelper::defaultCode()),
             'payment_method_types'=> ['card'],
             'metadata'            => ['salon_id' => $request->attributes->get('salon_id')],
         ]);

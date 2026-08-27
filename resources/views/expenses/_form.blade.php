@@ -56,7 +56,7 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-            <label class="form-label">Amount ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }}) <span class="text-red-500">*</span></label>
+            <label class="form-label">Amount ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}) <span class="text-red-500">*</span></label>
             <input type="number" name="amount" min="0.01" step="0.01" required
                    value="{{ old('amount', $expense->amount ?? '') }}"
                    class="form-input @error('amount') form-input-error @enderror">

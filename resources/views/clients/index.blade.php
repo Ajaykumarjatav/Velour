@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Clients')
 @section('page-title', 'Clients')
 @section('content')
@@ -193,14 +193,14 @@
             'show_url' => route('clients.show', $c->id),
             'update_url' => route('clients.update', $c->id),
             'edit_url' => route('clients.edit', $c->id),
-            'currency_symbol' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP'),
+            'currency_symbol' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()),
             'appointments' => collect($appointmentsMap->get($c->id, collect()))->map(function ($apt) use ($salon) {
                 return [
                     'date' => $apt->starts_at ? $apt->starts_at->format('d M Y') : '—',
                     'time' => $apt->starts_at ? $apt->starts_at->format('H:i') : '—',
                     'services' => $apt->services->pluck('service_name')->filter()->join(', ') ?: '—',
                     'staff' => $apt->staff?->name ?? '—',
-                    'amount' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP') . number_format(
+                    'amount' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) . number_format(
                         (float) (($apt->payment_status === 'paid' && (float) ($apt->amount_paid ?? 0) > 0)
                             ? $apt->amount_paid
                             : ($apt->total_price ?? 0)),
@@ -218,7 +218,7 @@
                     'time' => $at ? $at->format('H:i') : '',
                     'label' => $row['label'],
                     'detail' => $row['detail'],
-                    'amount' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? 'GBP').number_format((float) ($row['amount'] ?? 0), 2),
+                    'amount' => \App\Helpers\CurrencyHelper::symbol($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()).number_format((float) ($row['amount'] ?? 0), 2),
                     'display_status' => $row['display_status'] ?? 'Done',
                     'action_label' => $row['action_label'] ?? 'View',
                     'url' => $row['url'] ?? null,

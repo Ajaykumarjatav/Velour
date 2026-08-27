@@ -22,7 +22,7 @@
             <td class="text-right text-muted">{{ $svc->booking_count }}</td>
             <td class="text-right font-bold text-heading">@money($svc->total_revenue ?? 0)</td>
             <td class="text-right text-muted hidden sm:table-cell">
-                {{ $svc->booking_count > 0 ? \App\Helpers\CurrencyHelper::format($svc->total_revenue / $svc->booking_count, $currentSalon->currency ?? 'GBP') : '—' }}
+                {{ $svc->booking_count > 0 ? \App\Helpers\CurrencyHelper::format($svc->total_revenue / $svc->booking_count, $currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) : '—' }}
             </td>
         </tr>
         @empty

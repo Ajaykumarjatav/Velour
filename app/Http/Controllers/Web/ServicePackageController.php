@@ -66,7 +66,7 @@ class ServicePackageController extends Controller
 
         $salon = $this->salon();
         $services = $this->servicesForPackageCatalog($salon->id);
-        $servicesPayload = $this->servicesPayload($services, $salon->currency ?? 'GBP');
+        $servicesPayload = $this->servicesPayload($services, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
         $initialSelectedIds = array_values(array_unique(array_map('intval', (array) old('service_ids', []))));
 
         return view('service-packages.create', compact('salon', 'services', 'servicesPayload', 'initialSelectedIds'));
@@ -127,7 +127,7 @@ class ServicePackageController extends Controller
             ->map(fn ($id) => (int) $id)
             ->all();
         $services = $this->servicesForPackageCatalog($salon->id, $attachedIds);
-        $servicesPayload = $this->servicesPayload($services, $salon->currency ?? 'GBP');
+        $servicesPayload = $this->servicesPayload($services, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
         $initialSelectedIds = old('service_ids') !== null
             ? array_values(array_unique(array_map('intval', (array) old('service_ids'))))
             : $attachedIds;

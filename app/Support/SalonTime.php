@@ -14,7 +14,13 @@ final class SalonTime
 {
     public static function timezone(Salon $salon): string
     {
-        return $salon->timezone ?: (string) config('app.timezone', 'UTC');
+        return $salon->timezone ?: (string) config('app.business_timezone', 'Asia/Kolkata');
+    }
+
+    /** App-wide default when no salon context is available. */
+    public static function defaultTimezone(): string
+    {
+        return (string) config('app.business_timezone', 'Asia/Kolkata');
     }
 
     public static function now(Salon $salon): CarbonInterface

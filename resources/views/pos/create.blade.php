@@ -4,8 +4,9 @@
 
 @php
     $prefillFromAppointment = $prefillFromAppointment ?? null;
-    $sym     = \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP');
-    $taxRate = 18;
+    $sym     = \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
+    $gstRegistered = \App\Support\PosInvoiceFormatting::isGstRegistered($currentSalon);
+    $taxRate = \App\Support\PosInvoiceFormatting::defaultTaxRatePercent($currentSalon);
     $allServices = $services->map(fn($s) => [
         'id'        => $s->id,
         'name'      => $s->name,
@@ -434,10 +435,14 @@
                     </div>
                     <div class="text-right text-[11px] text-muted space-y-0.5 shrink-0">
                         <div class="tabular-nums">Sub <span class="text-heading" x-text="'{{ $sym }}' + formatMoney(subtotal)"></span></div>
+                        @if($gstRegistered)
                         <div class="tabular-nums">GST <span class="text-heading" x-text="'{{ $sym }}' + formatMoney(gst)"></span></div>
                         <button type="button" @click="taxMode = taxMode === 'excluded' ? 'included' : 'excluded'"
                                 class="text-[10px] text-velour-600 dark:text-velour-400 hover:underline"
                                 x-text="taxMode === 'excluded' ? '→ incl.' : '→ excl.'"></button>
+                        @else
+                        <div class="text-[10px] text-muted">No GST (not registered)</div>
+                        @endif
                     </div>
                 </div>
 

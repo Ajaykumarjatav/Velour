@@ -1,4 +1,4 @@
-﻿@props([
+@props([
     'listId' => 'appt-services-list',
     'buttonClass' => 'inline-flex items-center justify-center h-10 w-10 flex-shrink-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-velour-600 dark:text-velour-400 hover:bg-velour-50 dark:hover:bg-velour-900/30 hover:border-velour-300 dark:hover:border-velour-600 transition-colors focus:outline-none focus:ring-2 focus:ring-velour-400',
 ])
@@ -8,7 +8,7 @@
         'postUrl' => route('quick-create.service'),
         'listId' => $listId,
         'csrf' => csrf_token(),
-        'currencySymbol' => \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP'),
+        'currencySymbol' => \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()),
     ];
 @endphp
 
@@ -159,7 +159,7 @@ window.appendApptServiceRow = function (detail, listId) {
                         <p class="form-error text-xs mt-0.5" x-show="err('duration_minutes')" x-text="err('duration_minutes')"></p>
                     </div>
                     <div>
-                        <label class="form-label">Price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }}) <span class="text-red-500">*</span></label>
+                        <label class="form-label">Price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}) <span class="text-red-500">*</span></label>
                         <input type="number" x-model="svcPrice" min="0" step="0.01" class="form-input" :class="err('price') ? 'form-input-error' : ''" placeholder="0.00">
                         <p class="form-error text-xs mt-0.5" x-show="err('price')" x-text="err('price')"></p>
                     </div>

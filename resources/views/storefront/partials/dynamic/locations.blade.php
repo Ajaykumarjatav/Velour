@@ -7,7 +7,10 @@
             'name' => $salonData['name'] ?? '',
             'address' => $salonData['full_address'],
             'is_current' => true,
-            'map_embed_url' => null,
+            'map_url' => $salonData['map_url'] ?? null,
+            'map_embed_url' => ! empty($salonData['map_url'])
+                ? \App\Support\MapLink::embedUrl($salonData['map_url'])
+                : null,
             'opening_hours_lines' => $salonData['opening_hours_lines'] ?? [],
             'photos' => [],
             'banner_url' => $data['branding']['banner_url'] ?? ($salonData['cover_image_url'] ?? null),
@@ -45,12 +48,19 @@
             </div>
 
             <div class="lg:col-span-5 flex flex-col gap-5 lg:min-h-[548px]">
-                <div class="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-section-light shrink-0">
+                <div class="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-section-light shrink-0 relative">
                     <template x-if="mapSrc">
                         <iframe :title="'Map — ' + (activeLocation?.name || '')" :src="mapSrc" class="w-full h-[200px] md:h-[240px] lg:h-[286px] border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
                     </template>
                     <template x-if="!mapSrc">
                         <div class="w-full h-[200px] md:h-[240px] lg:h-[286px] flex items-center justify-center text-text-muted text-sm px-6 text-center">Map unavailable for this location</div>
+                    </template>
+                    <template x-if="mapOpenUrl">
+                        <a :href="mapOpenUrl" target="_blank" rel="noopener noreferrer"
+                           class="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-semibold text-primary shadow-sm hover:bg-white">
+                            Open in Maps
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </a>
                     </template>
                 </div>
                 <div>
@@ -111,6 +121,13 @@ function locationsSection(locations, salon, fallbackGallery) {
             if (!loc) return null;
             if (loc.map_embed_url) return loc.map_embed_url;
             if (loc.address) return 'https://www.google.com/maps?q=' + encodeURIComponent(loc.address) + '&z=15&output=embed';
+            return null;
+        },
+        get mapOpenUrl() {
+            const loc = this.activeLocation;
+            if (!loc) return null;
+            if (loc.map_url) return loc.map_url;
+            if (loc.address) return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc.address);
             return null;
         },
     };

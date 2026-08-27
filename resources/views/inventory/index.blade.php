@@ -4,7 +4,7 @@
 
 @section('content')
 @php
-    $currency = $currentSalon->currency ?? 'GBP';
+    $currency = $currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode();
     $chipBase = request()->except(['category_id', 'page']);
     $filterHidden = request()->except(['search', 'page', 'low_stock']);
     $statsLinkBase = request()->except(['page', 'stock_level', 'low_stock']);

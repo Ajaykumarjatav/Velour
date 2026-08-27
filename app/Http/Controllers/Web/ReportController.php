@@ -366,7 +366,7 @@ class ReportController extends Controller
         return response()->streamDownload(function () use ($salon, $rangeStart, $rangeEnd, $staffId, $paymentMethod) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['# Salon timezone (day boundaries): ' . SalonTime::timezone($salon)]);
-            fputcsv($out, ['# Amounts in ' . CurrencyHelper::label($salon->currency ?? 'GBP')]);
+            fputcsv($out, ['# Amounts in ' . CurrencyHelper::label($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode())]);
             fputcsv($out, ['# Recognized at: UTC (ISO 8601).']);
             fputcsv($out, []);
             fputcsv($out, ['Reference', 'Recognized at (UTC)', 'Total', 'Payment method', 'Staff', 'Client']);

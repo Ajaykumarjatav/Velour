@@ -127,6 +127,14 @@ class TaskController extends Controller
                 ->get();
         }
 
+        // Active staff for inline appointment reschedule on the task board (read-only list).
+        $boardStaff = Staff::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('is_active', true)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name']);
+
         $deskKindLabels = SalonActionItem::kindLabels();
 
         return view('tasks.index', compact(
@@ -146,6 +154,7 @@ class TaskController extends Controller
             'appointmentProgress',
             'appointmentDone',
             'staffForAssign',
+            'boardStaff',
             'deskKindLabels'
         ));
     }

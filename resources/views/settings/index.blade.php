@@ -411,6 +411,16 @@
                         <p class="form-hint">Used on your public website WhatsApp button. Same as mobile keeps it in sync with Phone.</p>
                     </div>
                     <div>
+                        <label class="form-label" for="settings-salon-map-url">Map link or location</label>
+                        <input id="settings-salon-map-url" type="text" name="map_url" value="{{ old('map_url', $salon->map_url) }}" class="form-input" placeholder="Google Maps link, Plus Code, or full address" maxlength="500" autocomplete="off">
+                        <p class="form-hint">Paste a Google Maps URL, Plus Code (e.g. PRR9+5X6), or address — we turn it into a clickable map link for your website.</p>
+                    </div>
+                    <div>
+                        <label class="form-label" for="settings-salon-gst-number">GST number</label>
+                        <input id="settings-salon-gst-number" type="text" name="gst_number" value="{{ old('gst_number', $salon->gst_number) }}" class="form-input" placeholder="22AAAAA0000A1Z5" maxlength="30" autocomplete="off">
+                        <p class="form-hint">When set, customers receive a <strong>Tax Invoice</strong> with GSTIN and GST. When empty, customers receive a plain <strong>Invoice</strong> (no GST).</p>
+                    </div>
+                    <div>
                         <label class="form-label" for="settings-salon-currency-trigger">Currency</label>
                         <x-searchable-select
                             id="settings-salon-currency"
@@ -420,7 +430,7 @@
                             search-placeholder="Search currency…"
                             trigger-class="form-select w-full">
                             @foreach(\App\Helpers\CurrencyHelper::selectList() as $code => $lbl)
-                            <option value="{{ $code }}" {{ old('currency', $salon->currency ?? 'GBP') === $code ? 'selected' : '' }}>{{ $lbl }}</option>
+                            <option value="{{ $code }}" {{ old('currency', $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) === $code ? 'selected' : '' }}>{{ $lbl }}</option>
                             @endforeach
                         </x-searchable-select>
                     </div>
@@ -436,7 +446,7 @@
                             @foreach(\App\Helpers\TimezoneHelper::grouped() as $region => $zones)
                             <optgroup label="{{ $region }}">
                                 @foreach($zones as $tz => $label)
-                                <option value="{{ $tz }}" {{ old('timezone', $salon->timezone ?? 'UTC') === $tz ? 'selected' : '' }}>{{ $label }}</option>
+                                <option value="{{ $tz }}" {{ old('timezone', $salon->timezone ?? \App\Support\SalonTime::defaultTimezone()) === $tz ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </optgroup>
                             @endforeach

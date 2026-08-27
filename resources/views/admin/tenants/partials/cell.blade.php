@@ -1,6 +1,6 @@
 @php
     $key = $col;
-    $currency = strtoupper($salon->currency ?? 'GBP');
+    $currency = strtoupper($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
     $sym = $currency === 'INR' ? '₹' : ($currency === 'GBP' ? '£' : $currency.' ');
 @endphp
 @switch($module)

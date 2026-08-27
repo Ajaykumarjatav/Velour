@@ -54,7 +54,7 @@
       </div>
       <div>
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Min Spend</p>
-        <p class="font-semibold text-gray-800">{{ $voucher->min_spend ? \App\Helpers\CurrencyHelper::format($voucher->min_spend, $currentSalon->currency ?? 'GBP') : 'None' }}</p>
+        <p class="font-semibold text-gray-800">{{ $voucher->min_spend ? \App\Helpers\CurrencyHelper::format($voucher->min_spend, $currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) : 'None' }}</p>
       </div>
       @if($voucher->client)
       <div class="col-span-2">

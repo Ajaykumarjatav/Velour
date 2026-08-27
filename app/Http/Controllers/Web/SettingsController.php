@@ -239,6 +239,8 @@ class SettingsController extends Controller
             'country'            => ['nullable', 'string', 'max:2'],
             'timezone'           => ['required', 'string', 'timezone'],
             'currency'           => ['required', 'string', 'size:3', 'in:' . implode(',', array_keys(\App\Helpers\CurrencyHelper::all()))],
+            'map_url'            => ['nullable', 'string', 'max:500'],
+            'gst_number'         => ['nullable', 'string', 'max:30'],
             'booking_time_display' => ['nullable', 'in:business,customer'],
             'home_services_enabled' => ['sometimes', 'boolean'],
         ]);
@@ -257,6 +259,10 @@ class SettingsController extends Controller
             $customWa = trim((string) ($data['whatsapp_number'] ?? ''));
             $data['whatsapp_number'] = $customWa !== '' ? $customWa : null;
         }
+        $mapUrl = trim((string) ($data['map_url'] ?? ''));
+        $data['map_url'] = $mapUrl !== '' ? \App\Support\MapLink::normalize($mapUrl) : null;
+        $gst = strtoupper(trim((string) ($data['gst_number'] ?? '')));
+        $data['gst_number'] = $gst !== '' ? $gst : null;
 
         $links = is_array($salon->social_links) ? $salon->social_links : [];
         $waDigits = preg_replace('/\D+/', '', (string) ($data['whatsapp_same_as_phone'] ? ($data['phone'] ?? '') : ($data['whatsapp_number'] ?? '')));

@@ -195,8 +195,8 @@ class AuthController extends Controller
             'subdomain'        => $slug,
             'email'            => $data['email'],
             'phone'            => null,
-            'currency'         => 'GBP',
-            'timezone'         => 'Europe/London',
+            'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
+            'timezone'         => \App\Support\SalonTime::defaultTimezone(),
             'is_active'        => true,
         ]);
 

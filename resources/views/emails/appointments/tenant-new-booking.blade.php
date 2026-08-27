@@ -1,5 +1,9 @@
 @extends('emails.auth._layout', ['subject' => 'New booking received'])
 @section('body')
+@php
+  $tz = \App\Support\SalonTime::timezone($salon);
+  $whenLabel = $appointment->starts_at->copy()->timezone($tz)->format('l, d M Y \a\t g:ia');
+@endphp
 <p class="greeting" style="color:#7c3aed">📅 New Booking</p>
 <p class="text">Hi {{ $salon->name }}, you have a new appointment booked via your online booking page.</p>
 
@@ -26,7 +30,7 @@
   </tr>
   <tr style="border-bottom:1px solid #f1f5f9;">
     <td style="padding:10px 0;font-size:13px;color:#6b7280;">Date & Time</td>
-    <td style="padding:10px 0;font-size:14px;font-weight:600;color:#111827;">{{ $appointment->starts_at->format('l, d M Y \a\t g:ia') }}</td>
+    <td style="padding:10px 0;font-size:14px;font-weight:600;color:#111827;">{{ $whenLabel }}</td>
   </tr>
   <tr style="border-bottom:1px solid #f1f5f9;">
     <td style="padding:10px 0;font-size:13px;color:#6b7280;">Duration</td>
@@ -34,7 +38,7 @@
   </tr>
   <tr>
     <td style="padding:10px 0;font-size:13px;color:#6b7280;">Total</td>
-    <td style="padding:10px 0;font-size:16px;font-weight:700;color:#7c3aed;">{{ \App\Helpers\CurrencyHelper::format((float)$appointment->total_price, $salon->currency ?? 'GBP') }}</td>
+    <td style="padding:10px 0;font-size:16px;font-weight:700;color:#7c3aed;">{{ \App\Helpers\CurrencyHelper::format((float)$appointment->total_price, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}</td>
   </tr>
 </table>
 
@@ -47,5 +51,5 @@
 </div>
 
 <hr class="divider">
-<p class="note">This notification was sent because a customer booked via your online booking page. Ref: {{ $appointment->reference }}</p>
+<p class="note">This notification was sent because a customer booked via your online booking page. Ref: {{ $appointment->reference }} · Times shown in salon timezone ({{ $tz }})</p>
 @endsection

@@ -23,8 +23,8 @@
     <h1 style="color:#B8943A;font-size:24px;margin:0 0 16px;font-weight:normal;">See you tomorrow, {{ $client->first_name }}.</h1>
     <p style="color:#888;font-size:15px;line-height:1.7;">This is a friendly reminder about your upcoming appointment.</p>
     <p style="margin:24px 0 4px;color:#e0d5c5;">
-      <strong>{{ \Carbon\Carbon::parse($appointment->starts_at)->format('l, j F') }}</strong>
-      at <strong>{{ \Carbon\Carbon::parse($appointment->starts_at)->format('g:i A') }}</strong>
+      <strong>{{ $appointment->starts_at->copy()->timezone(\App\Support\SalonTime::timezone($salon))->format('l, j F') }}</strong>
+      at <strong>{{ $appointment->starts_at->copy()->timezone(\App\Support\SalonTime::timezone($salon))->format('g:i A') }}</strong>
       with <strong>{{ $appointment->staff->first_name }}</strong>
     </p>
     <p style="color:#888;font-size:14px;">{{ $appointment->services->pluck('service_name')->join(', ') }}</p>

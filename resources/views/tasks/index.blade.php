@@ -297,4 +297,88 @@
         @endforeach
     </div>
 </div>
+
+@push('scripts')
+<script>
+function taskBoardBookingCard(cfg) {
+    return {
+        occupiedUrl: cfg.occupiedUrl,
+        excludeId: cfg.excludeId,
+        serviceIds: cfg.serviceIds || [],
+        staffId: String(cfg.staffId || ''),
+        today: cfg.today,
+        slotTimes: cfg.slotTimes || [],
+        panel: null,
+        selectedDate: cfg.today,
+        selectedTime: '',
+        blocked: [],
+        loadingSlots: false,
+        slotError: '',
+        get availableSlots() {
+            return this.slotTimes.filter((t) => !this.blocked.includes(t));
+        },
+        get startsAtValue() {
+            if (!this.selectedDate || !this.selectedTime) return '';
+            return this.selectedDate + ' ' + this.selectedTime + ':00';
+        },
+        formatSlot(hhmm) {
+            if (!hhmm) return '';
+            const [h, m] = hhmm.split(':').map(Number);
+            const d = new Date(2000, 0, 1, h, m);
+            return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+        },
+        openReschedule() {
+            this.panel = this.panel === 'reschedule' ? null : 'reschedule';
+            if (this.panel === 'reschedule') {
+                this.slotError = '';
+                this.selectedTime = '';
+                if (!this.selectedDate || this.selectedDate < this.today) this.selectedDate = this.today;
+                if (!this.staffId) {
+                    const sel = this.$root.querySelector('select[name="staff_id"]');
+                    if (sel && sel.options.length) this.staffId = String(sel.options[0].value);
+                }
+                this.fetchBlocked();
+            }
+        },
+        onStaffOrDateChange() {
+            this.selectedTime = '';
+            this.slotError = '';
+            if (this.selectedDate < this.today) this.selectedDate = this.today;
+            this.fetchBlocked();
+        },
+        pickSlot(slot) {
+            this.selectedTime = slot;
+            this.slotError = '';
+        },
+        async fetchBlocked() {
+            if (!this.staffId || !this.selectedDate) {
+                this.blocked = this.slotTimes.slice();
+                return;
+            }
+            this.loadingSlots = true;
+            try {
+                const u = new URL(this.occupiedUrl, window.location.origin);
+                u.searchParams.set('date', this.selectedDate);
+                u.searchParams.set('staff_id', String(this.staffId));
+                u.searchParams.set('exclude_appointment_id', String(this.excludeId));
+                (this.serviceIds || []).forEach((id) => u.searchParams.append('service_ids[]', id));
+                const r = await fetch(u.toString(), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                if (!r.ok) throw new Error('slots');
+                const data = await r.json();
+                this.blocked = data.blocked || [];
+                if (this.blocked.includes(this.selectedTime)) this.selectedTime = '';
+            } catch (e) {
+                this.blocked = this.slotTimes.slice();
+                this.slotError = 'Could not load availability. Try again.';
+            } finally {
+                this.loadingSlots = false;
+            }
+        },
+    };
+}
+</script>
+@endpush
 @endsection

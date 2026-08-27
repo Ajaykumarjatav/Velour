@@ -35,11 +35,11 @@
     </div>
     <div class="detail-row">
       <span class="detail-label">Date</span>
-      <span class="detail-value">{{ \Carbon\Carbon::parse($appointment->starts_at)->format('l, j F Y') }}</span>
+      <span class="detail-value">{{ $appointment->starts_at->copy()->timezone(\App\Support\SalonTime::timezone($salon))->format('l, j F Y') }}</span>
     </div>
     <div class="detail-row">
       <span class="detail-label">Time</span>
-      <span class="detail-value">{{ \Carbon\Carbon::parse($appointment->starts_at)->format('g:i A') }}</span>
+      <span class="detail-value">{{ $appointment->starts_at->copy()->timezone(\App\Support\SalonTime::timezone($salon))->format('g:i A') }}</span>
     </div>
     <div class="detail-row">
       <span class="detail-label">Stylist</span>

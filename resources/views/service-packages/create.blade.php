@@ -38,7 +38,7 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="form-label">Package price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? 'GBP') }}) <span class="text-red-500">*</span></label>
+                    <label class="form-label">Package price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}) <span class="text-red-500">*</span></label>
                     <input type="number" name="price" value="{{ old('price') }}" required min="0" step="0.01"
                            class="form-input @error('price') form-input-error @enderror">
                     @error('price')<p class="form-error">{{ $message }}</p>@enderror

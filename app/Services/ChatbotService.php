@@ -55,14 +55,14 @@ class ChatbotService
 
     private function money(float $amount): string
     {
-        $cur = $this->salon?->currency ?? 'GBP';
-        $sym = match(strtoupper($cur)) { 'USD'=>'$','EUR'=>'€','GBP'=>'£', default=>strtoupper($cur).' ' };
+        $cur = $this->salon?->currency ?? \App\Helpers\CurrencyHelper::defaultCode();
+        $sym = match(strtoupper($cur)) { 'USD'=>'$','EUR'=>'€','GBP'=>'£','INR'=>'₹', default=>strtoupper($cur).' ' };
         return $sym . number_format($amount, 2);
     }
 
     private function adminMoney(float $amount): string
     {
-        return '£' . number_format($amount, 2);
+        return \App\Helpers\CurrencyHelper::format($amount, \App\Helpers\CurrencyHelper::defaultCode());
     }
 
     // ── TENANT HANDLER ────────────────────────────────────────────────────────

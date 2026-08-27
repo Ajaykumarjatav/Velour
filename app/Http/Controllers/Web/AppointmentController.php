@@ -141,7 +141,7 @@ class AppointmentController extends Controller
      */
     private function buildAppointmentIndexRows(Collection $appointments, $salon, bool $isScopedStaffPanel): array
     {
-        $currency = $salon->currency ?? 'GBP';
+        $currency = $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode();
 
         return $appointments->map(function (Appointment $apt) use ($salon, $currency, $isScopedStaffPanel) {
             $st = $apt->status;
@@ -742,6 +742,10 @@ class AppointmentController extends Controller
             $wasPending
         );
 
+        if ($request->input('redirect') === 'tasks') {
+            return redirect()->route('tasks.index')->with('success', 'Appointment cancelled.');
+        }
+
         return back()->with('success', 'Appointment cancelled.');
     }
 
@@ -773,6 +777,10 @@ class AppointmentController extends Controller
             $appointment->fresh(['client', 'staff', 'services.service', 'salon']),
             $originalStartsAt
         );
+
+        if ($request->input('redirect') === 'tasks') {
+            return redirect()->route('tasks.index')->with('success', 'Appointment rescheduled.');
+        }
 
         return back()->with('success', 'Appointment rescheduled.');
     }

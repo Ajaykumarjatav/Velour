@@ -22,9 +22,10 @@ class PosTransactionInvoiceMail extends Mailable
     public function envelope(): Envelope
     {
         $salonName = $this->transaction->salon?->name ?? config('app.name');
+        $docTitle = \App\Support\PosInvoiceFormatting::customerDocumentTitle($this->transaction->salon);
 
         return new Envelope(
-            subject: 'Invoice '.$this->transaction->reference.' — '.$salonName,
+            subject: $docTitle.' '.$this->transaction->reference.' — '.$salonName,
         );
     }
 

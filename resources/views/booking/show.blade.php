@@ -635,7 +635,7 @@ const SLUG     = '{{ $salon->slug }}';
 const BASE_URL = '{{ rtrim(config("app.url"), "/") }}';
 const API      = BASE_URL + '/api/v1/book/' + SLUG;
 const CSRF     = document.querySelector('meta[name="csrf-token"]').content;
-const CURRENCY = '{{ \App\Helpers\CurrencyHelper::symbol($salon->currency ?? "GBP") }}';
+const CURRENCY = '{{ \App\Helpers\CurrencyHelper::symbol($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}';
 
 function bookingApp() {
     return {

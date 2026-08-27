@@ -247,7 +247,7 @@ class NotificationConfigService
         $staff = $appointment->staff;
         $names = $appointment->services->map(fn ($as) => $as->service_name)->filter()->implode(', ');
 
-        $tz = $salon?->timezone ?: config('app.timezone');
+        $tz = $salon?->timezone ?: \App\Support\SalonTime::defaultTimezone();
         $starts = $appointment->starts_at?->copy()->timezone($tz);
 
         return [
@@ -320,7 +320,7 @@ class NotificationConfigService
         if (empty($qh['enabled'])) {
             return false;
         }
-        $tz = $salon->timezone ?: config('app.timezone');
+        $tz = $salon->timezone ?: \App\Support\SalonTime::defaultTimezone();
         $now = now()->timezone($tz)->format('H:i');
         $from = $qh['from'] ?? '22:00';
         $to = $qh['to'] ?? '07:00';

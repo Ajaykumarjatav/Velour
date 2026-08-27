@@ -63,8 +63,8 @@ final class DefaultSalonProvisioner
             'slug'             => $slug,
             'subdomain'        => $slug,
             'phone'            => null,
-            'currency'         => 'GBP',
-            'timezone'         => 'Europe/London',
+            'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
+            'timezone'         => SalonTime::defaultTimezone(),
             'is_active'        => true,
         ]);
 
