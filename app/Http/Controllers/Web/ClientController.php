@@ -11,12 +11,12 @@ use App\Models\Review;
 use App\Models\ReviewLink;
 use App\Mail\ClientReviewRequestMail;
 use App\Services\NotificationService;
+use App\Support\PurposeMail;
 use App\Support\ClientEngagement;
 use App\Support\ClientHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class ClientController extends Controller
@@ -219,7 +219,7 @@ class ClientController extends Controller
                 $skipped++;
                 continue;
             }
-            Mail::to($client->email)->queue(new ClientReviewRequestMail(
+            PurposeMail::queue(PurposeMail::BOOKINGS, $client->email, new ClientReviewRequestMail(
                 salonName: (string) $salon->name,
                 clientName: trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? '')),
                 reviewUrl: $reviewUrl

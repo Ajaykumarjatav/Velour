@@ -55,43 +55,73 @@
     </template>
 
     <template x-if="onlineBookingEnabled && !(step === 5 && bookingRef)">
-        <div class="min-h-screen">
-            <header class="sticky top-0 z-50 bg-black/95 backdrop-blur border-b border-white/10 px-4 py-4">
-                <div class="max-w-2xl mx-auto flex items-center justify-between gap-4">
-                    <div>
-                        <p class="text-xs text-white/50 uppercase tracking-wider">Book online</p>
-                        <h1 class="font-manrope font-bold text-lg" x-text="salonName"></h1>
+        <div class="sf-booking-shell">
+            <header class="sticky top-0 z-50 bg-black/95 backdrop-blur border-b border-white/10 shrink-0">
+                <div class="sf-booking-container sf-booking-header">
+                    <div class="flex items-start justify-between gap-3">
+                        <button type="button" @click="goBackInFlow()" class="sf-booking-back-btn">
+                            <span x-text="headerBackLabel()"></span>
+                        </button>
+                        <div class="text-right min-w-0 flex-1">
+                            <p class="sf-booking-brand-name truncate" x-text="salonName"></p>
+                            <p class="sf-booking-brand-tag">Book online</p>
+                        </div>
+                        <button type="button" x-show="step > 0" @click="close()" x-cloak class="sf-booking-close-btn">Close</button>
+                        <span x-show="step === 0" class="w-12 shrink-0" aria-hidden="true"></span>
                     </div>
-                    <button type="button" @click="close()" class="text-sm text-white/60 hover:text-white shrink-0">← Back</button>
                 </div>
-                <div class="max-w-2xl mx-auto mt-4 flex gap-1 overflow-x-auto pb-1">
-                    <template x-for="(label, i) in steps" :key="label">
-                        <span :class="i === step ? 'bg-primary text-white' : (i < step ? 'bg-white/20 text-white/80' : 'bg-white/5 text-white/40')"
-                              class="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full whitespace-nowrap" x-text="label"></span>
-                    </template>
+                <div class="sf-booking-container">
+                    <div class="sf-stepper" role="navigation" aria-label="Booking progress">
+                        <template x-for="(label, i) in steps" :key="'step-' + i">
+                            <div style="display: contents">
+                                <div class="sf-stepper-item"
+                                     :class="{ 'is-active': i === step, 'is-done': i < step }">
+                                    <span class="sf-stepper-dot">
+                                        <span x-show="i < step" aria-hidden="true">✓</span>
+                                        <span x-show="i >= step" x-text="i + 1"></span>
+                                    </span>
+                                    <span class="sf-stepper-label" x-text="label"></span>
+                                </div>
+                                <span x-show="i < steps.length - 1"
+                                      class="sf-stepper-line"
+                                      :class="{ 'is-done': i < step }"
+                                      aria-hidden="true"></span>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </header>
 
-            <main class="max-w-2xl mx-auto px-4 py-8 pb-16">
-                <p x-show="globalError" class="bg-red-500/20 border border-red-500/40 text-red-200 rounded-xl p-4 mb-6 text-sm" x-text="globalError"></p>
+            <main class="sf-booking-main">
+                <div class="sf-booking-container">
+                    <p x-show="globalError" class="bg-red-500/20 border border-red-500/40 text-red-200 rounded-xl p-4 mb-4 text-sm shrink-0" x-text="globalError"></p>
 
+                    <div class="sf-booking-layout">
+                        <div class="sf-booking-primary">
                 <div x-show="loading && step === 0" class="text-white/60 text-center py-12">Loading services…</div>
 
                 {{-- Step 0: Services --}}
-                <div x-show="step === 0 && !loading" class="space-y-5">
-                    <div class="rounded-2xl border border-white/10 bg-[#1a1f2e] p-4 sm:p-5">
-                        <h2 class="font-manrope font-bold text-lg text-white mb-3">Select Services</h2>
+                <div x-show="step === 0 && !loading" class="sf-booking-card">
+                    <div class="sf-booking-card-body">
+                        <h2 class="sf-booking-section-title">Select Services</h2>
 
-                        <div class="mb-4" x-show="bookCategories.length > 0 || bookPackages.length > 0">
-                            <div class="flex items-center gap-2.5 rounded-xl border border-white/15 bg-black/25 px-3 py-2.5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/25 transition-shadow">
+                        <div x-show="bookCategories.length > 0 || bookPackages.length > 0">
+                            <div class="sf-search-wrap">
                                 <svg class="w-4 h-4 shrink-0 text-white/45" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/>
                                 </svg>
-                                <input type="search" x-model="serviceSearch" placeholder="Search services or packages…"
-                                       class="min-w-0 flex-1 bg-transparent border-0 p-0 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-0 appearance-none"
-                                       style="-webkit-appearance:none;">
+                                <input type="search" x-model="serviceSearch" placeholder="Search services, packages…"
+                                       class="sf-search-input" style="-webkit-appearance:none;">
                                 <button type="button" x-show="serviceSearch" @click="serviceSearch = ''" x-cloak
-                                        class="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-white/45 hover:text-white px-1">Clear</button>
+                                        class="shrink-0 text-white/45 hover:text-white p-0.5" aria-label="Clear search">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                            <div x-show="!serviceSearch.trim() && popularServices().length > 0" class="sf-popular-row">
+                                <span class="sf-popular-label">Popular:</span>
+                                <template x-for="name in popularServices()" :key="'pop-' + name">
+                                    <button type="button" @click="quickSearch(name)" class="sf-popular-chip" x-text="name"></button>
+                                </template>
                             </div>
                         </div>
 
@@ -100,40 +130,40 @@
                         </template>
 
                         <template x-if="bookCategories.length > 0 || bookPackages.length > 0">
-                            <div class="overflow-y-auto scrollbar-none space-y-2.5" style="max-height:min(58dvh,26rem)">
+                            <div class="sf-services-scroll scrollbar-none space-y-2">
 
                                 {{-- Search results --}}
                                 <template x-if="serviceSearch.trim()">
-                                    <div class="space-y-2">
-                                        <p class="text-[11px] font-medium uppercase tracking-wider text-white/40"
+                                    <div class="space-y-0">
+                                        <p class="text-[11px] font-medium uppercase tracking-wider text-white/40 mb-2"
                                            x-text="searchResultCount() + ' result' + (searchResultCount() === 1 ? '' : 's')"></p>
                                         <template x-for="pkg in filteredPackages()" :key="'search-pkg-' + pkg.id">
-                                            <label :class="isPackageSelected(pkg) ? 'border-primary/40 bg-primary/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'"
-                                                   class="flex items-center gap-3 p-3 cursor-pointer rounded-xl border transition-colors">
-                                                <input type="checkbox" :checked="isPackageSelected(pkg)" @change="togglePackage(pkg)" class="h-4 w-4 shrink-0 rounded border-white/30 accent-teal-500">
-                                                <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-amber-500/90 to-orange-700/90 flex items-center justify-center text-white text-sm">📦</span>
-                                                <span class="flex-1 min-w-0">
-                                                    <span class="block font-semibold text-sm text-white truncate" x-text="pkg.name"></span>
-                                                    <span class="block text-[11px] text-amber-300/80 mt-0.5">Package · <span x-text="(pkg.duration_minutes || 0) + ' min'"></span></span>
-                                                </span>
-                                                <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(pkg.price)"></span>
-                                            </label>
+                                            <div @click="togglePackage(pkg)"
+                                                 :class="isPackageSelected(pkg) ? 'is-selected' : ''"
+                                                 class="sf-svc-row">
+                                                <span class="sf-svc-check" aria-hidden="true">✓</span>
+                                                <div class="min-w-0 flex-1">
+                                                    <p class="sf-svc-name truncate" x-text="pkg.name"></p>
+                                                    <p class="sf-svc-meta">Package · <span x-text="(pkg.duration_minutes || 0) + ' min'"></span></p>
+                                                </div>
+                                                <span class="sf-svc-price tabular-nums" x-text="formatPrice(pkg.price)"></span>
+                                            </div>
                                         </template>
                                         <template x-for="svc in filteredServices()" :key="'search-svc-' + svc.id">
-                                            <label :class="isSelected(svc) ? 'border-primary/40 bg-primary/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'"
-                                                   class="flex items-center gap-3 p-3 cursor-pointer rounded-xl border transition-colors">
-                                                <input type="checkbox" :checked="isSelected(svc)" @change="toggleService(svc)" class="h-4 w-4 shrink-0 rounded border-white/30 accent-teal-500">
-                                                <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/90 to-purple-800/90 flex items-center justify-center text-white text-sm">✂</span>
-                                                <span class="flex-1 min-w-0">
-                                                    <span class="block font-semibold text-sm text-white truncate" x-text="svc.name"></span>
-                                                    <span class="block text-[11px] text-white/45 mt-0.5 truncate">
-                                                        <span x-text="svc._categoryName || ''"></span>
+                                            <div @click="toggleService(svc)"
+                                                 :class="isSelected(svc) ? 'is-selected' : ''"
+                                                 class="sf-svc-row">
+                                                <span class="sf-svc-check" aria-hidden="true">✓</span>
+                                                <div class="min-w-0 flex-1">
+                                                    <p class="sf-svc-name truncate" x-text="svc.name"></p>
+                                                    <p class="sf-svc-meta">
+                                                        <span x-show="svc._categoryName" x-text="svc._categoryName"></span>
                                                         <span x-show="svc._categoryName"> · </span>
                                                         <span x-text="(svc.duration_minutes || 0) + ' min'"></span>
-                                                    </span>
-                                                </span>
-                                                <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(svc.price)"></span>
-                                            </label>
+                                                    </p>
+                                                </div>
+                                                <span class="sf-svc-price tabular-nums" x-text="formatPrice(svc.price)"></span>
+                                            </div>
                                         </template>
                                         <p x-show="searchResultCount() === 0" class="text-white/50 text-sm text-center py-8">No matching services or packages.</p>
                                     </div>
@@ -141,82 +171,61 @@
 
                                 {{-- Accordion browse --}}
                                 <template x-if="!serviceSearch.trim()">
-                                    <div class="space-y-2.5">
+                                    <div class="space-y-2">
                                         <template x-if="bookPackages.length > 0">
-                                            <div class="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
-                                                <button type="button" @click="toggleSection('packages')"
-                                                        class="w-full grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.04] transition-colors">
-                                                    <div class="min-w-0">
-                                                        <h3 class="font-manrope font-semibold text-[15px] text-white leading-tight">Packages</h3>
-                                                        <p class="text-xs text-white/45 mt-1">Bundle deals</p>
+                                            <div class="sf-cat-block">
+                                                <button type="button" @click="toggleSection('packages')" class="sf-cat-toggle">
+                                                    <span class="sf-cat-icon">📦</span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="sf-cat-title">Packages</p>
+                                                        <p class="sf-cat-sub">Bundle deals</p>
                                                     </div>
-                                                    <span class="flex items-center gap-2.5 shrink-0">
-                                                        <span class="inline-flex items-center justify-center min-w-[4.5rem] rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/75 tabular-nums"
-                                                              x-text="bookPackages.length + (bookPackages.length === 1 ? ' package' : ' packages')"></span>
-                                                        <svg class="w-4 h-4 text-white/55 transition-transform duration-200"
-                                                             :class="openSection === 'packages' ? 'rotate-180' : ''"
-                                                             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                                                    </span>
+                                                    <span class="sf-cat-count" x-text="bookPackages.length"></span>
+                                                    <svg class="sf-cat-chevron" :class="openSection === 'packages' ? 'is-open' : ''"
+                                                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                                                 </button>
-                                                <div x-show="openSection === 'packages'" x-cloak
-                                                     x-transition:enter="transition ease-out duration-200"
-                                                     x-transition:enter-start="opacity-0"
-                                                     x-transition:enter-end="opacity-100"
-                                                     class="border-t border-white/10 bg-black/20">
-                                                    <div class="divide-y divide-white/8">
-                                                        <template x-for="pkg in bookPackages" :key="'pkg-' + pkg.id">
-                                                            <label :class="isPackageSelected(pkg) ? 'bg-primary/10' : 'hover:bg-white/[0.04]'"
-                                                                   class="flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors">
-                                                                <input type="checkbox" :checked="isPackageSelected(pkg)" @change="togglePackage(pkg)" class="h-4 w-4 shrink-0 rounded border-white/30 accent-teal-500">
-                                                                <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-amber-500/90 to-orange-700/90 flex items-center justify-center text-white text-base">📦</span>
-                                                                <span class="flex-1 min-w-0 pr-2">
-                                                                    <span class="block font-semibold text-sm text-white leading-snug" x-text="pkg.name"></span>
-                                                                    <span class="mt-0.5 block text-xs text-white/50 line-clamp-1" x-text="packageServiceNames(pkg)"></span>
-                                                                    <span class="mt-0.5 block text-xs text-white/40" x-text="(pkg.duration_minutes || 0) + ' min'"></span>
-                                                                </span>
-                                                                <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(pkg.price)"></span>
-                                                            </label>
-                                                        </template>
-                                                    </div>
+                                                <div x-show="openSection === 'packages'" x-cloak>
+                                                    <template x-for="pkg in bookPackages" :key="'pkg-' + pkg.id">
+                                                        <div @click="togglePackage(pkg)"
+                                                             :class="isPackageSelected(pkg) ? 'is-selected' : ''"
+                                                             class="sf-svc-row">
+                                                            <span class="sf-svc-check" aria-hidden="true">✓</span>
+                                                            <div class="min-w-0 flex-1">
+                                                                <p class="sf-svc-name" x-text="pkg.name"></p>
+                                                                <p class="sf-svc-meta" x-text="(pkg.duration_minutes || 0) + ' min'"></p>
+                                                            </div>
+                                                            <span class="sf-svc-price tabular-nums" x-text="formatPrice(pkg.price)"></span>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                             </div>
                                         </template>
 
                                         <template x-for="cat in bookCategories" :key="cat.id">
-                                            <div class="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
-                                                <button type="button" @click="toggleSection('cat-' + cat.id)"
-                                                        class="w-full grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.04] transition-colors">
-                                                    <div class="min-w-0">
-                                                        <h3 class="font-manrope font-semibold text-[15px] text-white leading-tight truncate" x-text="cat.name"></h3>
-                                                        <p x-show="cat.business_type" class="text-xs text-white/45 mt-1 truncate" x-text="cat.business_type"></p>
+                                            <div class="sf-cat-block">
+                                                <button type="button" @click="toggleSection('cat-' + cat.id)" class="sf-cat-toggle">
+                                                    <span class="sf-cat-icon">✂</span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="sf-cat-title truncate" x-text="cat.name"></p>
+                                                        <p x-show="cat.business_type" class="sf-cat-sub truncate" x-text="cat.business_type"></p>
                                                     </div>
-                                                    <span class="flex items-center gap-2.5 shrink-0">
-                                                        <span class="inline-flex items-center justify-center min-w-[4.5rem] rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/75 tabular-nums"
-                                                              x-text="(cat.services?.length ?? 0) + ((cat.services?.length ?? 0) === 1 ? ' service' : ' services')"></span>
-                                                        <svg class="w-4 h-4 text-white/55 transition-transform duration-200"
-                                                             :class="openSection === ('cat-' + cat.id) ? 'rotate-180' : ''"
-                                                             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                                                    </span>
+                                                    <span class="sf-cat-count" x-text="cat.services?.length ?? 0"></span>
+                                                    <svg class="sf-cat-chevron" :class="openSection === ('cat-' + cat.id) ? 'is-open' : ''"
+                                                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                                                 </button>
-                                                <div x-show="openSection === ('cat-' + cat.id)" x-cloak
-                                                     x-transition:enter="transition ease-out duration-200"
-                                                     x-transition:enter-start="opacity-0"
-                                                     x-transition:enter-end="opacity-100"
-                                                     class="border-t border-white/10 bg-black/20">
-                                                    <div class="divide-y divide-white/8">
-                                                        <template x-for="svc in cat.services" :key="svc.id">
-                                                            <label :class="isSelected(svc) ? 'bg-primary/10' : 'hover:bg-white/[0.04]'"
-                                                                   class="flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors">
-                                                                <input type="checkbox" :checked="isSelected(svc)" @change="toggleService(svc)" class="h-4 w-4 shrink-0 rounded border-white/30 accent-teal-500">
-                                                                <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/90 to-purple-800/90 flex items-center justify-center text-white text-sm">✂</span>
-                                                                <span class="flex-1 min-w-0 pr-2">
-                                                                    <span class="block font-semibold text-sm text-white leading-snug truncate" x-text="svc.name"></span>
-                                                                    <span class="mt-0.5 block text-xs text-white/45" x-text="(svc.duration_minutes || 0) + ' min'"></span>
-                                                                </span>
-                                                                <span class="shrink-0 text-sm font-semibold text-white tabular-nums" x-text="formatPrice(svc.price)"></span>
-                                                            </label>
-                                                        </template>
-                                                    </div>
+                                                <div x-show="openSection === ('cat-' + cat.id)" x-cloak>
+                                                    <template x-for="svc in cat.services" :key="svc.id">
+                                                        <div @click="toggleService(svc)"
+                                                             :class="isSelected(svc) ? 'is-selected' : ''"
+                                                             class="sf-svc-row">
+                                                            <span class="sf-svc-check" aria-hidden="true">✓</span>
+                                                            <div class="min-w-0 flex-1">
+                                                                <p class="sf-svc-name truncate" x-text="svc.name"></p>
+                                                                <p class="sf-svc-meta" x-text="(svc.duration_minutes || 0) + ' min'"></p>
+                                                            </div>
+                                                            <span class="sf-svc-price tabular-nums" x-text="formatPrice(svc.price)"></span>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                             </div>
                                         </template>
@@ -225,21 +234,12 @@
                             </div>
                         </template>
                     </div>
-                    <div x-show="selected.services.length > 0"
-                         class="sf-sticky-bar sticky bg-black/90 backdrop-blur border border-white/10 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3"
-                         style="bottom: max(1rem, env(safe-area-inset-bottom))">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm font-medium text-white leading-snug line-clamp-2" x-text="selectedSummaryNames()"></p>
-                            <p class="text-xs text-white/55 mt-1 tabular-nums"
-                               x-text="selected.services.length + ' selected · ' + currency + totalPrice().toFixed(2)"></p>
-                        </div>
-                        <button type="button" @click="goToStylist()" class="shrink-0 bg-primary hover:bg-primary-dark text-white font-semibold rounded-full px-5 py-2.5 text-sm">Continue</button>
-                    </div>
                 </div>
 
                 {{-- Step 1: Stylist --}}
-                <div x-show="step === 1">
-                    <h2 class="font-bold text-lg">Choose your stylist</h2>
+                <div x-show="step === 1" class="sf-booking-card">
+                    <div class="sf-booking-card-body">
+                    <h2 class="sf-booking-section-title">Choose your stylist</h2>
                     <p class="text-white/70 text-sm mb-4">Pick a stylist first, then we’ll show dates and times that work for them.</p>
                     <div x-show="staffLoading" class="flex items-center justify-center gap-2 py-6 text-white/50 text-sm">
                         <span class="inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></span>
@@ -262,7 +262,7 @@
                         </template>
                     </div>
                     <p x-show="!staffLoading && availableStaff().length === 0" class="text-white/50 text-sm py-4">No stylists are available for online booking.</p>
-                    <button type="button" @click="step = 0" class="mt-6 text-sm text-white/50 hover:text-white">← Back</button>
+                    </div>
                 </div>
 
                 {{-- Step 2: Date & time --}}
@@ -270,6 +270,9 @@
                     <div class="text-center sm:text-left">
                         <h2 class="font-manrope font-bold text-base sm:text-lg">When would you like to visit?</h2>
                         <p class="text-xs sm:text-sm text-white/50 mt-0.5">Pick a date, then choose a time.</p>
+                        <p x-show="selected.staff" class="text-xs text-primary/90 mt-1.5">
+                            Showing times for <span class="font-semibold" x-text="staffDisplayName()"></span>
+                        </p>
                     </div>
 
                     <div class="relative" @click.outside="calendarOpen = false" @keydown.escape.window="calendarOpen = false">
@@ -352,7 +355,13 @@
                                 <span class="inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></span>
                                 Finding open slots…
                             </div>
-                            <p x-show="!slotsLoading && !slotsError && slots.length === 0" class="text-white/50 text-xs sm:text-sm text-center py-5">No slots this day. Try another date.</p>
+                            <div x-show="!slotsLoading && !slotsError && slots.length === 0" class="text-center py-5 space-y-3">
+                                <p class="text-white/50 text-xs sm:text-sm px-2" x-text="emptySlotsMessage()"></p>
+                                <button type="button" x-show="selected.staff" @click="goBackInFlow()"
+                                        class="inline-flex items-center justify-center rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs sm:text-sm font-semibold text-primary hover:bg-primary/20 transition-colors">
+                                    Choose another stylist
+                                </button>
+                            </div>
                             <template x-for="[period, periodSlots] in groupedSlots()" :key="period">
                                 <div class="space-y-3 sm:space-y-4 mb-3">
                                     <p class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-white/35 mb-1.5" x-text="period"></p>
@@ -371,23 +380,37 @@
                             </template>
                         </div>
                     </template>
-                    <button type="button" @click="step = 1" class="text-sm text-white/50 hover:text-white">← Back</button>
                 </div>
 
                 {{-- Step 3: Details --}}
                 <div x-show="step === 3" class="space-y-4">
                     <h2 class="font-bold text-lg">Your details</h2>
                     <p x-show="detailsError" class="text-red-300 text-sm bg-red-500/20 border border-red-500/40 rounded-lg p-3" x-text="detailsError"></p>
-                    <input placeholder="Full name" x-model="client.name" autocomplete="name" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40">
-                    <input type="email" placeholder="Email" x-model="client.email" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40">
-                    <input type="tel" placeholder="Phone" x-model="client.phone" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40">
+
+                    <div class="space-y-1">
+                        <input placeholder="Full name" x-model="client.name" autocomplete="name"
+                               @input="clearDetailsError('name')"
+                               :class="detailsFieldClass('name')">
+                        <p x-show="detailsErrors.name" x-cloak class="text-xs text-red-400" x-text="detailsErrors.name"></p>
+                    </div>
+                    <div class="space-y-1">
+                        <input type="email" placeholder="Email" x-model="client.email" autocomplete="email"
+                               @input="clearDetailsError('email')"
+                               :class="detailsFieldClass('email')">
+                        <p x-show="detailsErrors.email" x-cloak class="text-xs text-red-400" x-text="detailsErrors.email"></p>
+                    </div>
+                    <div class="space-y-1">
+                        <input type="tel" placeholder="Phone" x-model="client.phone" autocomplete="tel"
+                               @input="clearDetailsError('phone')"
+                               :class="detailsFieldClass('phone')">
+                        <p x-show="detailsErrors.phone" x-cloak class="text-xs text-red-400" x-text="detailsErrors.phone"></p>
+                    </div>
                     <textarea placeholder="Notes (optional)" x-model="client.notes" rows="3" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"></textarea>
                     <label class="flex items-center gap-2 text-sm text-white/70">
                         <input type="checkbox" x-model="client.marketing_consent" class="rounded accent-primary">
                         Keep me updated with offers and news
                     </label>
-                    <button type="button" @click="goToConfirm()" class="w-full bg-primary hover:bg-primary-dark text-white font-semibold rounded-full py-4">Review booking</button>
-                    <button type="button" @click="step = 2" class="text-sm text-white/50 hover:text-white">← Back</button>
+                    <button type="button" @click="goToConfirm()" class="w-full bg-primary hover:bg-primary-dark text-white font-semibold rounded-full py-4 lg:hidden">Review booking</button>
                 </div>
 
                 {{-- Step 4: Confirm --}}
@@ -400,8 +423,12 @@
                         <div class="flex justify-between"><span class="text-white/50">With</span><span class="font-semibold" x-text="staffDisplayName()"></span></div>
                     </div>
                     <p x-show="bookingError" class="text-red-300 text-sm bg-red-500/20 border border-red-500/40 rounded-lg p-3 mb-4" x-text="bookingError"></p>
-                    <button type="button" :disabled="confirming" @click="handleConfirm()" class="w-full bg-primary hover:bg-primary-dark disabled:opacity-60 text-white font-semibold rounded-full py-4" x-text="confirming ? 'Confirming…' : 'Confirm booking'"></button>
-                    <button type="button" @click="step = 3" class="mt-4 text-sm text-white/50 hover:text-white w-full text-center">← Edit details</button>
+                    <button type="button" :disabled="confirming" @click="handleConfirm()" class="w-full bg-primary hover:bg-primary-dark disabled:opacity-60 text-white font-semibold rounded-full py-4 lg:hidden" x-text="confirming ? 'Confirming…' : 'Confirm booking'"></button>
+                </div>
+                        </div>
+
+                        @include('storefront.partials.booking-summary')
+                    </div>
                 </div>
             </main>
         </div>
@@ -434,6 +461,7 @@ function storefrontBooking(config) {
         selected: { services: [], staff: null, date: '', slot: null },
         client: { name: '', email: '', phone: '', notes: '', marketing_consent: false },
         detailsError: '',
+        detailsErrors: { name: '', email: '', phone: '' },
         bookingError: '',
         confirming: false,
         bookingRef: '',
@@ -475,6 +503,80 @@ function storefrontBooking(config) {
         },
         searchResultCount() {
             return this.filteredPackages().length + this.filteredServices().length;
+        },
+        popularServices() {
+            const preferred = ['Cutting', 'Blow Dry', 'Beard', 'Manicure', 'Hair Styling', 'Hair Wash'];
+            const all = this.flatServices;
+            const names = [];
+            for (const p of preferred) {
+                const match = all.find(s => {
+                    const n = (s.name || '').toLowerCase();
+                    const q = p.toLowerCase();
+                    return n === q || n.includes(q);
+                });
+                if (match && !names.includes(match.name)) names.push(match.name);
+                if (names.length >= 4) break;
+            }
+            for (const s of all) {
+                if (names.length >= 4) break;
+                if (!names.includes(s.name)) names.push(s.name);
+            }
+            return names.slice(0, 4);
+        },
+        quickSearch(name) {
+            this.serviceSearch = name;
+        },
+        summaryHeading() {
+            if (this.step >= 2 && this.selected.date) return 'Your appointment';
+            return 'Your booking';
+        },
+        summaryLines() {
+            const lines = [];
+            const covered = new Set();
+            for (const pkg of this.bookPackages) {
+                if (!this.isPackageSelected(pkg)) continue;
+                lines.push({
+                    key: 'pkg-' + pkg.id,
+                    name: pkg.name,
+                    duration: pkg.duration_minutes || 0,
+                    price: pkg.price || 0,
+                });
+                this.packageServiceIds(pkg).forEach(id => covered.add(Number(id)));
+            }
+            for (const s of this.selected.services) {
+                if (covered.has(Number(s.id))) continue;
+                lines.push({
+                    key: 'svc-' + s.id,
+                    name: s.name,
+                    duration: s.duration_minutes || 0,
+                    price: s.price || 0,
+                });
+            }
+            return lines;
+        },
+        summaryCanContinue() {
+            if (this.step === 0) return this.selected.services.length > 0;
+            if (this.step === 1) return false;
+            if (this.step === 2) return !!this.selected.slot;
+            if (this.step === 3 || this.step === 4) return true;
+            return false;
+        },
+        summaryContinue() {
+            if (this.step === 0) this.goToStylist();
+            else if (this.step === 2 && this.selected.slot) this.step = 3;
+            else if (this.step === 3) this.goToConfirm();
+            else if (this.step === 4) this.handleConfirm();
+        },
+        summaryContinueLabel() {
+            if (this.step === 0 || this.step === 2) return 'Continue';
+            if (this.step === 3) return 'Review booking';
+            if (this.step === 4) return this.confirming ? 'Confirming…' : 'Confirm booking';
+            return 'Continue';
+        },
+        selectedCountLabel() {
+            const count = this.selected.services.length;
+            if (count === 0) return 'No services';
+            return count + ' ' + (count === 1 ? 'service' : 'services');
         },
         selectedSummaryNames() {
             const covered = new Set();
@@ -528,11 +630,120 @@ function storefrontBooking(config) {
             this.calendarCursor = this.today.slice(0, 7) + '-01';
             this.syncBodyBookingState();
             this.$watch('open', () => this.syncBodyBookingState());
+            this.setupDraftWatchers();
             if (this.onlineBookingEnabled) {
                 this.fetchServices();
             } else {
                 this.loading = false;
             }
+        },
+        draftStorageKey() {
+            return 'sf-booking-draft:' + this.slug;
+        },
+        setupDraftWatchers() {
+            if (this._draftWatchersSetup) return;
+            this._draftWatchersSetup = true;
+            this.$watch('step', () => this.persistDraft());
+            this.$watch('client', () => this.persistDraft(), { deep: true });
+            this.$watch('selected', () => this.persistDraft(), { deep: true });
+            this.$watch('calendarCursor', () => this.persistDraft());
+        },
+        serializeDraft() {
+            if (this.step >= 5) return null;
+            return {
+                v: 1,
+                step: this.step,
+                serviceIds: this.selected.services.map(s => s.id),
+                hasStaffChoice: this.step >= 2,
+                staffId: this.selected.staff?.id ?? null,
+                date: this.selected.date || '',
+                slotTime: this.selected.slot?.time || '',
+                client: { ...this.client },
+                calendarCursor: this.calendarCursor,
+                savedAt: Date.now(),
+            };
+        },
+        persistDraft() {
+            if (!this.onlineBookingEnabled) return;
+            try {
+                const data = this.serializeDraft();
+                if (!data) {
+                    sessionStorage.removeItem(this.draftStorageKey());
+                    return;
+                }
+                const hasProgress = data.step > 0
+                    || data.serviceIds.length > 0
+                    || (data.client.name || '').trim()
+                    || (data.client.email || '').trim()
+                    || (data.client.phone || '').trim();
+                if (!hasProgress) {
+                    sessionStorage.removeItem(this.draftStorageKey());
+                    return;
+                }
+                sessionStorage.setItem(this.draftStorageKey(), JSON.stringify(data));
+            } catch (e) { /* storage unavailable */ }
+        },
+        clearDraft() {
+            try { sessionStorage.removeItem(this.draftStorageKey()); } catch (e) { /* ignore */ }
+        },
+        async restoreDraft() {
+            const onBook = window.location.hash === '#book' || window.location.hash.indexOf('#book') === 0;
+            if (!onBook) return;
+            let draft;
+            try {
+                const raw = sessionStorage.getItem(this.draftStorageKey());
+                if (!raw) return;
+                draft = JSON.parse(raw);
+            } catch { return; }
+            if (!draft || draft.v !== 1 || typeof draft.step !== 'number') return;
+            if (Date.now() - (draft.savedAt || 0) > 24 * 60 * 60 * 1000) {
+                this.clearDraft();
+                return;
+            }
+            if (draft.client) {
+                this.client = {
+                    name: '', email: '', phone: '', notes: '', marketing_consent: false,
+                    ...draft.client,
+                };
+            }
+            if (Array.isArray(draft.serviceIds) && draft.serviceIds.length) {
+                const idSet = new Set(draft.serviceIds.map(Number));
+                this.selected.services = this.flatServices.filter(s => idSet.has(Number(s.id)));
+            }
+            if (!this.selected.services.length) {
+                this.step = 0;
+                return;
+            }
+            let targetStep = Math.min(Math.max(0, draft.step), 4);
+            if (draft.calendarCursor) this.calendarCursor = draft.calendarCursor;
+            if (targetStep >= 1) {
+                await this.fetchStaff();
+                if (draft.hasStaffChoice) {
+                    this.selected.staff = draft.staffId != null
+                        ? (this.bookStaff.find(s => Number(s.id) === Number(draft.staffId)) ?? null)
+                        : null;
+                }
+            }
+            if (targetStep >= 2 && draft.date) {
+                this.selected.date = draft.date >= this.today ? draft.date : this.today;
+                this.calendarCursor = this.selected.date.slice(0, 7) + '-01';
+                await this.loadSlots();
+                if (draft.slotTime) {
+                    const slot = this.slots.find(s => s.time === draft.slotTime && s.available !== false);
+                    if (slot) {
+                        this.selected.slot = slot;
+                    } else if (targetStep >= 3) {
+                        targetStep = 2;
+                        this.selected.slot = null;
+                    }
+                } else if (targetStep >= 3) {
+                    targetStep = 2;
+                }
+            } else if (targetStep >= 2) {
+                targetStep = Math.min(targetStep, 1);
+            }
+            this.step = targetStep;
+            this.open = true;
         },
         onBookingToggle(wantOpen) {
             if (!this.onlineBookingEnabled) {
@@ -549,6 +760,21 @@ function storefrontBooking(config) {
             if (history.length > 1) history.back();
             else { window.location.hash = ''; this.open = false; }
             this.syncBodyBookingState();
+        },
+        headerBackLabel() {
+            if (this.step === 0) return '← Back to site';
+            const prev = this.steps[this.step - 1];
+            return prev ? `← ${prev}` : '← Back';
+        },
+        goBackInFlow() {
+            if (this.step === 0) {
+                this.close();
+                return;
+            }
+            if (this.step === 2) {
+                this.calendarOpen = false;
+            }
+            this.step = Math.max(0, this.step - 1);
         },
         api(path, opts = {}) {
             const url = this.apiBase.replace(/\/$/, '') + '/api/v1/book/' + this.slug + path;
@@ -589,7 +815,11 @@ function storefrontBooking(config) {
                 this.allServices = this.parseServicesResponse(d);
                 this.bookPackages = Array.isArray(d.packages) ? d.packages : [];
             }).catch(() => { this.globalError = 'Failed to load services. Please refresh the page.'; })
-              .finally(() => { this.loading = false; this.applyPendingIntent(); });
+              .finally(async () => {
+                  this.loading = false;
+                  const appliedIntent = this.applyPendingIntent();
+                  if (!appliedIntent) await this.restoreDraft();
+              });
         },
         onBookPreselect(detail) {
             this.pendingIntent = detail || {};
@@ -598,13 +828,13 @@ function storefrontBooking(config) {
         },
         applyPendingIntent() {
             const intent = this.pendingIntent;
-            if (!intent || this.loading) return;
+            if (!intent || this.loading) return false;
             const packageIds = [...(intent.packageIds || [])];
             if (intent.packageId != null && intent.packageId !== '') packageIds.push(intent.packageId);
             const serviceIds = [...(intent.serviceIds || [])];
             if (intent.serviceId != null && intent.serviceId !== '') serviceIds.push(intent.serviceId);
             this.pendingIntent = null;
-            if (!packageIds.length && !serviceIds.length) return;
+            if (!packageIds.length && !serviceIds.length) return false;
             this.clearSlotSelection();
             const idSet = new Set();
             packageIds.forEach(pid => {
@@ -613,6 +843,8 @@ function storefrontBooking(config) {
             });
             serviceIds.forEach(id => idSet.add(Number(id)));
             this.selected.services = this.flatServices.filter(s => idSet.has(Number(s.id)));
+            this.clearDraft();
+            return true;
         },
         packageServiceIds(pkg) { return pkg.service_ids ?? (pkg.services ?? []).map(s => s.id); },
         packageServiceNames(pkg) { return (pkg.services ?? []).map(s => s.name).join(' · '); },
@@ -724,14 +956,14 @@ function storefrontBooking(config) {
             this.calendarOpen = false;
         },
         loadSlots() {
-            if (!this.selected.date || !this.selected.services.length) return;
+            if (!this.selected.date || !this.selected.services.length) return Promise.resolve();
             let date = this.selected.date;
             if (date < this.today) date = this.today;
             this.slotsLoading = true; this.slots = []; this.combinedInfo = null; this.slotsError = '';
             const params = new URLSearchParams({ date });
             this.selected.services.forEach(s => params.append('service_ids[]', s.id));
             if (this.selected.staff?.id) params.append('staff_id', this.selected.staff.id);
-            this.api('/availability?' + params).then(d => {
+            return this.api('/availability?' + params).then(d => {
                 this.slots = d.slots ?? d.data?.slots ?? [];
                 this.combinedInfo = d.combined ?? d.data?.combined ?? null;
                 if (date !== this.selected.date) this.selected.date = date;
@@ -748,6 +980,16 @@ function storefrontBooking(config) {
             const groups = { Morning: [], Afternoon: [], Evening: [] };
             this.slots.forEach(s => groups[this.slotPeriod(s.time)].push(s));
             return Object.entries(groups).filter(([, list]) => list.length > 0);
+        },
+        emptySlotsMessage() {
+            if (this.selected.staff) {
+                const name = this.staffDisplayName();
+                if (name && name !== 'Any available') {
+                    return `${name} has no open times on this date. Please choose another stylist or try a different day.`;
+                }
+                return 'This stylist has no open times on this date. Please choose another stylist or try a different day.';
+            }
+            return 'No open times on this date. Try another day or go back and pick a different stylist.';
         },
         selectSlot(slot) {
             this.selected.slot = slot;
@@ -794,10 +1036,40 @@ function storefrontBooking(config) {
         },
         goToConfirm() {
             this.detailsError = '';
-            if (!this.client.name?.trim()) { this.detailsError = 'Please enter your full name.'; return; }
-            if (!this.client.email) { this.detailsError = 'Please enter your email address.'; return; }
-            if (!this.client.phone) { this.detailsError = 'Please enter your phone number.'; return; }
+            this.detailsErrors = { name: '', email: '', phone: '' };
+            let valid = true;
+            if (!this.client.name?.trim()) {
+                this.detailsErrors.name = 'Please enter your full name.';
+                valid = false;
+            }
+            if (!this.client.email?.trim()) {
+                this.detailsErrors.email = 'Please enter your email address.';
+                valid = false;
+            }
+            if (!this.client.phone?.trim()) {
+                this.detailsErrors.phone = 'Please enter your phone number.';
+                valid = false;
+            }
+            if (!valid) {
+                this.detailsError = this.detailsErrors.name || this.detailsErrors.email || this.detailsErrors.phone;
+                return;
+            }
             this.step = 4;
+        },
+        detailsFieldClass(field) {
+            const base = 'w-full rounded-xl px-4 py-3 text-white placeholder:text-white/40 outline-none transition-colors';
+            if (this.detailsErrors[field]) {
+                return base + ' bg-red-500/10 border-2 border-red-500 ring-2 ring-red-500/25';
+            }
+            return base + ' bg-white/10 border border-white/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/25';
+        },
+        clearDetailsError(field) {
+            if (this.detailsErrors[field]) {
+                this.detailsErrors[field] = '';
+            }
+            if (!this.detailsErrors.name && !this.detailsErrors.email && !this.detailsErrors.phone) {
+                this.detailsError = '';
+            }
         },
         splitClientName() {
             const parts = (this.client.name || '').trim().split(/\s+/).filter(Boolean);
@@ -827,16 +1099,20 @@ function storefrontBooking(config) {
                 this.confirmedStaff = confirm.appointment?.staff ?? null;
                 this.confirmDisplay = confirm.display ?? null;
                 this.step = 5;
+                this.clearDraft();
             }).catch(e => { this.bookingError = e.message || 'Something went wrong. Please try again.'; })
               .finally(() => { this.confirming = false; });
         },
         resetBooking() {
+            this.clearDraft();
             this.step = 0;
             this.bookStaff = [];
             this.serviceSearch = '';
             this.openSection = null;
             this.selected = { services: [], staff: null, date: '', slot: null };
             this.client = { name: '', email: '', phone: '', notes: '', marketing_consent: false };
+            this.detailsError = '';
+            this.detailsErrors = { name: '', email: '', phone: '' };
             this.bookingRef = ''; this.bookingStatus = ''; this.confirmDisplay = null;
         },
     };

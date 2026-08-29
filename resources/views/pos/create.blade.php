@@ -207,6 +207,32 @@
         background: #1a2235;
         border: 1px solid #374151;
     }
+    /* Mobile: browse = grid only; checkout = full-screen register panel */
+    @media (max-width: 1279px) {
+        .pos-shell:not(.mobile-checkout) .pos-register-panel {
+            display: none !important;
+        }
+        .pos-shell.mobile-checkout .pos-browse-pane {
+            display: none !important;
+        }
+        .pos-shell.mobile-checkout .pos-register-panel {
+            display: flex !important;
+            flex: 1 1 auto;
+            width: 100%;
+            height: calc(100dvh - 3.25rem);
+            max-height: calc(100dvh - 3.25rem);
+            border-top: 0;
+        }
+        .pos-shell.mobile-checkout .pos-cart-scroll {
+            flex: 1 1 auto;
+            min-height: 6rem;
+            overflow-y: auto;
+        }
+        .pos-shell.mobile-checkout {
+            height: calc(100dvh - 3.25rem);
+            min-height: calc(100dvh - 3.25rem);
+        }
+    }
 </style>
 @endpush
 
@@ -219,7 +245,10 @@
 <div
     x-data="posApp()"
     x-init="init()"
-    :class="cart.length > 0 ? 'pb-[4.5rem] xl:pb-0' : ''"
+    :class="[
+        cart.length > 0 && !mobileCheckout ? 'pb-[4.5rem] xl:pb-0' : '',
+        mobileCheckout ? 'mobile-checkout' : '',
+    ]"
     class="pos-shell flex flex-col xl:flex-row w-full min-w-0 max-w-full rounded-none border-y xl:border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden"
 >
 
@@ -280,7 +309,7 @@
     </aside>
 
     {{-- ── Center: search + grid ── --}}
-    <main class="flex flex-col flex-1 min-w-0 min-h-0 xl:border-r border-gray-200 dark:border-gray-800">
+    <main class="pos-browse-pane flex flex-col flex-1 min-w-0 min-h-0 xl:border-r border-gray-200 dark:border-gray-800">
 
         {{-- Stacked-layout section switcher (below the three-pane breakpoint) --}}
         <div class="xl:hidden shrink-0 flex border-b border-gray-200 dark:border-gray-800">
@@ -364,11 +393,19 @@
     <aside id="pos-register" tabindex="-1"
            class="pos-register-panel w-full xl:w-[21rem] 2xl:w-[22rem] shrink-0 border-t xl:border-t-0 border-gray-200 dark:border-gray-800">
 
-        <div class="pos-cart-header px-4 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-            <h2 class="text-base font-semibold text-heading">
-                Current sale
-                <span class="text-sm font-normal text-muted" x-show="cart.length" x-text="'(' + cartQtyCount + ')'"></span>
-            </h2>
+        <div class="pos-cart-header px-4 py-2.5 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+            <div class="flex items-center gap-2">
+                <button type="button" x-show="mobileCheckout" x-cloak @click="closeMobileCheckout()"
+                        class="xl:hidden shrink-0 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-heading -ml-1 px-1 py-0.5 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    Back
+                </button>
+                <h2 class="text-base font-semibold text-heading min-w-0">
+                    <span x-show="mobileCheckout" x-cloak class="xl:hidden">Checkout</span>
+                    <span :class="mobileCheckout ? 'hidden xl:inline' : ''">Current sale</span>
+                    <span class="text-sm font-normal text-muted" x-show="cart.length" x-text="'(' + cartQtyCount + ')'"></span>
+                </h2>
+            </div>
         </div>
 
         @if($errors->any())
@@ -584,14 +621,14 @@
     </div>
 
     {{-- Mobile checkout bar --}}
-    <div x-show="cart.length > 0" x-cloak
+    <div x-show="cart.length > 0 && !mobileCheckout" x-cloak
          class="pos-mobile-bar xl:hidden fixed left-0 right-0 z-[45] border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-3 flex items-center justify-between gap-3 shadow-lg"
          style="bottom: 0; padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px))">
         <div>
             <p class="text-xs text-muted" x-text="cartQtyCount + ' items'"></p>
             <p class="text-lg font-bold tabular-nums text-velour-600 dark:text-velour-400" x-text="'{{ $sym }}' + formatMoney(total)"></p>
         </div>
-        <button type="button" @click="scrollToRegister()"
+        <button type="button" @click="openMobileCheckout()"
                 class="shrink-0 rounded-xl bg-velour-600 px-5 py-2.5 text-sm font-bold text-white">
             Checkout
         </button>
@@ -633,6 +670,7 @@ function posApp() {
         pickAddonNames:  [],
         staffList:       POS_STAFF,
         saleStaffId:     POS_DEFAULT_STAFF_ID ? String(POS_DEFAULT_STAFF_ID) : (POS_STAFF[0] ? String(POS_STAFF[0].id) : ''),
+        mobileCheckout:  false,
 
         formatMoney(n) {
             const x = Number(n);
@@ -649,8 +687,18 @@ function posApp() {
             return r ? `${h}h ${r}m` : `${h}h`;
         },
 
+        openMobileCheckout() {
+            if (this.cart.length === 0) return;
+            this.mobileCheckout = true;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        closeMobileCheckout() {
+            this.mobileCheckout = false;
+        },
+
         scrollToRegister() {
-            document.getElementById('pos-register')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            this.openMobileCheckout();
         },
 
         selectSection(s) {
@@ -743,6 +791,10 @@ function posApp() {
                 selectEl.dispatchEvent(new Event('change', { bubbles: true }));
             });
 
+            this.$watch('cart.length', (len) => {
+                if (len === 0) this.mobileCheckout = false;
+            });
+
             this.$nextTick(() => {
                 if (POS_PREFILL && POS_PREFILL.staff_id) {
                     this.saleStaffId = String(POS_PREFILL.staff_id);
@@ -762,6 +814,10 @@ function posApp() {
                     }
                     selectEl.dispatchEvent(new Event('input', { bubbles: true }));
                     selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                const hadPrefill = POS_PREFILL && Array.isArray(POS_PREFILL.lines) && POS_PREFILL.lines.length;
+                if (hadPrefill && this.cart.length > 0 && window.matchMedia('(max-width: 1279px)').matches) {
+                    this.mobileCheckout = true;
                 }
             });
         },
@@ -874,7 +930,10 @@ function posApp() {
             this.cart.splice(idx, 1);
         },
 
-        clearCart() { this.cart = []; },
+        clearCart() {
+            this.cart = [];
+            this.mobileCheckout = false;
+        },
 
         get subtotal() { return this.cart.reduce((s, i) => s + i.price * i.qty, 0); },
         get gst() {

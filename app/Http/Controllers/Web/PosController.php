@@ -15,12 +15,12 @@ use App\Mail\PosTransactionInvoiceMail;
 use App\Models\Tenant;
 use App\Services\PosWalkInAppointmentService;
 use App\Services\NotificationService;
+use App\Support\PurposeMail;
 use App\Support\SalonTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class PosController extends Controller
@@ -470,7 +470,7 @@ class PosController extends Controller
         ]);
 
         try {
-            Mail::to($data['email'])->send(new PosTransactionInvoiceMail($po));
+            PurposeMail::send(PurposeMail::BILLING, $data['email'], new PosTransactionInvoiceMail($po));
         } catch (\Throwable $e) {
             report($e);
 

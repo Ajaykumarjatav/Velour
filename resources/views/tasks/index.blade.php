@@ -29,7 +29,7 @@
 <div class="max-w-7xl mx-auto space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-            <p class="mt-1 max-w-xl text-[11px] leading-snug text-gray-400 dark:text-gray-500">Assign and track work across your team. Today’s appointments appear on this board so you can confirm, complete, or follow up in one place.</p>
+            <p class="mt-1 max-w-xl text-[11px] leading-snug text-gray-400 dark:text-gray-500">Assign and track work across your team. Today’s and upcoming appointments appear on this board so you can confirm, complete, or follow up in one place.</p>
         </div>
         @if($canManage)
         <x-unless-admin-browse>

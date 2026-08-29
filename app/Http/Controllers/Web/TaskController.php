@@ -89,10 +89,10 @@ class TaskController extends Controller
         $columnProgress = $items->where('status', 'in_progress')->values();
         $columnDone = $items->where('status', 'done')->values();
 
-        [$todayStartUtc, $todayEndUtc] = SalonTime::dayRangeUtcFromYmd($salon, $todayLocal->toDateString());
+        [$todayStartUtc] = SalonTime::dayRangeUtcFromYmd($salon, $todayLocal->toDateString());
         $appointmentsQuery = Appointment::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
-            ->whereBetween('starts_at', [$todayStartUtc, $todayEndUtc])
+            ->where('starts_at', '>=', $todayStartUtc)
             ->whereNotIn('status', ['cancelled', 'no_show'])
             ->with(['client', 'staff', 'services']);
 
@@ -100,20 +100,20 @@ class TaskController extends Controller
             $appointmentsQuery->where('staff_id', $staffScopeId);
         }
 
-        $todayAppointments = $appointmentsQuery->orderBy('starts_at')->get();
+        $boardAppointments = $appointmentsQuery->orderBy('starts_at')->get();
 
-        $appointmentTodo = $todayAppointments->filter(function (Appointment $apt) {
+        $appointmentTodo = $boardAppointments->filter(function (Appointment $apt) {
             return in_array($apt->status, ['pending', 'confirmed', 'hold'], true);
         })->values();
-        $appointmentProgress = $todayAppointments->filter(function (Appointment $apt) {
+        $appointmentProgress = $boardAppointments->filter(function (Appointment $apt) {
             return in_array($apt->status, ['checked_in', 'in_progress'], true);
         })->values();
-        $appointmentDone = $todayAppointments->where('status', 'completed')->values();
+        $appointmentDone = $boardAppointments->where('status', 'completed')->values();
 
         $countOpen += $appointmentTodo->count();
         $countInProgress += $appointmentProgress->count();
         $countDone += $appointmentDone->count();
-        $countOverdue += $todayAppointments->filter(
+        $countOverdue += $boardAppointments->filter(
             fn (Appointment $apt) => AppointmentLifecycle::isPastUnresolved($apt, $salon)
         )->count();
 

@@ -22,6 +22,7 @@ use App\Policies\InventoryPolicy;
 use App\Policies\MarketingCampaignPolicy;
 use App\Policies\PosTransactionPolicy;
 use App\Helpers\CurrencyHelper;
+use App\Support\AppUrl;
 use App\Support\DisplayFormatter;
 use App\Policies\ReportPolicy;
 use App\Policies\ReviewPolicy;
@@ -394,7 +395,7 @@ class AppServiceProvider extends ServiceProvider
 
         // ── Password reset URL (admin panel route) ─────────────────────────
         ResetPassword::createUrlUsing(function ($notifiable, string $token) {
-            return url(route('password.reset', [
+            return AppUrl::absolute(route('password.reset', [
                 'token' => $token,
                 'email' => $notifiable->getEmailForPasswordReset(),
             ], false));

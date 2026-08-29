@@ -49,7 +49,7 @@
         <div>
           <p class="text-muted text-xs uppercase font-semibold mb-1">From</p>
           <p class="font-semibold text-heading">{{ config('app.name') }}</p>
-          <p class="text-body">{{ config('mail.from.address') }}</p>
+          <p class="text-body">{{ config('mail.purposes.billing.from.address') }}</p>
         </div>
         <div>
           <p class="text-muted text-xs uppercase font-semibold mb-1">Billed to (tenant)</p>

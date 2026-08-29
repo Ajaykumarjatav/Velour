@@ -3,9 +3,17 @@
     $statusLabel = \App\Support\AppointmentLifecycle::displayStatusLabel($appointment, $salon);
     $clientName = trim(($appointment->client?->first_name ?? '').' '.($appointment->client?->last_name ?? '')) ?: 'Walk-in';
     $serviceNames = $appointment->services->pluck('service_name')->filter()->implode(', ');
+    $tz = \App\Support\SalonTime::timezone($salon);
+    $todayLocal = \Carbon\Carbon::now($tz)->startOfDay();
+    $aptDay = $appointment->starts_at->copy()->timezone($tz)->startOfDay();
+    $isToday = $aptDay->equalTo($todayLocal);
+    $aptLocal = $appointment->starts_at->copy()->timezone($tz);
+    $dateLabel = $aptLocal->format('D, j M');
     $timeLabel = $appointment->ends_at
         ? \App\Support\DisplayFormatter::businessTimeRange($salon, $appointment->starts_at, $appointment->ends_at)
         : \App\Support\DisplayFormatter::businessTime($salon, $appointment->starts_at);
+    $timeLabel = $dateLabel.' · '.$timeLabel;
+    $bookingDayLabel = $isToday ? 'Today’s appointment' : 'Upcoming appointment';
     $canMutateBooking = ! in_array($appointment->status, ['completed', 'cancelled', 'no_show'], true);
     $canCancelBooking = $canMutateBooking && auth()->user()->dashboardScopedStaffId() === null;
     $boardStaff = $boardStaff ?? collect();
@@ -16,6 +24,8 @@
     if ($scopedStaffId !== null) {
         $currentStaffId = (string) $scopedStaffId;
     }
+    $confirmConflict = (int) session('booking_confirm_conflict_id') === (int) $appointment->id;
+    $confirmConflictMessage = session('booking_confirm_conflict_message');
 @endphp
 <article class="card p-4 shadow-sm border-violet-200/80 dark:border-violet-900/40 ring-1 ring-violet-500/10"
          @if($canMutateBooking)
@@ -27,6 +37,7 @@
              'today' => $todayYmd,
              'slotTimes' => \App\Support\AppointmentSlotGrid::allTimes(),
          ]))"
+         @if($confirmConflict) x-init="openReschedule()" @endif
          @endif>
     <div class="flex items-start justify-between gap-2">
         <h3 class="text-sm font-semibold text-heading leading-snug">{{ $clientName }}</h3>
@@ -51,11 +62,19 @@
         </span>
     </div>
     <p class="text-[10px] text-muted mt-2">
-        Today’s appointment
+        {{ $bookingDayLabel }}
         @if($appointment->reference)
             · {{ $appointment->reference }}
         @endif
     </p>
+
+    @if($confirmConflict)
+        <div class="mt-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50/90 dark:bg-red-950/30 p-3 space-y-1">
+            <p class="text-xs font-semibold text-red-700 dark:text-red-300">Scheduling conflict detected</p>
+            <p class="text-[11px] text-red-600 dark:text-red-400">{{ $confirmConflictMessage ?: 'This staff member is already booked at the requested time.' }}</p>
+            <p class="text-[11px] text-red-600/90 dark:text-red-400/90">This booking was not confirmed. Choose a different time below.</p>
+        </div>
+    @endif
 
     <x-unless-admin-browse>
     <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -63,12 +82,14 @@
         @if($appointment->status === 'pending')
             <form method="POST" action="{{ route('appointments.confirm', $appointment) }}" class="inline">
                 @csrf @method('PATCH')
+                <input type="hidden" name="redirect" value="tasks">
                 <button type="submit" class="rounded-full border border-sky-200 dark:border-sky-900 text-sky-800 dark:text-sky-200 px-2.5 py-1 text-[11px] font-medium hover:bg-sky-50 dark:hover:bg-sky-950/40">Confirm</button>
             </form>
         @elseif($appointment->status === 'hold')
             <form method="POST" action="{{ route('appointments.status', $appointment) }}" class="inline">
                 @csrf @method('PATCH')
                 <input type="hidden" name="status" value="confirmed">
+                <input type="hidden" name="redirect" value="tasks">
                 <button type="submit" class="rounded-full border border-sky-200 dark:border-sky-900 text-sky-800 dark:text-sky-200 px-2.5 py-1 text-[11px] font-medium hover:bg-sky-50 dark:hover:bg-sky-950/40">Confirm</button>
             </form>
         @endif

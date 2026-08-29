@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Mail\OpsSignupAlert;
 use App\Models\Salon;
 use App\Models\User;
+use App\Support\PurposeMail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -67,12 +68,15 @@ final class OpsNotifier
         }
 
         try {
-            $mailer = Mail::to($to);
             $cc = self::ccRecipients($to);
             if ($cc !== []) {
-                $mailer->cc($cc);
+                Mail::mailer(PurposeMail::mailerName(PurposeMail::ONBOARDING))
+                    ->to($to)
+                    ->cc($cc)
+                    ->send(PurposeMail::applyFrom(new OpsSignupAlert($event, $user, $salon), PurposeMail::ONBOARDING));
+            } else {
+                PurposeMail::send(PurposeMail::ONBOARDING, $to, new OpsSignupAlert($event, $user, $salon));
             }
-            $mailer->send(new OpsSignupAlert($event, $user, $salon));
         } catch (\Throwable $e) {
             Log::warning('Ops signup alert failed', [
                 'event' => $event,

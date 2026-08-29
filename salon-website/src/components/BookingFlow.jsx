@@ -343,6 +343,17 @@ export default function BookingFlow() {
     return 'Any available'
   }
 
+  const emptySlotsMessage = () => {
+    if (selected.staff) {
+      const name = staffDisplayName()
+      if (name && name !== 'Any available') {
+        return `${name} has no open times on this date. Please choose another stylist or try a different day.`
+      }
+      return 'This stylist has no open times on this date. Please choose another stylist or try a different day.'
+    }
+    return 'No open times on this date. Try another day or pick any available stylist when times are shown.'
+  }
+
   const handleConfirm = async () => {
     setConfirming(true)
     setBookingError('')
@@ -677,7 +688,21 @@ export default function BookingFlow() {
                   </div>
                 ) : null}
                 {!slotsLoading && !slotsError && slots.length === 0 ? (
-                  <p className="text-white/50 text-xs sm:text-sm text-center py-5">No slots this day. Try another date.</p>
+                  <div className="text-center py-5 space-y-3">
+                    <p className="text-white/50 text-xs sm:text-sm px-2">{emptySlotsMessage()}</p>
+                    {selected.staff ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelected((p) => ({ ...p, staff: null, slot: null }))
+                          loadSlots()
+                        }}
+                        className="inline-flex items-center justify-center rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs sm:text-sm font-semibold text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        Show times for any stylist
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 {!slotsLoading && slots.length > 0 ? (

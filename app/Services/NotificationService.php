@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Jobs\SendWhatsAppNotification;
+use App\Support\PurposeMail;
 use App\Mail\ClientBookingConfirmationMail;
+use App\Mail\ClientBookingRequestReceivedMail;
 use App\Mail\StaffAlertMail;
 use App\Mail\TenantCancellationMail;
 use App\Mail\TenantNewBookingMail;
@@ -21,7 +22,6 @@ use App\Models\StaffLeaveRequest;
 use App\Support\SalonUrl;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
@@ -57,20 +57,19 @@ class NotificationService
     {
         $appointment->loadMissing(['client', 'staff', 'services.service', 'salon']);
         $client = $appointment->client;
-        $salon = $appointment->salon;
-        if (! $client?->email || ! $salon) {
+        if (! $client?->email || ! $appointment->salon) {
             return;
         }
 
-        $cfg = $this->notificationConfig();
-        $ctx = $cfg->buildAppointmentContext($appointment);
-        $subject = $cfg->render('Booking request received — {{reference}}', $ctx);
-        $body = $cfg->render(
-            "Hi {{client_first_name}},\n\nWe received your booking request at {{salon_name}} for {{appointment_date}} at {{appointment_time}} with {{staff_name}}.\nServices: {{service_names}}\nReference: {{reference}}\n\nThe salon will confirm shortly.",
-            $ctx
-        );
-
-        $this->queueClientHtmlMail($client->email, $subject, $body, $appointment->id, 'Client booking-received email failed');
+        try {
+            PurposeMail::queue(PurposeMail::BOOKINGS, $client->email, new ClientBookingRequestReceivedMail($appointment));
+        } catch (\Throwable $e) {
+            Log::error('Client booking-received email failed', [
+                'appointment_id' => $appointment->id,
+                'to'             => $client->email,
+                'error'          => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -140,7 +139,7 @@ class NotificationService
     private function queueClientHtmlMail(string $to, string $subject, string $body, int $appointmentId, string $logLabel): void
     {
         try {
-            Mail::to($to)->queue(new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
+            PurposeMail::queue(PurposeMail::BOOKINGS, $to, new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
         } catch (\Throwable $e) {
             Log::error($logLabel, [
                 'appointment_id' => $appointmentId,
@@ -240,7 +239,7 @@ class NotificationService
             $subject = $cfg->render($tpl['email_subject'] ?? 'Reminder', $ctx);
             $body = $cfg->render($tpl['email_body'] ?? '', $ctx);
             try {
-                Mail::to($client->email)->queue(new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
+                PurposeMail::queue(PurposeMail::BOOKINGS, $client->email, new ClientBookingConfirmationMail($subject, $this->clientConfirmationBodyAsHtml($body)));
             } catch (\Throwable $e) {
                 Log::error('Client appointment reminder email failed', [
                     'appointment_id' => $appointment->id,
@@ -277,7 +276,7 @@ class NotificationService
                     ? $cfg->render($emailTpl['email_body'], $ctx)
                     : $sms;
                 try {
-                    Mail::to($client->email)->queue(new ClientBookingConfirmationMail(
+                    PurposeMail::queue(PurposeMail::BOOKINGS, $client->email, new ClientBookingConfirmationMail(
                         $subject,
                         $this->clientConfirmationBodyAsHtml($body)
                     ));
@@ -324,7 +323,7 @@ class NotificationService
         $recipient = $salon->email ?: optional($salon->owner)->email;
         if ($recipient) {
             try {
-                Mail::to($recipient)->queue(new ClientBookingConfirmationMail(
+                PurposeMail::queue(PurposeMail::BOOKINGS, $recipient, new ClientBookingConfirmationMail(
                     $subject,
                     $this->clientConfirmationBodyAsHtml($body)
                 ));
@@ -653,7 +652,7 @@ class NotificationService
         }
 
         try {
-            Mail::to($email)->queue($mail);
+            PurposeMail::queue(PurposeMail::BOOKINGS, $email, $mail);
         } catch (\Throwable $e) {
             Log::error('Staff alert email failed', [
                 'staff_id' => $staff->id,
@@ -721,7 +720,7 @@ class NotificationService
         // 2. Email to salon inbox and tenant owner
         foreach ($this->resolveTenantEmails($appointment) as $recipient) {
             try {
-                Mail::to($recipient)->queue(new TenantNewBookingMail($appointment));
+                PurposeMail::queue(PurposeMail::BOOKINGS, $recipient, new TenantNewBookingMail($appointment));
             } catch (\Throwable $e) {
                 Log::error('Tenant new-booking email failed', [
                     'appointment_id' => $appointment->id,
@@ -750,7 +749,7 @@ class NotificationService
         $recipient = $this->resolveTenantEmail($appointment);
         if ($recipient) {
             try {
-                Mail::to($recipient)->queue(new TenantCancellationMail($appointment));
+                PurposeMail::queue(PurposeMail::BOOKINGS, $recipient, new TenantCancellationMail($appointment));
             } catch (\Throwable $e) {
                 Log::error('Tenant cancellation email failed', [
                     'appointment_id' => $appointment->id,
@@ -779,7 +778,7 @@ class NotificationService
         $recipient = $this->resolveTenantEmail($appointment);
         if ($recipient) {
             try {
-                Mail::to($recipient)->queue(new TenantRescheduleMail($appointment, $originalStartsAt));
+                PurposeMail::queue(PurposeMail::BOOKINGS, $recipient, new TenantRescheduleMail($appointment, $originalStartsAt));
             } catch (\Throwable $e) {
                 Log::error('Tenant reschedule email failed', [
                     'appointment_id' => $appointment->id,

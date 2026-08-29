@@ -4,6 +4,7 @@ namespace App\Notifications\Support;
 
 use App\Models\SupportTicket;
 use App\Support\MailAssets;
+use App\Support\PurposeMail;
 use App\Support\SupportTicketUrls;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -88,6 +89,6 @@ class SupportTicketMailNotification extends Notification
             });
         }
 
-        return $mail;
+        return PurposeMail::configureMailMessage(PurposeMail::SUPPORT, $mail);
     }
 }

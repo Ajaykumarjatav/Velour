@@ -8,6 +8,7 @@ use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
 use App\Services\Scheduling\ScheduleValidationResult;
 use App\Support\SalonTime;
+use App\Support\DisplayFormatter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -299,9 +300,13 @@ class AvailabilityService
         $other = $query->first(['id', 'reference', 'starts_at']);
         if ($other) {
             $ref = $other->reference ?: '#' . $other->id;
+            $salon = Salon::find($salonId);
+            $timeLabel = $salon
+                ? DisplayFormatter::businessTime($salon, $other->starts_at)
+                : $other->starts_at->format('H:i');
             $reasons[] = [
                 'code' => 'appointment_overlap',
-                'message' => 'Overlaps an existing booking (' . $ref . ' at ' . $other->starts_at->format('H:i') . ').',
+                'message' => 'Overlaps an existing booking (' . $ref . ' at ' . $timeLabel . ').',
             ];
         }
     }

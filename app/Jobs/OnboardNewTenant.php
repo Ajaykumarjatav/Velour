@@ -11,8 +11,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Support\PurposeMail;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Spatie\Multitenancy\Jobs\NotTenantAware;
 
 /**
@@ -93,7 +93,7 @@ class OnboardNewTenant implements ShouldQueue, NotTenantAware
 
         // 3. Send welcome email to the new owner
         try {
-            Mail::to($this->user->email)->send(new \App\Mail\WelcomeEmail($this->user, $this->salon));
+            PurposeMail::send(PurposeMail::ONBOARDING, $this->user->email, new \App\Mail\WelcomeEmail($this->user, $this->salon));
         } catch (\Throwable $e) {
             Log::warning('Welcome email failed to send', ['user_id' => $this->user->id, 'error' => $e->getMessage()]);
         }

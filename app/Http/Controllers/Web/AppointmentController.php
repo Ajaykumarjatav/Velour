@@ -18,6 +18,7 @@ use App\Services\NotificationService;
 use App\Models\PosTransaction;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\Scheduling\AvailabilityRejectedException;
+use App\Services\Scheduling\ScheduleValidationResult;
 use App\Helpers\CurrencyHelper;
 use App\Support\AppointmentDisplayLines;
 use App\Support\DisplayFormatter;
@@ -679,13 +680,51 @@ class AppointmentController extends Controller
         }
 
         $previous = $appointment->status;
+        $redirectTarget = $request->input('redirect');
+
+        if ($data['status'] === 'confirmed' && $previous !== 'confirmed') {
+            try {
+                DB::transaction(function () use ($appointment, $previous) {
+                    $locked = Appointment::whereKey($appointment->id)->lockForUpdate()->firstOrFail();
+
+                    if ((int) $locked->staff_id > 0) {
+                        app(AppointmentBookingService::class)->acquireStaffBookingLocks(
+                            (int) $locked->salon_id,
+                            [(int) $locked->staff_id]
+                        );
+                    }
+
+                    $result = $this->validateConfirmSlot($locked);
+                    if (! $result->ok) {
+                        throw new AvailabilityRejectedException($result);
+                    }
+
+                    $this->finalizeConfirmation($locked, $previous);
+                });
+            } catch (AvailabilityRejectedException $e) {
+                $appointment->loadMissing(['staff']);
+
+                return $this->redirectConfirmBlocked($appointment, $e->result, $redirectTarget);
+            }
+
+            $success = 'Booking confirmed successfully. The client has been notified.';
+
+            if ($redirectTarget === 'tasks') {
+                return redirect()->route('tasks.index')->with('success', $success);
+            }
+
+            return back()->with('success', $success);
+        }
+
         $appointment->update(['status' => $data['status']]);
         $fresh = $appointment->fresh(['client', 'staff', 'services.service', 'salon']);
 
-        if ($data['status'] === 'confirmed' && $previous === 'pending') {
-            $this->notificationService->notifyClientBookingConfirmed($fresh, true);
-        } elseif (in_array($data['status'], ['cancelled', 'no_show'], true) && $previous !== $data['status']) {
+        if (in_array($data['status'], ['cancelled', 'no_show'], true) && $previous !== $data['status']) {
             $this->notificationService->appointmentCancellation($fresh, $previous === 'pending');
+        }
+
+        if ($redirectTarget === 'tasks' && in_array($data['status'], ['cancelled', 'no_show', 'completed'], true)) {
+            return redirect()->route('tasks.index')->with('success', 'Status updated.');
         }
 
         return back()->with('success', 'Status updated.');
@@ -693,7 +732,7 @@ class AppointmentController extends Controller
 
     /* ── Dedicated action methods ─────────────────────────────────────────── */
 
-    public function confirm(Appointment $appointment): RedirectResponse
+    public function confirm(Request $request, Appointment $appointment): RedirectResponse
     {
         $this->authorise($appointment);
 
@@ -701,17 +740,47 @@ class AppointmentController extends Controller
             return back()->withErrors(['status' => 'Only pending appointments can be confirmed.']);
         }
 
-        $appointment->update([
-            'status'       => 'confirmed',
-            'confirmed_at' => now(),
-        ]);
+        $redirectTarget = $request->input('redirect');
 
-        $this->notificationService->notifyClientBookingConfirmed(
-            $appointment->fresh(['client', 'staff', 'services.service', 'salon']),
-            true
-        );
+        try {
+            DB::transaction(function () use ($appointment) {
+                $locked = Appointment::whereKey($appointment->id)->lockForUpdate()->firstOrFail();
 
-        return back()->with('success', 'Appointment confirmed and client notified.');
+                if ($locked->status !== 'pending') {
+                    throw ValidationException::withMessages([
+                        'status' => 'Only pending appointments can be confirmed.',
+                    ]);
+                }
+
+                if ((int) $locked->staff_id > 0) {
+                    app(AppointmentBookingService::class)->acquireStaffBookingLocks(
+                        (int) $locked->salon_id,
+                        [(int) $locked->staff_id]
+                    );
+                }
+
+                $result = $this->validateConfirmSlot($locked);
+                if (! $result->ok) {
+                    throw new AvailabilityRejectedException($result);
+                }
+
+                $this->finalizeConfirmation($locked, 'pending');
+            });
+        } catch (AvailabilityRejectedException $e) {
+            $appointment->loadMissing(['staff']);
+
+            return $this->redirectConfirmBlocked($appointment, $e->result, $redirectTarget);
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        $success = 'Booking confirmed successfully. The client has been notified.';
+
+        if ($redirectTarget === 'tasks') {
+            return redirect()->route('tasks.index')->with('success', $success);
+        }
+
+        return back()->with('success', $success);
     }
 
     public function cancel(Request $request, Appointment $appointment): RedirectResponse
@@ -827,5 +896,63 @@ class AppointmentController extends Controller
     private function authorise(Appointment $appointment): void
     {
         abort_unless($appointment->salon_id === $this->salon()->id, 403);
+    }
+
+    private function validateConfirmSlot(Appointment $appointment): ScheduleValidationResult
+    {
+        $appointment->loadMissing(['salon', 'staff']);
+        $staff = $appointment->staff;
+
+        if (! $staff) {
+            return ScheduleValidationResult::failure([
+                ['code' => 'no_staff', 'message' => 'Assign a staff member before confirming this booking.'],
+            ]);
+        }
+
+        return app(AvailabilityService::class)->validateProposedWindow(
+            $appointment->salon,
+            $staff,
+            $appointment->starts_at->copy(),
+            AppointmentLifecycle::slotEndsAt($appointment),
+            (int) $appointment->id,
+            false,
+        );
+    }
+
+    private function redirectConfirmBlocked(
+        Appointment $appointment,
+        ScheduleValidationResult $result,
+        ?string $redirectTarget,
+    ): RedirectResponse {
+        $staffName = $appointment->staff?->name ?? 'The assigned staff member';
+        $detail = $result->firstMessage();
+        $message = "Booking not confirmed — {$staffName} is not available at this time. {$detail} Please reschedule to a different slot.";
+
+        $payload = [
+            'error' => $message,
+            'booking_confirm_conflict_id' => $appointment->id,
+            'booking_confirm_conflict_message' => $detail,
+        ];
+
+        if ($redirectTarget === 'tasks') {
+            return redirect()->route('tasks.index')->with($payload);
+        }
+
+        return back()->with($payload);
+    }
+
+    private function finalizeConfirmation(Appointment $appointment, string $previousStatus): void
+    {
+        $appointment->update([
+            'status'       => 'confirmed',
+            'confirmed_at' => $appointment->confirmed_at ?? now(),
+        ]);
+
+        if (in_array($previousStatus, ['pending', 'hold'], true)) {
+            $this->notificationService->notifyClientBookingConfirmed(
+                $appointment->fresh(['client', 'staff', 'services.service', 'salon']),
+                true
+            );
+        }
     }
 }

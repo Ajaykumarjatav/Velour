@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Support\AppUrl;
+use App\Support\PurposeMail;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,17 +26,17 @@ class ResetPasswordNotification extends ResetPassword implements ShouldQueue, No
 
     public function toMail($notifiable): MailMessage
     {
-        $url = url(route('password.reset', [
+        $url = AppUrl::absolute(route('password.reset', [
             'token' => $this->token,
             'email' => $notifiable->getEmailForPasswordReset(),
         ], false));
 
-        return (new MailMessage())
+        return PurposeMail::configureMailMessage(PurposeMail::AUTH, (new MailMessage())
             ->subject('Reset your EasyGrox password')
             ->view('emails.auth.reset-password', [
                 'user'    => $notifiable,
                 'url'     => $url,
                 'expiry'  => config('auth.passwords.users.expire', 60) . ' minutes',
-            ]);
+            ]));
     }
 }

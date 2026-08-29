@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Support\EmailVerificationToken;
+use App\Support\PurposeMail;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Config;
@@ -18,12 +19,12 @@ class VerifyEmailNotification extends VerifyEmail
         $token = EmailVerificationToken::issue($notifiable, $minutes);
         $url = EmailVerificationToken::url($notifiable, $token);
 
-        return (new MailMessage())
+        return PurposeMail::configureMailMessage(PurposeMail::AUTH, (new MailMessage())
             ->subject('Verify your EasyGrox email address')
             ->view('emails.auth.verify-email', [
                 'user'   => $notifiable,
                 'url'    => $url,
                 'expiry' => $minutes.' minutes',
-            ]);
+            ]));
     }
 }

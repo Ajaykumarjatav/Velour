@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\PurposeMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -29,11 +30,11 @@ class TwoFactorCodeNotification extends Notification implements ShouldQueue, Not
 
     public function toMail($notifiable): MailMessage
     {
-        return (new MailMessage())
+        return PurposeMail::configureMailMessage(PurposeMail::AUTH, (new MailMessage())
             ->subject('Your EasyGrox login code: ' . $this->code)
             ->view('emails.auth.two-factor-code', [
                 'user' => $notifiable,
                 'code' => $this->code,
-            ]);
+            ]));
     }
 }
