@@ -1,0 +1,1232 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="h-full css-pending">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Dashboard') — EasyGrox</title>
+    @include('partials.favicon')
+    @include('partials.prevent-fouc-start')
+    @include('partials.easygrox-http')
+    {{-- Apply theme BEFORE any CSS loads to prevent flash of wrong theme --}}
+    <script>
+        (function () {
+            // v2: default is light — reset any OS-preference-based dark setting
+            var saved = localStorage.getItem('velour-theme');
+            var themeVersion = localStorage.getItem('velour-theme-v');
+            if (themeVersion !== '2') {
+                // First load after this update — force light unless user had explicitly set dark before
+                localStorage.setItem('velour-theme', 'light');
+                localStorage.setItem('velour-theme-v', '2');
+                saved = 'light';
+            }
+            if (saved === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            if (localStorage.getItem('sidebar-collapsed') === '1') {
+                document.documentElement.classList.add('sidebar-is-collapsed');
+            }
+        })();
+    </script>
+    {{-- Critical shell CSS (plain style — applies before Tailwind CDN compiles) so collapsed sidebar does not flash open --}}
+    <style>
+        @media (min-width: 1024px) {
+            .app-shell-main { padding-left: 15rem; }
+            html.sidebar-is-collapsed .app-shell-main { padding-left: 4.5rem; }
+            .app-shell-sidebar { width: 15rem; }
+            html.sidebar-is-collapsed .app-shell-sidebar { width: 4.5rem; }
+        }
+        .sidebar-logo-icon { display: none; }
+        html.sidebar-is-collapsed .sidebar-logo-icon { display: flex; }
+        html.sidebar-is-collapsed .sidebar-text,
+        html.sidebar-is-collapsed .nav-section-title { display: none !important; }
+        html.sidebar-is-collapsed .sidebar-wrapper { align-items: center; }
+        html.sidebar-is-collapsed .sidebar-wrapper > div:first-child {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link {
+            position: relative;
+            justify-content: center;
+            padding: 0.625rem;
+            border-left: 0;
+            border-radius: 0.75rem;
+            width: 2.75rem;
+            overflow: visible;
+            font-size: 0;
+            gap: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link > span,
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link > svg:not(.nav-icon) {
+            display: none !important;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            flex-shrink: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper nav {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            align-items: center;
+        }
+        html.sidebar-is-collapsed .sidebar-nav-badge { display: none !important; }
+        html.sidebar-is-collapsed .sidebar-submenu-panel:not(.sidebar-submenu-flyout-open) {
+            display: none !important;
+        }
+        .app-shell-sidebar,
+        .app-shell-main {
+            transition: none;
+        }
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        velour: {
+                            50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',
+                            400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',
+                            800:'#5b21b6',900:'#4c1d95',950:'#2e1065'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style type="text/tailwindcss">
+        /* App-wide: Inter — compact admin scale (14px root ≈ reference UI) */
+        html {
+            font-size: 14px;
+        }
+        html, body {
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            font-weight: 400;
+            line-height: 1.45;
+            font-feature-settings: 'kern' 1, 'liga' 1, 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .font-thin, .font-extralight, .font-light, .font-normal { font-weight: 400; }
+        .font-medium { font-weight: 500; }
+        .font-semibold, .font-bold, .font-extrabold, .font-black { font-weight: 600; }
+        strong, b { font-weight: 600; }
+
+        /* ── Scrollbars (match dark UI; avoids bright default thumb) ── */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgb(209 213 219) rgb(243 244 246);
+        }
+        .dark * {
+            scrollbar-color: rgb(75 85 99) rgb(3 7 18);
+        }
+        *::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        *::-webkit-scrollbar-track {
+            background: rgb(243 244 246);
+            border-radius: 4px;
+        }
+        .dark *::-webkit-scrollbar-track {
+            background: rgb(3 7 18);
+        }
+        *::-webkit-scrollbar-thumb {
+            background: rgb(209 213 219);
+            border-radius: 4px;
+        }
+        .dark *::-webkit-scrollbar-thumb {
+            background: rgb(55 65 81);
+        }
+        *::-webkit-scrollbar-thumb:hover {
+            background: rgb(156 163 175);
+        }
+        .dark *::-webkit-scrollbar-thumb:hover {
+            background: rgb(75 85 99);
+        }
+
+        /* ── Sidebar links ── */
+        .sidebar-link {
+            @apply flex items-center gap-3 pl-2.5 pr-3 py-2.5 rounded-xl text-[13px] font-medium leading-snug transition-all duration-200
+                   text-gray-600 hover:bg-gray-100/90 hover:text-gray-900
+                   dark:text-[#94a3b8] dark:hover:bg-white/[0.06] dark:hover:text-gray-200;
+        }
+        .sidebar-link.active {
+            @apply bg-velour-50 text-velour-800 font-semibold
+                   hover:bg-velour-50
+                   dark:bg-velour-950/40 dark:text-velour-300 dark:hover:bg-velour-950/40;
+        }
+        .nav-icon { @apply w-5 h-5 flex-shrink-0 opacity-90; }
+        .sub-nav-icon { @apply w-3.5 h-3.5 flex-shrink-0 opacity-80; }
+        .nav-section-title {
+            @apply px-3 pt-5 pb-2 text-[10px] font-bold text-gray-400 dark:text-[#64748b] uppercase tracking-[0.14em];
+        }
+        .sidebar-sub-link {
+            @apply flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] leading-snug transition-colors;
+        }
+        .sidebar-nav-badge {
+            @apply ml-auto min-w-[1.35rem] px-1.5 py-0.5 text-[10px] font-bold rounded-full text-center tabular-nums;
+        }
+        [x-cloak] { display: none !important; }
+
+        /* ── App shell layout (no transition on load) ── */
+        @media (min-width: 1024px) {
+            .app-shell-main { padding-left: 15rem; }
+            html.sidebar-is-collapsed .app-shell-main { padding-left: 4.5rem; }
+            .app-shell-sidebar { width: 15rem; }
+            html.sidebar-is-collapsed .app-shell-sidebar { width: 4.5rem; }
+        }
+
+        /* ── Collapsed sidebar ── */
+        html.sidebar-is-collapsed .sidebar-wrapper {
+            align-items: center;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link {
+            position: relative;
+            justify-content: center;
+            padding: 0.625rem;
+            border-left: 0;
+            border-radius: 0.75rem;
+            width: 2.75rem;
+            overflow: visible;
+            font-size: 0;
+            gap: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link > span {
+            display: none;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link > svg:not(.nav-icon) {
+            display: none;
+        }
+        .sidebar-submenu-flyout-title {
+            display: none;
+        }
+        html.sidebar-is-collapsed .sidebar-nav-group {
+            position: relative;
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-panel {
+            position: absolute;
+            left: calc(100% + 0.5rem);
+            top: 0;
+            margin-left: 0;
+            margin-top: 0;
+            min-width: 13rem;
+            max-width: 16rem;
+            max-height: min(70dvh, 24rem);
+            overflow-y: auto;
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            background: #fff;
+            border: 1px solid rgb(229 231 235);
+            box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            z-index: 200;
+            color: rgb(55 65 81);
+        }
+        html.dark.sidebar-is-collapsed .sidebar-submenu-panel {
+            background: #1e1e2a;
+            border-color: rgb(55 65 81 / 0.8);
+            box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.45), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+            color: rgb(226 232 240);
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-panel .sidebar-sub-link:not(.font-semibold) {
+            color: rgb(75 85 99);
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-panel .sidebar-sub-link:not(.font-semibold):hover {
+            color: rgb(17 24 39);
+            background: rgb(243 244 246);
+        }
+        html.dark.sidebar-is-collapsed .sidebar-submenu-panel .sidebar-sub-link:not(.font-semibold) {
+            color: rgb(203 213 225);
+        }
+        html.dark.sidebar-is-collapsed .sidebar-submenu-panel .sidebar-sub-link:not(.font-semibold):hover {
+            color: rgb(248 250 252);
+            background: rgb(55 65 81 / 0.5);
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-panel .sub-nav-icon {
+            opacity: 1;
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-flyout-title {
+            display: block;
+            padding: 0.375rem 0.5rem 0.5rem;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgb(107 114 128);
+        }
+        html.dark.sidebar-is-collapsed .sidebar-submenu-flyout-title {
+            color: rgb(148 163 184);
+        }
+        html.sidebar-is-collapsed .sidebar-submenu-flyout-items .ml-3,
+        html.sidebar-is-collapsed .sidebar-submenu-flyout-items .ml-4 {
+            margin-left: 0.5rem;
+        }
+        html.sidebar-is-collapsed .sidebar-nav-group .sidebar-link::after {
+            display: none;
+        }
+        html.sidebar-is-collapsed .sidebar-link.sidebar-flyout-trigger-open {
+            @apply bg-velour-50 text-velour-800 dark:bg-velour-950/40 dark:text-velour-300;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link .nav-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            flex-shrink: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link::after {
+            content: attr(data-title);
+            position: absolute;
+            left: calc(100% + 0.5rem);
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.5rem;
+            background: rgb(17 24 39 / 0.95);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+            z-index: 100;
+        }
+        html.dark.sidebar-is-collapsed .sidebar-wrapper .sidebar-link::after {
+            background: rgb(255 255 255 / 0.95);
+            color: #111;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .sidebar-link:hover::after {
+            opacity: 1;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper nav {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            align-items: center;
+            overflow: visible;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper {
+            overflow: visible;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper .nav-section-title {
+            display: none;
+        }
+        html.sidebar-is-collapsed .sidebar-text {
+            display: none;
+        }
+        html.sidebar-is-collapsed .sidebar-wrapper > div:first-child {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        html.sidebar-is-collapsed .sidebar-logo-icon {
+            display: flex;
+        }
+        .sidebar-logo-icon {
+            display: none;
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           GLOBAL DARK MODE TOKENS
+           These apply automatically to every view that uses the standard
+           card / form / table / badge patterns — no per-view changes needed.
+        ══════════════════════════════════════════════════════════════════ */
+
+        /* ── Cards ── */
+        .card {
+            @apply bg-white dark:bg-gray-900
+                   border border-gray-200 dark:border-gray-800/90
+                   rounded-2xl shadow-sm dark:shadow-none
+                   text-gray-700 dark:text-gray-300;
+        }
+        .card-header {
+            @apply px-5 py-3.5 border-b border-gray-100 dark:border-gray-800;
+        }
+        .card-body  { @apply px-5 py-4; }
+        .card-footer {
+            @apply px-6 py-3.5 border-t border-gray-100 dark:border-gray-800
+                   bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl;
+        }
+
+        /* ── Page headings ── */
+        .page-title   { @apply text-[15px] sm:text-base font-semibold tracking-tight text-gray-900 dark:text-white; }
+        .page-subtitle{ @apply text-xs text-gray-500 dark:text-gray-400 leading-relaxed; }
+        .section-title{ @apply text-sm font-semibold tracking-tight text-gray-800 dark:text-gray-100; }
+
+        /* ── Form elements ── */
+        .form-label {
+            @apply block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1;
+        }
+        .form-input {
+            @apply w-full rounded-xl border border-gray-300 dark:border-gray-700
+                   bg-white dark:bg-gray-800
+                   text-gray-900 dark:text-gray-100
+                   placeholder-gray-400 dark:placeholder-gray-500
+                   px-3 py-1.5 text-[13px]
+                   focus:outline-none focus:ring-2 focus:ring-velour-500 focus:border-transparent
+                   transition-colors;
+        }
+        .form-select {
+            @apply form-input appearance-none cursor-pointer;
+        }
+        .form-textarea {
+            @apply form-input resize-none;
+        }
+        .form-hint {
+            @apply mt-1 text-xs text-gray-500 dark:text-gray-300;
+        }
+        .form-error {
+            @apply mt-1 text-xs text-red-600 dark:text-red-400;
+        }
+        .required-asterisk {
+            @apply text-red-500 dark:text-red-400 font-semibold ml-0.5;
+        }
+        .form-input-error {
+            @apply border-red-400 dark:border-red-500 focus:ring-red-500;
+        }
+        .form-date-wrap {
+            @apply relative;
+        }
+        .form-date-input {
+            @apply form-input pr-10;
+            color-scheme: light dark;
+        }
+        .form-date-icon {
+            @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500;
+        }
+        .form-date-input::-webkit-calendar-picker-indicator {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 2.5rem;
+            height: 100%;
+            cursor: pointer;
+            opacity: 0;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            @apply inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-xl
+                   text-[13px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
+                   dark:focus:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+        .btn-primary {
+            @apply btn bg-velour-600 hover:bg-velour-700 text-white focus:ring-velour-500;
+        }
+        .btn-secondary {
+            @apply btn bg-gray-100 hover:bg-gray-200 text-gray-700
+                   dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200
+                   focus:ring-gray-400;
+        }
+        .btn-danger {
+            @apply btn bg-red-600 hover:bg-red-700 text-white focus:ring-red-500;
+        }
+        .btn-outline {
+            @apply btn border border-gray-300 dark:border-gray-600
+                   text-gray-700 dark:text-gray-200
+                   hover:bg-gray-50 dark:hover:bg-gray-800
+                   focus:ring-gray-400;
+        }
+        .btn-sm { @apply px-2.5 py-1 text-[11px]; }
+        .btn-lg { @apply px-5 py-2.5 text-sm; }
+
+        /* ── Tables ── */
+        .table-wrap {
+            @apply w-full overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800
+                   bg-white dark:bg-gray-900;
+        }
+        table.data-table {
+            @apply w-full text-[13px];
+        }
+        /* Optional: keeps columns from stretching endlessly on very wide viewports */
+        table.data-table.data-table-fixed {
+            table-layout: fixed;
+        }
+        table.data-table thead {
+            @apply bg-gray-50 dark:bg-gray-800/60;
+        }
+        table.data-table thead th {
+            @apply px-3 py-2 align-middle text-[10px] font-semibold
+                   text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em];
+        }
+        /* Default left; :where() keeps specificity at 0 so .text-right / .text-center on th win */
+        :where(table.data-table thead th) {
+            text-align: left;
+        }
+        table.data-table tbody tr {
+            @apply border-t border-gray-100 dark:border-gray-800
+                   hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors;
+        }
+        table.data-table tbody td {
+            @apply px-3 py-2 align-middle text-gray-700 dark:text-gray-300;
+        }
+
+        /* ── Stat / metric cards ── */
+        .stat-card {
+            @apply card p-5;
+        }
+        .stat-label {
+            @apply text-[10px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-[0.06em] mb-1;
+        }
+        .stat-value {
+            @apply text-xl sm:text-[1.35rem] font-[700] tracking-tight text-gray-900 dark:text-white;
+        }
+        .stat-sub {
+            @apply text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed;
+        }
+
+        /* ── Badges ── */
+        .badge {
+            @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+        }
+        .badge-green  { @apply badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400; }
+        .badge-red    { @apply badge bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400; }
+        .badge-yellow { @apply badge bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400; }
+        .badge-blue   { @apply badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400; }
+        .badge-purple { @apply badge bg-velour-100 text-velour-700 dark:bg-velour-900/30 dark:text-velour-400; }
+        .badge-gray   { @apply badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400; }
+
+        /* ── Dividers ── */
+        .divider { @apply border-t border-gray-100 dark:border-gray-800; }
+
+        /* ── Empty states ── */
+        .empty-state {
+            @apply flex flex-col items-center justify-center py-16 text-center;
+        }
+        .empty-state-icon {
+            @apply w-12 h-12 text-gray-300 dark:text-gray-600 mb-3;
+        }
+        .empty-state-title {
+            @apply text-sm font-medium text-gray-500 dark:text-gray-400;
+        }
+        .empty-state-sub {
+            @apply text-xs text-gray-400 dark:text-gray-500 mt-1;
+        }
+
+        /* ── List items ── */
+        .list-item {
+            @apply flex items-center gap-3 px-4 py-3
+                   border-b border-gray-100 dark:border-gray-800 last:border-0
+                   hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors;
+        }
+
+        /* ── Alert / notice boxes ── */
+        .alert-info    { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-blue-50 dark:bg-blue-950/45 border border-blue-200/90 dark:border-blue-400/25 text-blue-900 dark:text-blue-100; }
+        .alert-success { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300; }
+        .alert-warning { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300; }
+        .alert-danger  { @apply flex gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300; }
+
+        /* ── Modal / dialog ── */
+        /* Modals: use the modal / modal-overlay Blade components (teleport to body) for full-screen overlay. */
+        .modal-backdrop {
+            @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4;
+        }
+        .modal-box {
+            @apply bg-white dark:bg-gray-900 rounded-2xl shadow-2xl
+                   border border-gray-200 dark:border-gray-800
+                   w-full max-w-lg;
+        }
+        .modal-header {
+            @apply flex items-center justify-between px-6 py-4
+                   border-b border-gray-100 dark:border-gray-800;
+        }
+        .modal-body   { @apply px-6 py-5; }
+        .modal-footer {
+            @apply flex items-center justify-end gap-3 px-6 py-4
+                   border-t border-gray-100 dark:border-gray-800
+                   bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl;
+        }
+
+        /* ── Dropdown menus ── */
+        .dropdown-menu {
+            @apply absolute z-50 mt-1 rounded-xl shadow-lg border py-1 min-w-[160px]
+                   bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800;
+        }
+        .dropdown-item {
+            @apply block w-full text-left px-3.5 py-1.5 text-[13px]
+                   text-gray-700 dark:text-gray-300
+                   hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors;
+        }
+
+        /* ── Tabs ── */
+        .tab-bar {
+            @apply flex gap-1 border-b border-gray-200 dark:border-gray-800 mb-5;
+        }
+        .tab-item {
+            @apply px-3.5 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors
+                   text-gray-500 dark:text-gray-400 border-transparent
+                   hover:text-gray-700 dark:hover:text-gray-200;
+        }
+        .tab-item.active {
+            @apply text-velour-600 dark:text-velour-400 border-velour-600 dark:border-velour-400;
+        }
+
+        /* ── Pagination ── */
+        .pagination-link {
+            @apply px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                   text-gray-600 dark:text-gray-400
+                   hover:bg-gray-100 dark:hover:bg-gray-800;
+        }
+        .pagination-link.active {
+            @apply bg-velour-600 text-white hover:bg-velour-700;
+        }
+        .pagination-link.disabled {
+            @apply opacity-40 cursor-not-allowed pointer-events-none;
+        }
+
+        /* ── Text helpers ── */
+        /* Muted: readable on white and on dark card / panel backgrounds */
+        .text-muted  { @apply text-gray-500 dark:text-gray-300; }
+        .text-body   { @apply text-gray-700 dark:text-gray-300; }
+        .text-heading{ @apply text-gray-900 dark:text-white; }
+        .text-link   { @apply text-velour-600 dark:text-velour-400 hover:underline; }
+
+        /* Admin store browse: salon panel is view-only (exports still allowed) */
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) input:not([type="hidden"]):not([readonly]),
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) select,
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) textarea {
+            pointer-events: none;
+            opacity: 0.72;
+        }
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) button[type="submit"],
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) input[type="submit"] {
+            display: none !important;
+        }
+        .admin-store-browse-mode main form:not([method="get"]):not(.admin-browse-allow-form) button[type="button"]:not(.admin-browse-allow) {
+            pointer-events: none;
+            opacity: 0.72;
+        }
+        .admin-store-browse-mode main a.btn-primary[href*="/create"]:not(.admin-browse-allow),
+        .admin-store-browse-mode main a.btn-primary[href*="/edit"]:not(.admin-browse-allow),
+        .admin-store-browse-mode main a[href*="/create"].btn-primary:not(.admin-browse-allow),
+        .admin-store-browse-mode main a[href*="/create"]:not(.admin-browse-allow):not([target="_blank"]),
+        .admin-store-browse-mode main a[href*="/edit"]:not(.admin-browse-allow):not([target="_blank"]),
+        .admin-store-browse-mode main .salon-write-ui {
+            display: none !important;
+        }
+
+        /* Admin store browse: slim full-width accent + header chip (no awkward main-only banner) */
+        .admin-browse-accent {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            z-index: 80;
+            background: linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #7c3aed 100%);
+        }
+
+        /* Soft ambient glow behind app content — decorative only, never blocks UI */
+        .app-shell-main {
+            position: relative;
+            isolation: isolate;
+        }
+        .app-ambient {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+            contain: paint;
+        }
+        .app-ambient-orb {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(64px);
+            will-change: transform;
+            opacity: 0.45;
+            transform: translate3d(0, 0, 0);
+            animation: appAmbientDrift 48s ease-in-out infinite alternate;
+        }
+        .app-ambient-orb--a {
+            width: min(42vw, 28rem);
+            height: min(42vw, 28rem);
+            top: -8%;
+            right: 4%;
+            background: rgba(167, 139, 250, 0.22);
+            animation-duration: 52s;
+        }
+        .app-ambient-orb--b {
+            width: min(36vw, 22rem);
+            height: min(36vw, 22rem);
+            bottom: 8%;
+            left: 6%;
+            background: rgba(196, 181, 253, 0.16);
+            animation-duration: 64s;
+            animation-delay: -12s;
+        }
+        .app-ambient-orb--c {
+            width: min(28vw, 16rem);
+            height: min(28vw, 16rem);
+            top: 42%;
+            right: 18%;
+            background: rgba(233, 213, 255, 0.14);
+            animation-duration: 58s;
+            animation-delay: -24s;
+        }
+        .dark .app-ambient-orb--a { background: rgba(124, 58, 237, 0.14); opacity: 0.55; }
+        .dark .app-ambient-orb--b { background: rgba(91, 33, 182, 0.12); opacity: 0.5; }
+        .dark .app-ambient-orb--c { background: rgba(139, 92, 246, 0.1); opacity: 0.45; }
+        @keyframes appAmbientDrift {
+            from { transform: translate3d(0, 0, 0) scale(1); }
+            to { transform: translate3d(-3%, 2.5%, 0) scale(1.06); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .app-ambient-orb {
+                animation: none !important;
+                will-change: auto;
+            }
+        }
+        @media (max-width: 640px) {
+            .app-ambient-orb--c { display: none; }
+            .app-ambient-orb { filter: blur(48px); opacity: 0.35; }
+        }
+    </style>
+    @stack('styles')
+</head>
+
+<body class="h-full bg-gray-50 dark:bg-gray-950 transition-colors duration-200 {{ ($adminStoreBrowse ?? false) ? 'admin-store-browse-mode' : '' }}"
+      x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === '1' }"
+      x-init="
+        document.documentElement.classList.toggle('sidebar-is-collapsed', sidebarCollapsed);
+        $watch('sidebarCollapsed', v => {
+            localStorage.setItem('sidebar-collapsed', v ? '1' : '0');
+            document.documentElement.classList.toggle('sidebar-is-collapsed', v);
+        });
+      ">
+@if(\App\Support\AuthPanel::isAdminStoreBrowse())
+<div class="admin-browse-accent" aria-hidden="true"></div>
+@endif
+<div class="flex h-full min-h-0">
+
+    {{-- Desktop sidebar --}}
+    <aside class="app-shell-sidebar hidden lg:flex lg:flex-col lg:min-h-0 lg:fixed lg:inset-y-0 z-30
+                  bg-white dark:bg-[#16161f] border-r border-gray-200 dark:border-gray-800/80 overflow-visible">
+        @include('partials.sidebar')
+    </aside>
+
+    {{-- Mobile backdrop --}}
+    <div x-show="sidebarOpen" x-cloak @click="sidebarOpen=false"
+         class="fixed inset-0 bg-black/60 z-40 lg:hidden"></div>
+
+    {{-- Mobile sidebar --}}
+    <aside x-show="sidebarOpen" x-cloak
+           class="fixed inset-y-0 left-0 w-60 z-50 lg:hidden flex flex-col min-h-0
+                  bg-white dark:bg-[#16161f] border-r border-gray-200 dark:border-gray-800/80">
+        @include('partials.sidebar')
+    </aside>
+
+    {{-- Main — min-w-0 so wide children (tables, POS grids) shrink instead of overflowing under the fixed sidebar --}}
+    <div class="app-shell-main flex-1 flex flex-col min-h-screen min-w-0">
+        <div class="app-ambient" aria-hidden="true">
+            <span class="app-ambient-orb app-ambient-orb--a"></span>
+            <span class="app-ambient-orb app-ambient-orb--b"></span>
+            <span class="app-ambient-orb app-ambient-orb--c"></span>
+        </div>
+        {{-- Top bar --}}
+        <header class="sticky top-0 z-50 min-h-14 px-4 sm:px-6 flex flex-wrap items-center justify-between gap-2 sm:gap-3
+                       bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800
+                       transition-colors duration-200 py-2 sm:py-0 isolate">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                {{-- Mobile: open sidebar --}}
+                <button @click="sidebarOpen=true"
+                        class="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                {{-- Desktop: toggle sidebar --}}
+                <button type="button"
+                        @click="sidebarCollapsed = !sidebarCollapsed"
+                        class="hidden lg:flex p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0 transition-colors"
+                        title="Toggle sidebar"
+                        aria-label="Toggle sidebar">
+                    <svg class="w-4 h-4 transition-transform duration-200" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                    </svg>
+                </button>
+                @if(\App\Support\AuthPanel::isAdminStoreBrowse())
+                <div class="hidden md:flex items-center gap-2 shrink-0 pl-1 pr-2.5 py-1 rounded-lg border border-velour-200/70 dark:border-velour-800/60 bg-velour-50/80 dark:bg-velour-950/35 max-w-[14rem] lg:max-w-xs"
+                     title="Super admin browse — changes are disabled">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-md bg-velour-100 dark:bg-velour-900/50 text-velour-600 dark:text-velour-300 shrink-0" aria-hidden="true">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </span>
+                    <div class="min-w-0 leading-tight">
+                        <p class="text-[10px] font-semibold uppercase tracking-wide text-velour-600/90 dark:text-velour-400/90">Admin browse</p>
+                        <p class="text-xs font-medium text-gray-800 dark:text-gray-100 truncate">{{ \App\Support\AuthPanel::adminStoreBrowseSalonName() }}</p>
+                    </div>
+                    <span class="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-white/90 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700">View</span>
+                </div>
+                @endif
+                @if(\App\Support\AuthPanel::isAdminStoreBrowse())
+                <span class="md:hidden shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border border-velour-200 dark:border-velour-800 text-velour-600 dark:text-velour-400 bg-velour-50 dark:bg-velour-950/40">View</span>
+                @endif
+                <h1 class="text-[15px] sm:text-base font-semibold tracking-tight text-gray-900 dark:text-white truncate min-w-0">
+                    @yield('page-title', 'Dashboard')
+                </h1>
+            </div>
+
+            @hasSection('header-actions')
+            <div class="flex items-center justify-end shrink-0">
+                @yield('header-actions')
+            </div>
+            @endif
+
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                @if(\App\Support\AuthPanel::isAdminStoreBrowse())
+                <form method="POST" action="{{ route('admin.store-browse.exit') }}" class="shrink-0">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold
+                                   text-velour-700 dark:text-velour-300
+                                   border border-velour-200 dark:border-velour-800
+                                   bg-white dark:bg-gray-900
+                                   hover:bg-velour-50 dark:hover:bg-velour-950/50 transition-colors">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        <span class="hidden sm:inline">Exit browse</span>
+                        <span class="sm:hidden">Exit</span>
+                    </button>
+                </form>
+                @endif
+                {{-- Theme toggle --}}
+                <button @click="$store.theme.toggle()"
+                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        title="Toggle theme">
+                    <svg x-show="$store.theme.dark" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <svg x-show="!$store.theme.dark" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                </button>
+
+                {{-- Notifications --}}
+                @php
+                    $headerUnreadCount   = 0;
+                    $headerNotifications = collect();
+                    try {
+                        $headerSalon = $currentSalon ?? null;
+                        if ($headerSalon) {
+                            $headerUnreadCount   = \App\Models\SalonNotification::where('salon_id', $headerSalon->id)->where('is_read', false)->count();
+                            $headerNotifications = \App\Models\SalonNotification::where('salon_id', $headerSalon->id)->latest()->limit(6)->get();
+                        }
+                    } catch (\Throwable) {}
+                @endphp
+                <div class="relative" x-data="{ notifOpen: false }">
+                    <button @click="notifOpen=!notifOpen"
+                            class="relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        @if($headerUnreadCount > 0)
+                        <span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                            {{ $headerUnreadCount > 9 ? '9+' : $headerUnreadCount }}
+                        </span>
+                        @endif
+                    </button>
+                    <div x-show="notifOpen" x-cloak @click.outside="notifOpen=false"
+                         class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl border z-[60] overflow-hidden
+                                bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                            <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">Notifications</span>
+                            @if($headerUnreadCount > 0)
+                            <form method="POST" action="{{ route('notifications.mark-all-read') }}" class="inline">
+                                @csrf
+                                <button type="submit" class="text-xs text-velour-600 dark:text-velour-400 hover:underline font-medium">Mark all read</button>
+                            </form>
+                            @endif
+                        </div>
+                        <div class="max-h-72 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800">
+                            @forelse($headerNotifications as $n)
+                            @php
+                                $nPosId = (int) data_get($n->data, 'pos_transaction_id', 0);
+                                $nApptId = (int) data_get($n->data, 'appointment_id', 0);
+                                if ($nPosId > 0) {
+                                    $nHref = route('pos.show', $nPosId);
+                                } elseif ($nApptId > 0) {
+                                    $nHref = route('appointments.show', $nApptId);
+                                } else {
+                                    $nHref = route('notifications.index');
+                                }
+                            @endphp
+                            <a href="{{ $nHref }}"
+                               @click="notifOpen=false"
+                               class="block px-4 py-3 {{ !$n->is_read ? 'bg-velour-50/50 dark:bg-velour-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800' }} transition-colors">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 {{ !$n->is_read ? 'bg-velour-500' : 'bg-transparent' }}"></div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-{{ $n->is_read ? 'normal' : 'semibold' }} text-gray-800 dark:text-gray-100 truncate">{{ $n->title }}</p>
+                                        @if($n->body)<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{{ $n->body }}</p>@endif
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ $n->created_at->diffForHumans() }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                            @empty
+                            <div class="px-4 py-8 text-center text-xs text-gray-400 dark:text-gray-500">No notifications yet</div>
+                            @endforelse
+                        </div>
+                        <div class="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                            <a href="{{ route('notifications.index') }}" class="text-xs font-medium text-velour-600 dark:text-velour-400 hover:underline" @click="notifOpen=false">
+                                View all →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- User menu --}}
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open=!open"
+                            class="flex items-center p-1 rounded-full hover:ring-2 hover:ring-gray-200 dark:hover:ring-gray-700 transition-all">
+                        <div class="w-8 h-8 rounded-full bg-velour-600 flex items-center justify-center text-white text-sm font-bold">
+                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        </div>
+                    </button>
+                    <div x-show="open" x-cloak @click.outside="open=false"
+                         class="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl border z-[60]
+                                bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 overflow-hidden">
+                        {{-- Profile header --}}
+                        <div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-velour-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ auth()->user()->name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ auth()->user()->email }}</p>
+                                    @if(auth()->user()->support_id)
+                                    <p class="text-[10px] font-mono text-velour-600 dark:text-velour-400 mt-0.5">{{ auth()->user()->support_id }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                            @if(($currentSalon ?? null) && $currentSalon->support_id)
+                            <div class="mt-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/60 flex items-center justify-between">
+                                <span class="text-xs text-gray-600 dark:text-gray-400">Store ID</span>
+                                <span class="text-xs font-mono font-semibold text-gray-900 dark:text-white">{{ $currentSalon->support_id }}</span>
+                            </div>
+                            @endif
+                        </div>
+                        {{-- Menu items --}}
+                        <div class="py-1">
+                            @if(\App\Support\SettingsTabPermissions::canOpenSettings(auth()->user(), $currentSalon ?? null))
+                            <a href="{{ route('settings.index') }}"
+                               class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                                Settings
+                            </a>
+                            @endif
+                            <a href="{{ route('account.sessions') }}"
+                               class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Login activity logs
+                            </a>
+                            @php
+                                $profileWaShareUrl = '';
+                                if (($currentSalon ?? null) && auth()->user()->dashboardScopedStaffId() === null) {
+                                    $profileBookingUrl = \App\Support\StorefrontUrl::booking($currentSalon);
+                                    if ($profileBookingUrl !== '') {
+                                        $profileWaShareUrl = 'https://wa.me/?text=' . rawurlencode('Book your next appointment with us!' . "\n" . $profileBookingUrl);
+                                    }
+                                }
+                            @endphp
+                            @if($profileWaShareUrl !== '')
+                            <a href="{{ $profileWaShareUrl }}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               @click="open=false"
+                               class="flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors">
+                                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                </svg>
+                                Share on WhatsApp
+                            </a>
+                            @endif
+                        </div>
+                        @unless($adminStoreBrowse ?? \App\Support\AuthPanel::isAdminStoreBrowse())
+                        <hr class="border-gray-100 dark:border-gray-800">
+                        <div class="py-1">
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                    Sign out
+                                </button>
+                            </form>
+                        </div>
+                        @endunless
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        @include('partials.subscription-reminder-bar')
+
+        @if(($salonBusinessStatus ?? null) && empty($hideSalonProfileBar) && !session('hide_profile_bar') && request()->routeIs('dashboard', 'settings.*'))
+        @php
+            // Same source as the sidebar "Setup Complete" % (SalonSetupProgress).
+            $profilePct = max(0, min(100, (int) ($salonBusinessStatus['setup_percent'] ?? 0)));
+        @endphp
+        @if($profilePct < 100)
+        @php
+            if ($profilePct >= 75) {
+                $profileToneWrap = 'border-emerald-200/70 dark:border-emerald-800/40 bg-emerald-50/80 dark:bg-emerald-900/10';
+                $profileToneText = 'text-emerald-800 dark:text-emerald-300';
+                $profileTrack = 'bg-emerald-100 dark:bg-emerald-900/30';
+                $profileFill = 'bg-emerald-500 dark:bg-emerald-400';
+            } elseif ($profilePct >= 50) {
+                $profileToneWrap = 'border-amber-200/70 dark:border-amber-800/40 bg-amber-50/80 dark:bg-amber-900/10';
+                $profileToneText = 'text-amber-800 dark:text-amber-300';
+                $profileTrack = 'bg-amber-100 dark:bg-amber-900/30';
+                $profileFill = 'bg-amber-500 dark:bg-amber-400';
+            } elseif ($profilePct >= 25) {
+                $profileToneWrap = 'border-orange-200/70 dark:border-orange-800/40 bg-orange-50/80 dark:bg-orange-900/10';
+                $profileToneText = 'text-orange-800 dark:text-orange-300';
+                $profileTrack = 'bg-orange-100 dark:bg-orange-900/30';
+                $profileFill = 'bg-orange-500 dark:bg-orange-400';
+            } else {
+                $profileToneWrap = 'border-red-200/70 dark:border-red-800/40 bg-red-50/80 dark:bg-red-900/10';
+                $profileToneText = 'text-red-800 dark:text-red-300';
+                $profileTrack = 'bg-red-100 dark:bg-red-900/30';
+                $profileFill = 'bg-red-500 dark:bg-red-400';
+            }
+        @endphp
+        <div id="profile-completion-bar" class="px-4 sm:px-6 py-2.5 border-b {{ $profileToneWrap }}">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 min-h-8">
+                <span class="text-xs font-semibold leading-none tabular-nums whitespace-nowrap {{ $profileToneText }}">
+                    Setup {{ $profilePct }}%
+                </span>
+                <div class="flex-1 basis-full sm:basis-0 min-w-0 flex items-center order-last sm:order-none">
+                    <div class="w-full h-2 rounded-full {{ $profileTrack }} overflow-hidden">
+                        <div class="h-full rounded-full transition-all {{ $profileFill }}"
+                             style="width: {{ $profilePct }}%"></div>
+                    </div>
+                </div>
+                <a href="{{ \App\Support\SalonUrl::route('setup-progress') }}" class="text-xs font-medium leading-none hover:underline whitespace-nowrap shrink-0 {{ $profileToneText }}">
+                    Complete setup
+                </a>
+                <button type="button"
+                        class="inline-flex items-center justify-center h-8 w-8 -my-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 shrink-0 opacity-80 hover:opacity-100 {{ $profileToneText }}"
+                        onclick="window.hideProfileCompletionBarForSession()"
+                        title="Hide for this session"
+                        aria-label="Hide for this session">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 15l-7-7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        @endif
+        @endif
+
+        <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-7 text-[13px] leading-snug">
+
+            @if(session('success'))
+            <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm
+                        bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300">
+                <svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span class="flex-1">{{ session('success') }}</span>
+                <button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100 flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            @endif
+
+            @if(session('warning'))
+            <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm
+                        bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300">
+                <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                <span class="flex-1">{!! session('warning') !!}</span>
+                <button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100 flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            @endif
+
+            @if(session('error'))
+            <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm
+                        bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
+                <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/>
+                </svg>
+                <span class="flex-1">{{ session('error') }}</span>
+                <button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100 flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            @endif
+
+            @if(session('info'))
+            <div data-flash class="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm
+                        bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">
+                <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/>
+                </svg>
+                <span class="flex-1">{{ session('info') }}</span>
+                <button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100 flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            @endif
+
+            @if($errors->any())
+            <div data-flash class="mb-4 px-4 py-3 rounded-xl text-sm
+                        bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
+                <div class="flex items-start gap-3">
+                    <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <p class="font-medium mb-1">Please fix the following:</p>
+                        <ul class="list-disc list-inside space-y-0.5">
+                            @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+                        </ul>
+                    </div>
+                    <button onclick="this.closest('[data-flash]').remove()" class="opacity-60 hover:opacity-100 flex-shrink-0">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+            @endif
+
+            @yield('content')
+        </main>
+    </div>
+</div>
+
+@stack('modals')
+
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script>
+    // Alpine theme store — syncs with the class already set by the inline IIFE above
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('theme', {
+            dark: document.documentElement.classList.contains('dark'),
+            toggle() {
+                this.dark = !this.dark;
+                if (this.dark) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('velour-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('velour-theme', 'light');
+                }
+            }
+        });
+    });
+
+    // Toast notification system
+    window.showToast = function(message, type) {
+        type = type || 'success';
+        var container = document.getElementById('toast-container');
+        if (!container) return;
+
+        var colors = {
+            success: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700 text-green-800 dark:text-green-300',
+            error:   'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700 text-red-800 dark:text-red-300',
+            warning: 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-300',
+            info:    'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-300',
+        };
+        var icons = {
+            success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>',
+            error:   '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>',
+            warning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>',
+            info:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/>',
+        };
+
+        var toast = document.createElement('div');
+        toast.className = 'flex items-center gap-3 px-4 py-3 rounded-xl border text-sm shadow-lg pointer-events-auto transition-all duration-300 opacity-0 translate-y-2 ' + (colors[type] || colors.info);
+        toast.innerHTML = '<svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">' + (icons[type] || icons.info) + '</svg>'
+            + '<span class="flex-1">' + message + '</span>'
+            + '<button onclick="this.parentElement.remove()" class="ml-2 opacity-60 hover:opacity-100 flex-shrink-0">'
+            + '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>'
+            + '</button>';
+
+        container.appendChild(toast);
+        // Animate in
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            });
+        });
+        // Auto-dismiss after 5s
+        setTimeout(function() {
+            toast.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 5000);
+    };
+
+    // Auto-dismiss inline flash messages after 6s
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-flash]').forEach(function(el) {
+            setTimeout(function() {
+                el.style.transition = 'opacity 0.3s';
+                el.style.opacity = '0';
+                setTimeout(function() { el.remove(); }, 300);
+            }, 6000);
+        });
+    });
+
+    // Hide profile completion/success bar for this login session.
+    window.hideProfileCompletionBarForSession = async function () {
+        var bar = document.getElementById('profile-completion-bar');
+        if (bar) {
+            bar.style.transition = 'opacity 0.2s ease';
+            bar.style.opacity = '0';
+            setTimeout(function () { bar.remove(); }, 200);
+        }
+        try {
+            await fetch(@json(\App\Support\AppUrl::path('ui.hide-profile-bar')), {
+                method: 'POST',
+                headers: window.EasyGroxHttp
+                    ? window.EasyGroxHttp.csrfHeaders()
+                    : {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                credentials: 'same-origin',
+            });
+        } catch (e) {
+            // no-op: bar is already hidden locally
+        }
+    };
+</script>
+
+{{-- Toast notification container --}}
+<div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none w-80 max-w-[calc(100vw-2.5rem)]"></div>
+
+@include('partials.chatbot')
+@include('partials.form-client-validation')
+@include('partials.disable-double-submit')
+<script src="{{ asset('js/image-compress-upload.js') }}?v=1" defer></script>
+@stack('scripts')
+@include('partials.setup-focus-cue')
+@include('partials.prevent-fouc-end')
+</body>
+</html>
