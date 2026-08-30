@@ -282,10 +282,10 @@
     <div class="stat-card">
       <div class="flex items-center justify-between mb-3">
         <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Online Revenue</p>
-        <span class="text-xl">💷</span>
+        <span class="text-xl">💰</span>
       </div>
       <p class="text-2xl font-bold text-gray-900 dark:text-white"
-         x-text="'£' + Number(stats.online_revenue ?? 0).toLocaleString('en-GB', {minimumFractionDigits:2})">
+         x-text="formatMoney(stats.online_revenue ?? 0)">
       </p>
       <p class="text-xs text-gray-400 dark:text-gray-500 mt-1" x-text="stats.period ?? ''"></p>
     </div>
@@ -598,6 +598,7 @@ const _serverData = {
   socialLinks: @json($salon->social_links ?? []),
   salon: {
     slug:                    "{{ $salon->slug }}",
+    currency_symbol:         @json(\App\Helpers\CurrencyHelper::symbol($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode())),
     online_booking_enabled:  {{ $salon->online_booking_enabled  ? 'true' : 'false' }},
     new_client_booking_enabled: {{ $salon->new_client_booking_enabled ? 'true' : 'false' }},
     deposit_required:        {{ $salon->deposit_required        ? 'true' : 'false' }},
@@ -639,6 +640,13 @@ function goLivePage() {
     qrUrl:       _serverData.qrUrl,
     embedTab:    'iframe',
     copied:      { main: false, booking: false, utm: false, social: false, embed: false },
+
+    formatMoney(amount) {
+      const sym = this.salon?.currency_symbol || _serverData.salon?.currency_symbol || '₹';
+      const n = Number(amount ?? 0);
+      const formatted = n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return sym + formatted;
+    },
 
     // Share channels config
     shareChannels: [

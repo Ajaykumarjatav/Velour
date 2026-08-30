@@ -4,10 +4,11 @@
 @section('content')
 
 {{-- MRR / ARR Stats --}}
+@php $billingSym = config('billing.currency_symbol', '₹'); @endphp
 <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
   @foreach([
-    ['label' => 'MRR',             'value' => '£'.number_format($mrr),          'color' => 'text-velour-400'],
-    ['label' => 'ARR',             'value' => '£'.number_format($arr),           'color' => 'text-green-400'],
+    ['label' => 'MRR',             'value' => $billingSym.number_format($mrr),          'color' => 'text-velour-400'],
+    ['label' => 'ARR',             'value' => $billingSym.number_format($arr),           'color' => 'text-green-400'],
     ['label' => 'On Trial',        'value' => number_format($trialCount),        'color' => 'text-blue-400'],
     ['label' => 'Past Due',        'value' => number_format($pastDueCount),      'color' => $pastDueCount > 0 ? 'text-red-400' : 'text-gray-500'],
     ['label' => 'Cancelled (mo.)', 'value' => number_format($cancelledThisMonth),'color' => $cancelledThisMonth > 0 ? 'text-amber-400' : 'text-gray-500'],

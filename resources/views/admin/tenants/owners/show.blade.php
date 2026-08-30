@@ -76,7 +76,7 @@
       ['Stores', $aggregates['stores']],
       ['Active stores', $aggregates['active_stores']],
       ['Clients', number_format($aggregates['clients'])],
-      ['Revenue (mo)', '£'.number_format($revenueThisMonth, 0)],
+      ['Revenue (mo)', \App\Helpers\CurrencyHelper::format((float) $revenueThisMonth, \App\Helpers\CurrencyHelper::defaultCode())],
     ] as [$label, $value])
     <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
       <p class="text-xl font-bold text-white">{{ $value }}</p>

@@ -168,7 +168,7 @@ function BookingCategorySlider({ categories, activeCategoryId, onSelect }) {
 
 export default function BookingFlow() {
   const { slug, salon, closeBooking } = useSalon()
-  const currency = salon?.currency_symbol ?? '£'
+  const currency = salon?.currency_symbol ?? '₹'
 
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(true)

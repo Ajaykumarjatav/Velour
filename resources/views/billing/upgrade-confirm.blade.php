@@ -7,7 +7,7 @@
 
   @php
     $isUpgrade = $targetPlan->isUpgradeFrom($current->key);
-    $symbol    = config('billing.currency_symbol', '£');
+    $symbol    = config('billing.currency_symbol', '₹');
     $price     = $interval === 'monthly' ? $targetPlan->priceMonthly : $targetPlan->priceYearly;
     $period    = $interval === 'monthly' ? 'month' : 'year';
   @endphp

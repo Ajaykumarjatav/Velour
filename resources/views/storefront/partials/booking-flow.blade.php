@@ -1,6 +1,6 @@
 @php
     $slug = $salon->slug;
-    $currency = $data['salon']['currency_symbol'] ?? '£';
+    $currency = $data['salon']['currency_symbol'] ?? \App\Helpers\CurrencyHelper::symbol(\App\Helpers\CurrencyHelper::defaultCode());
     $salonName = $data['salon']['name'] ?? $salon->name;
     $onlineBookingEnabled = (bool) ($data['salon']['online_booking_enabled'] ?? $salon->online_booking_enabled);
 @endphp

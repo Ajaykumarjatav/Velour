@@ -57,7 +57,7 @@
       ['Services',   $salon->services_count,     'text-white'],
       ['Appts',      number_format($salon->appointments_count), 'text-white'],
       ['Appts (mo)', number_format($appointmentsThisMonth), 'text-blue-400'],
-      ['Revenue (mo)', '£'.number_format($revenueThisMonth,2), 'text-green-400'],
+      ['Revenue (mo)', \App\Helpers\CurrencyHelper::format((float) $revenueThisMonth, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()), 'text-green-400'],
     ] as [$label, $value, $color])
     <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
       <p class="text-xl font-bold {{ $color }}">{{ $value }}</p>
@@ -149,7 +149,7 @@
           'Timezone' => $salon->timezone,
           'Currency' => strtoupper($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()),
           'Created'  => $salon->created_at->format('d M Y'),
-          'All-time revenue' => '£'.number_format($revenueAllTime, 2),
+          'All-time revenue' => \App\Helpers\CurrencyHelper::format((float) $revenueAllTime, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()),
         ] as $label => $value)
         <div class="flex justify-between gap-3 text-sm border-b border-gray-800/50 pb-2 last:border-0">
           <dt class="text-gray-500 flex-shrink-0">{{ $label }}</dt>

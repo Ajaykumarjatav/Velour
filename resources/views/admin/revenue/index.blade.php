@@ -4,12 +4,13 @@
 @section('content')
 
 {{-- KPI strip --}}
+@php $billingSym = config('billing.currency_symbol', '₹'); @endphp
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   @foreach([
-    ['MRR',          '£'.number_format($mrr),          'text-velour-400', 'Monthly Recurring Revenue'],
-    ['ARR',          '£'.number_format($arr),           'text-green-400',  'Annual Run Rate'],
-    ['ARPU',         '£'.number_format($arpu,2),        'text-blue-400',   'Avg Revenue per User'],
-    ['LTV',          $ltv ? '£'.number_format($ltv,2) : '—', 'text-amber-400', 'Estimated Lifetime Value'],
+    ['MRR',          $billingSym.number_format($mrr),          'text-velour-400', 'Monthly Recurring Revenue'],
+    ['ARR',          $billingSym.number_format($arr),           'text-green-400',  'Annual Run Rate'],
+    ['ARPU',         $billingSym.number_format($arpu,2),        'text-blue-400',   'Avg Revenue per User'],
+    ['LTV',          $ltv ? $billingSym.number_format($ltv,2) : '—', 'text-amber-400', 'Estimated Lifetime Value'],
   ] as [$label, $val, $color, $tooltip])
   <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 text-center" title="{{ $tooltip }}">
     <p class="text-3xl font-black {{ $color }}">{{ $val }}</p>

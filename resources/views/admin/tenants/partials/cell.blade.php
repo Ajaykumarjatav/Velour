@@ -1,7 +1,7 @@
 @php
     $key = $col;
     $currency = strtoupper($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
-    $sym = $currency === 'INR' ? '₹' : ($currency === 'GBP' ? '£' : $currency.' ');
+    $sym = \App\Helpers\CurrencyHelper::symbol($currency);
 @endphp
 @switch($module)
     @case('clients')
