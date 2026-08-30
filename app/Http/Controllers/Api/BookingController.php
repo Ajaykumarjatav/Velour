@@ -119,9 +119,27 @@ class BookingController extends Controller
             ->where('salon_id', $salon->id)
             ->onlineBookable()
             ->orderBy('sort_order')
-            ->get(['id', 'first_name', 'last_name', 'role', 'initials', 'color', 'avatar', 'bio', 'specialisms']);
+            ->get(['id', 'first_name', 'last_name', 'role', 'initials', 'color', 'avatar', 'bio', 'specialisms', 'experience']);
 
-        return response()->json(['staff' => $staff]);
+        return response()->json([
+            'staff' => $staff->map(fn (Staff $member) => [
+                'id'           => $member->id,
+                'first_name'   => $member->first_name,
+                'last_name'    => $member->last_name,
+                'role'         => $member->role,
+                'role_label'   => \App\Support\StaffJobRoles::label($member->role),
+                'initials'     => $member->initials,
+                'color'        => $member->color,
+                'avatar'       => $member->avatar,
+                'avatar_url'   => Staff::resolvePublicAvatarUrl($member->avatar),
+                'bio'          => $member->bio,
+                'experience'   => $member->experience,
+                'specialisms'  => is_array($member->specialisms) ? $member->specialisms : [],
+                'specialty'    => is_array($member->specialisms) && count($member->specialisms)
+                    ? implode(' · ', array_slice($member->specialisms, 0, 2))
+                    : null,
+            ])->values(),
+        ]);
     }
 
     /* ── GET /book/{slug}/availability ─────────────────────────────────── */

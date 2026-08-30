@@ -82,6 +82,58 @@ class SalonWebsitePayloadService
         $currency = $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode();
         $theme = StorefrontTheme::forSalon($salon);
 
+        $storefrontPackages = $packages->map(function (ServicePackage $pkg) use ($currency) {
+            $components = round((float) $pkg->services->sum(fn ($s) => (float) $s->price), 2);
+            $price = (float) $pkg->price;
+            $savingsAmount = $components > $price ? round($components - $price, 2) : 0;
+            $savingsPercent = ($savingsAmount > 0 && $components > 0)
+                ? (int) round(($savingsAmount / $components) * 100)
+                : 0;
+            $durationMinutes = (int) $pkg->services->sum(fn ($s) => (int) $s->duration_minutes);
+            $description = $this->cleanPackageDescription($pkg->description);
+
+            return [
+                'id'               => $pkg->id,
+                'name'             => $pkg->name,
+                'description'      => $description,
+                'price'            => $price,
+                'price_formatted'  => CurrencyHelper::format($price, $currency),
+                'components_total' => $components,
+                'components_formatted' => CurrencyHelper::format($components, $currency),
+                'savings_amount'   => $savingsAmount,
+                'savings_formatted'=> $savingsAmount > 0 ? CurrencyHelper::format($savingsAmount, $currency) : null,
+                'savings_percent'  => $savingsPercent,
+                'has_savings'      => $savingsAmount > 0,
+                'service_count'    => $pkg->services->count(),
+                'duration_minutes' => $durationMinutes,
+                'duration_formatted' => $this->formatDurationLabel($durationMinutes),
+                'discount_percent' => $savingsPercent > 0 ? $savingsPercent.'% OFF' : null,
+                'save_badge'       => $savingsPercent > 0 ? 'SAVE '.$savingsPercent.'%' : null,
+                'badge_label'      => null,
+                'is_best_value'    => false,
+                'items'            => $pkg->services->map(fn ($s) => [
+                    'name'  => $s->name,
+                    'price' => CurrencyHelper::format((float) $s->price, $currency),
+                    'price_raw' => (float) $s->price,
+                ])->values()->all(),
+            ];
+        })->values()->all();
+
+        $bestSavings = 0;
+        $bestIndex = null;
+        foreach ($storefrontPackages as $i => $row) {
+            if ($row['has_savings'] && $row['savings_percent'] > $bestSavings) {
+                $bestSavings = $row['savings_percent'];
+                $bestIndex = $i;
+            }
+        }
+        if ($bestIndex !== null) {
+            $storefrontPackages[$bestIndex]['badge_label'] = 'BEST VALUE';
+            $storefrontPackages[$bestIndex]['is_best_value'] = true;
+        } elseif (count($storefrontPackages) > 0) {
+            $storefrontPackages[0]['badge_label'] = 'MOST POPULAR';
+        }
+
         return [
             'branding' => ThemeBranding::resolve($salon, $theme),
             'salon' => [
@@ -148,26 +200,7 @@ class SalonWebsitePayloadService
                 'initials'     => $this->staffInitials($s),
                 'color'        => $s->color ?? '#7c3aed',
             ])->values()->all(),
-            'packages' => $packages->map(function (ServicePackage $pkg) use ($currency) {
-                $components = round((float) $pkg->services->sum(fn ($s) => (float) $s->price), 2);
-                $price = (float) $pkg->price;
-                $savings = $components > $price ? round((($components - $price) / $components) * 100) : 0;
-
-                return [
-                    'id'               => $pkg->id,
-                    'name'             => $pkg->name,
-                    'description'      => $pkg->description,
-                    'price'            => $price,
-                    'price_formatted'  => CurrencyHelper::format($price, $currency),
-                    'components_total' => $components,
-                    'components_formatted' => CurrencyHelper::format($components, $currency),
-                    'discount_percent' => $savings > 0 ? $savings . '% OFF' : null,
-                    'items'            => $pkg->services->map(fn ($s) => [
-                        'name'  => $s->name,
-                        'price' => CurrencyHelper::format((float) $s->price, $currency),
-                    ])->values()->all(),
-                ];
-            })->values()->all(),
+            'packages' => $storefrontPackages,
             'reviews' => $reviews->map(fn (Review $r) => [
                 'rating' => (int) $r->rating,
                 'title'  => $this->reviewTitle($r),
@@ -577,5 +610,37 @@ class SalonWebsitePayloadService
         $digits = preg_replace('/\D+/', '', $phone);
 
         return $digits !== '' ? 'https://wa.me/' . $digits : null;
+    }
+
+    private function formatDurationLabel(int $minutes): string
+    {
+        if ($minutes <= 0) {
+            return '';
+        }
+        if ($minutes < 60) {
+            return $minutes.' min';
+        }
+        $hours = intdiv($minutes, 60);
+        $remainder = $minutes % 60;
+
+        return $remainder === 0
+            ? $hours.' hr'
+            : $hours.' hr '.$remainder.' min';
+    }
+
+    private function cleanPackageDescription(?string $text): string
+    {
+        $t = trim((string) $text);
+        if ($t === '' || strlen($t) < 4) {
+            return '';
+        }
+        if (preg_match('/^(dfd|test|asdf|xxx|abc|demo|sample|lorem|qwerty|na|n\/a)$/i', $t)) {
+            return '';
+        }
+        if (preg_match('/^[a-z]{2,4}$/i', $t) && strlen($t) <= 4) {
+            return '';
+        }
+
+        return strlen($t) > 120 ? substr($t, 0, 117).'…' : $t;
     }
 }

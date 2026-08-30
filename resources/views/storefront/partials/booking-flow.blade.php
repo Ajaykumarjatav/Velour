@@ -239,57 +239,85 @@
                 {{-- Step 1: Stylist --}}
                 <div x-show="step === 1" class="sf-booking-card">
                     <div class="sf-booking-card-body">
-                    <h2 class="sf-booking-section-title">Choose your stylist</h2>
-                    <p class="text-white/70 text-sm mb-4">Pick a stylist first, then we’ll show dates and times that work for them.</p>
-                    <div x-show="staffLoading" class="flex items-center justify-center gap-2 py-6 text-white/50 text-sm">
-                        <span class="inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></span>
-                        Loading stylists…
-                    </div>
-                    <div class="space-y-2" x-show="!staffLoading">
-                        <button type="button" @click="chooseStaff(null)"
-                                :class="selected.staff === null ? 'border-primary bg-primary/15' : 'border-white/10 bg-white/5 hover:border-primary'"
-                                class="w-full rounded-xl border-2 p-4 text-left">
-                            <span class="font-semibold">Any available stylist</span>
-                        </button>
-                        <template x-for="member in availableStaff()" :key="member.id">
-                            <button type="button" @click="chooseStaff(member)"
-                                    :class="selected.staff?.id === member.id ? 'border-primary bg-primary/15' : 'border-white/10 bg-white/5 hover:border-primary'"
-                                    class="w-full rounded-xl border-2 p-4 text-left flex items-center gap-3">
-                                <span class="w-10 h-10 rounded-full bg-primary/30 flex items-center justify-center text-sm font-bold"
-                                      x-text="((member.first_name || '')[0] || '') + ((member.last_name || '')[0] || '')"></span>
-                                <span class="font-semibold" x-text="member.first_name + ' ' + member.last_name"></span>
+                        <h2 class="sf-booking-section-title">Choose your stylist</h2>
+                        <p class="sf-booking-section-sub">Select who you'd like to work with.</p>
+
+                        <div x-show="availableStaff().length >= 6" class="sf-stylist-search-wrap">
+                            <svg class="w-4 h-4 shrink-0 text-white/45" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/>
+                            </svg>
+                            <input type="search" x-model="stylistSearch" placeholder="Search stylist…"
+                                   class="sf-stylist-search-input">
+                        </div>
+
+                        <div x-show="staffLoading" class="flex items-center justify-center gap-2 py-6 text-white/50 text-sm">
+                            <span class="inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></span>
+                            Loading stylists…
+                        </div>
+
+                        <div class="sf-stylist-list" x-show="!staffLoading">
+                            <button type="button" @click="chooseStaff(null)"
+                                    :class="isAnyStaffSelected() ? 'is-selected' : ''"
+                                    class="sf-stylist-card sf-stylist-card--any">
+                                <span class="sf-stylist-card__icon" aria-hidden="true">✨</span>
+                                <div class="sf-stylist-card__body">
+                                    <p class="sf-stylist-card__name">Any available stylist</p>
+                                    <p class="sf-stylist-card__meta">We'll assign the best available stylist for your selected service</p>
+                                </div>
+                                <span class="sf-stylist-card__tick" aria-hidden="true">
+                                    <span x-show="isAnyStaffSelected()">✓</span>
+                                </span>
                             </button>
-                        </template>
-                    </div>
-                    <p x-show="!staffLoading && availableStaff().length === 0" class="text-white/50 text-sm py-4">No stylists are available for online booking.</p>
+
+                            <template x-for="member in filteredStaff()" :key="member.id">
+                                <button type="button" @click="chooseStaff(member)"
+                                        :class="isStaffSelected(member) ? 'is-selected' : ''"
+                                        class="sf-stylist-card">
+                                    <span class="sf-stylist-card__avatar"
+                                          :style="member.color ? 'background-color:' + member.color + '33' : ''"
+                                          x-text="staffInitials(member)"></span>
+                                    <div class="sf-stylist-card__body">
+                                        <p class="sf-stylist-card__name" x-text="staffFullName(member)"></p>
+                                        <p class="sf-stylist-card__meta" x-text="staffSubtitle(member)"></p>
+                                    </div>
+                                    <span class="sf-stylist-card__tick" aria-hidden="true">
+                                        <span x-show="isStaffSelected(member)">✓</span>
+                                    </span>
+                                </button>
+                            </template>
+                        </div>
+
+                        <p x-show="!staffLoading && filteredStaff().length === 0 && stylistSearch.trim()"
+                           class="text-white/50 text-sm py-4">No stylists match your search.</p>
+                        <p x-show="!staffLoading && availableStaff().length === 0"
+                           class="text-white/50 text-sm py-4">No stylists are available for online booking.</p>
                     </div>
                 </div>
 
                 {{-- Step 2: Date & time --}}
-                <div x-show="step === 2" class="space-y-4">
-                    <div class="text-center sm:text-left">
-                        <h2 class="font-manrope font-bold text-base sm:text-lg">When would you like to visit?</h2>
-                        <p class="text-xs sm:text-sm text-white/50 mt-0.5">Pick a date, then choose a time.</p>
-                        <p x-show="selected.staff" class="text-xs text-primary/90 mt-1.5">
-                            Showing times for <span class="font-semibold" x-text="staffDisplayName()"></span>
+                <div x-show="step === 2" class="sf-datetime-step">
+                    <header class="sf-datetime-step__head">
+                        <h2 class="sf-booking-section-title">When would you like to visit?</h2>
+                        <p class="sf-booking-section-sub">Pick a date and choose an available time.</p>
+                        <p class="sf-datetime-step__stylist" x-show="selected.staffChoiceMade">
+                            Stylist: <span x-text="staffDisplayName()"></span>
                         </p>
-                    </div>
+                    </header>
 
-                    <div class="relative" @click.outside="calendarOpen = false" @keydown.escape.window="calendarOpen = false">
-                        <button type="button" @click="calendarOpen = !calendarOpen"
-                                class="w-full flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/10 hover:bg-white/[0.12] px-4 py-3.5 text-left transition-colors">
-                            <div class="min-w-0">
-                                <p class="text-[10px] uppercase tracking-widest text-white/40 mb-0.5">Date</p>
-                                <p class="text-sm font-semibold text-white truncate"
+                    <div class="sf-datetime-date-wrap relative" @click.outside="calendarOpen = false" @keydown.escape.window="calendarOpen = false">
+                        <button type="button" @click="calendarOpen = !calendarOpen" class="sf-datetime-date">
+                            <div class="sf-datetime-date__main">
+                                <p class="sf-datetime-date__label">Date</p>
+                                <p class="sf-datetime-date__value"
                                    x-text="selected.date ? formatDate(selected.date) : 'Select a date'"></p>
+                                <p class="sf-datetime-date__meta" x-show="datePickerMeta()" x-text="datePickerMeta()"></p>
                             </div>
-                            <span class="shrink-0 w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/70">
+                            <span class="sf-datetime-date__icon" aria-hidden="true">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </span>
                         </button>
 
-                        <div x-show="calendarOpen" x-cloak x-transition.origin.top.left
-                             class="mt-2 rounded-2xl border border-white/10 bg-[#12151f] p-4 sm:p-5 shadow-2xl shadow-black/50 z-20 relative">
+                        <div x-show="calendarOpen" x-cloak x-transition.origin.top.left class="sf-datetime-calendar">
                             <div class="flex items-center justify-between gap-3 mb-4">
                                 <button type="button" @click="shiftCalendarMonth(-1)" :disabled="!canShiftCalendar(-1)"
                                         class="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
@@ -344,36 +372,48 @@
                     </div>
 
                     <template x-if="selected.date">
-                        <div class="rounded-xl border border-white/10 bg-[#1a1f2e]/80 p-3 sm:p-4">
-                            <div class="flex items-center justify-between gap-2 mb-3">
-                                <h3 class="font-manrope font-semibold text-sm text-white">Available times</h3>
-                                <button type="button" @click="loadSlots()" :disabled="slotsLoading" class="text-[11px] font-semibold text-primary hover:text-primary-dark disabled:opacity-40" x-text="slotsLoading ? 'Loading…' : 'Refresh'"></button>
+                        <div class="sf-datetime-slots">
+                            <div class="sf-datetime-slots__head">
+                                <div>
+                                    <h3 class="sf-datetime-slots__title">Available times</h3>
+                                    <p class="sf-datetime-slots__count"
+                                       x-show="!slotsLoading && availableSlotsCount() > 0"
+                                       x-text="availableSlotsCount() + ' available time' + (availableSlotsCount() === 1 ? '' : 's')"></p>
+                                </div>
+                                <button type="button" @click="loadSlots()" :disabled="slotsLoading"
+                                        class="sf-datetime-slots__refresh">
+                                    <span aria-hidden="true">↻</span>
+                                    <span x-text="slotsLoading ? 'Loading…' : 'Refresh'"></span>
+                                </button>
                             </div>
-                            <p x-show="combinedInfo" class="text-[11px] text-white/50 mb-2.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5" x-text="combinedInfo?.message || combinedInfo?.label"></p>
-                            <p x-show="slotsError" class="text-red-300 text-xs sm:text-sm bg-red-500/20 border border-red-500/40 rounded-lg p-2.5 mb-3" x-text="slotsError"></p>
-                            <div x-show="slotsLoading" class="flex items-center justify-center gap-2 py-6 text-white/50 text-xs sm:text-sm">
+
+                            <p x-show="combinedInfo" class="sf-datetime-slots__note" x-text="combinedInfo?.message || combinedInfo?.label"></p>
+                            <p x-show="slotsError" class="sf-datetime-slots__error" x-text="slotsError"></p>
+
+                            <div x-show="slotsLoading" class="sf-datetime-slots__loading">
                                 <span class="inline-block w-3.5 h-3.5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></span>
                                 Finding open slots…
                             </div>
-                            <div x-show="!slotsLoading && !slotsError && slots.length === 0" class="text-center py-5 space-y-3">
-                                <p class="text-white/50 text-xs sm:text-sm px-2" x-text="emptySlotsMessage()"></p>
-                                <button type="button" x-show="selected.staff" @click="goBackInFlow()"
-                                        class="inline-flex items-center justify-center rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs sm:text-sm font-semibold text-primary hover:bg-primary/20 transition-colors">
+
+                            <div x-show="!slotsLoading && !slotsError && slots.length === 0" class="sf-datetime-slots__empty">
+                                <p x-text="emptySlotsMessage()"></p>
+                                <button type="button" x-show="selected.staff" @click="goBackInFlow()" class="sf-datetime-slots__back">
                                     Choose another stylist
                                 </button>
                             </div>
+
                             <template x-for="[period, periodSlots] in groupedSlots()" :key="period">
-                                <div class="space-y-3 sm:space-y-4 mb-3">
-                                    <p class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-white/35 mb-1.5" x-text="period"></p>
-                                    <div class="sf-slot-grid grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5 sm:gap-2">
+                                <div class="sf-datetime-period">
+                                    <p class="sf-datetime-period__label" x-text="period"></p>
+                                    <div class="sf-slot-grid">
                                         <template x-for="slot in periodSlots" :key="slot.time">
-                                            <button type="button" :disabled="!slot.available" @click="selectSlot(slot)"
-                                                    :class="[
-                                                        selected.slot?.time === slot.time
-                                                            ? 'border-primary bg-primary text-white shadow-lg shadow-primary/25'
-                                                            : (slot.available ? 'border-white/15 bg-white/5 text-white hover:border-primary hover:bg-primary/15 active:scale-[0.98]' : 'border-white/5 text-white/25 cursor-not-allowed')
-                                                    ]"
-                                                    class="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm font-semibold border transition-colors duration-150" x-text="slot.time"></button>
+                                            <button type="button"
+                                                    :disabled="!slot.available"
+                                                    @click="selectSlot(slot)"
+                                                    :class="selected.slot?.time === slot.time ? 'is-selected' : ''"
+                                                    class="sf-slot-btn">
+                                                <span class="sf-slot-btn__text" x-text="slot.time"></span>
+                                            </button>
                                         </template>
                                     </div>
                                 </div>
@@ -458,7 +498,9 @@ function storefrontBooking(config) {
         slotsError: '',
         bookStaff: [],
         staffLoading: false,
-        selected: { services: [], staff: null, date: '', slot: null },
+        stylistSearch: '',
+        packageDetailsOpen: false,
+        selected: { services: [], staff: null, staffChoiceMade: false, date: '', slot: null },
         client: { name: '', email: '', phone: '', notes: '', marketing_consent: false },
         detailsError: '',
         detailsErrors: { name: '', email: '', phone: '' },
@@ -535,11 +577,15 @@ function storefrontBooking(config) {
             const covered = new Set();
             for (const pkg of this.bookPackages) {
                 if (!this.isPackageSelected(pkg)) continue;
+                const svcs = pkg.services ?? [];
                 lines.push({
                     key: 'pkg-' + pkg.id,
+                    type: 'package',
                     name: pkg.name,
                     duration: pkg.duration_minutes || 0,
                     price: pkg.price || 0,
+                    serviceCount: svcs.length,
+                    services: svcs,
                 });
                 this.packageServiceIds(pkg).forEach(id => covered.add(Number(id)));
             }
@@ -547,28 +593,37 @@ function storefrontBooking(config) {
                 if (covered.has(Number(s.id))) continue;
                 lines.push({
                     key: 'svc-' + s.id,
+                    type: 'service',
                     name: s.name,
                     duration: s.duration_minutes || 0,
                     price: s.price || 0,
+                    serviceCount: 1,
+                    services: [],
                 });
             }
             return lines;
         },
+        summaryTotalDuration() {
+            return this.summaryLines().reduce((sum, line) => sum + Number(line.duration || 0), 0);
+        },
         summaryCanContinue() {
             if (this.step === 0) return this.selected.services.length > 0;
-            if (this.step === 1) return false;
+            if (this.step === 1) return this.selected.staffChoiceMade;
             if (this.step === 2) return !!this.selected.slot;
             if (this.step === 3 || this.step === 4) return true;
             return false;
         },
         summaryContinue() {
             if (this.step === 0) this.goToStylist();
+            else if (this.step === 1 && this.selected.staffChoiceMade) this.goToDateTime();
             else if (this.step === 2 && this.selected.slot) this.step = 3;
             else if (this.step === 3) this.goToConfirm();
             else if (this.step === 4) this.handleConfirm();
         },
         summaryContinueLabel() {
-            if (this.step === 0 || this.step === 2) return 'Continue';
+            if (this.step === 0) return 'Continue to stylist';
+            if (this.step === 1) return 'Continue to date & time';
+            if (this.step === 2) return 'Continue to your details';
             if (this.step === 3) return 'Review booking';
             if (this.step === 4) return this.confirming ? 'Confirming…' : 'Confirm booking';
             return 'Continue';
@@ -654,7 +709,7 @@ function storefrontBooking(config) {
                 v: 1,
                 step: this.step,
                 serviceIds: this.selected.services.map(s => s.id),
-                hasStaffChoice: this.step >= 2,
+                hasStaffChoice: this.selected.staffChoiceMade,
                 staffId: this.selected.staff?.id ?? null,
                 date: this.selected.date || '',
                 slotTime: this.selected.slot?.time || '',
@@ -719,6 +774,7 @@ function storefrontBooking(config) {
             if (targetStep >= 1) {
                 await this.fetchStaff();
                 if (draft.hasStaffChoice) {
+                    this.selected.staffChoiceMade = true;
                     this.selected.staff = draft.staffId != null
                         ? (this.bookStaff.find(s => Number(s.id) === Number(draft.staffId)) ?? null)
                         : null;
@@ -867,8 +923,12 @@ function storefrontBooking(config) {
             this.clearSlotSelection();
         },
         clearSlotSelection() {
-            this.selected.staff = null; this.selected.date = ''; this.selected.slot = null;
-            this.slots = []; this.combinedInfo = null;
+            this.selected.staff = null;
+            this.selected.staffChoiceMade = false;
+            this.selected.date = '';
+            this.selected.slot = null;
+            this.slots = [];
+            this.combinedInfo = null;
         },
         isSelected(svc) { return this.selected.services.some(s => s.id === svc.id); },
         toggleService(svc) {
@@ -897,6 +957,23 @@ function storefrontBooking(config) {
             const n = parseFloat(v || 0);
             if (this.currency === '₹') return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
             return this.currency + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        },
+        formatDurationFriendly(mins) {
+            const m = Number(mins) || 0;
+            if (m <= 0) return '';
+            if (m < 60) return m + ' min';
+            const h = Math.floor(m / 60);
+            const r = m % 60;
+            if (r === 0) return h + ' hr';
+            return h + ' hr ' + r + ' min';
+        },
+        formatDurationShort(mins) {
+            const m = Number(mins) || 0;
+            if (m <= 0) return '';
+            if (m < 60) return m + 'm';
+            const h = Math.floor(m / 60);
+            const r = m % 60;
+            return r === 0 ? h + 'h' : h + 'h ' + r + 'm';
         },
         formatDate(dateStr) {
             if (!dateStr) return '';
@@ -993,9 +1070,31 @@ function storefrontBooking(config) {
         },
         selectSlot(slot) {
             this.selected.slot = slot;
-            this.step = 3;
+        },
+        availableSlotsCount() {
+            return this.slots.filter(s => s.available !== false).length;
+        },
+        datePickerMeta() {
+            if (!this.selected.date || this.slotsLoading) return '';
+            const parts = [];
+            if (this.selected.date === this.today) parts.push('Today');
+            const n = this.availableSlotsCount();
+            if (n > 0) parts.push(n + ' available slot' + (n === 1 ? '' : 's'));
+            return parts.join(' • ');
+        },
+        formatTimeDisplay(time) {
+            if (!time) return '';
+            const bits = String(time).split(':');
+            const h = parseInt(bits[0], 10);
+            const m = parseInt(bits[1] || '0', 10);
+            if (Number.isNaN(h)) return time;
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const hr = h % 12 || 12;
+            return hr + ':' + String(m).padStart(2, '0') + ' ' + ampm;
         },
         goToStylist() {
+            this.stylistSearch = '';
+            this.packageDetailsOpen = false;
             this.fetchStaff().then(() => { this.step = 1; });
         },
         goToDateTime() {
@@ -1004,11 +1103,45 @@ function storefrontBooking(config) {
         },
         chooseStaff(member) {
             this.selected.staff = member;
+            this.selected.staffChoiceMade = true;
             this.selected.date = '';
             this.selected.slot = null;
             this.slots = [];
             this.combinedInfo = null;
-            this.goToDateTime();
+        },
+        isAnyStaffSelected() {
+            return this.selected.staffChoiceMade && this.selected.staff === null;
+        },
+        isStaffSelected(member) {
+            return this.selected.staffChoiceMade && Number(this.selected.staff?.id) === Number(member.id);
+        },
+        staffFullName(member) {
+            return `${member.first_name || ''} ${member.last_name || ''}`.trim();
+        },
+        staffInitials(member) {
+            if (member.initials) return String(member.initials).slice(0, 2).toUpperCase();
+            const a = (member.first_name || '')[0] || '';
+            const b = (member.last_name || '')[0] || '';
+            return (a + b).toUpperCase() || '?';
+        },
+        staffSubtitle(member) {
+            const parts = [];
+            if (member.role_label) parts.push(member.role_label);
+            else if (member.role) parts.push(member.role);
+            if (member.specialty) parts.push(member.specialty);
+            else if (member.experience) parts.push(String(member.experience));
+            return parts.join(' • ') || 'Stylist';
+        },
+        filteredStaff() {
+            const q = (this.stylistSearch || '').trim().toLowerCase();
+            const list = this.availableStaff();
+            if (!q) return list;
+            return list.filter(member => {
+                const name = this.staffFullName(member).toLowerCase();
+                const role = (member.role_label || member.role || '').toLowerCase();
+                const spec = (member.specialty || '').toLowerCase();
+                return name.includes(q) || role.includes(q) || spec.includes(q);
+            });
         },
         fetchStaff() {
             this.staffLoading = true;
@@ -1025,6 +1158,7 @@ function storefrontBooking(config) {
         staffDisplayName() {
             if (this.confirmedStaff) return `${this.confirmedStaff.first_name || ''} ${this.confirmedStaff.last_name || ''}`.trim();
             if (this.selected.staff) return `${this.selected.staff.first_name || ''} ${this.selected.staff.last_name || ''}`.trim();
+            if (this.selected.staffChoiceMade) return 'Any available stylist';
             const fb = this.selected.slot?.available_staff?.[0];
             if (fb) return `${fb.first_name || ''} ${fb.last_name || ''}`.trim();
             return 'Any available';
@@ -1109,7 +1243,7 @@ function storefrontBooking(config) {
             this.bookStaff = [];
             this.serviceSearch = '';
             this.openSection = null;
-            this.selected = { services: [], staff: null, date: '', slot: null };
+            this.selected = { services: [], staff: null, staffChoiceMade: false, date: '', slot: null };
             this.client = { name: '', email: '', phone: '', notes: '', marketing_consent: false };
             this.detailsError = '';
             this.detailsErrors = { name: '', email: '', phone: '' };

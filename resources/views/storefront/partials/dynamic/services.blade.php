@@ -2,76 +2,108 @@
     $salonData = $data['salon'] ?? [];
     $categories = collect($data['service_categories'] ?? [])->filter(fn ($c) => count($c['services'] ?? []) > 0)->values();
     $serviceIcon = \App\Support\StorefrontAssets::assets($theme)['serviceIcon'] ?? 'noun-hair-cut-6384205 1.png';
+    $currencySymbol = \App\Helpers\CurrencyHelper::symbol($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
+    $homeBookEnabled = (bool) (($data['salon']['online_booking_enabled'] ?? null) ?? ($salon->online_booking_enabled ?? true));
 @endphp
 @if($salonData)
-<section id="services" class="w-full bg-testimonial-bg py-20 lg:py-24 overflow-hidden"
-         x-data="servicesSection(@js($categories->toArray()))">
-    <div class="max-w-[1360px] mx-auto px-4 min-w-0">
-        <div class="mb-8 md:mb-10 max-w-2xl">
-            <span class="text-primary font-manrope font-semibold text-sm uppercase tracking-widest block mb-2">Services</span>
-            <h2 class="font-manrope font-extrabold text-3xl md:text-[45px] md:leading-[55px] text-black tracking-tight">
-                What we offer
-            </h2>
-            <p class="mt-3 text-text-muted font-inter text-sm md:text-base">Browse by category and pick the treatment that fits you.</p>
-        </div>
+<section id="services"
+         class="sf-home-services"
+         :class="{ 'has-sticky-selection': selectedCount > 0 }"
+         x-data="servicesSection(@js($categories->toArray()), @js($currencySymbol), @js($homeBookEnabled))">
+    <div class="sf-home-services__inner">
+        <header class="sf-home-services__header">
+            <span class="sf-home-services__eyebrow">Services</span>
+            <h2 class="sf-home-services__title">Find the right treatment for you</h2>
+            <p class="sf-home-services__subtitle">Choose a category and select the service that suits you best.</p>
+        </header>
 
-        <div class="mb-12 min-w-0" x-show="categories.length > 0">
-            <div class="w-full min-w-0 -mx-1 px-1">
-                <div x-ref="catTrack" role="region" aria-label="Service categories"
-                     @mousedown="onCatMouseDown($event)" @mouseleave="endCatDrag()" @mouseup="endCatDrag()" @mousemove="onCatMouseMove($event)"
-                     :class="catGrabbing ? 'cursor-grabbing snap-none' : 'cursor-grab'"
-                     class="flex items-center gap-3 md:gap-4 overflow-x-auto scrollbar-none scroll-smooth snap-x snap-mandatory py-1 w-full min-w-0 touch-pan-x select-none">
-                    <template x-for="cat in categories" :key="cat.id">
-                        <button type="button" @click="selectCategory(cat.id, $event)"
-                                :class="isActiveCategory(cat.id) ? 'bg-primary text-white shadow-md shadow-primary/25' : 'bg-pill-inactive text-black/70 hover:bg-gray-200'"
-                                class="shrink-0 snap-start px-5 md:px-7 py-2.5 rounded-full font-manrope font-semibold text-xs md:text-sm uppercase tracking-wider transition-all duration-300 outline-none whitespace-nowrap"
-                                :title="cat.name" x-text="cat.name"></button>
-                    </template>
-                </div>
-            </div>
-        </div>
-
-        <div x-show="activeServices.length > 0" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
-                <template x-for="service in activeServices" :key="service.id">
-                    <button type="button"
-                            @click="toggleService(service.id)"
-                            :class="isPicked(service.id) ? 'border-primary ring-2 ring-primary/30 bg-primary/[0.04]' : 'border-black/5 hover:border-primary/25'"
-                            class="flex items-start justify-between gap-4 p-5 md:p-6 rounded-2xl bg-white border shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.09)] hover:-translate-y-0.5 transition-all duration-300 group/item text-left w-full cursor-pointer">
-                        <div class="flex items-start gap-4 min-w-0">
-                            <span class="mt-1 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center"
-                                  :class="isPicked(service.id) ? 'bg-primary border-primary text-white' : 'border-black/20 bg-white'">
-                                <svg x-show="isPicked(service.id)" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            </span>
-                            <div class="w-12 h-12 md:w-14 md:h-14 flex-shrink-0 flex items-center justify-center bg-primary/10 rounded-xl p-2 transition-transform duration-300 group-hover/item:scale-105">
-                                <img src="{{ $asset($serviceIcon) }}" alt="" class="w-full h-full object-contain">
-                            </div>
-                            <div class="flex flex-col gap-1.5 min-w-0">
-                                <span class="font-manrope font-bold text-base md:text-lg text-black group-hover/item:text-primary transition-colors truncate" x-text="service.name"></span>
-                                <span class="inline-flex self-start items-center rounded-full bg-section-light px-2.5 py-0.5 text-[11px] font-manrope font-semibold uppercase tracking-wide text-black/55"
-                                      x-text="(service.duration_minutes || 0) + ' min'"></span>
-                                <span class="font-inter text-xs md:text-sm text-text-muted line-clamp-2" x-show="service.description" x-text="service.description"></span>
-                            </div>
-                        </div>
-                        <span class="font-manrope font-extrabold text-lg md:text-xl text-black whitespace-nowrap shrink-0" x-text="service.price_formatted"></span>
-                    </button>
+        <div class="sf-home-services__cats-wrap"
+             :class="{ 'has-scroll-left': canScrollCatLeft, 'has-scroll-right': canScrollCatRight }"
+             x-show="categories.length > 0">
+            <button type="button" class="sf-home-services__cat-nav sf-home-services__cat-nav--prev"
+                    :disabled="!canScrollCatLeft" @click="scrollCats(-1)" aria-label="Previous categories">‹</button>
+            <div x-ref="catTrack" role="region" aria-label="Service categories"
+                 @mousedown="onCatMouseDown($event)" @mouseleave="endCatDrag()" @mouseup="endCatDrag()" @mousemove="onCatMouseMove($event)"
+                 @scroll="updateCatScroll()"
+                 :class="catGrabbing ? 'is-grabbing' : ''"
+                 class="sf-home-services__cats">
+                <template x-for="cat in categories" :key="cat.id">
+                    <button type="button" @click="selectCategory(cat.id, $event)"
+                            :class="isActiveCategory(cat.id) ? 'is-active' : ''"
+                            class="sf-home-services__cat-btn"
+                            :title="cat.name" x-text="cat.name"></button>
                 </template>
+            </div>
+            <button type="button" class="sf-home-services__cat-nav sf-home-services__cat-nav--next"
+                    :disabled="!canScrollCatRight" @click="scrollCats(1)" aria-label="Next categories">›</button>
         </div>
 
-        <p x-show="categories.length > 0 && activeServices.length === 0" class="text-center text-text-muted font-inter text-sm py-8">No services are listed for this salon yet.</p>
-
-        <template x-if="categories.length > 0">
-            <div class="flex justify-center mt-12">
-                @php $homeBookEnabled = (bool) (($data['salon']['online_booking_enabled'] ?? null) ?? ($salon->online_booking_enabled ?? true)); @endphp
-                @if($homeBookEnabled)
-                <button type="button" @click="bookFromHome()"
-                        class="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-manrope font-semibold text-sm md:text-base rounded-full px-10 py-4 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                    Book a service
+        <div x-show="activeServices.length > 0"
+             :class="activeServices.length === 1 ? 'is-single' : 'is-multi'"
+             class="sf-home-services__grid">
+            <template x-for="service in activeServices" :key="service.id">
+                <button type="button"
+                        @click="toggleService(service.id)"
+                        :class="isPicked(service.id) ? 'is-selected' : ''"
+                        class="sf-home-services__card">
+                    <div class="sf-home-services__card-top">
+                        <span class="sf-home-services__icon">
+                            <img src="{{ $asset($serviceIcon) }}" alt="">
+                        </span>
+                        <div class="sf-home-services__card-body">
+                            <div class="sf-home-services__card-head">
+                                <span class="sf-home-services__name" x-text="service.name"></span>
+                                <span class="sf-home-services__price" x-text="service.price_formatted"></span>
+                            </div>
+                            <div class="sf-home-services__meta">
+                                <span class="sf-home-services__pill" x-text="formatDuration(service.duration_minutes)"></span>
+                                <span class="sf-home-services__dot" x-show="activeCategoryName">•</span>
+                                <span class="sf-home-services__pill" x-show="activeCategoryName" x-text="activeCategoryName"></span>
+                            </div>
+                            <p class="sf-home-services__desc"
+                               x-show="serviceDescription(service.description)"
+                               x-text="serviceDescription(service.description)"></p>
+                        </div>
+                    </div>
+                    <span class="sf-home-services__select">
+                        <template x-if="isPicked(service.id)">
+                            <span>✓ Selected</span>
+                        </template>
+                        <template x-if="!isPicked(service.id)">
+                            <span>Select service</span>
+                        </template>
+                    </span>
                 </button>
-                @else
-                <span class="inline-flex items-center justify-center gap-2 bg-primary text-white font-manrope font-semibold text-sm md:text-base rounded-full px-10 py-4 opacity-60 cursor-not-allowed" title="Online booking is currently offline">Book a service</span>
-                @endif
+            </template>
+        </div>
+
+        <p x-show="categories.length > 0 && activeServices.length === 0" class="sf-home-services__empty">
+            No services are listed for this category yet.
+        </p>
+
+        <div class="sf-home-services__cta" x-show="categories.length > 0 && selectedCount === 0">
+            <p class="sf-home-services__cta-summary" x-show="selectedCount > 0" x-text="selectionSummary"></p>
+            @if($homeBookEnabled)
+            <button type="button" @click="bookFromHome()" class="sf-home-services__cta-btn">
+                <span x-text="selectedCount > 0 ? 'Continue to booking →' : 'Book a service'"></span>
+            </button>
+            @else
+            <span class="sf-home-services__cta-btn" style="opacity:0.55;cursor:not-allowed" title="Online booking is currently offline">Book a service</span>
+            @endif
+        </div>
+    </div>
+
+    <div class="sf-home-services__sticky" x-show="selectedCount > 0 && bookingEnabled" x-cloak>
+        <div class="sf-home-services__sticky-inner">
+            <div class="sf-home-services__sticky-summary min-w-0">
+                <div class="sf-home-services__sticky-text" x-text="stickyCountLabel"></div>
+                <div class="sf-home-services__sticky-meta" x-text="stickyDurationLabel"></div>
             </div>
-        </template>
+            <div class="sf-home-services__sticky-price" x-text="stickyPriceLabel"></div>
+            <button type="button" @click="bookFromHome()" class="sf-home-services__cta-btn sf-home-services__sticky-btn">
+                Continue →
+            </button>
+        </div>
     </div>
 </section>
 @endif
@@ -79,9 +111,11 @@
 @once
 @push('scripts')
 <script>
-function servicesSection(categories) {
+function servicesSection(categories, currencySymbol, bookingEnabled) {
     return {
         categories,
+        currencySymbol,
+        bookingEnabled,
         activeId: categories[0]?.id ?? null,
         selectedServiceIds: [],
         catGrabbing: false,
@@ -89,15 +123,98 @@ function servicesSection(categories) {
         catDidDrag: false,
         catStartX: 0,
         catScrollStart: 0,
+        canScrollCatLeft: false,
+        canScrollCatRight: false,
         get activeServices() {
             const cat = this.categories.find(c => Number(c.id) === Number(this.activeId));
             return cat?.services ?? [];
+        },
+        get activeCategoryName() {
+            return this.categories.find(c => Number(c.id) === Number(this.activeId))?.name ?? '';
+        },
+        get selectedCount() {
+            return this.selectedServiceIds.length;
+        },
+        get selectedServices() {
+            const ids = new Set(this.selectedServiceIds.map(Number));
+            const out = [];
+            for (const cat of this.categories) {
+                for (const s of (cat.services || [])) {
+                    if (ids.has(Number(s.id))) {
+                        out.push({ ...s, categoryName: cat.name });
+                    }
+                }
+            }
+            return out;
+        },
+        get selectionSummary() {
+            const n = this.selectedCount;
+            if (!n) return '';
+            return n + ' service' + (n === 1 ? '' : 's') + ' selected • ' + this.formatPrice(this.selectedTotal);
+        },
+        get selectedTotal() {
+            return this.selectedServices.reduce((sum, s) => sum + this.servicePrice(s), 0);
+        },
+        get stickyCountLabel() {
+            const n = this.selectedCount;
+            if (!n) return '';
+            return n + ' service' + (n === 1 ? '' : 's') + ' selected';
+        },
+        get stickyDurationLabel() {
+            const mins = this.selectedServices.reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0);
+            return this.formatTotalDuration(mins);
+        },
+        get stickyPriceLabel() {
+            return this.formatPrice(this.selectedTotal);
+        },
+        get stickyTitle() {
+            const first = this.selectedServices[0];
+            if (!first) return '';
+            if (this.selectedCount === 1) return first.name;
+            return first.name + ' +' + (this.selectedCount - 1) + ' more';
+        },
+        get stickyMeta() {
+            const services = this.selectedServices;
+            if (!services.length) return '';
+            const mins = services.reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0);
+            return this.formatTotalDuration(mins) + ' • ' + this.formatPrice(this.selectedTotal);
+        },
+        servicePrice(service) {
+            const price = Number(service?.price);
+            return Number.isFinite(price) ? price : 0;
         },
         isActiveCategory(id) {
             return Number(this.activeId) === Number(id);
         },
         isPicked(id) {
             return this.selectedServiceIds.includes(Number(id));
+        },
+        formatDuration(mins) {
+            const m = Number(mins) || 0;
+            return m + ' min';
+        },
+        formatTotalDuration(mins) {
+            const m = Number(mins) || 0;
+            if (m < 60) return m + ' min total';
+            const h = Math.floor(m / 60);
+            const r = m % 60;
+            if (r === 0) return h + ' hr total';
+            return h + ' hr ' + r + ' min total';
+        },
+        formatPrice(amount) {
+            const n = Number(amount) || 0;
+            const formatted = n.toLocaleString(undefined, {
+                minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+                maximumFractionDigits: 2,
+            });
+            return this.currencySymbol + formatted;
+        },
+        serviceDescription(text) {
+            const t = String(text || '').trim();
+            if (t.length < 4) return '';
+            if (/^(dfd|test|asdf|xxx|abc|demo|sample|lorem|qwerty|na|n\/a)$/i.test(t)) return '';
+            if (/^[a-z]{2,4}$/i.test(t) && t.length <= 4) return '';
+            return t;
         },
         selectCategory(id, event) {
             if (this.catDidDrag) {
@@ -108,11 +225,32 @@ function servicesSection(categories) {
         },
         toggleService(id) {
             if (window.storefrontHomeCart) window.storefrontHomeCart.toggleService(id);
-            this.selectedServiceIds = window.storefrontHomeCart ? window.storefrontHomeCart.snapshot().serviceIds : [];
+            this.selectedServiceIds = window.storefrontHomeCart
+                ? window.storefrontHomeCart.snapshot().serviceIds
+                : [];
         },
         bookFromHome() {
+            if (!this.bookingEnabled) return;
             if (window.storefrontHomeCart) window.storefrontHomeCart.bookSelected();
             else window.location.hash = 'book';
+        },
+        scrollCats(direction) {
+            const el = this.$refs.catTrack;
+            if (!el) return;
+            const step = Math.max(200, el.clientWidth - 80);
+            el.scrollBy({ left: direction * step, behavior: 'smooth' });
+            setTimeout(() => this.updateCatScroll(), 350);
+        },
+        updateCatScroll() {
+            const el = this.$refs.catTrack;
+            if (!el) {
+                this.canScrollCatLeft = false;
+                this.canScrollCatRight = false;
+                return;
+            }
+            const max = el.scrollWidth - el.clientWidth;
+            this.canScrollCatLeft = el.scrollLeft > 4;
+            this.canScrollCatRight = max > 4 && el.scrollLeft < max - 4;
         },
         init() {
             if (this.categories.length && (this.activeId === null || this.activeId === undefined)) {
@@ -123,8 +261,11 @@ function servicesSection(categories) {
             this.$nextTick(() => {
                 const el = this.$refs.catTrack;
                 if (!el) return;
+                this.updateCatScroll();
                 this._onCatWheel = (e) => this.onCatWheel(e);
+                this._onCatResize = () => this.updateCatScroll();
                 el.addEventListener('wheel', this._onCatWheel, { passive: false });
+                window.addEventListener('resize', this._onCatResize);
             });
         },
         destroy() {
@@ -132,6 +273,7 @@ function servicesSection(categories) {
             if (this.$refs.catTrack && this._onCatWheel) {
                 this.$refs.catTrack.removeEventListener('wheel', this._onCatWheel);
             }
+            if (this._onCatResize) window.removeEventListener('resize', this._onCatResize);
         },
         onCatMouseDown(e) {
             if (e.button !== 0 || !this.$refs.catTrack) return;
@@ -148,6 +290,7 @@ function servicesSection(categories) {
             const delta = e.pageX - this.catStartX;
             if (Math.abs(delta) > 4) this.catDidDrag = true;
             this.$refs.catTrack.scrollLeft = this.catScrollStart - delta;
+            this.updateCatScroll();
         },
         onCatWheel(e) {
             const el = this.$refs.catTrack;
@@ -159,11 +302,13 @@ function servicesSection(categories) {
             if ((e.deltaY < 0 && atStart) || (e.deltaY > 0 && atEnd)) return;
             e.preventDefault();
             el.scrollLeft += e.deltaY;
+            this.updateCatScroll();
         },
         endCatDrag() {
             this.catDragging = false;
             this.catGrabbing = false;
             if (this._stopCat) document.removeEventListener('mouseup', this._stopCat);
+            this.updateCatScroll();
         },
     };
 }
