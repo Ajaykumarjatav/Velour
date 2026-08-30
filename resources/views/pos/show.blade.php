@@ -13,7 +13,7 @@
         : 'https://wa.me/?text='.rawurlencode($waText);
     $defaultInvoiceEmail = old('email', filter_var($transaction->client?->email ?? '', FILTER_VALIDATE_EMAIL) ? $transaction->client->email : '');
 @endphp
-
+ 
 @push('styles')
 <style>
     @media print {
