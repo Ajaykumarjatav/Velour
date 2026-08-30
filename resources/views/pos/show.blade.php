@@ -6,12 +6,7 @@
     use App\Support\PosInvoiceFormatting;
 
     $invoice = PosInvoiceFormatting::viewContext($transaction);
-    $invoicePdfSignedUrl = \App\Support\SignedUrl::temporaryRoute(
-        'pos.invoice.pdf.signed',
-        now()->addDays(14),
-        ['transaction' => $transaction->id]
-    );
-    $waText = PosInvoiceFormatting::whatsappBody($transaction, $invoicePdfSignedUrl);
+    $waText = PosInvoiceFormatting::whatsappBody($transaction);
     $clientPhone = preg_replace('/\D+/', '', (string) ($transaction->client?->phone ?? ''));
     $waHref = $clientPhone !== ''
         ? 'https://wa.me/'.$clientPhone.'?text='.rawurlencode($waText)
@@ -69,7 +64,7 @@
 
     <div class="no-print card p-5 sm:p-6 space-y-4">
         <h2 class="text-sm font-semibold text-heading">Share invoice</h2>
-        <p class="text-xs text-muted">Email a formatted invoice, or send a detailed summary via WhatsApp (includes a 14-day link to download the PDF invoice).</p>
+        <p class="text-xs text-muted">Email a formatted invoice, or send a detailed summary via WhatsApp.</p>
 
         <form action="{{ route('pos.invoice.email', $transaction) }}" method="POST" class="space-y-2">
             @csrf

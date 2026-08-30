@@ -226,9 +226,8 @@ final class PosInvoiceFormatting
 
     /**
      * WhatsApp-friendly invoice text with subtotal, tax breakdown, and business details.
-     * Optional signed PDF URL lets clients open a downloadable invoice without logging in.
      */
-    public static function whatsappBody(PosTransaction $tx, ?string $pdfUrl = null): string
+    public static function whatsappBody(PosTransaction $tx): string
     {
         $tx->loadMissing(['salon', 'client', 'items', 'staff']);
         $salon = $tx->salon;
@@ -299,12 +298,6 @@ final class PosInvoiceFormatting
         if ($tx->notes) {
             $lines[] = '';
             $lines[] = 'Note: '.$tx->notes;
-        }
-        $pdfUrl = $pdfUrl !== null ? trim($pdfUrl) : '';
-        if ($pdfUrl !== '') {
-            $lines[] = '';
-            $lines[] = 'PDF invoice (download):';
-            $lines[] = $pdfUrl;
         }
         $lines[] = '';
         $lines[] = self::customerFooterNote($salon);
