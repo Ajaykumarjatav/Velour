@@ -1,0 +1,7 @@
+# Bridge: if a physical /vellor/s/ folder exists, forward all storefront URLs to Laravel
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /vellor/s/
+
+    RewriteRule ^ /vellor/public/index.php [L]
+</IfModule>

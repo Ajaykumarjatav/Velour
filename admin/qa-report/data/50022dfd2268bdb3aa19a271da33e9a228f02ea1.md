@@ -1,0 +1,1259 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: admin-pages.spec.ts >> Super Admin pages (plan SA-*) >> SA-09b GET /admin/tenants/2/appointments
+- Location: tests\playwright\admin-pages.spec.ts:44:5
+
+# Error details
+
+```
+Error: SA-09b admin/tenants/2/appointments status
+
+expect(received).toBeLessThan(expected)
+
+Expected: < 500
+Received:   500
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: Internal Server Error
+      - button [ref=e13] [cursor=pointer]
+  - main [ref=e16]:
+    - generic [ref=e17]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Illuminate\Routing\Exceptions\UrlGenerationException
+          - generic [ref=e22]: "Missing required parameter for [Route: dashboard] [URI: {store}/dashboard] [Missing parameter: store]."
+        - generic [ref=e23]:
+          - generic [ref=e24]: GET localhost
+          - generic [ref=e26]: PHP 8.2.12 — Laravel 11.51.0
+      - generic [ref=e29]:
+        - generic [ref=e31]:
+          - button "Expand vendor frames" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]: Expand
+            - generic [ref=e35]: vendor frames
+          - generic [ref=e41]:
+            - button "Illuminate\\Routing\\Exceptions\\UrlGenerationException :35 forMissingParameters" [ref=e42] [cursor=pointer]:
+              - generic [ref=e44]:
+                - generic [ref=e46]:
+                  - generic [ref=e47]: Illuminate\Routing\Exceptions\UrlGenerationException
+                  - generic [ref=e48]: :35
+                - generic [ref=e49]: forMissingParameters
+            - button "Illuminate\\Routing\\RouteUrlGenerator :90 to" [ref=e50] [cursor=pointer]:
+              - generic [ref=e52]:
+                - generic [ref=e54]:
+                  - generic [ref=e55]: Illuminate\Routing\RouteUrlGenerator
+                  - generic [ref=e56]: :90
+                - generic [ref=e57]: to
+            - button "Illuminate\\Routing\\UrlGenerator :544 toRoute" [ref=e58] [cursor=pointer]:
+              - generic [ref=e60]:
+                - generic [ref=e62]:
+                  - generic [ref=e63]: Illuminate\Routing\UrlGenerator
+                  - generic [ref=e64]: :544
+                - generic [ref=e65]: toRoute
+            - button "Illuminate\\Routing\\UrlGenerator :509 route" [ref=e66] [cursor=pointer]:
+              - generic [ref=e68]:
+                - generic [ref=e70]:
+                  - generic [ref=e71]: Illuminate\Routing\UrlGenerator
+                  - generic [ref=e72]: :509
+                - generic [ref=e73]: route
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\helpers.php :853 route" [ref=e74] [cursor=pointer]:
+              - generic [ref=e76]:
+                - generic [ref=e78]:
+                  - generic [ref=e79]: C:\xampp\htdocs\vellor\admin\vendor\laravel\framework\src\Illuminate\Foundation\helpers.php
+                  - generic [ref=e80]: :853
+                - generic [ref=e81]: route
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\resources\\views\\layouts\\admin.blade.php :246 require" [ref=e82] [cursor=pointer]:
+              - generic [ref=e84]:
+                - generic [ref=e86]:
+                  - generic [ref=e87]: C:\xampp\htdocs\vellor\admin\resources\views\layouts\admin.blade.php
+                  - generic [ref=e88]: :246
+                - generic [ref=e89]: require
+            - 'button "Illuminate\\Filesystem\\Filesystem :123 Illuminate\\Filesystem\\{closure}" [ref=e90] [cursor=pointer]':
+              - generic [ref=e92]:
+                - generic [ref=e94]:
+                  - generic [ref=e95]: Illuminate\Filesystem\Filesystem
+                  - generic [ref=e96]: :123
+                - generic [ref=e97]: "Illuminate\\Filesystem\\{closure}"
+            - button "Illuminate\\Filesystem\\Filesystem :124 getRequire" [ref=e98] [cursor=pointer]:
+              - generic [ref=e100]:
+                - generic [ref=e102]:
+                  - generic [ref=e103]: Illuminate\Filesystem\Filesystem
+                  - generic [ref=e104]: :124
+                - generic [ref=e105]: getRequire
+            - button "Illuminate\\View\\Engines\\PhpEngine :58 evaluatePath" [ref=e106] [cursor=pointer]:
+              - generic [ref=e108]:
+                - generic [ref=e110]:
+                  - generic [ref=e111]: Illuminate\View\Engines\PhpEngine
+                  - generic [ref=e112]: :58
+                - generic [ref=e113]: evaluatePath
+            - button "Illuminate\\View\\Engines\\CompilerEngine :75 get" [ref=e114] [cursor=pointer]:
+              - generic [ref=e116]:
+                - generic [ref=e118]:
+                  - generic [ref=e119]: Illuminate\View\Engines\CompilerEngine
+                  - generic [ref=e120]: :75
+                - generic [ref=e121]: get
+            - button "Illuminate\\View\\View :209 getContents" [ref=e122] [cursor=pointer]:
+              - generic [ref=e124]:
+                - generic [ref=e126]:
+                  - generic [ref=e127]: Illuminate\View\View
+                  - generic [ref=e128]: :209
+                - generic [ref=e129]: getContents
+            - button "Illuminate\\View\\View :192 renderContents" [ref=e130] [cursor=pointer]:
+              - generic [ref=e132]:
+                - generic [ref=e134]:
+                  - generic [ref=e135]: Illuminate\View\View
+                  - generic [ref=e136]: :192
+                - generic [ref=e137]: renderContents
+            - button "Illuminate\\View\\View :161 render" [ref=e138] [cursor=pointer]:
+              - generic [ref=e140]:
+                - generic [ref=e142]:
+                  - generic [ref=e143]: Illuminate\View\View
+                  - generic [ref=e144]: :161
+                - generic [ref=e145]: render
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\resources\\views\\layouts\\admin-tenant.blade.php :31 require" [ref=e146] [cursor=pointer]:
+              - generic [ref=e148]:
+                - generic [ref=e150]:
+                  - generic [ref=e151]: C:\xampp\htdocs\vellor\admin\resources\views\layouts\admin-tenant.blade.php
+                  - generic [ref=e152]: :31
+                - generic [ref=e153]: require
+            - 'button "Illuminate\\Filesystem\\Filesystem :123 Illuminate\\Filesystem\\{closure}" [ref=e154] [cursor=pointer]':
+              - generic [ref=e156]:
+                - generic [ref=e158]:
+                  - generic [ref=e159]: Illuminate\Filesystem\Filesystem
+                  - generic [ref=e160]: :123
+                - generic [ref=e161]: "Illuminate\\Filesystem\\{closure}"
+            - button "Illuminate\\Filesystem\\Filesystem :124 getRequire" [ref=e162] [cursor=pointer]:
+              - generic [ref=e164]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]: Illuminate\Filesystem\Filesystem
+                  - generic [ref=e168]: :124
+                - generic [ref=e169]: getRequire
+            - button "Illuminate\\View\\Engines\\PhpEngine :58 evaluatePath" [ref=e170] [cursor=pointer]:
+              - generic [ref=e172]:
+                - generic [ref=e174]:
+                  - generic [ref=e175]: Illuminate\View\Engines\PhpEngine
+                  - generic [ref=e176]: :58
+                - generic [ref=e177]: evaluatePath
+            - button "Illuminate\\View\\Engines\\CompilerEngine :75 get" [ref=e178] [cursor=pointer]:
+              - generic [ref=e180]:
+                - generic [ref=e182]:
+                  - generic [ref=e183]: Illuminate\View\Engines\CompilerEngine
+                  - generic [ref=e184]: :75
+                - generic [ref=e185]: get
+            - button "Illuminate\\View\\View :209 getContents" [ref=e186] [cursor=pointer]:
+              - generic [ref=e188]:
+                - generic [ref=e190]:
+                  - generic [ref=e191]: Illuminate\View\View
+                  - generic [ref=e192]: :209
+                - generic [ref=e193]: getContents
+            - button "Illuminate\\View\\View :192 renderContents" [ref=e194] [cursor=pointer]:
+              - generic [ref=e196]:
+                - generic [ref=e198]:
+                  - generic [ref=e199]: Illuminate\View\View
+                  - generic [ref=e200]: :192
+                - generic [ref=e201]: renderContents
+            - button "Illuminate\\View\\View :161 render" [ref=e202] [cursor=pointer]:
+              - generic [ref=e204]:
+                - generic [ref=e206]:
+                  - generic [ref=e207]: Illuminate\View\View
+                  - generic [ref=e208]: :161
+                - generic [ref=e209]: render
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\resources\\views\\admin\\tenants\\modules\\index.blade.php :49 require" [ref=e210] [cursor=pointer]:
+              - generic [ref=e212]:
+                - generic [ref=e214]:
+                  - generic [ref=e215]: C:\xampp\htdocs\vellor\admin\resources\views\admin\tenants\modules\index.blade.php
+                  - generic [ref=e216]: :49
+                - generic [ref=e217]: require
+            - 'button "Illuminate\\Filesystem\\Filesystem :123 Illuminate\\Filesystem\\{closure}" [ref=e218] [cursor=pointer]':
+              - generic [ref=e220]:
+                - generic [ref=e222]:
+                  - generic [ref=e223]: Illuminate\Filesystem\Filesystem
+                  - generic [ref=e224]: :123
+                - generic [ref=e225]: "Illuminate\\Filesystem\\{closure}"
+            - button "Illuminate\\Filesystem\\Filesystem :124 getRequire" [ref=e226] [cursor=pointer]:
+              - generic [ref=e228]:
+                - generic [ref=e230]:
+                  - generic [ref=e231]: Illuminate\Filesystem\Filesystem
+                  - generic [ref=e232]: :124
+                - generic [ref=e233]: getRequire
+            - button "Illuminate\\View\\Engines\\PhpEngine :58 evaluatePath" [ref=e234] [cursor=pointer]:
+              - generic [ref=e236]:
+                - generic [ref=e238]:
+                  - generic [ref=e239]: Illuminate\View\Engines\PhpEngine
+                  - generic [ref=e240]: :58
+                - generic [ref=e241]: evaluatePath
+            - button "Illuminate\\View\\Engines\\CompilerEngine :75 get" [ref=e242] [cursor=pointer]:
+              - generic [ref=e244]:
+                - generic [ref=e246]:
+                  - generic [ref=e247]: Illuminate\View\Engines\CompilerEngine
+                  - generic [ref=e248]: :75
+                - generic [ref=e249]: get
+            - button "Illuminate\\View\\View :209 getContents" [ref=e250] [cursor=pointer]:
+              - generic [ref=e252]:
+                - generic [ref=e254]:
+                  - generic [ref=e255]: Illuminate\View\View
+                  - generic [ref=e256]: :209
+                - generic [ref=e257]: getContents
+            - button "Illuminate\\View\\View :192 renderContents" [ref=e258] [cursor=pointer]:
+              - generic [ref=e260]:
+                - generic [ref=e262]:
+                  - generic [ref=e263]: Illuminate\View\View
+                  - generic [ref=e264]: :192
+                - generic [ref=e265]: renderContents
+            - button "Illuminate\\View\\View :161 render" [ref=e266] [cursor=pointer]:
+              - generic [ref=e268]:
+                - generic [ref=e270]:
+                  - generic [ref=e271]: Illuminate\View\View
+                  - generic [ref=e272]: :161
+                - generic [ref=e273]: render
+            - button "Illuminate\\Http\\Response :79 setContent" [ref=e274] [cursor=pointer]:
+              - generic [ref=e276]:
+                - generic [ref=e278]:
+                  - generic [ref=e279]: Illuminate\Http\Response
+                  - generic [ref=e280]: :79
+                - generic [ref=e281]: setContent
+            - button "Illuminate\\Http\\Response :35 __construct" [ref=e282] [cursor=pointer]:
+              - generic [ref=e284]:
+                - generic [ref=e286]:
+                  - generic [ref=e287]: Illuminate\Http\Response
+                  - generic [ref=e288]: :35
+                - generic [ref=e289]: __construct
+            - button "Illuminate\\Routing\\Router :920 toResponse" [ref=e290] [cursor=pointer]:
+              - generic [ref=e292]:
+                - generic [ref=e294]:
+                  - generic [ref=e295]: Illuminate\Routing\Router
+                  - generic [ref=e296]: :920
+                - generic [ref=e297]: toResponse
+            - button "Illuminate\\Routing\\Router :887 prepareResponse" [ref=e298] [cursor=pointer]:
+              - generic [ref=e300]:
+                - generic [ref=e302]:
+                  - generic [ref=e303]: Illuminate\Routing\Router
+                  - generic [ref=e304]: :887
+                - generic [ref=e305]: prepareResponse
+            - 'button "Illuminate\\Routing\\Router :807 Illuminate\\Routing\\{closure}" [ref=e306] [cursor=pointer]':
+              - generic [ref=e308]:
+                - generic [ref=e310]:
+                  - generic [ref=e311]: Illuminate\Routing\Router
+                  - generic [ref=e312]: :807
+                - generic [ref=e313]: "Illuminate\\Routing\\{closure}"
+            - 'button "Illuminate\\Pipeline\\Pipeline :170 Illuminate\\Pipeline\\{closure}" [ref=e314] [cursor=pointer]':
+              - generic [ref=e316]:
+                - generic [ref=e318]:
+                  - generic [ref=e319]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e320]: :170
+                - generic [ref=e321]: "Illuminate\\Pipeline\\{closure}"
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\app\\Http\\Middleware\\LogUserActivity.php :16 handle" [ref=e322] [cursor=pointer]:
+              - generic [ref=e324]:
+                - generic [ref=e326]:
+                  - generic [ref=e327]: C:\xampp\htdocs\vellor\admin\app\Http\Middleware\LogUserActivity.php
+                  - generic [ref=e328]: :16
+                - generic [ref=e329]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e330] [cursor=pointer]':
+              - generic [ref=e332]:
+                - generic [ref=e334]:
+                  - generic [ref=e335]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e336]: :209
+                - generic [ref=e337]: "Illuminate\\Pipeline\\{closure}"
+            - button "App\\Http\\Middleware\\SuperAdminMiddleware :41 handle" [ref=e338] [cursor=pointer]:
+              - generic [ref=e340]:
+                - generic [ref=e342]:
+                  - generic [ref=e343]: App\Http\Middleware\SuperAdminMiddleware
+                  - generic [ref=e344]: :41
+                - generic [ref=e345]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e346] [cursor=pointer]':
+              - generic [ref=e348]:
+                - generic [ref=e350]:
+                  - generic [ref=e351]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e352]: :209
+                - generic [ref=e353]: "Illuminate\\Pipeline\\{closure}"
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\app\\Http\\Middleware\\EnsurePasswordChange.php :15 handle" [ref=e354] [cursor=pointer]:
+              - generic [ref=e356]:
+                - generic [ref=e358]:
+                  - generic [ref=e359]: C:\xampp\htdocs\vellor\admin\app\Http\Middleware\EnsurePasswordChange.php
+                  - generic [ref=e360]: :15
+                - generic [ref=e361]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e362] [cursor=pointer]':
+              - generic [ref=e364]:
+                - generic [ref=e366]:
+                  - generic [ref=e367]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e368]: :209
+                - generic [ref=e369]: "Illuminate\\Pipeline\\{closure}"
+            - button "App\\Http\\Middleware\\RequireTwoFactor :36 handle" [ref=e370] [cursor=pointer]:
+              - generic [ref=e372]:
+                - generic [ref=e374]:
+                  - generic [ref=e375]: App\Http\Middleware\RequireTwoFactor
+                  - generic [ref=e376]: :36
+                - generic [ref=e377]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e378] [cursor=pointer]':
+              - generic [ref=e380]:
+                - generic [ref=e382]:
+                  - generic [ref=e383]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e384]: :209
+                - generic [ref=e385]: "Illuminate\\Pipeline\\{closure}"
+            - button "App\\Http\\Middleware\\EnsureEmailIsVerified :27 handle" [ref=e386] [cursor=pointer]:
+              - generic [ref=e388]:
+                - generic [ref=e390]:
+                  - generic [ref=e391]: App\Http\Middleware\EnsureEmailIsVerified
+                  - generic [ref=e392]: :27
+                - generic [ref=e393]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e394] [cursor=pointer]':
+              - generic [ref=e396]:
+                - generic [ref=e398]:
+                  - generic [ref=e399]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e400]: :209
+                - generic [ref=e401]: "Illuminate\\Pipeline\\{closure}"
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\app\\Http\\Middleware\\ForgetLegacySessionCookies.php :31 handle" [ref=e402] [cursor=pointer]:
+              - generic [ref=e404]:
+                - generic [ref=e406]:
+                  - generic [ref=e407]: C:\xampp\htdocs\vellor\admin\app\Http\Middleware\ForgetLegacySessionCookies.php
+                  - generic [ref=e408]: :31
+                - generic [ref=e409]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e410] [cursor=pointer]':
+              - generic [ref=e412]:
+                - generic [ref=e414]:
+                  - generic [ref=e415]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e416]: :209
+                - generic [ref=e417]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Routing\\Middleware\\SubstituteBindings :51 handle" [ref=e418] [cursor=pointer]:
+              - generic [ref=e420]:
+                - generic [ref=e422]:
+                  - generic [ref=e423]: Illuminate\Routing\Middleware\SubstituteBindings
+                  - generic [ref=e424]: :51
+                - generic [ref=e425]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e426] [cursor=pointer]':
+              - generic [ref=e428]:
+                - generic [ref=e430]:
+                  - generic [ref=e431]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e432]: :209
+                - generic [ref=e433]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Auth\\Middleware\\Authenticate :64 handle" [ref=e434] [cursor=pointer]:
+              - generic [ref=e436]:
+                - generic [ref=e438]:
+                  - generic [ref=e439]: Illuminate\Auth\Middleware\Authenticate
+                  - generic [ref=e440]: :64
+                - generic [ref=e441]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e442] [cursor=pointer]':
+              - generic [ref=e444]:
+                - generic [ref=e446]:
+                  - generic [ref=e447]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e448]: :209
+                - generic [ref=e449]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken :88 handle" [ref=e450] [cursor=pointer]:
+              - generic [ref=e452]:
+                - generic [ref=e454]:
+                  - generic [ref=e455]: Illuminate\Foundation\Http\Middleware\VerifyCsrfToken
+                  - generic [ref=e456]: :88
+                - generic [ref=e457]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e458] [cursor=pointer]':
+              - generic [ref=e460]:
+                - generic [ref=e462]:
+                  - generic [ref=e463]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e464]: :209
+                - generic [ref=e465]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\View\\Middleware\\ShareErrorsFromSession :49 handle" [ref=e466] [cursor=pointer]:
+              - generic [ref=e468]:
+                - generic [ref=e470]:
+                  - generic [ref=e471]: Illuminate\View\Middleware\ShareErrorsFromSession
+                  - generic [ref=e472]: :49
+                - generic [ref=e473]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e474] [cursor=pointer]':
+              - generic [ref=e476]:
+                - generic [ref=e478]:
+                  - generic [ref=e479]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e480]: :209
+                - generic [ref=e481]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Session\\Middleware\\StartSession :121 handleStatefulRequest" [ref=e482] [cursor=pointer]:
+              - generic [ref=e484]:
+                - generic [ref=e486]:
+                  - generic [ref=e487]: Illuminate\Session\Middleware\StartSession
+                  - generic [ref=e488]: :121
+                - generic [ref=e489]: handleStatefulRequest
+            - button "Illuminate\\Session\\Middleware\\StartSession :64 handle" [ref=e490] [cursor=pointer]:
+              - generic [ref=e492]:
+                - generic [ref=e494]:
+                  - generic [ref=e495]: Illuminate\Session\Middleware\StartSession
+                  - generic [ref=e496]: :64
+                - generic [ref=e497]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e498] [cursor=pointer]':
+              - generic [ref=e500]:
+                - generic [ref=e502]:
+                  - generic [ref=e503]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e504]: :209
+                - generic [ref=e505]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse :37 handle" [ref=e506] [cursor=pointer]:
+              - generic [ref=e508]:
+                - generic [ref=e510]:
+                  - generic [ref=e511]: Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse
+                  - generic [ref=e512]: :37
+                - generic [ref=e513]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e514] [cursor=pointer]':
+              - generic [ref=e516]:
+                - generic [ref=e518]:
+                  - generic [ref=e519]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e520]: :209
+                - generic [ref=e521]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Cookie\\Middleware\\EncryptCookies :75 handle" [ref=e522] [cursor=pointer]:
+              - generic [ref=e524]:
+                - generic [ref=e526]:
+                  - generic [ref=e527]: Illuminate\Cookie\Middleware\EncryptCookies
+                  - generic [ref=e528]: :75
+                - generic [ref=e529]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e530] [cursor=pointer]':
+              - generic [ref=e532]:
+                - generic [ref=e534]:
+                  - generic [ref=e535]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e536]: :209
+                - generic [ref=e537]: "Illuminate\\Pipeline\\{closure}"
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\app\\Http\\Middleware\\PreventPublicSessionClobber.php :30 handle" [ref=e538] [cursor=pointer]:
+              - generic [ref=e540]:
+                - generic [ref=e542]:
+                  - generic [ref=e543]: C:\xampp\htdocs\vellor\admin\app\Http\Middleware\PreventPublicSessionClobber.php
+                  - generic [ref=e544]: :30
+                - generic [ref=e545]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e546] [cursor=pointer]':
+              - generic [ref=e548]:
+                - generic [ref=e550]:
+                  - generic [ref=e551]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e552]: :209
+                - generic [ref=e553]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Pipeline\\Pipeline :127 then" [ref=e554] [cursor=pointer]:
+              - generic [ref=e556]:
+                - generic [ref=e558]:
+                  - generic [ref=e559]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e560]: :127
+                - generic [ref=e561]: then
+            - button "Illuminate\\Routing\\Router :807 runRouteWithinStack" [ref=e562] [cursor=pointer]:
+              - generic [ref=e564]:
+                - generic [ref=e566]:
+                  - generic [ref=e567]: Illuminate\Routing\Router
+                  - generic [ref=e568]: :807
+                - generic [ref=e569]: runRouteWithinStack
+            - button "Illuminate\\Routing\\Router :786 runRoute" [ref=e570] [cursor=pointer]:
+              - generic [ref=e572]:
+                - generic [ref=e574]:
+                  - generic [ref=e575]: Illuminate\Routing\Router
+                  - generic [ref=e576]: :786
+                - generic [ref=e577]: runRoute
+            - button "Illuminate\\Routing\\Router :750 dispatchToRoute" [ref=e578] [cursor=pointer]:
+              - generic [ref=e580]:
+                - generic [ref=e582]:
+                  - generic [ref=e583]: Illuminate\Routing\Router
+                  - generic [ref=e584]: :750
+                - generic [ref=e585]: dispatchToRoute
+            - button "Illuminate\\Routing\\Router :739 dispatch" [ref=e586] [cursor=pointer]:
+              - generic [ref=e588]:
+                - generic [ref=e590]:
+                  - generic [ref=e591]: Illuminate\Routing\Router
+                  - generic [ref=e592]: :739
+                - generic [ref=e593]: dispatch
+            - 'button "Illuminate\\Foundation\\Http\\Kernel :201 Illuminate\\Foundation\\Http\\{closure}" [ref=e594] [cursor=pointer]':
+              - generic [ref=e596]:
+                - generic [ref=e598]:
+                  - generic [ref=e599]: Illuminate\Foundation\Http\Kernel
+                  - generic [ref=e600]: :201
+                - generic [ref=e601]: "Illuminate\\Foundation\\Http\\{closure}"
+            - 'button "Illuminate\\Pipeline\\Pipeline :170 Illuminate\\Pipeline\\{closure}" [ref=e602] [cursor=pointer]':
+              - generic [ref=e604]:
+                - generic [ref=e606]:
+                  - generic [ref=e607]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e608]: :170
+                - generic [ref=e609]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest :21 handle" [ref=e610] [cursor=pointer]:
+              - generic [ref=e612]:
+                - generic [ref=e614]:
+                  - generic [ref=e615]: Illuminate\Foundation\Http\Middleware\TransformsRequest
+                  - generic [ref=e616]: :21
+                - generic [ref=e617]: handle
+            - button "Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull :31 handle" [ref=e618] [cursor=pointer]:
+              - generic [ref=e620]:
+                - generic [ref=e622]:
+                  - generic [ref=e623]: Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull
+                  - generic [ref=e624]: :31
+                - generic [ref=e625]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e626] [cursor=pointer]':
+              - generic [ref=e628]:
+                - generic [ref=e630]:
+                  - generic [ref=e631]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e632]: :209
+                - generic [ref=e633]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest :21 handle" [ref=e634] [cursor=pointer]:
+              - generic [ref=e636]:
+                - generic [ref=e638]:
+                  - generic [ref=e639]: Illuminate\Foundation\Http\Middleware\TransformsRequest
+                  - generic [ref=e640]: :21
+                - generic [ref=e641]: handle
+            - button "Illuminate\\Foundation\\Http\\Middleware\\TrimStrings :51 handle" [ref=e642] [cursor=pointer]:
+              - generic [ref=e644]:
+                - generic [ref=e646]:
+                  - generic [ref=e647]: Illuminate\Foundation\Http\Middleware\TrimStrings
+                  - generic [ref=e648]: :51
+                - generic [ref=e649]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e650] [cursor=pointer]':
+              - generic [ref=e652]:
+                - generic [ref=e654]:
+                  - generic [ref=e655]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e656]: :209
+                - generic [ref=e657]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Http\\Middleware\\ValidatePostSize :27 handle" [ref=e658] [cursor=pointer]:
+              - generic [ref=e660]:
+                - generic [ref=e662]:
+                  - generic [ref=e663]: Illuminate\Http\Middleware\ValidatePostSize
+                  - generic [ref=e664]: :27
+                - generic [ref=e665]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e666] [cursor=pointer]':
+              - generic [ref=e668]:
+                - generic [ref=e670]:
+                  - generic [ref=e671]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e672]: :209
+                - generic [ref=e673]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance :110 handle" [ref=e674] [cursor=pointer]:
+              - generic [ref=e676]:
+                - generic [ref=e678]:
+                  - generic [ref=e679]: Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance
+                  - generic [ref=e680]: :110
+                - generic [ref=e681]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e682] [cursor=pointer]':
+              - generic [ref=e684]:
+                - generic [ref=e686]:
+                  - generic [ref=e687]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e688]: :209
+                - generic [ref=e689]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Http\\Middleware\\HandleCors :49 handle" [ref=e690] [cursor=pointer]:
+              - generic [ref=e692]:
+                - generic [ref=e694]:
+                  - generic [ref=e695]: Illuminate\Http\Middleware\HandleCors
+                  - generic [ref=e696]: :49
+                - generic [ref=e697]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e698] [cursor=pointer]':
+              - generic [ref=e700]:
+                - generic [ref=e702]:
+                  - generic [ref=e703]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e704]: :209
+                - generic [ref=e705]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Http\\Middleware\\TrustProxies :58 handle" [ref=e706] [cursor=pointer]:
+              - generic [ref=e708]:
+                - generic [ref=e710]:
+                  - generic [ref=e711]: Illuminate\Http\Middleware\TrustProxies
+                  - generic [ref=e712]: :58
+                - generic [ref=e713]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e714] [cursor=pointer]':
+              - generic [ref=e716]:
+                - generic [ref=e718]:
+                  - generic [ref=e719]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e720]: :209
+                - generic [ref=e721]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks :22 handle" [ref=e722] [cursor=pointer]:
+              - generic [ref=e724]:
+                - generic [ref=e726]:
+                  - generic [ref=e727]: Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks
+                  - generic [ref=e728]: :22
+                - generic [ref=e729]: handle
+            - 'button "Illuminate\\Pipeline\\Pipeline :209 Illuminate\\Pipeline\\{closure}" [ref=e730] [cursor=pointer]':
+              - generic [ref=e732]:
+                - generic [ref=e734]:
+                  - generic [ref=e735]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e736]: :209
+                - generic [ref=e737]: "Illuminate\\Pipeline\\{closure}"
+            - button "Illuminate\\Pipeline\\Pipeline :127 then" [ref=e738] [cursor=pointer]:
+              - generic [ref=e740]:
+                - generic [ref=e742]:
+                  - generic [ref=e743]: Illuminate\Pipeline\Pipeline
+                  - generic [ref=e744]: :127
+                - generic [ref=e745]: then
+            - button "Illuminate\\Foundation\\Http\\Kernel :176 sendRequestThroughRouter" [ref=e746] [cursor=pointer]:
+              - generic [ref=e748]:
+                - generic [ref=e750]:
+                  - generic [ref=e751]: Illuminate\Foundation\Http\Kernel
+                  - generic [ref=e752]: :176
+                - generic [ref=e753]: sendRequestThroughRouter
+            - button "Illuminate\\Foundation\\Http\\Kernel :145 handle" [ref=e754] [cursor=pointer]:
+              - generic [ref=e756]:
+                - generic [ref=e758]:
+                  - generic [ref=e759]: Illuminate\Foundation\Http\Kernel
+                  - generic [ref=e760]: :145
+                - generic [ref=e761]: handle
+            - button "C:\\xampp\\htdocs\\vellor\\admin\\public\\index.php :11" [ref=e762] [cursor=pointer]:
+              - generic [ref=e766]:
+                - generic [ref=e767]: C:\xampp\htdocs\vellor\admin\public\index.php
+                - generic [ref=e768]: :11
+        - generic [ref=e769]:
+          - generic [ref=e770]: C:\xampp\htdocs\vellor\admin\vendor\laravel\framework\src\Illuminate\Routing\Exceptions\UrlGenerationException.php :35
+          - code [ref=e775]:
+            - table [ref=e776]:
+              - rowgroup [ref=e777]:
+                - row [ref=e778]:
+                  - cell "30" [ref=e779]
+                  - 'cell "$message .= sprintf('' [Missing %s: %s]'', $parameterLabel, implode('', '', $parameters));" [ref=e781]'
+                - row [ref=e782]:
+                  - cell "31" [ref=e783]
+                  - 'cell "}" [ref=e785]'
+                - row [ref=e786]:
+                  - cell "32" [ref=e787]
+                  - cell [ref=e789]
+                - row [ref=e790]:
+                  - cell "33" [ref=e791]
+                  - cell "$message .= '.';" [ref=e793]
+                - row [ref=e794]:
+                  - cell "34" [ref=e795]
+                  - cell [ref=e797]
+                - row [ref=e798]:
+                  - cell "35" [ref=e799]
+                  - cell "return new static($message);" [ref=e801]
+                - row [ref=e802]:
+                  - cell "36" [ref=e803]
+                  - 'cell "}" [ref=e805]'
+                - row [ref=e806]:
+                  - cell "37" [ref=e807]
+                  - 'cell "}" [ref=e809]'
+        - text: 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 539 540 541 542 543 544 545 546 547 548 549 550 551 552 553 554 555 556 504 505 506 507 508 509 510 511 512 513 514 515 516 517 518 519 520 521 848 849 850 851 852 853 854 855 856 857 858 859 860 861 862 863 864 865 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 26 27 28 29 30 31 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 44 45 46 47 48 49 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 915 916 917 918 919 920 921 922 923 924 925 926 927 928 929 930 931 932 882 883 884 885 886 887 888 889 890 891 892 893 894 895 896 897 898 802 803 804 805 806 807 808 809 810 811 812 813 814 815 816 817 818 819 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 11 12 13 14 15 16 17 18 19 20 21 22 23 24 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 36 37 38 39 40 41 42 43 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 46 47 48 49 50 51 52 53 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 44 45 46 47 48 49 50 51 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 32 33 34 35 36 37 38 39 40 41 42 43 44 45 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 802 803 804 805 806 807 808 809 810 811 812 813 814 815 816 817 818 819 781 782 783 784 785 786 787 788 789 790 791 792 793 794 795 796 797 798 745 746 747 748 749 750 751 752 753 754 755 756 757 758 759 760 761 734 735 736 737 738 739 740 741 742 743 744 745 746 747 748 749 750 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 6 7 8 9 10 11 12 13 14
+      - generic [ref=e810]:
+        - generic [ref=e811]: Request
+        - generic [ref=e812]: GET /admin/tenants/2/appointments
+        - generic [ref=e813]: Headers
+        - generic [ref=e814]:
+          - generic [ref=e815]:
+            - generic [ref=e816] [cursor=pointer]: host
+            - code [ref=e819]: localhost
+          - generic [ref=e820]:
+            - generic [ref=e821] [cursor=pointer]: connection
+            - code [ref=e824]: keep-alive
+          - generic [ref=e825]:
+            - generic [ref=e826] [cursor=pointer]: sec-ch-ua
+            - code [ref=e829]: "\"Not=A?Brand\";v=\"99\", \"HeadlessChrome\";v=\"151\", \"Chromium\";v=\"151\""
+          - generic [ref=e830]:
+            - generic [ref=e831] [cursor=pointer]: sec-ch-ua-mobile
+            - code [ref=e834]: "?0"
+          - generic [ref=e835]:
+            - generic [ref=e836] [cursor=pointer]: sec-ch-ua-platform
+            - code [ref=e839]: "\"Windows\""
+          - generic [ref=e840]:
+            - generic [ref=e841] [cursor=pointer]: upgrade-insecure-requests
+            - code [ref=e844]: "1"
+          - generic [ref=e845]:
+            - generic [ref=e846] [cursor=pointer]: user-agent
+            - code [ref=e849]: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Safari/537.36
+          - generic [ref=e850]:
+            - generic [ref=e851] [cursor=pointer]: accept-language
+            - code [ref=e854]: en-US
+          - generic [ref=e855]:
+            - generic [ref=e856] [cursor=pointer]: accept
+            - code [ref=e859]: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+          - generic [ref=e860]:
+            - generic [ref=e861] [cursor=pointer]: sec-fetch-site
+            - code [ref=e864]: none
+          - generic [ref=e865]:
+            - generic [ref=e866] [cursor=pointer]: sec-fetch-mode
+            - code [ref=e869]: navigate
+          - generic [ref=e870]:
+            - generic [ref=e871] [cursor=pointer]: sec-fetch-user
+            - code [ref=e874]: "?1"
+          - generic [ref=e875]:
+            - generic [ref=e876] [cursor=pointer]: sec-fetch-dest
+            - code [ref=e879]: document
+          - generic [ref=e880]:
+            - generic [ref=e881] [cursor=pointer]: accept-encoding
+            - code [ref=e884]: gzip, deflate, br, zstd
+          - generic [ref=e885]:
+            - generic [ref=e886] [cursor=pointer]: cookie
+            - code [ref=e889]: XSRF-TOKEN=eyJpdiI6Ilpiemd3Z21leURRWXIyNE1UbXR6UEE9PSIsInZhbHVlIjoiN1ltaC9mL2w4ZnhFMUFrTGxXVHQvNlFQQmtLVC9TMSsrU0ppSU0xSFhSTTZRWDdhdGdXandGcGQwNllLbHhOcmhub2RvYWF1K2hVYnd6MmpRUzYwWENGWW1EWHdIcWQ2N25tdHdRZmVWeUVCQUo3ejQrZlVPdlgyaEhydlZNVm0iLCJtYWMiOiJmZjViOTgzZThmNGE0MTU2ZTUyNzhlNTQ5YzQ2MGE3YmJkNjlhMDFjMGU3NDkzMDM3YTRjYzU1NzAwMTc1NWI1IiwidGFnIjoiIn0%3D; easygrox_vellor_local_session=eyJpdiI6IktQUVNnRUpOTkpHU24wdWlOY0JVQ1E9PSIsInZhbHVlIjoiNEpGSlBnYXRaQWo4cjNSTjdDVkVpQ2pKb0RXK2RWLzlLelRUMWRvNENKSGc0SHp2bHQwWmU0cUMvNGdjZVA2YVl4aUdBWTBYbG5FSkwrMDZhdU00MTB3b1hIZTkySXRFR2JwV3o4ekRGSG9LMG85c1ZSZHVMVDhJMmZYWS9FcE0iLCJtYWMiOiJlY2JkYjMzY2JiMDBjMDUxMzYzY2QwNTQ4MWY4YWE0MmIzZWYzNjQwMWZlMWU5M2MxYjNkMDk5YzJlMWIwMzE5IiwidGFnIjoiIn0%3D
+        - generic [ref=e890]: Body
+        - code [ref=e895]: No body data
+      - generic [ref=e896]:
+        - generic [ref=e897]: Application
+        - generic [ref=e898]: Routing
+        - generic [ref=e899]:
+          - generic [ref=e900]:
+            - generic [ref=e901] [cursor=pointer]: controller
+            - code [ref=e904]: App\Http\Controllers\Admin\Tenant\AdminTenantAppointmentController@index
+          - generic [ref=e905]:
+            - generic [ref=e906] [cursor=pointer]: route name
+            - code [ref=e909]: admin.tenants.appointments.index
+          - generic [ref=e910]:
+            - generic [ref=e911] [cursor=pointer]: middleware
+            - code [ref=e914]: web, auth, verified, 2fa, password.changed, super_admin, user.activity
+        - generic [ref=e915]: Routing Parameters
+        - code [ref=e920]: "{ \"salon\": \"2\" }"
+        - generic [ref=e921]: Database Queries only the first 100 queries are displayed
+        - generic [ref=e922]:
+          - generic [ref=e923]:
+            - generic [ref=e924]:
+              - text: mysql
+              - generic [ref=e925]: (6.13 ms)
+            - code [ref=e928]: "select * from `users` where `id` = 1 and `users`.`deleted_at` is null limit 1"
+          - generic [ref=e929]:
+            - generic [ref=e930]:
+              - text: mysql
+              - generic [ref=e931]: (0.83 ms)
+            - code [ref=e934]: "select * from `salons` where `salons`.`id` = 2 limit 1"
+          - generic [ref=e935]:
+            - generic [ref=e936]:
+              - text: mysql
+              - generic [ref=e937]: (1.52 ms)
+            - code [ref=e940]: "insert into `audit_logs` (`user_id`, `user_email`, `user_name`, `salon_id`, `event`, `event_category`, `severity`, `description`, `subject_type`, `subject_id`, `metadata`, `ip_address`, `user_agent`, `session_id`, `request_id`, `http_method`, `url`, `occurred_at`) values (1, 'admin@velour.app', 'Velour Admin', 2, 'admin.tenant.view', 'admin', 'warning', 'Admin viewed appointments.index list for salon 'ak salon'', 'App\\Models\\Salon', 2, '{\"module\":\"appointments.index\",\"salon_id\":2}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Safari/537.36', 'EVylLVZnikIxF2MdWsshwm23DmppHzyCjf8oYXN1', NULL, 'GET', 'http://localhost/admin/tenants/2/appointments', '2026-08-09 12:35:58')"
+          - generic [ref=e941]:
+            - generic [ref=e942]:
+              - text: mysql
+              - generic [ref=e943]: (2.47 ms)
+            - code [ref=e946]: "select count(*) as aggregate from `appointments` where `salon_id` = 2"
+          - generic [ref=e947]:
+            - generic [ref=e948]:
+              - text: mysql
+              - generic [ref=e949]: (1.68 ms)
+            - code [ref=e952]: "select * from `appointments` where `salon_id` = 2 order by `starts_at` desc limit 25 offset 0"
+          - generic [ref=e953]:
+            - generic [ref=e954]:
+              - text: mysql
+              - generic [ref=e955]: (0.82 ms)
+            - code [ref=e958]: "select `id`, `first_name`, `last_name` from `clients` where `clients`.`id` in (151, 152, 155, 156, 157, 158, 160) and `clients`.`deleted_at` is null"
+          - generic [ref=e959]:
+            - generic [ref=e960]:
+              - text: mysql
+              - generic [ref=e961]: (0.52 ms)
+            - code [ref=e964]: "select `id`, `first_name`, `last_name` from `staff` where `staff`.`id` in (7, 8, 22) and `staff`.`deleted_at` is null"
+          - generic [ref=e965]:
+            - generic [ref=e966]:
+              - text: mysql
+              - generic [ref=e967]: (2.06 ms)
+            - code [ref=e970]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e971]:
+            - generic [ref=e972]:
+              - text: mysql
+              - generic [ref=e973]: (0.8 ms)
+            - code [ref=e976]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e977]:
+            - generic [ref=e978]:
+              - text: mysql
+              - generic [ref=e979]: (0.68 ms)
+            - code [ref=e982]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e983]:
+            - generic [ref=e984]:
+              - text: mysql
+              - generic [ref=e985]: (0.42 ms)
+            - code [ref=e988]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e989]:
+            - generic [ref=e990]:
+              - text: mysql
+              - generic [ref=e991]: (0.7 ms)
+            - code [ref=e994]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e995]:
+            - generic [ref=e996]:
+              - text: mysql
+              - generic [ref=e997]: (0.36 ms)
+            - code [ref=e1000]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1001]:
+            - generic [ref=e1002]:
+              - text: mysql
+              - generic [ref=e1003]: (0.55 ms)
+            - code [ref=e1006]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1007]:
+            - generic [ref=e1008]:
+              - text: mysql
+              - generic [ref=e1009]: (0.73 ms)
+            - code [ref=e1012]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1013]:
+            - generic [ref=e1014]:
+              - text: mysql
+              - generic [ref=e1015]: (0.5 ms)
+            - code [ref=e1018]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1019]:
+            - generic [ref=e1020]:
+              - text: mysql
+              - generic [ref=e1021]: (0.37 ms)
+            - code [ref=e1024]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1025]:
+            - generic [ref=e1026]:
+              - text: mysql
+              - generic [ref=e1027]: (0.49 ms)
+            - code [ref=e1030]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1031]:
+            - generic [ref=e1032]:
+              - text: mysql
+              - generic [ref=e1033]: (1.16 ms)
+            - code [ref=e1036]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1037]:
+            - generic [ref=e1038]:
+              - text: mysql
+              - generic [ref=e1039]: (1.47 ms)
+            - code [ref=e1042]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1043]:
+            - generic [ref=e1044]:
+              - text: mysql
+              - generic [ref=e1045]: (0.53 ms)
+            - code [ref=e1048]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1049]:
+            - generic [ref=e1050]:
+              - text: mysql
+              - generic [ref=e1051]: (0.61 ms)
+            - code [ref=e1054]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1055]:
+            - generic [ref=e1056]:
+              - text: mysql
+              - generic [ref=e1057]: (0.44 ms)
+            - code [ref=e1060]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1061]:
+            - generic [ref=e1062]:
+              - text: mysql
+              - generic [ref=e1063]: (0.47 ms)
+            - code [ref=e1066]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1067]:
+            - generic [ref=e1068]:
+              - text: mysql
+              - generic [ref=e1069]: (0.75 ms)
+            - code [ref=e1072]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1073]:
+            - generic [ref=e1074]:
+              - text: mysql
+              - generic [ref=e1075]: (0.62 ms)
+            - code [ref=e1078]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1079]:
+            - generic [ref=e1080]:
+              - text: mysql
+              - generic [ref=e1081]: (0.56 ms)
+            - code [ref=e1084]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1085]:
+            - generic [ref=e1086]:
+              - text: mysql
+              - generic [ref=e1087]: (2.6 ms)
+            - code [ref=e1090]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1091]:
+            - generic [ref=e1092]:
+              - text: mysql
+              - generic [ref=e1093]: (1.66 ms)
+            - code [ref=e1096]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1097]:
+            - generic [ref=e1098]:
+              - text: mysql
+              - generic [ref=e1099]: (0.69 ms)
+            - code [ref=e1102]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1103]:
+            - generic [ref=e1104]:
+              - text: mysql
+              - generic [ref=e1105]: (0.49 ms)
+            - code [ref=e1108]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1109]:
+            - generic [ref=e1110]:
+              - text: mysql
+              - generic [ref=e1111]: (0.74 ms)
+            - code [ref=e1114]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1115]:
+            - generic [ref=e1116]:
+              - text: mysql
+              - generic [ref=e1117]: (0.43 ms)
+            - code [ref=e1120]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1121]:
+            - generic [ref=e1122]:
+              - text: mysql
+              - generic [ref=e1123]: (0.46 ms)
+            - code [ref=e1126]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1127]:
+            - generic [ref=e1128]:
+              - text: mysql
+              - generic [ref=e1129]: (0.96 ms)
+            - code [ref=e1132]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1133]:
+            - generic [ref=e1134]:
+              - text: mysql
+              - generic [ref=e1135]: (0.6 ms)
+            - code [ref=e1138]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1139]:
+            - generic [ref=e1140]:
+              - text: mysql
+              - generic [ref=e1141]: (0.48 ms)
+            - code [ref=e1144]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1145]:
+            - generic [ref=e1146]:
+              - text: mysql
+              - generic [ref=e1147]: (0.43 ms)
+            - code [ref=e1150]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1151]:
+            - generic [ref=e1152]:
+              - text: mysql
+              - generic [ref=e1153]: (2.38 ms)
+            - code [ref=e1156]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1157]:
+            - generic [ref=e1158]:
+              - text: mysql
+              - generic [ref=e1159]: (0.83 ms)
+            - code [ref=e1162]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1163]:
+            - generic [ref=e1164]:
+              - text: mysql
+              - generic [ref=e1165]: (0.43 ms)
+            - code [ref=e1168]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1169]:
+            - generic [ref=e1170]:
+              - text: mysql
+              - generic [ref=e1171]: (0.5 ms)
+            - code [ref=e1174]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1175]:
+            - generic [ref=e1176]:
+              - text: mysql
+              - generic [ref=e1177]: (0.36 ms)
+            - code [ref=e1180]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1181]:
+            - generic [ref=e1182]:
+              - text: mysql
+              - generic [ref=e1183]: (0.4 ms)
+            - code [ref=e1186]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1187]:
+            - generic [ref=e1188]:
+              - text: mysql
+              - generic [ref=e1189]: (0.29 ms)
+            - code [ref=e1192]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1193]:
+            - generic [ref=e1194]:
+              - text: mysql
+              - generic [ref=e1195]: (0.38 ms)
+            - code [ref=e1198]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1199]:
+            - generic [ref=e1200]:
+              - text: mysql
+              - generic [ref=e1201]: (0.43 ms)
+            - code [ref=e1204]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1205]:
+            - generic [ref=e1206]:
+              - text: mysql
+              - generic [ref=e1207]: (0.94 ms)
+            - code [ref=e1210]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1211]:
+            - generic [ref=e1212]:
+              - text: mysql
+              - generic [ref=e1213]: (0.47 ms)
+            - code [ref=e1216]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1217]:
+            - generic [ref=e1218]:
+              - text: mysql
+              - generic [ref=e1219]: (0.56 ms)
+            - code [ref=e1222]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1223]:
+            - generic [ref=e1224]:
+              - text: mysql
+              - generic [ref=e1225]: (0.42 ms)
+            - code [ref=e1228]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1229]:
+            - generic [ref=e1230]:
+              - text: mysql
+              - generic [ref=e1231]: (0.75 ms)
+            - code [ref=e1234]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1235]:
+            - generic [ref=e1236]:
+              - text: mysql
+              - generic [ref=e1237]: (0.43 ms)
+            - code [ref=e1240]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1241]:
+            - generic [ref=e1242]:
+              - text: mysql
+              - generic [ref=e1243]: (0.74 ms)
+            - code [ref=e1246]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1247]:
+            - generic [ref=e1248]:
+              - text: mysql
+              - generic [ref=e1249]: (0.41 ms)
+            - code [ref=e1252]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1253]:
+            - generic [ref=e1254]:
+              - text: mysql
+              - generic [ref=e1255]: (0.8 ms)
+            - code [ref=e1258]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1259]:
+            - generic [ref=e1260]:
+              - text: mysql
+              - generic [ref=e1261]: (0.39 ms)
+            - code [ref=e1264]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1265]:
+            - generic [ref=e1266]:
+              - text: mysql
+              - generic [ref=e1267]: (0.61 ms)
+            - code [ref=e1270]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1271]:
+            - generic [ref=e1272]:
+              - text: mysql
+              - generic [ref=e1273]: (0.46 ms)
+            - code [ref=e1276]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1277]:
+            - generic [ref=e1278]:
+              - text: mysql
+              - generic [ref=e1279]: (0.56 ms)
+            - code [ref=e1282]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1283]:
+            - generic [ref=e1284]:
+              - text: mysql
+              - generic [ref=e1285]: (0.71 ms)
+            - code [ref=e1288]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1289]:
+            - generic [ref=e1290]:
+              - text: mysql
+              - generic [ref=e1291]: (0.42 ms)
+            - code [ref=e1294]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1295]:
+            - generic [ref=e1296]:
+              - text: mysql
+              - generic [ref=e1297]: (0.29 ms)
+            - code [ref=e1300]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1301]:
+            - generic [ref=e1302]:
+              - text: mysql
+              - generic [ref=e1303]: (1.02 ms)
+            - code [ref=e1306]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1307]:
+            - generic [ref=e1308]:
+              - text: mysql
+              - generic [ref=e1309]: (0.43 ms)
+            - code [ref=e1312]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1313]:
+            - generic [ref=e1314]:
+              - text: mysql
+              - generic [ref=e1315]: (0.52 ms)
+            - code [ref=e1318]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1319]:
+            - generic [ref=e1320]:
+              - text: mysql
+              - generic [ref=e1321]: (0.53 ms)
+            - code [ref=e1324]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1325]:
+            - generic [ref=e1326]:
+              - text: mysql
+              - generic [ref=e1327]: (0.38 ms)
+            - code [ref=e1330]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1331]:
+            - generic [ref=e1332]:
+              - text: mysql
+              - generic [ref=e1333]: (0.29 ms)
+            - code [ref=e1336]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1337]:
+            - generic [ref=e1338]:
+              - text: mysql
+              - generic [ref=e1339]: (0.38 ms)
+            - code [ref=e1342]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1343]:
+            - generic [ref=e1344]:
+              - text: mysql
+              - generic [ref=e1345]: (0.27 ms)
+            - code [ref=e1348]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1349]:
+            - generic [ref=e1350]:
+              - text: mysql
+              - generic [ref=e1351]: (0.45 ms)
+            - code [ref=e1354]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1355]:
+            - generic [ref=e1356]:
+              - text: mysql
+              - generic [ref=e1357]: (0.32 ms)
+            - code [ref=e1360]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1361]:
+            - generic [ref=e1362]:
+              - text: mysql
+              - generic [ref=e1363]: (0.59 ms)
+            - code [ref=e1366]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1367]:
+            - generic [ref=e1368]:
+              - text: mysql
+              - generic [ref=e1369]: (0.41 ms)
+            - code [ref=e1372]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1373]:
+            - generic [ref=e1374]:
+              - text: mysql
+              - generic [ref=e1375]: (0.43 ms)
+            - code [ref=e1378]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1379]:
+            - generic [ref=e1380]:
+              - text: mysql
+              - generic [ref=e1381]: (0.48 ms)
+            - code [ref=e1384]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1385]:
+            - generic [ref=e1386]:
+              - text: mysql
+              - generic [ref=e1387]: (2.39 ms)
+            - code [ref=e1390]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1391]:
+            - generic [ref=e1392]:
+              - text: mysql
+              - generic [ref=e1393]: (0.55 ms)
+            - code [ref=e1396]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1397]:
+            - generic [ref=e1398]:
+              - text: mysql
+              - generic [ref=e1399]: (1.11 ms)
+            - code [ref=e1402]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1403]:
+            - generic [ref=e1404]:
+              - text: mysql
+              - generic [ref=e1405]: (0.45 ms)
+            - code [ref=e1408]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1409]:
+            - generic [ref=e1410]:
+              - text: mysql
+              - generic [ref=e1411]: (0.62 ms)
+            - code [ref=e1414]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1415]:
+            - generic [ref=e1416]:
+              - text: mysql
+              - generic [ref=e1417]: (0.37 ms)
+            - code [ref=e1420]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1421]:
+            - generic [ref=e1422]:
+              - text: mysql
+              - generic [ref=e1423]: (0.61 ms)
+            - code [ref=e1426]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1427]:
+            - generic [ref=e1428]:
+              - text: mysql
+              - generic [ref=e1429]: (0.54 ms)
+            - code [ref=e1432]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1433]:
+            - generic [ref=e1434]:
+              - text: mysql
+              - generic [ref=e1435]: (0.58 ms)
+            - code [ref=e1438]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1439]:
+            - generic [ref=e1440]:
+              - text: mysql
+              - generic [ref=e1441]: (0.42 ms)
+            - code [ref=e1444]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1445]:
+            - generic [ref=e1446]:
+              - text: mysql
+              - generic [ref=e1447]: (0.41 ms)
+            - code [ref=e1450]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1451]:
+            - generic [ref=e1452]:
+              - text: mysql
+              - generic [ref=e1453]: (0.29 ms)
+            - code [ref=e1456]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1457]:
+            - generic [ref=e1458]:
+              - text: mysql
+              - generic [ref=e1459]: (2.83 ms)
+            - code [ref=e1462]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1463]:
+            - generic [ref=e1464]:
+              - text: mysql
+              - generic [ref=e1465]: (0.54 ms)
+            - code [ref=e1468]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1469]:
+            - generic [ref=e1470]:
+              - text: mysql
+              - generic [ref=e1471]: (0.59 ms)
+            - code [ref=e1474]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1475]:
+            - generic [ref=e1476]:
+              - text: mysql
+              - generic [ref=e1477]: (0.56 ms)
+            - code [ref=e1480]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1481]:
+            - generic [ref=e1482]:
+              - text: mysql
+              - generic [ref=e1483]: (0.87 ms)
+            - code [ref=e1486]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1487]:
+            - generic [ref=e1488]:
+              - text: mysql
+              - generic [ref=e1489]: (0.73 ms)
+            - code [ref=e1492]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1493]:
+            - generic [ref=e1494]:
+              - text: mysql
+              - generic [ref=e1495]: (1.48 ms)
+            - code [ref=e1498]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1499]:
+            - generic [ref=e1500]:
+              - text: mysql
+              - generic [ref=e1501]: (0.49 ms)
+            - code [ref=e1504]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1505]:
+            - generic [ref=e1506]:
+              - text: mysql
+              - generic [ref=e1507]: (0.83 ms)
+            - code [ref=e1510]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+          - generic [ref=e1511]:
+            - generic [ref=e1512]:
+              - text: mysql
+              - generic [ref=e1513]: (0.67 ms)
+            - code [ref=e1516]: "select `salon_id` from `staff` where `user_id` = 1 and `deleted_at` is null limit 1"
+          - generic [ref=e1517]:
+            - generic [ref=e1518]:
+              - text: mysql
+              - generic [ref=e1519]: (2.94 ms)
+            - code [ref=e1522]: "select exists(select * from `salons` where `salons`.`owner_id` = 1 and `salons`.`owner_id` is not null and `salons`.`deleted_at` is null) as `exists`"
+```
+
+# Test source
+
+```ts
+  1  | import { expect, type Page } from '@playwright/test';
+  2  | 
+  3  | /** Paths must be relative — leading `/` drops `/vellor/admin`. */
+  4  | export function appPath(path: string): string {
+  5  |   return path.replace(/^\//, '');
+  6  | }
+  7  | 
+  8  | export async function assertUsablePage(
+  9  |   page: Page,
+  10 |   path: string,
+  11 |   options: {
+  12 |     allowLoginRedirect?: boolean;
+  13 |     expectUrlIncludes?: string | RegExp;
+  14 |     maxStatus?: number;
+  15 |     planId?: string;
+  16 |   } = {},
+  17 | ) {
+  18 |   const response = await page.goto(appPath(path), { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  19 |   const status = response?.status() ?? 0;
+  20 |   const label = options.planId ? `${options.planId} ${path}` : path;
+  21 | 
+> 22 |   expect(status, `${label} status`).toBeLessThan(options.maxStatus ?? 500);
+     |                                     ^ Error: SA-09b admin/tenants/2/appointments status
+  23 | 
+  24 |   const body = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);
+  25 |   expect(body, `${label} no server error`).not.toMatch(/Server Error|Whoops!/i);
+  26 |   expect(body.length, `${label} has content`).toBeGreaterThan(20);
+  27 | 
+  28 |   if (!options.allowLoginRedirect) {
+  29 |     expect(page.url(), `${label} authenticated`).not.toMatch(/\/login(\?|$)/);
+  30 |   }
+  31 |   if (options.expectUrlIncludes) {
+  32 |     expect(page.url()).toMatch(options.expectUrlIncludes);
+  33 |   }
+  34 | 
+  35 |   return { status, url: page.url() };
+  36 | }
+  37 | 
+  38 | export const QA = {
+  39 |   store: 'ak',
+  40 |   tenantEmail: 'ajayjatav439@gmail.com',
+  41 |   tenantPassword: 'password',
+  42 |   adminEmail: 'admin@velour.app',
+  43 |   adminPassword: 'password',
+  44 |   salonId: 2,
+  45 |   ownerId: 5,
+  46 |   ids: {
+  47 |     client: 151,
+  48 |     staff: 7,
+  49 |     service: 90,
+  50 |     appointment: 303,
+  51 |     inventory: 59,
+  52 |     package: 1,
+  53 |     marketing: 9,
+  54 |     pos: 188,
+  55 |   },
+  56 |   reviewToken: 'xP4zt5jH1GPVZgM3IwVeyoj6xrl67eCczQhoa4pfykPma6IO',
+  57 |   helpSlug: 'getting-started-with-velour',
+  58 |   storefrontSlug: 'ak-salon',
+  59 | };
+  60 | 
+  61 | export function storePath(suffix: string) {
+  62 |   return `${QA.store}/${suffix.replace(/^\//, '')}`;
+  63 | }
+  64 | 
+```

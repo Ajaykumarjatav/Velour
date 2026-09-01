@@ -1,0 +1,9 @@
+# Bridge when a physical /vellor/admin/ folder exists on the server.
+# Prefer deleting that folder and using only vellor/.htaccess instead.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /vellor/admin/
+
+    RewriteRule ^$ /vellor/public/index.php [L]
+    RewriteRule ^(.+)$ /vellor/public/$1 [L,QSA]
+</IfModule>

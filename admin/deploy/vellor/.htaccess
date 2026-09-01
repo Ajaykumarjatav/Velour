@@ -1,0 +1,28 @@
+# Staging: samarthinfoservices.com/vellor/
+# Laravel lives at /vellor/ (app/, public/). URL /vellor/admin/ → public/
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /vellor/
+
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteCond %{THE_REQUEST} \s[^\s]*/admin/public/([^\s?]*) [NC]
+    RewriteCond %1 !^index\.php$ [NC]
+    RewriteRule ^admin/public/(.*)$ admin/$1 [R=301,L,NE]
+
+    RewriteRule ^admin/?$ public/index.php [L]
+    RewriteRule ^admin/(.*)$ public/$1 [L]
+
+    RewriteRule ^s(/.*)?$ public/index.php [L]
+
+    RewriteCond %{DOCUMENT_ROOT}/vellor/dist/$1 -f
+    RewriteRule ^(.+)$ dist/$1 [L]
+
+    RewriteCond %{DOCUMENT_ROOT}/vellor/dist/$1 -d
+    RewriteRule ^(.+)$ dist/$1 [L]
+
+    RewriteCond %{REQUEST_URI} !/admin(/|$) [NC]
+    RewriteCond %{REQUEST_URI} !/s(/|$) [NC]
+    RewriteRule ^ dist/index.html [L]
+</IfModule>
+
+DirectoryIndex dist/index.html
