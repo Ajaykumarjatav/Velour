@@ -23,6 +23,7 @@ class ReviewController extends Controller
         $rating = $request->get('rating');
         $replied = $request->get('replied');
         $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
+        $serviceId = $request->filled('service_id') ? (int) $request->get('service_id') : null;
         $from = $request->get('from');
         $to = $request->get('to');
 
@@ -33,6 +34,10 @@ class ReviewController extends Controller
             $query->where('staff_id', $scopedStaffId);
         } elseif ($staffId) {
             $query->where('staff_id', $staffId);
+        }
+
+        if ($serviceId) {
+            $query->where('service_id', $serviceId);
         }
 
         if ($rating) {
@@ -61,6 +66,9 @@ class ReviewController extends Controller
             $statsQuery->where('staff_id', $scopedStaffId);
         } elseif ($staffId) {
             $statsQuery->where('staff_id', $staffId);
+        }
+        if ($serviceId) {
+            $statsQuery->where('service_id', $serviceId);
         }
         $averageRating = (float) ($statsQuery->avg('rating') ?? 0);
         $ratingCounts  = (clone $statsQuery)
@@ -104,11 +112,20 @@ class ReviewController extends Controller
             }
         }
 
+        $filterServices = Service::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('reviews.index', compact(
             'salon',
             'reviews',
             'rating',
             'replied',
+            'staffId',
+            'serviceId',
+            'filterServices',
             'averageRating',
             'ratingCounts',
             'tenantReviewLink',
