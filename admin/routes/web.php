@@ -1,0 +1,711 @@
+<?php
+
+use App\Http\Controllers\Web\LegacySalonUrlController;
+use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\TwoFactorController;
+use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\SalonActionItemController;
+use App\Http\Controllers\Web\TaskController;
+use App\Http\Controllers\Web\CalendarController;
+use App\Http\Controllers\Web\AppointmentController;
+use App\Http\Controllers\Web\ClientController;
+use App\Http\Controllers\Web\StaffController;
+use App\Http\Controllers\Web\ServiceController;
+use App\Http\Controllers\Web\ServicePackageController;
+use App\Http\Controllers\Web\AvailabilityResourcesController;
+use App\Http\Controllers\Web\ServiceCategoryController;
+use App\Http\Controllers\Billing\BillingController;
+use App\Http\Controllers\Web\CheckoutController;
+use App\Http\Controllers\Web\InventoryController;
+use App\Http\Controllers\Web\ExpenseController;
+use App\Http\Controllers\Web\FacilityController;
+use App\Http\Controllers\Web\PaymentGatewayController;
+use App\Http\Controllers\Web\PosController;
+use App\Http\Controllers\Web\MarketingController;
+use App\Http\Controllers\Web\MultiLocationController;
+use App\Http\Controllers\Web\ReportController;
+use App\Http\Controllers\Web\ReviewController;
+use App\Http\Controllers\Web\CustomizationController;
+use App\Http\Controllers\Web\DeletedItemsController;
+use App\Http\Controllers\Web\SecuritySupportController;
+use App\Http\Controllers\Web\TenantSupportController;
+use App\Http\Controllers\Web\WebsiteSeoController;
+use App\Http\Controllers\Web\WebsiteAboutController;
+use App\Http\Controllers\Web\RelationQuickCreateController;
+use App\Http\Controllers\Web\TenantLookupController;
+use App\Http\Controllers\Web\SettingsController;
+use App\Http\Controllers\Web\GuideController;
+use App\Http\Controllers\Admin\SuperAdminController;
+use App\Http\Controllers\Admin\TenantAdminController;
+use App\Http\Middleware\InitializeTenancyFromDomain;
+use App\Support\SalonUrl;
+use Illuminate\Support\Facades\Route;
+
+/*
+|──────────────────────────────────────────────────────────────────────────────
+| EasyGrox — Web Routes
+|──────────────────────────────────────────────────────────────────────────────
+|
+|  Middleware layers (applied in order):
+|    (InitializeTenancyFromDomain runs inside the tenant route group, after auth.)
+|    auth         → require login
+|    verified     → require email verified
+|    2fa          → require 2FA challenge completed
+|    tenant       → verify tenant is active
+|    super_admin  → restrict to platform super-admins
+|    tenant_admin → restrict to salon owners/admins
+|
+*/
+
+// ── Home ─────────────────────────────────────────────────────────────────────
+
+use App\Support\AuthPanel;
+use Illuminate\Support\Facades\Response;
+
+Route::get('/', function () {
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    return redirect()->to(AuthPanel::homeUrl(auth()->user()));
+})->name('home');
+
+Route::get('favicon.ico', function () {
+    $file = public_path('favicon.png');
+    abort_unless(is_file($file), 404);
+
+    return Response::file($file, [
+        'Content-Type' => 'image/png',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->name('favicon.ico');
+
+Route::get('s/favicon.ico', function () {
+    $file = public_path('favicon.png');
+    abort_unless(is_file($file), 404);
+
+    return Response::file($file, [
+        'Content-Type' => 'image/png',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+});
+
+Route::get('s/favicon.png', function () {
+    $file = public_path('favicon.png');
+    abort_unless(is_file($file), 404);
+
+    return Response::file($file, [
+        'Content-Type' => 'image/png',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+});
+
+// ── Guest Routes ──────────────────────────────────────────────────────────────
+
+Route::middleware('guest')->group(function () {
+    Route::get('login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('login', [AuthController::class, 'login'])
+        ->middleware('throttle:auth')
+        ->name('login.submit');
+    Route::get('register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth')
+        ->name('register.submit');
+
+    Route::get('forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('forgot-password', [AuthController::class, 'sendResetLink'])
+        ->middleware('throttle:auth')
+        ->name('password.email');
+    Route::get('reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:auth')
+        ->name('password.update');
+});
+
+// Signed POS invoice PDF (e.g. WhatsApp) — tenant from host, no login
+Route::middleware([InitializeTenancyFromDomain::class, 'tenant', 'signed.flexible'])->group(function () {
+    Route::get('invoice/pos/{transaction}', [PosController::class, 'invoicePdfSigned'])
+        ->name('pos.invoice.pdf.signed');
+});
+
+// ── Logout ────────────────────────────────────────────────────────────────────
+
+Route::post('logout', [AuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
+
+// Fresh CSRF meta token for AJAX clients (session must already exist)
+Route::get('csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->middleware('throttle:60,1')->name('csrf.token');
+
+// Public review forms (outside auth; include store key in URL)
+Route::prefix('{store}')
+    ->where(['store' => SalonUrl::reservedPattern()])
+    ->group(function () {
+        Route::get('reviews/share/{token}', [ReviewController::class, 'publicForm'])
+            ->middleware('throttle:60,1')
+            ->name('reviews.public');
+        Route::post('reviews/share/{token}', [ReviewController::class, 'submitPublicForm'])
+            ->middleware('throttle:20,1')
+            ->name('reviews.public.submit');
+    });
+
+// Old links without store → redirect to store-prefixed URL
+Route::get('reviews/share/{token}', [ReviewController::class, 'redirectLegacyPublic'])
+    ->middleware('throttle:60,1')
+    ->name('reviews.public.legacy');
+Route::post('reviews/share/{token}', [ReviewController::class, 'redirectLegacyPublic'])
+    ->middleware('throttle:20,1')
+    ->name('reviews.public.legacy.submit');
+
+Route::middleware('auth')->group(function () {
+    Route::get('force-password-change', [AuthController::class, 'showForcePassword'])->name('password.force.show');
+    Route::post('force-password-change', [AuthController::class, 'forcePasswordUpdate'])->name('password.force.update');
+});
+
+// ── Email Verification ────────────────────────────────────────────────────────
+
+Route::middleware('auth')->group(function () {
+    Route::get('verify-email', [AuthController::class, 'verificationNotice'])->name('verification.notice');
+    Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])
+         ->middleware('throttle:6,1')
+         ->name('verification.send');
+});
+
+// Signed verification URL (from email link) — must work while logged out
+Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+     ->middleware(['throttle:6,1'])
+     ->name('verification.verify');
+
+// ── 2FA Challenge (after login, before full session) ─────────────────────────
+
+Route::middleware('auth')->prefix('two-factor')->name('two-factor.')->group(function () {
+    Route::get('challenge', [TwoFactorController::class, 'showChallenge'])->name('challenge');
+    Route::post('challenge', [TwoFactorController::class, 'challenge'])
+        ->middleware('throttle:6,1')
+        ->name('challenge.submit');
+    Route::post('challenge/resend', [TwoFactorController::class, 'resendCode'])
+        ->middleware('throttle:6,1')
+        ->name('resend');
+    // Distinct from settings GET two-factor.recovery (store-scoped recovery codes page)
+    Route::post('recovery', [TwoFactorController::class, 'recovery'])
+        ->middleware('throttle:6,1')
+        ->name('challenge.recovery');
+});
+
+// ── Authenticated + Verified + 2FA Passed ─────────────────────────────────────
+
+Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(function () {
+
+    // ── Tenant-scoped App Routes (/ {store} / dashboard) ─────────────────────
+
+    Route::middleware(['salon.panel', 'plan.access', 'admin.store.browse.readonly-pages', 'store.path', InitializeTenancyFromDomain::class, 'tenant', 'profile.complete', 'sync.staff.role', 'route.permission', 'admin.store.readonly', 'user.activity'])
+        ->prefix('{store}')
+        ->where(['store' => SalonUrl::reservedPattern()])
+        ->group(function () {
+
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::post('action-items', [SalonActionItemController::class, 'store'])->name('action-items.store');
+        Route::patch('action-items/{actionItem}', [SalonActionItemController::class, 'update'])->name('action-items.update');
+
+        Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
+        Route::patch('tasks/{actionItem}', [TaskController::class, 'update'])->name('tasks.update');
+        Route::delete('tasks/{actionItem}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+
+        Route::get('calendar', [CalendarController::class, 'index'])->name('calendar');
+        Route::post('ui/hide-profile-bar', function (\Illuminate\Http\Request $request) {
+            $request->session()->put('hide_profile_bar', true);
+
+            return response()->json(['ok' => true]);
+        })->name('ui.hide-profile-bar');
+
+        Route::get('guide', [GuideController::class, 'index'])->name('guide.index');
+
+        Route::get('deleted-items', [DeletedItemsController::class, 'index'])->name('deleted-items.index');
+        Route::post('deleted-items/{type}/{id}/restore', [DeletedItemsController::class, 'restore'])->name('deleted-items.restore');
+        Route::delete('deleted-items/{type}/{id}', [DeletedItemsController::class, 'forceDestroy'])->name('deleted-items.force-delete');
+
+        Route::post('appointments/validate-window', [AppointmentController::class, 'validateWindow'])
+            ->name('appointments.validate-window');
+        Route::get('appointments/occupied-slots', [AppointmentController::class, 'occupiedSlots'])
+            ->name('appointments.occupied-slots');
+
+        Route::get('lookup/clients', [TenantLookupController::class, 'clients'])->name('lookup.clients');
+        Route::get('lookup/staff', [TenantLookupController::class, 'staff'])->name('lookup.staff');
+
+        Route::resource('appointments', AppointmentController::class);
+        Route::patch('appointments/{appointment}/status',     [AppointmentController::class, 'updateStatus'])->name('appointments.status');
+        Route::patch('appointments/{appointment}/confirm',    [AppointmentController::class, 'confirm'])->name('appointments.confirm');
+        Route::patch('appointments/{appointment}/cancel',     [AppointmentController::class, 'cancel'])->name('appointments.cancel');
+        Route::patch('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
+        Route::patch('appointments/{appointment}/complete',   [AppointmentController::class, 'complete'])->name('appointments.complete');
+        Route::get('appointments/{appointment}/invoice.pdf', [AppointmentController::class, 'invoicePdf'])->name('appointments.invoice.pdf');
+        Route::get('appointments/{appointment}/invoice', [AppointmentController::class, 'invoiceShow'])->name('appointments.invoice.show');
+
+        Route::get('clients/export', [ClientController::class, 'export'])->name('clients.export');
+        Route::get('clients/import/sample', [ClientController::class, 'importSample'])->name('clients.import.sample');
+        Route::post('clients/import', [ClientController::class, 'import'])->name('clients.import');
+        Route::post('quick-create/client', [RelationQuickCreateController::class, 'storeClient'])->name('quick-create.client');
+        Route::post('quick-create/staff', [RelationQuickCreateController::class, 'storeStaff'])
+            ->middleware('plan.limit:staff')
+            ->name('quick-create.staff');
+        Route::post('quick-create/inventory-category', [RelationQuickCreateController::class, 'storeInventoryCategory'])
+            ->name('quick-create.inventory-category');
+        Route::post('quick-create/service', [RelationQuickCreateController::class, 'storeService'])
+            ->middleware('plan.limit:services')
+            ->name('quick-create.service');
+        Route::resource('clients', ClientController::class);
+        Route::post('clients/review-requests', [ClientController::class, 'sendReviewRequests'])->name('clients.review-requests.send');
+        Route::get('staff/payroll/export', [StaffController::class, 'exportPayroll'])->name('staff.payroll.export');
+        Route::put('staff/{staff}/weekly-schedule', [StaffController::class, 'updateWeeklySchedule'])->name('staff.weekly-schedule');
+        Route::patch('staff/{staff}/base-salary', [StaffController::class, 'updateBaseSalary'])->name('staff.base-salary');
+        Route::resource('staff', StaffController::class)->middleware('plan.limit:staff');
+        Route::put('services/pricing-rules', [ServiceController::class, 'updatePricingRules'])->name('services.pricing-rules');
+        Route::put('services/{service}/variants', [ServiceController::class, 'updateVariants'])->name('services.variants');
+        Route::resource('services', ServiceController::class)->middleware('plan.limit:services');
+        Route::resource('service-packages', ServicePackageController::class)->except(['show']);
+        Route::middleware('subscription:feature:multi_location')->group(function () {
+            Route::get('multi-location', [MultiLocationController::class, 'index'])->name('multi-location.index');
+            Route::post('multi-location', [MultiLocationController::class, 'store'])->name('multi-location.store')->middleware('plan.limit:stores');
+            Route::put('multi-location/{location}', [MultiLocationController::class, 'update'])->name('multi-location.update');
+            Route::delete('multi-location/{location}', [MultiLocationController::class, 'destroy'])->name('multi-location.destroy');
+            Route::post('multi-location/{location}/switch', [MultiLocationController::class, 'switch'])->name('multi-location.switch');
+        });
+
+        Route::get('availability', [AvailabilityResourcesController::class, 'index'])->name('availability.index');
+        Route::post('availability/resources', [AvailabilityResourcesController::class, 'storeResource'])->name('availability.resources.store');
+        Route::put('availability/resources/{resource}', [AvailabilityResourcesController::class, 'updateResource'])->name('availability.resources.update');
+        Route::delete('availability/resources/{resource}', [AvailabilityResourcesController::class, 'destroyResource'])->name('availability.resources.destroy');
+        Route::post('availability/leave', [AvailabilityResourcesController::class, 'storeLeave'])->name('availability.leave.store');
+        Route::patch('availability/leave/{leave}/approve', [AvailabilityResourcesController::class, 'approveLeave'])->name('availability.leave.approve');
+        Route::patch('availability/leave/{leave}/reject', [AvailabilityResourcesController::class, 'rejectLeave'])->name('availability.leave.reject');
+        Route::post('availability/staff/{staff}/toggle-day', [AvailabilityResourcesController::class, 'toggleStaffDay'])->name('availability.staff.toggle-day');
+        Route::get('availability/attendance/export', [AvailabilityResourcesController::class, 'exportAttendance'])->name('availability.attendance.export');
+        Route::post('availability/attendance', [AvailabilityResourcesController::class, 'storeAttendance'])->name('availability.attendance.store');
+        Route::post('availability/attendance/{staff}/clock-in', [AvailabilityResourcesController::class, 'clockInAttendance'])->name('availability.attendance.clock-in');
+        Route::post('availability/attendance/{staff}/clock-out', [AvailabilityResourcesController::class, 'clockOutAttendance'])->name('availability.attendance.clock-out');
+        Route::get('service-categories', [ServiceCategoryController::class, 'index'])->name('service-categories.index');
+        Route::post('service-categories', [ServiceCategoryController::class, 'store'])->name('service-categories.store');
+        Route::put('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'update'])->name('service-categories.update');
+        Route::delete('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
+        Route::get('inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+        Route::post('inventory/barcode-lookup', [InventoryController::class, 'barcodeLookup'])->name('inventory.barcode-lookup');
+        Route::post('inventory/reorder', [InventoryController::class, 'reorder'])->name('inventory.reorder');
+        Route::post('inventory/adjust-hub', [InventoryController::class, 'adjustHub'])->name('inventory.adjust-hub');
+        Route::resource('inventory', InventoryController::class);
+        Route::post('inventory/{item}/adjust', [InventoryController::class, 'adjust'])
+             ->name('inventory.adjust');
+
+        Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
+        Route::post('quick-create/expense-category', [ExpenseController::class, 'storeCategory'])
+            ->name('quick-create.expense-category');
+        Route::resource('expenses', ExpenseController::class)->except(['show']);
+
+        Route::resource('facilities', FacilityController::class);
+
+        Route::get('pos/{po}/invoice.pdf', [PosController::class, 'invoicePdf'])->name('pos.invoice.pdf');
+        Route::get('pos/{po}/invoice/print', [PosController::class, 'invoicePrint'])->name('pos.invoice.print');
+        Route::resource('pos', PosController::class)->only(['index','create','store','show']);
+        Route::post('pos/{po}/invoice/email', [PosController::class, 'sendInvoiceEmail'])->name('pos.invoice.email');
+
+        // Marketing — requires Pro plan or above (specific routes before {marketing} wildcard)
+        Route::middleware('subscription:feature:marketing')->group(function () {
+            Route::get('marketing/growth', [MarketingController::class, 'growth'])->name('marketing.growth');
+            Route::post('marketing/loyalty/tiers', [MarketingController::class, 'storeLoyaltyTier'])->name('marketing.loyalty.tiers.store');
+            Route::put('marketing/loyalty/tiers/{loyalty_tier}', [MarketingController::class, 'updateLoyaltyTier'])->name('marketing.loyalty.tiers.update');
+            Route::delete('marketing/loyalty/tiers/{loyalty_tier}', [MarketingController::class, 'destroyLoyaltyTier'])->name('marketing.loyalty.tiers.destroy');
+            Route::get('marketing/loyalty/tiers/{loyalty_tier}/members', [MarketingController::class, 'loyaltyTierMembers'])->name('marketing.loyalty.tiers.members');
+            Route::put('marketing/referral-settings', [MarketingController::class, 'updateReferralSettings'])->name('marketing.referral-settings.update');
+            Route::patch('marketing/automation-templates/{marketing_automation_template}', [MarketingController::class, 'toggleAutomationTemplate'])->name('marketing.automation-templates.toggle');
+            Route::put('marketing/automation-templates/{marketing_automation_template}', [MarketingController::class, 'updateAutomationTemplate'])->name('marketing.automation-templates.update');
+            Route::post('marketing/sms/threads/{marketing_sms_thread}/messages', [MarketingController::class, 'storeSmsReply'])->name('marketing.sms.reply');
+            Route::post('marketing/{marketing}/duplicate', [MarketingController::class, 'duplicate'])->name('marketing.duplicate');
+            Route::post('marketing/{marketing}/send', [MarketingController::class, 'send'])->name('marketing.send');
+            Route::resource('marketing', MarketingController::class)
+                 ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+        });
+
+        // Reports — requires Pro plan or above
+        Route::get('revenue', function () {
+            $user = auth()->user();
+            $activeSalonId = (int) session('active_salon_id', 0);
+            $salon = $activeSalonId > 0
+                ? $user->salons()->where('id', $activeSalonId)->first()
+                : null;
+            $salon = $salon ?: $user->salons()->firstOrFail();
+
+            return redirect()->route('reports.show', [
+                'type' => 'revenue',
+                'from' => \App\Support\SalonTime::monthStartDateString($salon),
+                'to'   => \App\Support\SalonTime::todayDateString($salon),
+            ]);
+        })->name('revenue.index')->middleware('subscription:feature:reports');
+
+        Route::get('reports', [ReportController::class, 'index'])->name('reports.index')
+             ->middleware('subscription:feature:reports');
+        Route::get('reports/analytics', [ReportController::class, 'analytics'])->name('reports.analytics')
+             ->middleware('subscription:feature:reports');
+        Route::get('reports/growth-tips', [ReportController::class, 'growthTips'])->name('reports.growth-tips')
+             ->middleware('subscription:feature:reports');
+        Route::get('reports/revenue/export', [ReportController::class, 'exportRevenue'])->name('reports.revenue.export')
+             ->middleware('subscription:feature:reports');
+        Route::get('reports/{type}', [ReportController::class, 'show'])->name('reports.show')
+             ->where('type', implode('|', \App\Support\ReportCatalog::keys()))
+             ->middleware('subscription:feature:reports');
+
+        Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        Route::post('reviews/{review}/reply', [ReviewController::class, 'reply'])->name('reviews.reply');
+
+        // Notifications
+        Route::get('notifications',                [\App\Http\Controllers\Web\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/{notification}/read', [\App\Http\Controllers\Web\NotificationController::class, 'markRead'])->name('notifications.read');
+        Route::post('notifications/mark-all-read', [\App\Http\Controllers\Web\NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+        Route::get('notifications/dropdown',       [\App\Http\Controllers\Web\NotificationController::class, 'dropdown'])->name('notifications.dropdown');
+
+        // Activity log (tenant model change history)
+        Route::get('activity-log', [\App\Http\Controllers\Tenant\ActivityLogController::class, 'index'])
+             ->name('activity.index')
+             ->middleware('can:view-activity-log');
+
+        // Go Live & Share
+        Route::get('go-live', [\App\Http\Controllers\Web\GoLiveController::class, 'index'])->name('go-live');
+        Route::post('go-live/theme', [\App\Http\Controllers\Web\GoLiveController::class, 'updateTheme'])->name('go-live.theme');
+        Route::get('theme-preview/{slug}', function (string $slug) {
+            $path = \App\Support\StorefrontTheme::previewImagePath($slug);
+            abort_unless($path, 404);
+
+            return response()->file($path);
+        })->name('storefront.theme-preview');
+        Route::get('setup-progress', [\App\Http\Controllers\Web\SetupProgressController::class, 'index'])->name('setup-progress');
+        Route::post('go-live/logo', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadLogo'])->name('go-live.logo.upload');
+        Route::get('go-live/theme-branding/{theme}', [\App\Http\Controllers\Web\GoLiveController::class, 'themeBranding'])->name('go-live.theme-branding.show');
+        Route::post('go-live/theme-branding', [\App\Http\Controllers\Web\GoLiveController::class, 'updateThemeBranding'])->name('go-live.theme-branding.update');
+        Route::delete('go-live/theme-branding/{theme}/{element}', [\App\Http\Controllers\Web\GoLiveController::class, 'resetThemeBranding'])->name('go-live.theme-branding.reset');
+        Route::post('go-live/settings', [\App\Http\Controllers\Web\GoLiveController::class, 'updateSettings'])->name('go-live.settings.update');
+        Route::post('go-live/photos', [\App\Http\Controllers\Web\GoLiveController::class, 'uploadPhoto'])->name('go-live.photos.upload');
+        Route::delete('go-live/photos/{photo}', [\App\Http\Controllers\Web\GoLiveController::class, 'deletePhoto'])->name('go-live.photos.delete');
+        Route::get('website-seo', [WebsiteSeoController::class, 'index'])->name('website-seo.index');
+        Route::post('website-seo/theme', [WebsiteSeoController::class, 'updateTheme'])->name('website-seo.theme');
+        Route::post('website-seo/publish', [WebsiteSeoController::class, 'publish'])->name('website-seo.publish');
+        Route::get('website-about', [WebsiteAboutController::class, 'index'])->name('website-about.index');
+        Route::put('website-about', [WebsiteAboutController::class, 'update'])->name('website-about.update');
+        Route::post('website-about/gallery', [WebsiteAboutController::class, 'updateGallery'])->name('website-about.gallery.update');
+        Route::delete('website-about/gallery', [WebsiteAboutController::class, 'resetGallery'])->name('website-about.gallery.reset');
+        Route::put('website-seo/about', fn () => redirect()->route('website-about.index'))->name('website-seo.about');
+        Route::get('security-support', [SecuritySupportController::class, 'index'])->name('security-support.index');
+        Route::put('security-support/security', [SecuritySupportController::class, 'updateSecurity'])->name('security-support.security.update');
+        Route::get('support-tickets', [TenantSupportController::class, 'index'])->name('support-tickets.index');
+        Route::get('support-tickets/create', [TenantSupportController::class, 'create'])->name('support-tickets.create');
+        Route::post('support-tickets', [TenantSupportController::class, 'store'])->name('support-tickets.store');
+        Route::get('support-tickets/{ticket}', [TenantSupportController::class, 'show'])->name('support-tickets.show');
+        Route::post('support-tickets/{ticket}/reply', [TenantSupportController::class, 'reply'])->name('support-tickets.reply');
+        Route::get('customization', [CustomizationController::class, 'index'])->name('customization.index');
+        Route::post('customization/brand', [CustomizationController::class, 'updateBrand'])->name('customization.brand.update');
+        Route::put('customization/options', [CustomizationController::class, 'updateOptions'])->name('customization.options.update');
+        Route::put('customization/forms', [CustomizationController::class, 'updateForms'])->name('customization.forms.update');
+        Route::post('customization/features/request', [CustomizationController::class, 'requestFeature'])->name('customization.features.request');
+
+        Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::get('set_socket_blocking', fn () => redirect()->route('settings.index', ['tab' => 'services']))->name('set_socket_blocking');
+        Route::put('settings/salon',         [SettingsController::class, 'updateSalon'])->name('settings.salon');
+        Route::post('settings/awards-image', [SettingsController::class, 'uploadAwardsImage'])->name('settings.awards-image');
+        Route::put('settings/booking',       [SettingsController::class, 'updateBooking'])->name('settings.booking');
+        Route::put('settings/buffer-rules',  [SettingsController::class, 'updateBufferRules'])->name('settings.buffer-rules');
+        Route::put('settings/services',      [SettingsController::class, 'updateServices'])->name('settings.services');
+        Route::put('settings/hours',         [SettingsController::class, 'updateHours'])->name('settings.hours');
+        Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');
+        Route::put('settings/profile',       [SettingsController::class, 'updateProfile'])->name('settings.profile');
+        Route::put('settings/team-members',  [SettingsController::class, 'updateTeamMembers'])->name('settings.team-members');
+        Route::put('settings/password',      [SettingsController::class, 'updatePassword'])->name('settings.password');
+        Route::put('settings/social-links',  [SettingsController::class, 'updateSocialLinks'])->name('settings.social-links');
+
+        // Payment gateway keys (tenant)
+        Route::get('payments/gateway',  [PaymentGatewayController::class, 'edit'])->name('payments.gateway');
+        Route::put('payments/gateway',  [PaymentGatewayController::class, 'update'])->name('payments.gateway.update');
+
+        // Charge / receive money from clients
+        Route::get('payments/charge',   [PaymentGatewayController::class, 'showCharge'])->name('payments.charge');
+        Route::post('payments/charge',  [PaymentGatewayController::class, 'charge'])->name('payments.charge.process');
+        Route::get('payments/charge/return', [PaymentGatewayController::class, 'chargeReturn'])->name('payments.charge.return');
+
+        // Chatbot
+        Route::post('chatbot/message', [\App\Http\Controllers\Web\ChatbotController::class, 'message'])->name('chatbot.message');
+
+        // ── Tenant Admin (team/billing/transfer) ────────────────────────────
+        Route::middleware('tenant_admin')->prefix('salon-admin')->name('salon-admin.')->group(function () {
+            Route::get('team',                         [TenantAdminController::class, 'team'])->name('team');
+            Route::post('team/invite',                 [TenantAdminController::class, 'invite'])->name('team.invite');
+            Route::post('team/{user}/resend-invite',   [TenantAdminController::class, 'resendInvite'])->name('team.resend');
+            Route::patch('team/{user}/role',           [TenantAdminController::class, 'updateMemberRole'])->name('team.role');
+            Route::put('team/role-permissions',        [TenantAdminController::class, 'updateRolePermissions'])->name('team.role-permissions');
+            Route::patch('team/role-permissions/toggle', [TenantAdminController::class, 'toggleRolePermission'])->name('team.role-permission-toggle');
+            Route::delete('team/{user}',               [TenantAdminController::class, 'removeMember'])->name('team.remove');
+            Route::get('subscription',                 [TenantAdminController::class, 'subscription'])
+                ->middleware('subscriptions.enabled')
+                ->name('subscription');
+            Route::post('transfer-ownership',          [TenantAdminController::class, 'transferOwnership'])->name('transfer');
+        });
+
+        // ── 2FA settings (store-scoped) ─────────────────────────────────────
+        Route::prefix('settings/two-factor')->name('two-factor.')->group(function () {
+            Route::get('/',                    [TwoFactorController::class, 'showSetup'])->name('setup');
+            Route::post('totp',                [TwoFactorController::class, 'setupTotp'])->name('totp.setup');
+            Route::post('totp/confirm',        [TwoFactorController::class, 'confirmTotp'])->name('totp.confirm');
+            Route::post('email',               [TwoFactorController::class, 'setupEmail'])->name('email.setup');
+            Route::delete('/',                 [TwoFactorController::class, 'disable'])->name('disable');
+            Route::get('recovery',             [TwoFactorController::class, 'showRecovery'])->name('recovery');
+            Route::post('recovery/regenerate', [TwoFactorController::class, 'regenerateCodes'])->name('recovery.regenerate');
+        });
+
+        // ── Account (sessions / delete) ─────────────────────────────────────
+        Route::prefix('account')->name('account.')->group(function () {
+            Route::get('sessions',                     [\App\Http\Controllers\Web\AccountController::class, 'sessions'])->name('sessions');
+            Route::delete('sessions/{id}',             [\App\Http\Controllers\Web\AccountController::class, 'revokeSession'])->name('sessions.revoke');
+            Route::delete('sessions',                  [\App\Http\Controllers\Web\AccountController::class, 'revokeAllOtherSessions'])->name('sessions.revoke-all');
+            Route::delete('tokens/{id}',               [\App\Http\Controllers\Web\AccountController::class, 'revokeToken'])->name('tokens.revoke');
+            Route::get('delete',                       [\App\Http\Controllers\Web\AccountController::class, 'showDelete'])->name('delete');
+            Route::delete('/',                         [\App\Http\Controllers\Web\AccountController::class, 'destroy'])->name('destroy');
+        });
+
+        // ── Onboarding ──────────────────────────────────────────────────────
+        Route::prefix('onboarding')->name('onboarding.')->group(function () {
+            Route::get('/',                    [\App\Http\Controllers\Web\OnboardingController::class, 'index'])->name('index');
+            Route::get('/step/{step}',         [\App\Http\Controllers\Web\OnboardingController::class, 'step'])->name('step');
+            Route::post('/step/{step}',        [\App\Http\Controllers\Web\OnboardingController::class, 'completeStep'])->name('complete-step');
+            Route::get('/complete',            [\App\Http\Controllers\Web\OnboardingController::class, 'complete'])->name('complete');
+            Route::get('/skip',                [\App\Http\Controllers\Web\OnboardingController::class, 'skip'])->name('skip');
+        });
+
+        // ── Billing (store-scoped; Cashfree return stays global) ─────────────
+        Route::middleware(['subscriptions.enabled'])->prefix('billing')->name('billing.')->group(function () {
+            Route::get('/',            [BillingController::class, 'plans'])->name('plans');
+            Route::post('checkout',    [BillingController::class, 'checkout'])->name('checkout');
+            Route::get('success', fn () => redirect()->route('billing.dashboard'))->name('success');
+            Route::get('change',       [BillingController::class, 'showChangePlan'])->name('change.show');
+            Route::patch('change',     [BillingController::class, 'changePlan'])->name('change');
+            Route::get('cancel',       [BillingController::class, 'showCancel'])->name('cancel');
+            Route::delete('cancel',    [BillingController::class, 'cancel'])->name('cancel.destroy');
+            Route::post('resume',      [BillingController::class, 'resume'])->name('resume');
+            Route::get('portal',       [BillingController::class, 'portal'])->name('portal');
+            Route::get('dashboard',    [BillingController::class, 'dashboard'])->name('dashboard');
+            Route::get('invoices/{id}',[BillingController::class, 'downloadInvoice'])->name('invoice.download');
+            Route::post('promo',       [BillingController::class, 'applyPromo'])->name('promo');
+        });
+
+    }); // end tenant middleware ({store} prefix)
+
+    // Old bookmarks: /dashboard → /{store}/dashboard, /account/* → /{store}/account/*, etc.
+    // Do not catch public share URLs (reviews/share/{token}) — those are guest routes.
+    Route::middleware(['salon.panel'])->group(function () {
+        Route::any('{legacy}', LegacySalonUrlController::class)
+            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|website-about|security-support|support-tickets|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking|account|billing|onboarding)(/.*)?$')
+            ->name('legacy.salon.redirect');
+    });
+
+}); // end auth+verified+2fa
+
+// ── Billing return (Cashfree) — must stay outside {store} ─────────────────────
+Route::middleware(['subscriptions.enabled'])
+    ->prefix('billing')
+    ->name('billing.')
+    ->group(function () {
+        Route::match(['get', 'post'], 'return', [BillingController::class, 'paymentReturn'])->name('return');
+    });
+
+// ── Super Admin Panel ─────────────────────────────────────────────────────────
+
+use App\Http\Controllers\Admin\AdminFacilityController;
+use App\Http\Controllers\Admin\AdminTenantController;
+use App\Http\Controllers\Admin\AdminRevenueController;
+use App\Http\Controllers\Admin\AdminPlanController;
+use App\Http\Controllers\Admin\AdminSupportController;
+use App\Http\Controllers\Admin\AdminContactQueryController;
+use App\Http\Controllers\Admin\AdminAnalyticsController;
+use App\Http\Controllers\Admin\AdminTenantOwnerController;
+use App\Http\Controllers\Admin\AdminTenantStoresController;
+use App\Http\Controllers\Admin\AdminStoreBrowseController;
+use App\Http\Controllers\Admin\AdminExplorerController;
+use App\Http\Controllers\Admin\AdminPlatformReportController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantHubController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantClientController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantAppointmentController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantStaffController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantPosController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantServiceController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantInventoryController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantExpenseController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantReviewController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantMarketingController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantLeaveController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantAttendanceController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantSettingsController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantAuditController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantDeletedController;
+use App\Http\Controllers\Admin\Tenant\AdminTenantActionsController;
+
+Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin', 'user.activity'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+
+    // ── Dashboard ────────────────────────────────────────────────────────────
+    Route::get('/', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('reports/download-all', [AdminPlatformReportController::class, 'exportAll'])->name('reports.export-all');
+    Route::get('reports/{type}', [AdminPlatformReportController::class, 'export'])
+        ->name('reports.export')
+        ->where('type', 'owners|stores|clients|appointments|revenue|staff|services|inventory|expenses');
+
+    // ── Facilities (read-only cross-tenant) ───────────────────────────────────
+    Route::get('facilities',                 [AdminFacilityController::class, 'index'])->name('facilities');
+
+    // ── Tenants (full management) ─────────────────────────────────────────────
+    Route::get('tenants',                    [AdminTenantController::class, 'index'])->name('tenants');
+    Route::get('tenants/export',             [AdminTenantController::class, 'export'])->name('tenants.export');
+    Route::get('tenants/owners/{owner}',      [AdminTenantOwnerController::class, 'show'])->name('tenants.owners.show');
+    Route::post('tenants/owners/{owner}/block',   [AdminTenantOwnerController::class, 'block'])->name('tenants.owners.block');
+    Route::post('tenants/owners/{owner}/unblock', [AdminTenantOwnerController::class, 'unblock'])->name('tenants.owners.unblock');
+    Route::post('tenants/owners/{owner}/plan',   [AdminTenantOwnerController::class, 'assignPlan'])->name('tenants.owners.plan');
+    Route::get('tenants/owners/{owner}/stores', [AdminTenantStoresController::class, 'index'])->name('tenants.stores');
+    Route::post('tenants/stores/{salon}/enter', [AdminStoreBrowseController::class, 'enter'])->name('tenants.stores.enter');
+    Route::post('store-browse/exit',          [AdminStoreBrowseController::class, 'exit'])->name('store-browse.exit');
+    Route::get('tenants/stores/{salon}',      [AdminTenantHubController::class, 'show'])->name('tenants.show');
+    Route::patch('tenants/{salon}/domain',      [AdminTenantController::class, 'updateDomain'])->name('tenants.domain');
+    Route::post('tenants/{salon}/suspend',      [AdminTenantController::class, 'suspend'])->name('tenants.suspend');
+    Route::post('tenants/{salon}/unsuspend',    [AdminTenantController::class, 'unsuspend'])->name('tenants.unsuspend');
+    Route::post('tenants/bulk-suspend',      [AdminTenantController::class, 'bulkSuspend'])->name('tenants.bulk-suspend');
+    Route::post('tenants/{salon}/override',     [AdminTenantController::class, 'applyPlanOverride'])->name('tenants.override');
+    Route::delete('tenants/{salon}/override/{override}', [AdminTenantController::class, 'revokeOverride'])->name('tenants.override.revoke');
+
+    // ── Tenant store data (read-only browse) ─────────────────────────────────
+    Route::prefix('tenants/{salon}')->name('tenants.')->group(function () {
+        Route::get('clients', [AdminTenantClientController::class, 'index'])->name('clients.index');
+        Route::get('clients/{record}', [AdminTenantClientController::class, 'show'])->name('clients.show');
+        Route::get('appointments', [AdminTenantAppointmentController::class, 'index'])->name('appointments.index');
+        Route::get('appointments/{record}', [AdminTenantAppointmentController::class, 'show'])->name('appointments.show');
+        Route::get('staff', [AdminTenantStaffController::class, 'index'])->name('staff.index');
+        Route::get('staff/{record}', [AdminTenantStaffController::class, 'show'])->name('staff.show');
+        Route::get('pos', [AdminTenantPosController::class, 'index'])->name('pos.index');
+        Route::get('pos/{record}', [AdminTenantPosController::class, 'show'])->name('pos.show');
+        Route::get('services', [AdminTenantServiceController::class, 'index'])->name('services.index');
+        Route::get('services/{record}', [AdminTenantServiceController::class, 'show'])->name('services.show');
+        Route::get('inventory', [AdminTenantInventoryController::class, 'index'])->name('inventory.index');
+        Route::get('inventory/{record}', [AdminTenantInventoryController::class, 'show'])->name('inventory.show');
+        Route::get('expenses', [AdminTenantExpenseController::class, 'index'])->name('expenses.index');
+        Route::get('expenses/{record}', [AdminTenantExpenseController::class, 'show'])->name('expenses.show');
+        Route::get('reviews', [AdminTenantReviewController::class, 'index'])->name('reviews.index');
+        Route::get('reviews/{record}', [AdminTenantReviewController::class, 'show'])->name('reviews.show');
+        Route::get('marketing', [AdminTenantMarketingController::class, 'index'])->name('marketing.index');
+        Route::get('marketing/{record}', [AdminTenantMarketingController::class, 'show'])->name('marketing.show');
+        Route::get('leave', [AdminTenantLeaveController::class, 'index'])->name('leave.index');
+        Route::get('leave/{record}', [AdminTenantLeaveController::class, 'show'])->name('leave.show');
+        Route::get('attendance', [AdminTenantAttendanceController::class, 'index'])->name('attendance.index');
+        Route::get('attendance/{record}', [AdminTenantAttendanceController::class, 'show'])->name('attendance.show');
+        Route::get('settings', [AdminTenantSettingsController::class, 'show'])->name('settings');
+        Route::get('audit', [AdminTenantAuditController::class, 'index'])->name('audit.index');
+        Route::get('deleted', [AdminTenantDeletedController::class, 'index'])->name('deleted.index');
+        Route::post('actions/appointments/{appointment}/cancel', [AdminTenantActionsController::class, 'cancelAppointment'])->name('actions.appointment.cancel');
+        Route::post('actions/pos/{transaction}/refund', [AdminTenantActionsController::class, 'refundPos'])->name('actions.pos.refund');
+        Route::post('actions/deleted/{type}/{id}/restore', [AdminTenantActionsController::class, 'restoreDeleted'])->name('actions.deleted.restore');
+    });
+
+    // ── Cross-tenant explorer ─────────────────────────────────────────────────
+    Route::get('explorer', [AdminExplorerController::class, 'index'])->name('explorer');
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+    Route::get('users',                      [SuperAdminController::class, 'users'])->name('users');
+    Route::get('users/{id}',                 [SuperAdminController::class, 'showUser'])->name('users.show');
+    Route::patch('users/{id}/toggle',        [SuperAdminController::class, 'toggleUserStatus'])->name('users.toggle');
+    Route::post('users/{id}/impersonate',    [SuperAdminController::class, 'impersonate'])->name('users.impersonate');
+    Route::post('impersonate/stop',          [SuperAdminController::class, 'stopImpersonating'])->name('impersonate.stop');
+    Route::post('users/{id}/promote',        [SuperAdminController::class, 'promoteToSuperAdmin'])->name('users.promote');
+    Route::delete('users/{id}/demote',       [SuperAdminController::class, 'demoteFromSuperAdmin'])->name('users.demote');
+    Route::delete('users/{id}/tokens',       [SuperAdminController::class, 'revokeAllTokens'])->name('users.revoke-tokens');
+
+    // ── Revenue ───────────────────────────────────────────────────────────────
+    Route::get('revenue',                    [AdminRevenueController::class, 'index'])->name('revenue');
+    Route::get('revenue/export',             [AdminRevenueController::class, 'export'])->name('revenue.export');
+
+    // ── Plan Management ───────────────────────────────────────────────────────
+    Route::get('tenant-modules',             [\App\Http\Controllers\Admin\AdminTenantModuleAccessController::class, 'index'])->name('tenant-modules');
+    Route::put('tenant-modules',             [\App\Http\Controllers\Admin\AdminTenantModuleAccessController::class, 'update'])->name('tenant-modules.update');
+
+    Route::get('plans',                      [AdminPlanController::class, 'index'])->name('plans');
+    Route::post('plans/assign',              [AdminPlanController::class, 'assign'])->name('plans.assign');
+    Route::post('plans/migrate',             [AdminPlanController::class, 'migratePlan'])->name('plans.migrate');
+    Route::post('plans/bulk-migrate',        [AdminPlanController::class, 'bulkMigrate'])->name('plans.bulk-migrate');
+
+    // ── Support Tickets ───────────────────────────────────────────────────────
+    Route::get('support',                    [AdminSupportController::class, 'index'])->name('support.index');
+    Route::post('support',                   [AdminSupportController::class, 'store'])->name('support.store');
+    Route::get('support/{ticket}',           [AdminSupportController::class, 'show'])->name('support.show');
+    Route::post('support/{ticket}/reply',    [AdminSupportController::class, 'reply'])->name('support.reply');
+    Route::patch('support/{ticket}/assign',  [AdminSupportController::class, 'assign'])->name('support.assign');
+    Route::patch('support/{ticket}/status',  [AdminSupportController::class, 'updateStatus'])->name('support.status');
+
+    // ── Contact form queries (website) ────────────────────────────────────────
+    Route::get('contact-queries',            [AdminContactQueryController::class, 'index'])->name('contact-queries.index');
+    Route::get('contact-queries/{contactQuery}', [AdminContactQueryController::class, 'show'])->name('contact-queries.show');
+
+    // ── Usage Analytics ───────────────────────────────────────────────────────
+    Route::get('analytics',                  [AdminAnalyticsController::class, 'index'])->name('analytics');
+
+    // ── Billing (Stripe webhooks & MRR — legacy) ──────────────────────────────
+    Route::get('billing',                    [\App\Http\Controllers\Admin\AdminBillingController::class, 'index'])->name('billing');
+    Route::get('billing/webhooks',           [\App\Http\Controllers\Admin\AdminBillingController::class, 'webhooks'])->name('billing.webhooks');
+    Route::post('billing/webhooks/{id}/replay', [\App\Http\Controllers\Admin\AdminBillingController::class, 'replayWebhook'])->name('billing.webhook.replay');
+
+    // ── Security Audit Log ────────────────────────────────────────────────────
+    Route::get('audit',                      [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit.index');
+    Route::get('audit/stats',                [\App\Http\Controllers\Admin\AuditLogController::class, 'stats'])->name('audit.stats');
+    Route::get('audit/export',               [\App\Http\Controllers\Admin\AuditLogController::class, 'export'])->name('audit.export');
+    Route::get('audit/{auditLog}',           [\App\Http\Controllers\Admin\AuditLogController::class, 'show'])->name('audit.show');
+    Route::get('user-activity',             [\App\Http\Controllers\Admin\UserActivityController::class, 'index'])->name('user-activity.index');
+
+    // ── Admin Chatbot ─────────────────────────────────────────────────────────
+    Route::post('chatbot/message', [\App\Http\Controllers\Web\ChatbotController::class, 'message'])->name('chatbot.message');
+
+});
+
+
+// ── Uploaded files, for hosts where `public/storage` cannot be a symlink ──────
+// Use /media/… (not /storage/…) so Apache does not serve the Laravel storage/ directory.
+Route::get('media/{path}', [\App\Http\Controllers\Web\PublicStorageController::class, 'show'])
+    ->where('path', '.*')
+    ->name('public-storage.show');
+Route::get('storage/{path}', [\App\Http\Controllers\Web\PublicStorageController::class, 'show'])
+    ->where('path', '.*')
+    ->name('public-storage.legacy');
+
+// ── Public salon website (Blade themes + legacy React fallback) ───────────────
+Route::get('website/{theme}/assets/{asset}', [\App\Http\Controllers\Web\StorefrontController::class, 'themeAsset'])
+    ->where('theme', '[a-z0-9\-]+')
+    ->where('asset', '.+')
+    ->name('storefront.theme.asset');
+Route::get('s/{slug}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])->name('storefront.show');
+Route::get('s/{slug}/terms', [\App\Http\Controllers\Web\StorefrontController::class, 'terms'])->name('storefront.terms');
+Route::get('s/{slug}/privacy', [\App\Http\Controllers\Web\StorefrontController::class, 'privacy'])->name('storefront.privacy');
+Route::get('s/{slug}/out/{platform}', [\App\Http\Controllers\Web\StorefrontController::class, 'socialOut'])
+    ->where('platform', '[a-z]+')
+    ->name('storefront.social.out');
+Route::get('s/{slug}/{path}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])
+    ->where('path', '.*')
+    ->name('storefront.show.path');
+
+// ── Public Booking Page ───────────────────────────────────────────────────────
+Route::get('book/{slug}', [\App\Http\Controllers\Web\BookingController::class, 'show'])->name('booking.show');
+
+// ── Legal & Compliance Pages ──────────────────────────────────────────────────
+Route::prefix('legal')->name('legal.')->group(function () {
+    Route::get('privacy',  [\App\Http\Controllers\Web\LegalController::class, 'privacy'])->name('privacy');
+    Route::get('terms',    [\App\Http\Controllers\Web\LegalController::class, 'terms'])->name('terms');
+    Route::get('cookies',  [\App\Http\Controllers\Web\LegalController::class, 'cookies'])->name('cookies');
+    Route::post('consent', [\App\Http\Controllers\Web\LegalController::class, 'recordConsent'])->name('cookie-consent');
+});
+
+// ── Help Centre ───────────────────────────────────────────────────────────────
+Route::prefix('help')->name('help.')->group(function () {
+    Route::get('/',                 [\App\Http\Controllers\Web\HelpController::class, 'index'])->name('index');
+    Route::get('/{slug}',           [\App\Http\Controllers\Web\HelpController::class, 'article'])->name('article');
+    Route::post('/{id}/feedback',   [\App\Http\Controllers\Web\HelpController::class, 'feedback'])->name('feedback');
+});

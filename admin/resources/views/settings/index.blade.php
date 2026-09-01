@@ -1,0 +1,2269 @@
+@extends('layouts.app')
+@section('title', 'Settings')
+@section('page-title', 'Settings')
+
+@push('styles')
+<style>
+    @media (min-width: 1280px) {
+        .settings-sidebar-panel {
+            position: sticky;
+            top: 0.75rem;
+            max-height: calc(100vh - 6.5rem);
+            overflow-y: auto;
+        }
+    }
+    .settings-main-panel .card {
+        border-radius: 1rem;
+        border-color: rgb(226 232 240 / 0.95);
+        background: #fff;
+        box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+        padding: 1rem;
+    }
+    @media (min-width: 640px) {
+        .settings-main-panel .card {
+            padding: 1.5rem;
+        }
+    }
+    .dark .settings-main-panel .card {
+        border-color: rgb(51 65 85 / 0.7);
+        background: rgb(15 23 42 / 0.45);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+    }
+    .settings-main-panel .card h2 {
+        letter-spacing: -0.01em;
+    }
+    .settings-shell,
+    .settings-main-panel,
+    .settings-main-panel .card,
+    .settings-main-panel form,
+    .settings-main-panel fieldset {
+        min-width: 0;
+        max-width: 100%;
+    }
+    @media (max-width: 767px) {
+        .settings-main-panel {
+            overflow-x: hidden;
+        }
+        .settings-main-panel .card {
+            padding: 0.875rem;
+        }
+        .settings-main-panel .form-input,
+        .settings-main-panel .form-select,
+        .settings-main-panel .form-textarea {
+            max-width: 100%;
+        }
+    }
+    .settings-mobile-tabs {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+    .settings-mobile-tabs::-webkit-scrollbar {
+        height: 4px;
+    }
+    .settings-staff-member-row .form-input,
+    .settings-staff-member-row .form-select,
+    .settings-staff-member-row .form-textarea {
+        min-width: 0;
+    }
+    .settings-service-offer-option {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+    .settings-service-offer-option .required-asterisk {
+        display: none;
+    }
+    .settings-service-offer-name {
+        min-width: 0;
+    }
+    .settings-service-meta-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.35rem 0.5rem;
+        width: 100%;
+        min-width: 0;
+        align-items: start;
+    }
+    .settings-service-meta-field {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        gap: 0.125rem;
+    }
+    .settings-service-offer-option .form-error,
+    .settings-service-offer-option [data-cv-msg] {
+        display: none !important;
+    }
+    .settings-service-meta-grid .settings-service-meta-input {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+    @media (min-width: 640px) {
+        .settings-service-offer-option {
+            grid-template-columns: minmax(0, 1fr) 13.5rem;
+            align-items: start;
+            column-gap: 0.75rem;
+        }
+        .settings-service-meta-grid {
+            width: 13.5rem;
+            justify-self: end;
+        }
+        .settings-service-offer-cols {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 13.5rem;
+            column-gap: 0.75rem;
+            align-items: end;
+            padding: 0 0.25rem;
+        }
+        .settings-service-offer-cols-meta {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 0.5rem;
+            width: 13.5rem;
+            justify-self: end;
+        }
+    }
+    .awards-editor-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+    .awards-editor-btn {
+        min-width: 2rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgb(226 232 240);
+        background: #fff;
+        color: inherit;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+    .dark .awards-editor-btn {
+        border-color: rgb(51 65 85);
+        background: rgb(15 23 42 / 0.6);
+    }
+    .awards-editor-surface {
+        min-height: 8.5rem;
+        max-width: 100%;
+        overflow-x: hidden;
+        padding: 0.75rem 0.875rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgb(226 232 240);
+        background: #fff;
+        outline: none;
+    }
+    .dark .awards-editor-surface {
+        border-color: rgb(51 65 85);
+        background: rgb(15 23 42 / 0.45);
+    }
+    .awards-editor-surface:empty::before {
+        content: attr(data-placeholder);
+        color: rgb(148 163 184);
+        pointer-events: none;
+    }
+    .awards-editor-surface img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0.5rem 0;
+        border-radius: 0.5rem;
+    }
+    .settings-main-panel[data-settings-readonly] .awards-editor-surface {
+        pointer-events: none;
+    }
+    .settings-main-panel[data-settings-readonly] .awards-editor-toolbar {
+        display: none !important;
+    }
+    .settings-main-panel[data-settings-readonly] input:not([type="hidden"]),
+    .settings-main-panel[data-settings-readonly] select,
+    .settings-main-panel[data-settings-readonly] textarea,
+    .settings-main-panel[data-settings-readonly] button[type="button"]:not(.settings-tab-btn):not(.settings-staff-row-toggle),
+    .settings-main-panel[data-settings-readonly] [data-searchable-select-trigger] {
+        pointer-events: none;
+        cursor: default;
+    }
+    .settings-main-panel[data-settings-readonly] .settings-action-btn,
+    .settings-main-panel[data-settings-readonly] #settings-add-staff-member,
+    .settings-main-panel[data-settings-readonly] .settings-staff-remove-btn,
+    .settings-main-panel[data-settings-readonly] #settings-detect-location-btn,
+    .settings-main-panel[data-settings-readonly] .settings-security-actions,
+    .settings-main-panel[data-settings-readonly] .settings-danger-zone {
+        display: none !important;
+    }
+</style>
+@endpush
+
+@section('content')
+
+@php
+    $returnTo = old('return_to', request()->query('return_to'));
+    $settingsPersonalOnly = $settingsPersonalOnly ?? false;
+    $settingsTabLabels = $settingsTabLabels ?? [
+        'salon' => 'Business', 'booking' => 'Booking', 'services' => 'Service', 'hours' => 'Hours', 'social' => 'Social Links',
+        'notifications' => 'Notifications', 'profile' => 'Profile', 'team' => 'Team', 'security' => 'Security',
+    ];
+    $settingsInitialTab = $settingsInitialTab ?? session('tab', request()->get('tab', $settingsPersonalOnly ? 'profile' : 'salon'));
+
+    $settingsTabMeta = [
+        'salon' => ['phase' => 'Business setup', 'title' => 'Business Profile', 'description' => 'Your business identity, contact details, timezone, and how clients experience your brand online.'],
+        'booking' => ['phase' => 'Business setup', 'title' => 'Booking Settings', 'description' => 'Control online booking, deposits, confirmation rules, buffer times, and scheduling limits.'],
+        'services' => ['phase' => 'Business setup', 'title' => 'Services & Catalog', 'description' => 'Business types, categories, and which services appear on your public booking experience.'],
+        'hours' => ['phase' => 'Business setup', 'title' => 'Opening Hours', 'description' => 'Set when your business is open so availability and booking slots stay accurate.'],
+        'social' => ['phase' => 'Presence', 'title' => 'Social Links', 'description' => 'Connect Instagram, Facebook, and other profiles shown on your public site.'],
+        'notifications' => ['phase' => 'Account', 'title' => 'Notifications', 'description' => 'Choose how you and your clients receive booking and marketing messages.'],
+        'profile' => ['phase' => 'Account', 'title' => 'Your Profile', 'description' => 'Personal details, display preferences, and services you perform.'],
+        'team' => ['phase' => 'Account', 'title' => 'Team Members', 'description' => 'Add stylists, assign services, and manage who appears on your booking page.'],
+        'security' => ['phase' => 'Account', 'title' => 'Security', 'description' => 'Two-factor authentication, login activity, and sensitive account actions.'],
+    ];
+
+    $settingsNavGroupsAll = $settingsPersonalOnly
+        ? [['label' => 'Your account', 'tabs' => ['profile', 'team', 'security']]]
+        : [
+            ['label' => 'Business setup', 'tabs' => ['salon', 'booking', 'services', 'hours']],
+            ['label' => 'Presence', 'tabs' => ['social']],
+            ['label' => 'Account', 'tabs' => ['notifications', 'profile', 'team', 'security']],
+        ];
+    $settingsNavGroups = [];
+    foreach ($settingsNavGroupsAll as $group) {
+        $tabs = array_values(array_filter($group['tabs'], fn ($k) => isset($settingsTabLabels[$k])));
+        if ($tabs !== []) {
+            $settingsNavGroups[] = ['label' => $group['label'], 'tabs' => $tabs];
+        }
+    }
+
+    $settingsProfilePct = null;
+    if (($salonBusinessStatus ?? null) && empty($hideSalonProfileBar)) {
+        $settingsProfilePct = max(0, min(100, (int) ($salonBusinessStatus['setup_percent'] ?? 0)));
+    }
+
+    // One JSON object for Alpine: must use single-quoted HTML attribute (see x-data below) — double-quoted x-data breaks when @json emits "quotes".
+    $settingsTabCanEdit = $settingsTabCanEdit ?? [];
+    $settingsAdminBrowse = $settingsAdminBrowse ?? ($adminStoreBrowse ?? false);
+    $settingsAlpineData = [
+        'tab' => (string) $settingsInitialTab,
+        'tabMeta' => $settingsTabMeta,
+        'canEdit' => $settingsTabCanEdit,
+        'adminBrowse' => $settingsAdminBrowse,
+        'showPasswordModal' => $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation'),
+        'open' => [],
+        'profileCardOpen' => true,
+    ];
+@endphp
+
+<div class="settings-shell max-w-7xl w-full min-w-0 mx-auto" x-data="settingsPage(@js($settingsAlpineData))">
+
+    <div class="flex flex-col xl:flex-row gap-4 sm:gap-5 xl:gap-8 items-stretch xl:items-start">
+
+        {{-- Sidebar navigation (setup-progress style) --}}
+        <aside class="settings-sidebar-panel w-full xl:w-[17.5rem] shrink-0 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-slate-100 via-slate-50 to-white dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950 dark:border-slate-700/80 shadow-sm shadow-slate-200/30 dark:shadow-none p-3 sm:p-4 xl:p-5">
+            <div class="mb-3 sm:mb-4 xl:mb-5">
+                <h2 class="text-sm sm:text-base font-semibold text-teal-950 dark:text-teal-50 tracking-tight">Settings</h2>
+                @if($settingsProfilePct !== null)
+                <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">Setup {{ $settingsProfilePct }}% complete</p>
+                <div class="mt-2 h-1.5 w-full rounded-full bg-teal-100 dark:bg-teal-950/60 overflow-hidden">
+                    <div class="h-full rounded-full bg-teal-600 dark:bg-teal-400 transition-all duration-300" style="width: {{ $settingsProfilePct }}%"></div>
+                </div>
+                @else
+                <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ count($settingsTabLabels) }} sections</p>
+                @endif
+            </div>
+
+            {{-- Mobile / tablet: horizontal section picker --}}
+            <div class="xl:hidden settings-mobile-tabs flex gap-2 overflow-x-auto overscroll-x-contain pb-2 mb-1 snap-x snap-mandatory" aria-label="Settings sections (mobile)">
+                @foreach($settingsTabLabels as $tabKey => $tabLabel)
+                <button type="button"
+                        @click="tab='{{ $tabKey }}'"
+                        role="tab"
+                        :aria-selected="tab==='{{ $tabKey }}'"
+                        :class="tab==='{{ $tabKey }}'
+                            ? 'bg-teal-700 text-white border-teal-700 dark:bg-teal-600 dark:border-teal-500'
+                            : 'bg-white/90 text-slate-700 border-slate-200 dark:bg-slate-800/90 dark:text-slate-200 dark:border-slate-600'"
+                        class="snap-start shrink-0 rounded-full border px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-colors">
+                    {{ $tabLabel }}
+                </button>
+                @endforeach
+            </div>
+
+            <nav class="hidden xl:block space-y-5" aria-label="Settings sections">
+                @foreach($settingsNavGroups as $navGroup)
+                <div>
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2 px-1">
+                        {{ $navGroup['label'] }}
+                    </p>
+                    <ul class="space-y-1">
+                        @foreach($navGroup['tabs'] as $tabKey)
+                        @php $tabLabel = $settingsTabLabels[$tabKey]; @endphp
+                        <li>
+                            <button type="button"
+                                    @click="tab='{{ $tabKey }}'"
+                                    role="tab"
+                                    :aria-selected="tab==='{{ $tabKey }}'"
+                                    title="{{ $tabLabel }}"
+                                    :class="tab==='{{ $tabKey }}'
+                                        ? 'bg-teal-50 border-teal-200/90 text-teal-950 shadow-sm dark:bg-teal-950/50 dark:border-teal-800/60 dark:text-teal-50'
+                                        : 'border-transparent text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100'"
+                                    class="w-full flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-all duration-150">
+                                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px]"
+                                      :class="tab==='{{ $tabKey }}'
+                                          ? 'border-teal-600 bg-teal-600 text-white dark:border-teal-400 dark:bg-teal-500'
+                                          : 'border-slate-300 bg-white text-slate-400 dark:border-slate-600 dark:bg-slate-800'">
+                                    <svg x-show="tab==='{{ $tabKey }}'" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span x-show="tab!=='{{ $tabKey }}'" class="h-1.5 w-1.5 rounded-full bg-current opacity-40"></span>
+                                </span>
+                                <span class="truncate">{{ $tabLabel }}</span>
+                            </button>
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endforeach
+            </nav>
+
+            @if(!$settingsPersonalOnly && $settingsProfilePct !== null && $settingsProfilePct < 100)
+            <div class="mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-700/80">
+                <a href="{{ \App\Support\SalonUrl::route('setup-progress') }}" class="text-xs font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100 hover:underline">
+                    View setup progress →
+                </a>
+            </div>
+            @endif
+        </aside>
+
+        {{-- Main panel --}}
+        <div class="settings-main-panel flex-1 min-w-0 w-full" @if($settingsAdminBrowse) data-settings-readonly="1" @endif>
+            @if($settingsAdminBrowse)
+            <div class="mb-4 text-sm text-amber-900 dark:text-amber-100 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">
+                Read-only admin view — settings are visible only. Saving, uploads, and security changes are disabled.
+            </div>
+            @endif
+
+            @if($settingsPersonalOnly)
+            <div class="mb-6 rounded-2xl border border-teal-200/80 bg-teal-50/70 dark:border-teal-900/50 dark:bg-teal-950/30 px-4 py-3.5 text-sm text-teal-950 dark:text-teal-100">
+                <p class="font-medium">Your account settings</p>
+                <p class="mt-1 text-teal-900/80 dark:text-teal-200/90">You can update your profile and security. Business, services, and team setup are managed by your admin.</p>
+            </div>
+            @endif
+
+            {{-- Section header (changes with active tab) --}}
+            <header class="mb-4 sm:mb-6 xl:mb-8" x-show="tabMeta[tab]" x-cloak>
+                <span class="inline-flex items-center rounded-full bg-teal-700 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-white dark:bg-teal-600"
+                      x-text="tabMeta[tab]?.phase"></span>
+                <h1 class="mt-2 sm:mt-3 text-xl sm:text-2xl xl:text-[1.75rem] font-semibold text-teal-950 dark:text-teal-50 tracking-tight leading-tight"
+                    x-text="tabMeta[tab]?.title"></h1>
+                <p class="mt-1.5 sm:mt-2 max-w-2xl text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed"
+                   x-text="tabMeta[tab]?.description"></p>
+            </header>
+
+    {{-- ── Salon Settings ── --}}
+    <div x-show="tab==='salon'" x-cloak>
+        <p x-show="!canEditTab('salon')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Business settings.</p>
+        <div class="card min-w-0 overflow-hidden">
+            <h2 class="font-semibold text-heading mb-4 sm:mb-5">Business Profile</h2>
+            <form id="settings-salon-form" action="{{ route('settings.salon') }}" method="POST" class="space-y-4 scroll-mt-24 min-w-0">
+                @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('salon')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 min-w-0">
+                    <div class="md:col-span-2">
+                        <label class="form-label">Business name <span class="text-red-500">*</span></label>
+                        <input type="text" name="name" value="{{ old('name', $salon->name) }}" required class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label">Email</label>
+                        @php
+                            $businessAccountEmail = $salon->owner?->email ?: (auth()->user()?->email ?? $salon->email);
+                        @endphp
+                        <input type="email" value="{{ $businessAccountEmail }}" readonly
+                               class="form-input bg-gray-50 dark:bg-gray-800/70 text-muted cursor-not-allowed">
+                        <p class="text-xs text-muted mt-1">Taken from your signup account. To change it, contact support.</p>
+                    </div>
+                    <div>
+                        <label class="form-label" for="settings-salon-phone">Phone</label>
+                        <input id="settings-salon-phone" type="tel" name="phone" value="{{ old('phone', $salon->phone) }}" class="form-input">
+                    </div>
+                    @php
+                        $whatsappSameAsPhone = filter_var(old('whatsapp_same_as_phone', $salon->whatsapp_same_as_phone ?? true), FILTER_VALIDATE_BOOLEAN);
+                        $whatsappNumberValue = old('whatsapp_number', $whatsappSameAsPhone ? $salon->phone : $salon->whatsapp_number);
+                    @endphp
+                    <div class="md:col-span-2 min-w-0" data-whatsapp-number-block>
+                        <label class="form-label">WhatsApp number</label>
+                        <div class="flex flex-col sm:flex-row gap-3 mt-1 mb-2">
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="radio" name="whatsapp_same_as_phone" value="1" class="rounded-full border-gray-300 text-velour-600"
+                                       data-whatsapp-same="1"
+                                       {{ $whatsappSameAsPhone ? 'checked' : '' }}>
+                                Same as mobile number
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="radio" name="whatsapp_same_as_phone" value="0" class="rounded-full border-gray-300 text-velour-600"
+                                       data-whatsapp-same="0"
+                                       {{ ! $whatsappSameAsPhone ? 'checked' : '' }}>
+                                Different WhatsApp number
+                            </label>
+                        </div>
+                        <input id="settings-salon-whatsapp" type="tel" name="whatsapp_number" value="{{ $whatsappNumberValue }}" class="form-input" autocomplete="tel">
+                        <p class="form-hint">Used on your public website WhatsApp button. Same as mobile keeps it in sync with Phone.</p>
+                    </div>
+                    <div>
+                        <label class="form-label" for="settings-salon-map-url">Map link or location</label>
+                        <input id="settings-salon-map-url" type="text" name="map_url" value="{{ old('map_url', $salon->map_url) }}" class="form-input" placeholder="Google Maps link, Plus Code, or full address" maxlength="500" autocomplete="off">
+                        <p class="form-hint">Paste a Google Maps URL, Plus Code (e.g. PRR9+5X6), or address — we turn it into a clickable map link for your website.</p>
+                    </div>
+                    <div>
+                        <label class="form-label" for="settings-salon-gst-number">GST number</label>
+                        <input id="settings-salon-gst-number" type="text" name="gst_number" value="{{ old('gst_number', $salon->gst_number) }}" class="form-input" placeholder="22AAAAA0000A1Z5" maxlength="30" autocomplete="off">
+                        <p class="form-hint">When set, customers receive a <strong>Tax Invoice</strong> with GSTIN and GST. When empty, customers receive a plain <strong>Invoice</strong> (no GST).</p>
+                    </div>
+                    <div>
+                        <label class="form-label" for="settings-salon-currency-trigger">Currency</label>
+                        <x-searchable-select
+                            id="settings-salon-currency"
+                            name="currency"
+                            wrapper-class="w-full min-w-0"
+                            :search-url="null"
+                            search-placeholder="Search currency…"
+                            trigger-class="form-select w-full">
+                            @foreach(\App\Helpers\CurrencyHelper::selectList() as $code => $lbl)
+                            <option value="{{ $code }}" {{ old('currency', $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) === $code ? 'selected' : '' }}>{{ $lbl }}</option>
+                            @endforeach
+                        </x-searchable-select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="settings-salon-timezone-trigger">Timezone</label>
+                        <x-searchable-select
+                            id="settings-salon-timezone"
+                            name="timezone"
+                            wrapper-class="w-full min-w-0"
+                            :search-url="null"
+                            search-placeholder="Search timezone…"
+                            trigger-class="form-select w-full">
+                            @foreach(\App\Helpers\TimezoneHelper::grouped() as $region => $zones)
+                            <optgroup label="{{ $region }}">
+                                @foreach($zones as $tz => $label)
+                                <option value="{{ $tz }}" {{ old('timezone', $salon->timezone ?? \App\Support\SalonTime::defaultTimezone()) === $tz ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </optgroup>
+                            @endforeach
+                        </x-searchable-select>
+                        <p class="form-hint">Dashboard, revenue, and calendar “days” follow this clock.</p>
+                        <p id="settings-location-autosave-hint" class="form-hint hidden"></p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <button type="button" id="settings-detect-location-btn" class="btn-outline w-full sm:w-auto">
+                            Auto detect from current location
+                        </button>
+                        <p class="form-hint">Click to detect and fill Currency and Timezone from your current location.</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="form-label">Booking confirmations show times in</label>
+                        <div class="flex flex-col sm:flex-row gap-3 mt-1">
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="radio" name="booking_time_display" value="business" class="rounded-full border-gray-300 text-velour-600"
+                                       {{ old('booking_time_display', $bookingTimeDisplay ?? 'business') === 'business' ? 'checked' : '' }}>
+                                Business timezone (above)
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="radio" name="booking_time_display" value="customer" class="rounded-full border-gray-300 text-velour-600"
+                                       {{ old('booking_time_display', $bookingTimeDisplay ?? 'business') === 'customer' ? 'checked' : '' }}>
+                                Customer’s local timezone (when we can detect it)
+                            </label>
+                        </div>
+                        <p class="form-hint">Used for emails and online booking messages. Internal calendar always uses business time.</p>
+                    </div>
+                    <div class="md:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-3 sm:p-4 space-y-3 min-w-0">
+                        <p class="text-sm font-semibold text-heading">Service delivery</p>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="home_services_enabled" value="1" class="mt-1 rounded border-gray-300 text-velour-600"
+                                   {{ old('home_services_enabled', $salon->home_services_enabled ?? false) ? 'checked' : '' }}>
+                            <span class="text-sm text-body leading-relaxed min-w-0 break-words">
+                                <span class="font-medium text-heading">Enable home visits (client location)</span>
+                                — when on, services you mark as <strong>home visit</strong> appear on your public booking page and API. When off (default), you can still create and manage home services in your catalog; they stay hidden from online booking until you enable this.
+                            </span>
+                        </label>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" rows="3" class="form-textarea">{{ old('description', $salon->description) }}</textarea>
+                    </div>
+                    <div class="md:col-span-2 min-w-0">
+                        <label class="form-label">Awards &amp; accolades</label>
+                        @php
+                            $awardsEditorHtml = \App\Support\AwardsHtml::forEditor(old('awards_accolades', $salon->awards_accolades));
+                        @endphp
+                        <div class="awards-editor" data-awards-editor data-upload-url="{{ route('settings.awards-image') }}">
+                            <div class="awards-editor-toolbar">
+                                <button type="button" class="awards-editor-btn" data-cmd="bold" title="Bold">B</button>
+                                <button type="button" class="awards-editor-btn" data-cmd="italic" title="Italic"><em>I</em></button>
+                                <button type="button" class="awards-editor-btn" data-cmd="insertUnorderedList" title="List">List</button>
+                                <button type="button" class="awards-editor-btn" data-awards-image title="Insert image">Image</button>
+                            </div>
+                            <div class="awards-editor-surface form-textarea" contenteditable="true" data-placeholder="Certifications, press, industry awards, memberships…" role="textbox">{!! $awardsEditorHtml !!}</div>
+                            <textarea name="awards_accolades" class="hidden" aria-hidden="true">{{ old('awards_accolades', $salon->awards_accolades) }}</textarea>
+                            <input type="file" class="hidden" data-awards-file accept="image/jpeg,image/png,image/webp">
+                        </div>
+                        <p class="form-hint">Shown on your profile and public site. You can type text and insert award or certification images in the same editor.</p>
+                    </div>
+                    <div id="settings-salon-address" class="min-w-0">
+                        <label class="form-label" for="settings-salon-address-input">Address line 1</label>
+                        <input id="settings-salon-address-input" type="text" name="address_line1" value="{{ old('address_line1', $salon->address_line1) }}" class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label">Address line 2</label>
+                        <input type="text" name="address_line2" value="{{ old('address_line2', $salon->address_line2) }}" class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label">City</label>
+                        <input type="text" name="city" value="{{ old('city', $salon->city) }}" class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label">Postcode</label>
+                        <input type="text" name="postcode" value="{{ old('postcode', $salon->postcode) }}" class="form-input">
+                    </div>
+                </div>
+                <button type="submit" x-show="canEditTab('salon')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('salon')">Save Changes</button>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+
+    {{-- ── Online booking & widget ── --}}
+    <div x-show="tab==='booking'" x-cloak>
+        <p x-show="!canEditTab('booking')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Booking settings.</p>
+        <div class="card min-w-0">
+            <div class="flex items-start gap-2 mb-5">
+                <span class="text-lg" aria-hidden="true">⚙️</span>
+                <div>
+                    <h2 class="font-semibold text-heading">Booking settings</h2>
+                    <p class="text-sm text-muted mt-1">Public booking link, embed widget, and client self-service rules.</p>
+                </div>
+            </div>
+            <form id="settings-booking-form" action="{{ route('settings.booking') }}" method="POST" class="space-y-0">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('booking')" class="min-w-0 border-0 p-0 m-0 disabled:opacity-70">
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 divide-y divide-gray-200/80 dark:divide-gray-700/80">
+                    @foreach([
+                        ['online_booking_enabled', 'Online booking', 'Allow clients to book via your link & widget', (bool) old('online_booking_enabled', $salon->online_booking_enabled)],
+                        ['new_client_booking_enabled', 'New client bookings', 'Accept bookings from first-time clients', (bool) old('new_client_booking_enabled', $salon->new_client_booking_enabled)],
+                        ['deposit_required', 'Require deposit', 'Charge deposit to reduce no-shows', (bool) old('deposit_required', $salon->deposit_required)],
+                        ['instant_confirmation', 'Instant confirmation', 'Confirm bookings automatically (no approval needed)', (bool) old('instant_confirmation', $salon->instant_confirmation)],
+                    ] as $bookingToggle)
+                        @php [$bName, $bLabel, $bHint, $bOn] = $bookingToggle; $bId = 'settings-booking-tab-' . $bName; @endphp
+                        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
+                            <div class="space-y-0.5 min-w-0 max-w-full">
+                                <label for="{{ $bId }}" class="text-sm font-medium text-heading cursor-pointer block">{{ $bLabel }}</label>
+                                <p class="text-xs text-muted leading-snug">{{ $bHint }}</p>
+                            </div>
+                            <div class="flex items-center justify-start sm:justify-end pt-0.5 sm:pt-0">
+                                <input type="hidden" name="{{ $bName }}" value="0">
+                                <input type="checkbox" id="{{ $bId }}" name="{{ $bName }}" value="1"
+                                       class="rounded border-gray-300 text-velour-600 focus:ring-velour-500 h-5 w-5 shrink-0"
+                                       {{ $bOn ? 'checked' : '' }}>
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
+                        <div class="space-y-0.5 min-w-0 max-w-full">
+                            <label for="settings-booking-deposit_percentage" class="text-sm font-medium text-heading block">Deposit %</label>
+                            <p class="text-xs text-muted leading-snug">Percentage of service cost charged upfront</p>
+                        </div>
+                        <input type="number" id="settings-booking-deposit_percentage" name="deposit_percentage"
+                               value="{{ old('deposit_percentage', $salon->deposit_percentage ?? 20) }}"
+                               min="1" max="100" required
+                               class="form-input w-full sm:w-24 max-w-[8rem] text-right text-sm tabular-nums shrink-0 @error('deposit_percentage') form-input-error @enderror">
+                    </div>
+                    @error('deposit_percentage')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
+
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
+                        <div class="space-y-0.5 min-w-0 max-w-full">
+                            <label for="settings-booking-booking_advance_days" class="text-sm font-medium text-heading block">Book up to (days)</label>
+                            <p class="text-xs text-muted leading-snug">How far ahead clients can schedule</p>
+                        </div>
+                        <input type="number" id="settings-booking-booking_advance_days" name="booking_advance_days"
+                               value="{{ old('booking_advance_days', $salon->booking_advance_days ?? 60) }}"
+                               min="1" max="365" required
+                               class="form-input w-full sm:w-24 max-w-[8rem] text-right text-sm tabular-nums shrink-0 @error('booking_advance_days') form-input-error @enderror">
+                    </div>
+                    @error('booking_advance_days')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
+
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
+                        <div class="space-y-0.5 min-w-0 max-w-full">
+                            <label for="settings-booking-cancellation_hours" class="text-sm font-medium text-heading block">Cancel notice (hours)</label>
+                            <p class="text-xs text-muted leading-snug">Minimum notice for free cancellation</p>
+                        </div>
+                        <input type="number" id="settings-booking-cancellation_hours" name="cancellation_hours"
+                               value="{{ old('cancellation_hours', $salon->cancellation_hours ?? 24) }}"
+                               min="0" max="168" required
+                               class="form-input w-full sm:w-24 max-w-[8rem] text-right text-sm tabular-nums shrink-0 @error('cancellation_hours') form-input-error @enderror">
+                    </div>
+                    @error('cancellation_hours')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                </fieldset>
+                <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
+                    <button type="submit" x-show="canEditTab('booking')" x-cloak class="btn-primary shrink-0 settings-action-btn" :disabled="!canEditTab('booking')">Save booking settings</button>
+                </div>
+            </form>
+        </div>
+
+        @if(!($settingsPersonalOnly ?? false))
+        <div id="settings-buffer-rules" class="card min-w-0 mt-6 scroll-mt-24">
+            <div class="flex items-start gap-2 mb-5">
+                <span class="text-lg" aria-hidden="true">⏱️</span>
+                <div>
+                    <h2 class="font-semibold text-heading">Buffer time &amp; booking rules</h2>
+                    <p class="text-sm text-muted mt-1">Values are saved per location. Adjust numbers below, then save.</p>
+                </div>
+            </div>
+            <form action="{{ route('settings.buffer-rules') }}" method="POST" class="space-y-0">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('booking')" class="min-w-0 border-0 p-0 m-0 disabled:opacity-70">
+                @php
+                    $bufferRule = $bufferRule ?? null;
+                    $bufferRows = [
+                        ['buffer_before_minutes', 'Buffer before service', 'Prep time before each appointment.', 'min', 0, 240],
+                        ['buffer_after_minutes', 'Buffer after service', 'Clean-up / turnaround time.', 'min', 0, 240],
+                        ['max_daily_bookings_per_staff', 'Max daily bookings per staff', 'Cap appointments per staff member per day.', 'appts', 1, 100],
+                        ['advance_booking_days', 'Advance booking window', 'How far ahead clients can book.', 'days', 1, 730],
+                        ['last_minute_cutoff_hours', 'Last-minute cut-off', 'Minimum notice before start time.', 'hours', 0, 168],
+                        ['overbooking_percent', 'Overbooking allowance', 'Extra capacity on busy days.', '%', 0, 100],
+                    ];
+                @endphp
+                <ul class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 divide-y divide-gray-200/80 dark:divide-gray-700/80">
+                    @foreach($bufferRows as [$field, $label, $help, $unit, $min, $max])
+                        <li class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_5.5rem_3rem] gap-2 sm:gap-x-4 sm:items-center px-4 py-3.5 sm:px-5">
+                            <div class="min-w-0">
+                                <label for="settings-buf-{{ $field }}" class="text-sm font-medium text-heading">{{ $label }}</label>
+                                <p id="settings-buf-help-{{ $field }}" class="text-xs text-muted mt-0.5 leading-snug">{{ $help }}</p>
+                                @error($field)<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+                            </div>
+                            <div class="flex items-center gap-2 sm:contents">
+                                <input id="settings-buf-{{ $field }}" type="number" name="{{ $field }}"
+                                       value="{{ old($field, $bufferRule?->$field) }}"
+                                       aria-describedby="settings-buf-help-{{ $field }}"
+                                       min="{{ $min }}" max="{{ $max }}" required
+                                       class="form-input w-24 max-w-[40%] sm:max-w-none sm:w-[5.5rem] text-sm text-right tabular-nums py-2 px-2 sm:justify-self-end @error($field) form-input-error @enderror">
+                                <span class="text-xs text-muted tabular-nums w-10 shrink-0 sm:w-auto sm:justify-self-end">{{ $unit }}</span>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+                </fieldset>
+                <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
+                    <button type="submit" x-show="canEditTab('booking')" x-cloak class="btn-primary shrink-0 settings-action-btn" :disabled="!canEditTab('booking')">Save rules</button>
+                </div>
+            </form>
+            <p class="text-xs text-muted mt-4 leading-relaxed">
+                Booking today still uses each service’s own buffers and staff working days. Hooking these business-wide rules into live availability can be added in a later release.
+            </p>
+        </div>
+        @endif
+    </div>
+
+    {{-- ── Service Setup ── --}}
+    <div x-show="tab==='services'" x-cloak>
+        <p x-show="!canEditTab('services')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Service settings.</p>
+        <div class="card">
+            <h2 class="font-semibold text-heading mb-5">Service Setup</h2>
+            <form action="{{ route('settings.services') }}" method="POST" class="space-y-4">
+                @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('services')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
+                @php
+                    $selectedTypeIds = array_map('intval', old('business_type_ids', $selectedBusinessTypeIds ?? []));
+                    $starterCategoryOld = old('starter_categories', $selectedStarterCategories ?? []);
+                    $starterServiceOld = old('starter_services', $selectedStarterServices ?? []);
+                    $typeSlugById = collect($businessTypes)->merge($customBusinessTypes)->pluck('slug', 'id')->all();
+                    $selectedSlugMap = [];
+                    foreach ($selectedTypeIds as $tid) {
+                        $slug = $typeSlugById[$tid] ?? null;
+                        if (is_string($slug) && $slug !== '') {
+                            $selectedSlugMap[$slug] = true;
+                        }
+                    }
+                @endphp
+                <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <label class="form-label mb-0">Business types <span class="text-red-500">*</span></label>
+                    <p class="form-hint mb-1">Services can only be tagged with types you enable here.</p>
+                    <div id="settings-business-types-list" class="flex flex-wrap gap-x-4 gap-y-2">
+                        @foreach($businessTypes as $type)
+                            @php $checked = in_array((int) $type->id, $selectedTypeIds, true); @endphp
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                <input type="checkbox" name="business_type_ids[]" value="{{ $type->id }}" data-bt-slug="{{ $type->slug }}" class="rounded border-gray-300 text-velour-600" {{ $checked ? 'checked' : '' }}>
+                                {{ $type->name }}
+                            </label>
+                        @endforeach
+                        @foreach($customBusinessTypes as $type)
+                            @php $checked = in_array((int) $type->id, $selectedTypeIds, true); @endphp
+                            <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer" data-custom-existing="1">
+                                <input type="checkbox" name="business_type_ids[]" value="{{ $type->id }}" data-bt-slug="{{ $type->slug }}" class="rounded border-gray-300 text-velour-600" {{ $checked ? 'checked' : '' }}>
+                                {{ $type->name }}
+                                <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500">custom</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('business_type_ids')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <label class="form-label mb-0">Service categories <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <p class="form-hint">Optional: tick categories to choose which starter services appear below. If no category is selected, services stay hidden.</p>
+                    <div id="settings-service-categories-list" class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                        @foreach($starterCatalog as $slug => $items)
+                            @php
+                                $cats = [];
+                                foreach ($items as $item) {
+                                    $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
+                                    if ($catSlug === '') {
+                                        $catSlug = 'general';
+                                    }
+                                    $catName = (string) ($item['category'] ?? 'General');
+                                    if (! isset($cats[$catSlug])) {
+                                        $cats[$catSlug] = $catName === '' ? 'General' : $catName;
+                                    }
+                                }
+                            @endphp
+                            @foreach($cats as $catSlug => $catName)
+                                @php $catVal = $slug . ':' . $catSlug; @endphp
+                                <label class="settings-service-category-option flex items-start gap-2 text-sm text-body cursor-pointer hidden" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catVal }}">
+                                    <input type="checkbox" name="starter_categories[]" value="{{ $catVal }}"
+                                           class="mt-0.5 rounded border-gray-300 text-velour-600 focus:ring-velour-500"
+                                           {{ in_array($catVal, $starterCategoryOld, true) ? 'checked' : '' }}>
+                                    <span>{{ $catName }}</span>
+                                </label>
+                            @endforeach
+                        @endforeach
+                    </div>
+                    @error('starter_categories')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div class="space-y-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+                    <label class="form-label mb-0">Services <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <p class="form-hint">Select services, then enter time and price manually for each. Services appear only after selecting at least one category.</p>
+                    <div id="settings-service-offers-list" class="flex flex-col gap-6">
+                        @foreach($starterCatalog as $slug => $items)
+                            @php
+                                $typeLabel = collect($businessTypes ?? [])->merge(collect($customBusinessTypes ?? []))->firstWhere('slug', $slug)?->name;
+                                if (! $typeLabel) {
+                                    $typeLabel = \Illuminate\Support\Str::title(str_replace(['-', '_'], ' ', (string) $slug));
+                                }
+                                $groupIndex = [];
+                                $grouped = [];
+                                foreach ($items as $item) {
+                                    $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
+                                    if ($catSlug === '') {
+                                        $catSlug = 'general';
+                                    }
+                                    $catName = trim((string) ($item['category'] ?? 'General'));
+                                    if ($catName === '') {
+                                        $catName = 'General';
+                                    }
+                                    if (! isset($groupIndex[$catSlug])) {
+                                        $groupIndex[$catSlug] = count($grouped);
+                                        $grouped[] = ['catSlug' => $catSlug, 'catName' => $catName, 'rows' => []];
+                                    }
+                                    $grouped[$groupIndex[$catSlug]]['rows'][] = $item;
+                                }
+                            @endphp
+                            <div class="settings-service-offers-type-bundle hidden space-y-3" data-bt-slug="{{ $slug }}">
+                                <div class="pb-2 border-b border-gray-200 dark:border-gray-700">
+                                    <p class="text-sm font-semibold text-heading">{{ $typeLabel }}</p>
+                                </div>
+                                <div class="space-y-3">
+                                    @foreach($grouped as $grp)
+                                        <div class="settings-service-offers-cat-bundle rounded-xl border border-gray-200/90 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 space-y-2">
+                                            <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ $grp['catName'] }}</p>
+                                            <div class="settings-service-offer-cols hidden sm:grid text-[10px] font-semibold uppercase tracking-wide text-muted">
+                                                <span>Service</span>
+                                                <span class="settings-service-offer-cols-meta">
+                                                    <span>Time (min)</span>
+                                                    <span>Price</span>
+                                                </span>
+                                            </div>
+                                            <div class="space-y-2">
+                                                @foreach($grp['rows'] as $item)
+                                                    @php
+                                                        $val = $slug . ':' . $item['key'];
+                                                        $token = str_replace(':', '__', $val);
+                                                        $catSlug = (string) ($item['category_slug'] ?? \Illuminate\Support\Str::slug((string) ($item['category'] ?? 'General')));
+                                                        if ($catSlug === '') {
+                                                            $catSlug = 'general';
+                                                        }
+                                                        $catId = $slug . ':' . $catSlug;
+                                                        $checked = in_array($val, $starterServiceOld, true);
+                                                        $isUnisex = $slug === 'unisex';
+                                                        $savedMeta = (array) (($selectedStarterServiceMeta[$val] ?? []));
+                                                        $oldDuration = old("starter_service_meta.$token.duration_minutes", $savedMeta['duration_minutes'] ?? null);
+                                                        $oldPrice = old("starter_service_meta.$token.price", $savedMeta['price'] ?? null);
+                                                        $oldMenDuration = old("starter_service_meta.$token.men.duration_minutes", $savedMeta['men']['duration_minutes'] ?? null);
+                                                        $oldMenPrice = old("starter_service_meta.$token.men.price", $savedMeta['men']['price'] ?? null);
+                                                        $oldWomenDuration = old("starter_service_meta.$token.women.duration_minutes", $savedMeta['women']['duration_minutes'] ?? null);
+                                                        $oldWomenPrice = old("starter_service_meta.$token.women.price", $savedMeta['women']['price'] ?? null);
+                                                    @endphp
+                                                    <div class="settings-service-offer-option text-sm text-body hidden rounded-lg border border-transparent px-1 py-1" data-bt-slug="{{ $slug }}" data-cat-id="{{ $catId }}" data-no-required-asterisk>
+                                                        <label class="settings-service-offer-name flex items-center gap-2 cursor-pointer min-w-0">
+                                                            <input type="checkbox" name="starter_services[]" value="{{ $val }}"
+                                                                   class="rounded border-gray-300 text-velour-600 focus:ring-velour-500 settings-service-checkbox shrink-0"
+                                                                   {{ $checked ? 'checked' : '' }}>
+                                                            <span class="leading-snug break-words">{{ $item['name'] }}</span>
+                                                        </label>
+                                                        @if($isUnisex)
+                                                            <div class="settings-service-meta-grid {{ $checked ? '' : 'hidden' }}">
+                                                                <div class="settings-service-meta-field">
+                                                                <input type="number"
+                                                                       min="1"
+                                                                       step="1"
+                                                                       name="starter_service_meta[{{ $token }}][men][duration_minutes]"
+                                                                       value="{{ $oldMenDuration }}"
+                                                                       placeholder="Men time (min)"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                                <div class="settings-service-meta-field">
+                                                                <input type="number"
+                                                                       min="0.01"
+                                                                       step="0.01"
+                                                                       name="starter_service_meta[{{ $token }}][men][price]"
+                                                                       value="{{ $oldMenPrice }}"
+                                                                       placeholder="Men price"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                                <div class="settings-service-meta-field">
+                                                                <input type="number"
+                                                                       min="1"
+                                                                       step="1"
+                                                                       name="starter_service_meta[{{ $token }}][women][duration_minutes]"
+                                                                       value="{{ $oldWomenDuration }}"
+                                                                       placeholder="Women time (min)"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                                <div class="settings-service-meta-field">
+                                                                <input type="number"
+                                                                       min="0.01"
+                                                                       step="0.01"
+                                                                       name="starter_service_meta[{{ $token }}][women][price]"
+                                                                       value="{{ $oldWomenPrice }}"
+                                                                       placeholder="Women price"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                            </div>
+                                                        @else
+                                                            <div class="settings-service-meta-grid {{ $checked ? '' : 'hidden' }}">
+                                                                <div class="settings-service-meta-field">
+                                                                <input type="number"
+                                                                       min="1"
+                                                                       step="1"
+                                                                       name="starter_service_meta[{{ $token }}][duration_minutes]"
+                                                                       value="{{ $oldDuration }}"
+                                                                       placeholder="Time (min)"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                                <div class="settings-service-meta-field">
+                                                                <input type="number"
+                                                                       min="0.01"
+                                                                       step="0.01"
+                                                                       name="starter_service_meta[{{ $token }}][price]"
+                                                                       value="{{ $oldPrice }}"
+                                                                       placeholder="Price"
+                                                                       data-no-required-asterisk
+                                                                       data-validation-message="Required"
+                                                                       class="form-input text-xs w-full settings-service-meta-input"
+                                                                       {{ $checked ? 'required' : 'disabled' }}>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    @error('starter_services')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @error('starter_service_meta')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                @if(empty($selectedBusinessTypeSlugs))
+                    <p class="text-xs text-amber-600">Select at least one business type in the Business tab first.</p>
+                @endif
+                </fieldset>
+                <button type="submit" x-show="canEditTab('services')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('services')">Save Service Setup</button>
+            </form>
+        </div>
+    </div>
+
+    {{-- ── Opening Hours ── --}}
+    <div x-show="tab==='hours'" x-cloak>
+        <p x-show="!canEditTab('hours')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Hours.</p>
+        <div class="card">
+            <h2 class="font-semibold text-heading mb-5">Opening Hours</h2>
+            <form id="settings-hours-form" action="{{ route('settings.hours') }}" method="POST" class="space-y-3">
+                @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('hours')" class="min-w-0 border-0 p-0 m-0 space-y-3 disabled:opacity-70">
+                @php
+                    $days    = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                    $current = $salon->opening_hours ?? [];
+                @endphp
+                @foreach($days as $day)
+                @php $h = $current[$day] ?? ['open'=>true,'from'=>'09:00','to'=>'18:00']; @endphp
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <div class="w-full sm:w-32 shrink-0">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="hours[{{ $day }}][open]" value="1"
+                                   {{ ($h['open'] ?? false) ? 'checked' : '' }}
+                                   class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                            <span class="text-sm font-medium text-body capitalize">{{ $day }}</span>
+                        </label>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+                        <input type="time"
+                               name="hours[{{ $day }}][from]"
+                               value="{{ $h['from'] ?? '09:00' }}"
+                               class="form-input !w-[8.5rem] sm:!w-[9.5rem] shrink-0 tabular-nums">
+                        <span class="text-muted text-sm shrink-0">to</span>
+                        <input type="time"
+                               name="hours[{{ $day }}][to]"
+                               value="{{ $h['to'] ?? '18:00' }}"
+                               class="form-input !w-[8.5rem] sm:!w-[9.5rem] shrink-0 tabular-nums">
+                    </div>
+                </div>
+                @endforeach
+                </fieldset>
+                <div class="pt-2">
+                    <button type="submit" x-show="canEditTab('hours')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('hours')">Save Hours</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- ── Social Links ── --}}
+    <div x-show="tab==='social'" x-cloak>
+        <p x-show="!canEditTab('social')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Social Links.</p>
+        <div class="card">
+            <h2 class="font-semibold text-heading mb-1">Social Links</h2>
+            <p class="text-xs text-muted mb-5">Each field starts with the platform URL. Add your handle, page name, or WhatsApp number after it.</p>
+
+            <form action="{{ route('settings.social-links') }}" method="POST" class="space-y-4">
+                @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('social')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
+
+                @php
+                $platforms = \App\Support\SocialLinkPlatforms::all();
+                $saved = $salon->social_links ?? [];
+                @endphp
+
+                @foreach($platforms as $key => $meta)
+                @php
+                    $savedUrl = old("social_links.{$key}", $saved[$key] ?? '');
+                    $fieldValue = $savedUrl !== '' && $savedUrl !== null
+                        ? $savedUrl
+                        : $meta['prefix'];
+                    $hasRealLink = $savedUrl !== '' && ! \App\Support\SocialLinkPlatforms::isPrefixOnly($savedUrl, $key);
+                @endphp
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center flex-shrink-0">
+                        @include('partials.social-platform-icon', ['platform' => $key, 'class' => 'w-5 h-5'])
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="form-label mb-1">{{ $meta['label'] }}</label>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <input type="url"
+                                   name="social_links[{{ $key }}]"
+                                   value="{{ $fieldValue }}"
+                                   placeholder="{{ $meta['prefix'] }}"
+                                   class="form-input flex-1 min-w-0">
+                            @if($hasRealLink)
+                            <a href="{{ $savedUrl }}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="flex-shrink-0 px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-muted hover:text-body transition-colors">
+                                Visit ↗
+                            </a>
+                            @endif
+                        </div>
+                        @error("social_links.{$key}")
+                        <p class="form-error mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+                @endforeach
+
+                </fieldset>
+                <div class="pt-2 flex items-center gap-3">
+                    <button type="submit" x-show="canEditTab('social')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('social')">Save Social Links</button>
+                    <p class="text-xs text-muted">Links appear on your public website. Clicks there update Share on Social counts.</p>
+                </div>
+            </form>
+        </div>
+
+        {{-- Click stats this month --}}
+        @php
+        $clickStats = \Illuminate\Support\Facades\DB::table('social_share_clicks')
+            ->where('salon_id', $salon->id)
+            ->where('clicked_at', '>=', now()->startOfMonth())
+            ->selectRaw('platform, COUNT(*) as clicks')
+            ->groupBy('platform')
+            ->orderByDesc('clicks')
+            ->get();
+        @endphp
+
+        @if($clickStats->isNotEmpty())
+        <div class="card mt-4">
+            <h3 class="font-semibold text-heading mb-4">Click Stats — {{ now()->format('F Y') }}</h3>
+            <div class="space-y-3">
+                @foreach($clickStats as $stat)
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-body w-28 capitalize">{{ $stat->platform }}</span>
+                    <div class="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                        <div class="bg-velour-500 h-2 rounded-full"
+                             style="width: {{ min(100, round(($stat->clicks / max($clickStats->max('clicks'), 1)) * 100)) }}%"></div>
+                    </div>
+                    <span class="text-sm font-bold text-heading w-8 text-right">{{ $stat->clicks }}</span>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+    </div>
+
+    {{-- ── Notifications (rules, timing, templates, quiet hours) ── --}}
+    <div x-show="tab==='notifications'" x-cloak>
+        <p x-show="!canEditTab('notifications')" x-cloak class="mb-4 text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to save Notification settings.</p>
+        <div class="card">
+            <h2 class="font-semibold text-heading mb-1">Notification settings</h2>
+            <p class="text-sm text-muted mb-6">Turn channels on or off, set when scheduled reminders go out, and customise message text. Use placeholders in curly braces in your templates.</p>
+
+            <form action="{{ route('settings.notifications') }}" method="POST" class="space-y-4">
+                @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('notifications')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
+
+                @foreach($notificationDefinitions as $id => $def)
+                    @php
+                        $rule = $notificationConfig['rules'][$id] ?? ['enabled' => false, 'offset_hours' => null];
+                        $tpl = $notificationConfig['templates'][$id] ?? [];
+                        $timing = $def['timing'] ?? 'instant';
+                    @endphp
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 overflow-hidden">
+                        <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <h3 class="font-semibold text-heading text-sm sm:text-base">{{ $def['label'] }}</h3>
+                                    @if($timing === 'instant')
+                                        <span class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">Instant</span>
+                                    @else
+                                        <span class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">Scheduled</span>
+                                    @endif
+                                </div>
+                                <p class="text-xs text-muted leading-relaxed">{{ $def['description'] }}</p>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <input type="hidden" name="notification_rules[{{ $id }}][enabled]" value="0">
+                                <label class="flex items-center gap-2 cursor-pointer text-sm text-body whitespace-nowrap">
+                                    <input type="checkbox" name="notification_rules[{{ $id }}][enabled]" value="1"
+                                           class="rounded border-gray-300 dark:border-gray-600 text-velour-600"
+                                           @checked((bool) old("notification_rules.$id.enabled", $rule['enabled'] ?? false))>
+                                    <span>On</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        @if($timing === 'scheduled')
+                            <div class="px-4 sm:px-5 pb-4 flex flex-wrap items-center gap-2 border-t border-gray-100 dark:border-gray-800 pt-4">
+                                <label class="text-xs font-medium text-body">Send</label>
+                                <select name="notification_rules[{{ $id }}][offset_hours]" class="form-select text-sm w-auto min-w-[8rem]">
+                                    @foreach([1,2,4,6,12,24,48,72,96,168] as $h)
+                                        <option value="{{ $h }}" @selected((int) old("notification_rules.$id.offset_hours", $rule['offset_hours'] ?? 24) === $h)>
+                                            {{ $h }} hour{{ $h !== 1 ? 's' : '' }} before start
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+
+                        <div class="border-t border-gray-100 dark:border-gray-800 px-4 sm:px-5 py-3 bg-gray-50/80 dark:bg-gray-800/30">
+                            <button type="button"
+                                    @click="open['{{ $id }}'] = !open['{{ $id }}']"
+                                    class="text-sm font-medium text-velour-600 dark:text-velour-400 hover:underline">
+                                <span x-text="open['{{ $id }}'] ? 'Hide message templates' : 'Edit message templates'"></span>
+                            </button>
+
+                            <div x-show="open['{{ $id }}']" x-cloak class="mt-4 space-y-4">
+                                @if(in_array('email', $def['channels'] ?? [], true))
+                                    <div>
+                                        <label class="form-label text-xs">Email subject</label>
+                                        <input type="text" name="notification_templates[{{ $id }}][email_subject]"
+                                               value="{{ old("notification_templates.$id.email_subject", $tpl['email_subject'] ?? '') }}"
+                                               class="form-input text-sm" placeholder="Subject line">
+                                    </div>
+                                    <div>
+                                        <label class="form-label text-xs">Email body</label>
+                                        <textarea name="notification_templates[{{ $id }}][email_body]" rows="5"
+                                                  class="form-textarea text-sm font-mono"
+                                                  placeholder="Email text">{{ old("notification_templates.$id.email_body", $tpl['email_body'] ?? '') }}</textarea>
+                                    </div>
+                                @endif
+                                @if(in_array('sms', $def['channels'] ?? [], true))
+                                    <div>
+                                        <label class="form-label text-xs">SMS body <span class="text-muted font-normal">(keep short; ~160 chars recommended)</span></label>
+                                        <textarea name="notification_templates[{{ $id }}][sms_body]" rows="3"
+                                                  maxlength="640"
+                                                  class="form-textarea text-sm font-mono"
+                                                  placeholder="SMS text">{{ old("notification_templates.$id.sms_body", $tpl['sms_body'] ?? '') }}</textarea>
+                                    </div>
+                                @endif
+                                @if(in_array('whatsapp', $def['channels'] ?? [], true))
+                                    <div>
+                                        <label class="form-label text-xs">WhatsApp message</label>
+                                        <textarea name="notification_templates[{{ $id }}][whatsapp_body]" rows="4"
+                                                  class="form-textarea text-sm font-mono"
+                                                  placeholder="WhatsApp text">{{ old("notification_templates.$id.whatsapp_body", $tpl['whatsapp_body'] ?? '') }}</textarea>
+                                    </div>
+                                @endif
+                                @if(!empty($def['variables']))
+                                    <p class="text-xs text-muted flex flex-wrap items-center gap-1.5">
+                                        <span class="font-medium text-body">Placeholders:</span>
+                                        @foreach($def['variables'] as $v)
+                                            <code class="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-[11px] text-heading">{{ '{'.'{'.$v.'}'.'}' }}</code>
+                                        @endforeach
+                                    </p>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+
+                @php $qh = $notificationConfig['quiet_hours'] ?? []; @endphp
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
+                    <h3 class="font-semibold text-heading text-sm mb-1">Quiet hours</h3>
+                    <p class="text-xs text-muted mb-4">When enabled, scheduled client reminders are skipped during this window (business timezone).</p>
+                    <div class="flex flex-wrap items-center gap-4 mb-4">
+                        <input type="hidden" name="qh_enabled" value="0">
+                        <label class="flex items-center gap-2 cursor-pointer text-sm text-body">
+                            <input type="checkbox" name="qh_enabled" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600"
+                                   @checked(old('qh_enabled', $qh['enabled'] ?? false) ? true : false)>
+                            Enable quiet hours
+                        </label>
+                    </div>
+                    <div class="flex flex-wrap items-end gap-4">
+                        <div>
+                            <label class="form-label text-xs">From</label>
+                            <input type="time" name="qh_from" value="{{ old('qh_from', $qh['from'] ?? '22:00') }}" class="form-input text-sm w-auto">
+                        </div>
+                        <div>
+                            <label class="form-label text-xs">To</label>
+                            <input type="time" name="qh_to" value="{{ old('qh_to', $qh['to'] ?? '07:00') }}" class="form-input text-sm w-auto">
+                        </div>
+                        <div>
+                            <label class="form-label text-xs">Behaviour</label>
+                            <select name="qh_mode" class="form-select text-sm w-auto min-w-[10rem]">
+                                <option value="skip" @selected(old('qh_mode', $qh['mode'] ?? 'skip') === 'skip')>Skip send (recommended)</option>
+                                <option value="delay" @selected(old('qh_mode', $qh['mode'] ?? 'skip') === 'delay')>Delay (reserved)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                </fieldset>
+                <button type="submit" x-show="canEditTab('notifications')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('notifications')">Save notification settings</button>
+            </form>
+        </div>
+    </div>
+
+    {{-- ── My Profile ── --}}
+    <div x-show="tab==='profile'" x-cloak class="space-y-5">
+        <p x-show="!canEditTab('profile')" x-cloak class="text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to update your profile.</p>
+        <div class="card">
+            <div class="mb-5 flex items-center justify-between border-b border-gray-200/60 dark:border-gray-800 pb-3">
+                <h2 class="font-semibold text-heading">My Profile</h2>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            x-show="canEditTab('profile')"
+                            x-cloak
+                            @click="showPasswordModal = true"
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
+                            title="Change password">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                    <button type="button"
+                            @click="profileCardOpen = !profileCardOpen"
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
+                            :title="profileCardOpen ? 'Minimize section' : 'Expand section'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform" :class="profileCardOpen ? '' : 'rotate-180'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <form x-show="profileCardOpen" x-cloak action="{{ route('settings.profile') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                @csrf @method('PUT')
+                <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                <fieldset :disabled="!canEditTab('profile')" class="min-w-0 border-0 p-0 m-0 space-y-4 disabled:opacity-70">
+                @if($profileStaff)
+                <div>
+                    <label class="form-label">Photo</label>
+                    <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+                        <x-staff-avatar :staff="$profileStaff" size="lg" />
+                        <div class="flex-1 min-w-0 space-y-2">
+                            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" data-compress-image
+                                   class="form-input text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200">
+                            <p class="form-hint" data-compress-hint>JPG, PNG or WebP · large images are auto-compressed</p>
+                            @if($profileStaff->avatar)
+                                <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
+                                    <input type="checkbox" name="remove_avatar" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                    Remove current photo
+                                </label>
+                            @endif
+                            @error('avatar')<p class="form-error">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+                </div>
+                @endif
+                <div>
+                    <label class="form-label">Full name</label>
+                    <input type="text" name="name" value="{{ old('name', $profileStaff ? $profileStaff->name : $user->name) }}" required class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Email address</label>
+                    <input type="email" name="email" value="{{ old('email', $profileStaff ? $profileStaff->email : $user->email) }}" required class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Phone</label>
+                    @if($profileStaff)
+                        <input type="tel" name="staff_phone" value="{{ old('staff_phone', $profileStaff->phone) }}" class="form-input" autocomplete="tel">
+                    @else
+                        <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" class="form-input" autocomplete="tel">
+                    @endif
+                </div>
+                @if($profileStaff)
+                <div>
+                    <label class="form-label">Role</label>
+                    <select name="staff_role" class="form-select">
+                        @foreach(\App\Support\StaffJobRoles::options() as $slug => $label)
+                            <option value="{{ $slug }}" {{ old('staff_role', $profileStaff->role ?? 'hair_stylist') === $slug ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Commission %</label>
+                    <input type="number" name="staff_commission_rate" min="0" max="100" step="0.1"
+                           value="{{ old('staff_commission_rate', $profileStaff->commission_rate ?? 0) }}" class="form-input">
+                </div>
+                @endif
+                <div>
+                    <label class="form-label">Experience</label>
+                    @if($profileStaff)
+                        <input type="text" name="staff_experience" value="{{ old('staff_experience', $profileStaff->experience) }}" class="form-input" placeholder="e.g. 5 years">
+                    @else
+                        <input type="text" name="experience" value="{{ old('experience', $user->experience) }}" class="form-input" placeholder="e.g. 5 years">
+                    @endif
+                </div>
+                @php
+                    $profileLangSelected = old('language_proficiency');
+                    if (! is_array($profileLangSelected)) {
+                        $profileLangSelected = \App\Support\LanguageProficiency::codesFromStored($profileStaff->language_proficiency ?? $user->language_proficiency);
+                    }
+                @endphp
+                @include('settings.partials.language-proficiency-field', [
+                    'name' => 'language_proficiency[]',
+                    'selected' => $profileLangSelected,
+                ])
+                @if($profileStaff)
+                <div>
+                    <label class="form-label">Calendar colour</label>
+                    <input type="color" name="staff_color" value="{{ old('staff_color', $profileStaff->color ?? '#7C3AED') }}"
+                           class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer">
+                </div>
+                <div>
+                    <label class="form-label">Bio</label>
+                    <textarea name="staff_bio" rows="3" class="form-textarea">{{ old('staff_bio', $profileStaff->bio) }}</textarea>
+                </div>
+                <div>
+                    <label class="form-label">Awards &amp; accolades</label>
+                    <textarea name="staff_awards_accolades" rows="3" class="form-textarea" placeholder="Certifications, press, industry awards…">{{ old('staff_awards_accolades', $profileStaff->awards_accolades) }}</textarea>
+                </div>
+                <div>
+                    <label class="inline-flex items-center gap-3 cursor-pointer">
+                        <input type="hidden" name="staff_is_active" value="0">
+                        <input type="checkbox" name="staff_is_active" value="1"
+                               {{ old('staff_is_active', $profileStaff->is_active ?? true) ? 'checked' : '' }}
+                               class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                        <span class="text-sm text-body">Active (shows in calendar and booking)</span>
+                    </label>
+                </div>
+                @endif
+                {{--
+                <div>
+                    <label class="form-label">Your timezone</label>
+                    <select name="timezone" class="form-select">
+                        <option value="">Same as business / browser</option>
+                        @foreach(\App\Helpers\TimezoneHelper::grouped() as $region => $zones)
+                        <optgroup label="{{ $region }}">
+                            @foreach($zones as $tz => $label)
+                            <option value="{{ $tz }}" {{ old('timezone', $user->timezone) === $tz ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </optgroup>
+                        @endforeach
+                    </select>
+                    <p class="form-hint">Used for account activity and notifications. Business schedule and calendar use the <a href="{{ route('settings.index') }}?tab=salon" class="text-link">business timezone</a>.</p>
+                </div>
+                --}}
+                <div>
+                    <label class="form-label">Display language</label>
+                    <select name="locale" class="form-select">
+                        <option value="">Default (English)</option>
+                        @foreach($localeOptions as $code => $label)
+                        <option value="{{ $code }}" {{ old('locale', $user->locale) === $code ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="form-hint">Month and day names in dates follow this setting where supported.</p>
+                </div>
+                </fieldset>
+                <button type="submit" x-show="canEditTab('profile')" x-cloak class="btn-primary settings-action-btn" :disabled="!canEditTab('profile')">Update Profile</button>
+            </form>
+        </div>
+    </div>
+
+    {{-- ── Team Members ── --}}
+    <div x-show="tab==='team'" x-cloak class="space-y-5">
+        <p x-show="!canEditTab('team')" x-cloak class="text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to manage team members here.</p>
+        @if($settingsPersonalOnly)
+        <div class="card">
+            <h2 class="font-semibold text-heading mb-2">Team</h2>
+            <p class="text-sm text-muted">Team members are managed by your business admin.</p>
+        </div>
+        @else
+        <div class="card">
+            @php
+                $mapMemberToRow = function ($member) {
+                    return [
+                        'id' => $member->id,
+                        'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                        'email' => $member->email,
+                        'phone' => $member->phone,
+                        'role' => $member->role,
+                        'experience' => $member->experience,
+                        'language_proficiency' => $member->language_proficiency,
+                        'commission_rate' => $member->commission_rate,
+                        'color' => $member->color ?: '#7C3AED',
+                        'avatar' => $member->avatar,
+                        'bio' => $member->bio,
+                        'awards_accolades' => $member->awards_accolades,
+                    ];
+                };
+                $staffRows = old('staff_members');
+                if (! is_array($staffRows)) {
+                    $staffRows = ($existingTeamMembers ?? collect())->map($mapMemberToRow)->all();
+                } elseif (old('save_single_team_member') && count($staffRows) === 1) {
+                    $fromDb = ($existingTeamMembers ?? collect())->map($mapMemberToRow)->all();
+                    $incoming = $staffRows[0];
+                    $incId = (int) ($incoming['id'] ?? 0);
+                    if ($incId > 0) {
+                        $staffRows = array_map(function ($r) use ($incoming, $incId) {
+                            return ((int) ($r['id'] ?? 0) === $incId) ? array_merge($r, $incoming) : $r;
+                        }, $fromDb);
+                    } else {
+                        $staffRows = array_merge($fromDb, [$incoming]);
+                    }
+                }
+                if (count($staffRows) === 0) {
+                    $staffRows = [[]];
+                }
+                $staffRoles = \App\Support\StaffJobRoles::options();
+            @endphp
+            <div class="mb-4 border-b border-gray-200/60 dark:border-gray-800 pb-3">
+                <h2 class="font-semibold text-heading mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span>Team members <span class="text-gray-400 font-normal">(optional)</span></span>
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        Total: {{ count($staffRows) }}
+                    </span>
+                </h2>
+                <p class="form-hint text-xs sm:text-sm leading-relaxed">Add or update team members from your profile settings. Each row has its own arrow to show or hide that person’s fields, and its own Save button so you only submit one person at a time.</p>
+            </div>
+            <div id="settings-staff-rows" class="space-y-3 sm:space-y-4"
+                 data-account-name="{{ e($user->name ?? '') }}"
+                 data-account-email="{{ e($user->email ?? '') }}"
+                 data-account-phone="{{ e($user->phone ?? '') }}">
+                @foreach($staffRows as $idx => $st)
+                    @php $st = is_array($st) ? $st : []; @endphp
+                    <div class="settings-staff-member-row rounded-xl border border-gray-200 bg-gray-50/80 dark:bg-gray-900/20 p-3 sm:p-4 min-w-0 overflow-hidden">
+                        <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+                            <span class="settings-staff-row-title text-sm font-medium text-body min-w-0">Team member {{ $loop->iteration }}</span>
+                            <div class="flex items-center gap-1 shrink-0 ml-auto">
+                                <button type="button"
+                                        class="settings-staff-row-toggle inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 text-gray-600 transition hover:bg-gray-200/80 dark:bg-gray-800/70 dark:text-gray-200 dark:hover:bg-gray-700/80"
+                                        aria-expanded="true"
+                                        title="Show or hide this team member’s form">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="settings-staff-row-chevron h-5 w-5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/>
+                                    </svg>
+                                </button>
+                                <button type="button" class="settings-staff-remove-btn text-xs font-medium text-red-600 hover:text-red-700 {{ count($staffRows) <= 1 ? 'hidden' : '' }}">Remove</button>
+                            </div>
+                        </div>
+                        <div class="settings-staff-row-body">
+                        <form action="{{ route('settings.team-members') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                            <input type="hidden" name="save_single_team_member" value="1">
+                            <input type="hidden" name="staff_members[0][id]" value="{{ $st['id'] ?? '' }}">
+                            <fieldset :disabled="!canEditTab('team')" class="min-w-0 border-0 p-0 m-0 space-y-3 disabled:opacity-70">
+                            @php
+                                $avatarUrl = \App\Models\Staff::resolvePublicAvatarUrl($st['avatar'] ?? null);
+                                $nameLabel = trim((string) ($st['name'] ?? ''));
+                                $nameParts = $nameLabel !== '' ? preg_split('/\s+/u', $nameLabel, -1, PREG_SPLIT_NO_EMPTY) : [];
+                                $nameInitials = $nameParts === []
+                                    ? '?'
+                                    : (count($nameParts) === 1
+                                        ? strtoupper(mb_substr($nameParts[0], 0, 2))
+                                        : strtoupper(mb_substr($nameParts[0], 0, 1).mb_substr($nameParts[1], 0, 1)));
+                                $isExistingMember = !empty($st['id']);
+                            @endphp
+                            <div>
+                                <label class="block text-xs font-medium text-body mb-1">Photo @if(!$avatarUrl)<span class="text-red-500">*</span>@endif</label>
+                                <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+                                    <x-staff-avatar size="sm" :url="$avatarUrl" :initials="$nameInitials" :color="$st['color'] ?? '#7C3AED'" />
+                                    <div class="flex-1 min-w-0 space-y-2">
+                                        <input type="file" name="staff_member_avatar" accept="image/jpeg,image/png,image/webp" data-compress-image
+                                               @if(!$avatarUrl) required @endif
+                                               class="form-input text-xs w-full max-w-full file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:bg-velour-50 file:text-velour-700 dark:file:bg-velour-900/40 dark:file:text-velour-200 file:max-w-[calc(100%-0.5rem)]">
+                                        <p class="text-[11px] text-muted" data-compress-hint>JPG, PNG or WebP · large images are auto-compressed</p>
+                                        @if($avatarUrl)
+                                            <label class="inline-flex items-center gap-2 text-xs text-body cursor-pointer">
+                                                <input type="checkbox" name="staff_member_remove_avatar" value="1" class="rounded border-gray-300 dark:border-gray-600 text-velour-600">
+                                                Remove current photo
+                                            </label>
+                                        @endif
+                                        @error('staff_member_avatar')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="settings-use-my-details-wrap {{ $isExistingMember ? 'hidden' : '' }}">
+                                <label class="inline-flex items-start gap-2.5 rounded-xl border border-velour-200/80 dark:border-velour-800/50 bg-velour-50/60 dark:bg-velour-950/30 px-3 py-2.5 cursor-pointer">
+                                    <input type="checkbox"
+                                           class="settings-use-my-details mt-0.5 rounded border-gray-300 dark:border-gray-600 text-velour-600 focus:ring-velour-500"
+                                           value="1">
+                                    <span class="min-w-0">
+                                        <span class="block text-xs font-semibold text-heading">Use my account details</span>
+                                        <span class="block text-[11px] text-muted mt-0.5">Fill name, email and phone from your login profile so you can add yourself as a new team member.</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-medium text-body mb-1">Full name <span class="text-red-500">*</span></label>
+                                    <input type="text" name="staff_members[0][name]" value="{{ $st['name'] ?? '' }}"
+                                           required
+                                           class="form-input settings-staff-field-name"
+                                           placeholder="e.g. Alex Smith">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Email</label>
+                                    <input type="email" name="staff_members[0][email]" value="{{ $st['email'] ?? '' }}" autocomplete="off"
+                                           class="form-input settings-staff-field-email">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Phone</label>
+                                    <input type="tel" name="staff_members[0][phone]" value="{{ $st['phone'] ?? '' }}"
+                                           class="form-input settings-staff-field-phone">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span></label>
+                                    <select name="staff_members[0][role]" required class="form-select">
+                                        <option value="">-</option>
+                                        @foreach($staffRoles as $slug => $label)
+                                            <option value="{{ $slug }}" {{ ($st['role'] ?? '') === $slug ? 'selected' : '' }}>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Commission %</label>
+                                    <input type="number" name="staff_members[0][commission_rate]" min="0" max="100" step="0.1"
+                                           value="{{ $st['commission_rate'] ?? '0' }}"
+                                           class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Experience</label>
+                                    <input type="text" name="staff_members[0][experience]" value="{{ $st['experience'] ?? '' }}"
+                                           class="form-input" placeholder="e.g. 5 years">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    @php
+                                        $staffLangSelected = old('staff_members.0.language_proficiency');
+                                        if (! is_array($staffLangSelected)) {
+                                            $staffLangSelected = \App\Support\LanguageProficiency::codesFromStored($st['language_proficiency'] ?? '');
+                                        }
+                                    @endphp
+                                    @include('settings.partials.language-proficiency-field', [
+                                        'name' => 'staff_members[0][language_proficiency][]',
+                                        'selected' => $staffLangSelected,
+                                        'hint' => 'Languages this team member uses with clients (standard codes).',
+                                    ])
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-body mb-1">Calendar colour</label>
+                                    <input type="color" name="staff_members[0][color]" value="{{ $st['color'] ?? '#7C3AED' }}"
+                                           class="w-full h-11 px-1 py-1 rounded-xl border border-gray-300 cursor-pointer bg-white">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-medium text-body mb-1">Bio</label>
+                                    <textarea name="staff_members[0][bio]" rows="2" placeholder="Optional"
+                                              class="form-textarea">{{ $st['bio'] ?? '' }}</textarea>
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-medium text-body mb-1">Awards &amp; accolades</label>
+                                    <textarea name="staff_members[0][awards_accolades]" rows="2" placeholder="Optional — certifications, press, awards…"
+                                              class="form-textarea">{{ $st['awards_accolades'] ?? '' }}</textarea>
+                                </div>
+                            </div>
+                            @error('staff_members.0.name')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.role')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.id')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error('staff_members.0.language_proficiency')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            </fieldset>
+                            <button type="submit" x-show="canEditTab('team')" x-cloak class="btn-primary w-full sm:w-auto settings-action-btn" :disabled="!canEditTab('team')">Save this team member</button>
+                        </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <button type="button" id="settings-add-staff-member" class="mt-2 text-sm font-medium text-velour-600 hover:text-velour-700">+ Add another team member</button>
+            @error('staff_members')<p class="mt-2 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+        @endif
+    </div>
+
+    {{-- ── Security / 2FA ── --}}
+    <div x-show="tab==='security'" x-cloak class="space-y-5">
+        <p x-show="!canEditTab('security')" x-cloak class="text-sm text-amber-800 dark:text-amber-200 rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5">View only — you do not have permission to change security settings.</p>
+        <div class="card">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div class="min-w-0">
+                    <h2 class="font-semibold text-heading">Two-Factor Authentication</h2>
+                    <p class="text-xs text-muted mt-1">Add an extra layer of security to your account with 2FA.</p>
+                </div>
+                @if($user->hasTwoFactorEnabled())
+                <span class="badge-green px-3 py-1 text-xs font-semibold rounded-xl">Enabled</span>
+                @else
+                <span class="badge-gray px-3 py-1 text-xs font-semibold rounded-xl">Disabled</span>
+                @endif
+            </div>
+            <div class="mt-5 flex flex-wrap gap-3 settings-security-actions">
+                <a href="{{ route('two-factor.setup') }}" class="btn-primary">
+                    {{ $user->hasTwoFactorEnabled() ? 'Manage 2FA' : 'Enable 2FA' }}
+                </a>
+                @if($user->hasTwoFactorEnabled())
+                <a href="{{ route('two-factor.recovery') }}" class="btn-outline">Recovery codes</a>
+                @endif
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="font-semibold text-heading mb-1">Login history</h2>
+            <p class="text-xs text-muted mb-4">Your last recorded sign-in.</p>
+            <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl px-4 py-3 text-sm">
+                <svg class="w-4 h-4 text-muted flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="text-body">
+                    Last login:
+                    <strong class="text-heading">{{ $user->last_login_at ? \App\Support\DisplayFormatter::userDateTime($user, $currentSalon ?? null, $user->last_login_at) : 'Unknown' }}</strong>
+                </span>
+            </div>
+        </div>
+
+        @if(config('billing.subscriptions_enabled'))
+        <div class="card border-red-200 dark:border-red-900/50 p-6 settings-danger-zone">
+            <h2 class="font-semibold text-heading mb-1">Danger Zone</h2>
+            <p class="text-xs text-muted mb-4">Actions here are irreversible. Proceed with caution.</p>
+            <a href="{{ route('billing.cancel') }}"
+               class="btn border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                Cancel subscription
+            </a>
+        </div>
+        @endif
+    </div>
+
+        </div>{{-- /.settings-main-panel --}}
+    </div>{{-- /flex layout --}}
+
+{{-- Password Modal (opened from Profile gear icon) --}}
+<x-modal-overlay show="showPasswordModal"
+     x-show="canEditTab('profile')"
+     x-transition.opacity
+     @keydown.escape.window="showPasswordModal = false">
+    <div class="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-2xl" @click.stop>
+        <div class="mb-5 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-heading">Change Password</h3>
+            <button type="button"
+                    @click="showPasswordModal = false"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-gray-100 dark:hover:bg-gray-800"
+                    aria-label="Close password modal">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <form action="{{ route('settings.password') }}" method="POST" class="space-y-4" data-password-confirm-match="1">
+            @csrf @method('PUT')
+            <input type="hidden" name="return_to" value="{{ $returnTo }}">
+            <div>
+                <label class="form-label">Current password</label>
+                <input type="password" name="current_password" required class="form-input @error('current_password') form-input-error @enderror">
+                @error('current_password')<p class="form-error">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="form-label">New password</label>
+                <input id="settings-new-password" type="password" name="password" required minlength="8" autocomplete="new-password"
+                       class="form-input @error('password') form-input-error @enderror"
+                       data-validation-message="New password">
+                @error('password')<p class="form-error">{{ $message }}</p>@enderror
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">At least 8 characters, with upper &amp; lower case letters and a number.</p>
+            </div>
+            <div>
+                <label class="form-label">Confirm new password</label>
+                <input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password"
+                       class="form-input"
+                       data-confirm-for="settings-new-password"
+                       data-validation-message="Confirm new password">
+            </div>
+            <div class="pt-1 flex items-center gap-2">
+                <button type="submit" class="btn-primary" :disabled="!canEditTab('security')">Change Password</button>
+                <button type="button" @click="showPasswordModal = false" class="btn-outline">Cancel</button>
+            </div>
+        </form>
+    </div>
+</x-modal-overlay>
+
+</div>
+
+<script>
+(function () {
+    function detectRegionCode() {
+        try {
+            if (typeof Intl !== 'undefined' && typeof Intl.Locale === 'function' && navigator.language) {
+                var locale = new Intl.Locale(navigator.language);
+                if (locale && locale.region) return String(locale.region).toUpperCase();
+            }
+        } catch (e) {}
+
+        var lang = String(navigator.language || '').toUpperCase();
+        var parts = lang.split(/[-_]/);
+        return parts.length > 1 ? parts[1] : '';
+    }
+
+    function detectCurrencyByRegion(region) {
+        var map = {
+            IN: 'INR', US: 'USD', GB: 'GBP', EU: 'EUR', DE: 'EUR', FR: 'EUR', ES: 'EUR', IT: 'EUR', NL: 'EUR', PT: 'EUR',
+            IE: 'EUR', BE: 'EUR', AT: 'EUR', FI: 'EUR', GR: 'EUR', LU: 'EUR', SI: 'EUR', SK: 'EUR', LV: 'EUR', LT: 'EUR',
+            EE: 'EUR', CY: 'EUR', MT: 'EUR', CA: 'CAD', AU: 'AUD', NZ: 'NZD', SG: 'SGD', AE: 'AED', SA: 'SAR', QA: 'QAR',
+            KW: 'KWD', BH: 'BHD', OM: 'OMR', JP: 'JPY', KR: 'KRW', CN: 'CNY', HK: 'HKD', TW: 'TWD', TH: 'THB', MY: 'MYR',
+            ID: 'IDR', PH: 'PHP', VN: 'VND', PK: 'PKR', BD: 'BDT', NP: 'NPR', LK: 'LKR', ZA: 'ZAR', NG: 'NGN', KE: 'KES',
+            GH: 'GHS', CH: 'CHF', SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN', CZ: 'CZK', HU: 'HUF', RO: 'RON', TR: 'TRY',
+            BR: 'BRL', MX: 'MXN', AR: 'ARS', CL: 'CLP', CO: 'COP', PE: 'PEN', UY: 'UYU'
+        };
+        return map[region] || '';
+    }
+
+    function detectCurrencyByTimezone(timezone) {
+        var tz = String(timezone || '');
+        if (tz.indexOf('Asia/Kolkata') === 0) return 'INR';
+        if (tz.indexOf('Europe/London') === 0) return 'GBP';
+        if (tz.indexOf('Europe/') === 0) return 'EUR';
+        if (tz.indexOf('America/') === 0) return 'USD';
+        if (tz.indexOf('Asia/Dubai') === 0) return 'AED';
+        return '';
+    }
+
+    function setAutosaveHint(message, tone) {
+        var hint = document.getElementById('settings-location-autosave-hint');
+        if (!hint) return;
+        hint.classList.remove('hidden', 'text-green-600', 'text-red-500', 'text-gray-500');
+        hint.classList.add(tone === 'error' ? 'text-red-500' : (tone === 'success' ? 'text-green-600' : 'text-gray-500'));
+        hint.textContent = message;
+    }
+
+    function detectTimezoneByRegion(region) {
+        var map = {
+            IN: 'Asia/Kolkata',
+            GB: 'Europe/London',
+            US: 'America/New_York',
+            AE: 'Asia/Dubai',
+            SG: 'Asia/Singapore',
+            AU: 'Australia/Sydney',
+            CA: 'America/Toronto',
+            NZ: 'Pacific/Auckland'
+        };
+        return map[region] || '';
+    }
+
+    function pickTimezoneOption(timezoneSelect, region, detectedTimezone) {
+        var candidates = [];
+        if (detectedTimezone) candidates.push(detectedTimezone);
+        if (region === 'IN') {
+            // Ensure India always resolves to IST if available.
+            candidates.unshift('Asia/Kolkata', 'Asia/Calcutta');
+        } else {
+            var byRegion = detectTimezoneByRegion(region);
+            if (byRegion) candidates.push(byRegion);
+        }
+
+        for (var i = 0; i < candidates.length; i++) {
+            var tz = candidates[i];
+            if (!tz) continue;
+            var option = timezoneSelect.querySelector('option[value="' + tz + '"]');
+            if (option) return tz;
+        }
+        return '';
+    }
+
+    function autoFillSalonLocationSettings() {
+        var form = document.getElementById('settings-salon-form');
+        var detectBtn = document.getElementById('settings-detect-location-btn');
+        var timezoneSelect = document.getElementById('settings-salon-timezone');
+        var currencySelect = document.getElementById('settings-salon-currency');
+        if (!form || !detectBtn || !timezoneSelect || !currencySelect) return;
+
+        function applyDetectedLocation() {
+            setAutosaveHint('Detecting current location...', 'neutral');
+
+            var timezone = '';
+            try {
+                timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            } catch (e) {}
+
+            var region = detectRegionCode();
+            var pickedTimezone = pickTimezoneOption(timezoneSelect, region, timezone);
+            if (pickedTimezone) {
+                timezoneSelect.value = pickedTimezone;
+                timezone = pickedTimezone;
+            }
+
+            var currency = detectCurrencyByTimezone(timezone) || detectCurrencyByRegion(region);
+            if (currency) {
+                var currencyOption = currencySelect.querySelector('option[value="' + currency + '"]');
+                if (currencyOption) {
+                    currencySelect.value = currency;
+                }
+            }
+
+            if (timezone && currency) {
+                setAutosaveHint('Detected and selected. Click Save Changes to apply.', 'success');
+            } else if (timezone || currency) {
+                setAutosaveHint('Partially detected. Please review and click Save Changes.', 'neutral');
+            } else {
+                setAutosaveHint('Could not detect location automatically. Please select manually.', 'error');
+            }
+        }
+
+        detectBtn.addEventListener('click', applyDetectedLocation);
+    }
+
+    document.addEventListener('DOMContentLoaded', autoFillSalonLocationSettings);
+})();
+
+(function () {
+    var phone = document.getElementById('settings-salon-phone');
+    var whatsapp = document.getElementById('settings-salon-whatsapp');
+    var block = document.querySelector('[data-whatsapp-number-block]');
+    if (!phone || !whatsapp || !block) return;
+
+    function sameAsPhone() {
+        var checked = block.querySelector('input[name="whatsapp_same_as_phone"]:checked');
+        return checked && checked.value === '1';
+    }
+
+    function syncWhatsapp() {
+        if (sameAsPhone()) {
+            whatsapp.value = phone.value;
+            whatsapp.readOnly = true;
+            whatsapp.classList.add('bg-gray-50', 'dark:bg-gray-800/70', 'cursor-not-allowed');
+        } else {
+            whatsapp.readOnly = false;
+            whatsapp.classList.remove('bg-gray-50', 'dark:bg-gray-800/70', 'cursor-not-allowed');
+        }
+    }
+
+    block.querySelectorAll('input[name="whatsapp_same_as_phone"]').forEach(function (radio) {
+        radio.addEventListener('change', syncWhatsapp);
+    });
+    phone.addEventListener('input', function () {
+        if (sameAsPhone()) whatsapp.value = phone.value;
+    });
+    syncWhatsapp();
+})();
+
+(function () {
+    var input = document.getElementById('settings-custom-business-type-input');
+    var addBtn = document.getElementById('settings-add-custom-business-type-btn');
+    var list = document.getElementById('settings-custom-business-type-list');
+    var typeList = document.getElementById('settings-business-types-list');
+    if (!input || !addBtn || !list || !typeList) return;
+
+    function hasValue(value) {
+        var wanted = value.trim().toLowerCase();
+        var exists = false;
+        list.querySelectorAll('input[name="custom_business_types[]"]').forEach(function (el) {
+            if (String(el.value || '').trim().toLowerCase() === wanted) {
+                exists = true;
+            }
+        });
+        return exists;
+    }
+
+    function hasRenderedCustomCheckbox(value) {
+        var wanted = value.trim().toLowerCase();
+        var exists = false;
+        typeList.querySelectorAll('label[data-custom-draft="1"], label[data-custom-existing="1"]').forEach(function (label) {
+            var nameNode = label.querySelector('.settings-business-type-name');
+            var txt = nameNode ? nameNode.textContent : label.textContent;
+            if (String(txt || '').trim().toLowerCase() === wanted) {
+                exists = true;
+            }
+        });
+        return exists;
+    }
+
+    function slugify(value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/&/g, 'and')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+    }
+
+    function addImmediateCheckedCustomCheckbox(value) {
+        if (hasRenderedCustomCheckbox(value)) return;
+
+        var baseSlug = slugify(value) || 'custom-type';
+        var slug = baseSlug;
+        var n = 1;
+        while (typeList.querySelector('input[name="business_type_ids[]"][data-bt-slug="' + slug + '"]')) {
+            slug = baseSlug + '-' + n;
+            n++;
+        }
+
+        var label = document.createElement('label');
+        label.className = 'inline-flex items-center gap-2 text-sm text-body cursor-pointer';
+        label.setAttribute('data-custom-draft', '1');
+        label.innerHTML =
+            '<input type="checkbox" checked disabled class="rounded border-gray-300 text-velour-600 opacity-70 cursor-not-allowed">' +
+            '<span class="settings-business-type-name"></span>' +
+            '<span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-velour-100 dark:bg-velour-900/30 text-velour-600 dark:text-velour-300">new</span>';
+        label.querySelector('.settings-business-type-name').textContent = value;
+        typeList.appendChild(label);
+    }
+
+    function addCustomType(raw) {
+        var value = String(raw || '').trim();
+        if (!value || hasValue(value)) return;
+
+        var pill = document.createElement('span');
+        pill.className = 'settings-custom-business-pill inline-flex items-center gap-2 rounded-full bg-velour-100/80 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 px-3 py-1 text-xs';
+        pill.innerHTML = '<span></span><button type="button" class="settings-custom-business-remove leading-none">x</button><input type="hidden" name="custom_business_types[]" />';
+        pill.querySelector('span').textContent = value;
+        pill.querySelector('input[name="custom_business_types[]"]').value = value;
+        list.appendChild(pill);
+        addImmediateCheckedCustomCheckbox(value);
+    }
+
+    addBtn.addEventListener('click', function () {
+        addCustomType(input.value);
+        input.value = '';
+        input.focus();
+    });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addBtn.click();
+        }
+    });
+
+    list.addEventListener('click', function (e) {
+        var btn = e.target.closest('.settings-custom-business-remove');
+        if (!btn) return;
+        var pill = btn.closest('.settings-custom-business-pill');
+        if (!pill) return;
+        var hidden = pill.querySelector('input[name="custom_business_types[]"]');
+        var value = hidden ? String(hidden.value || '').trim().toLowerCase() : '';
+        pill.remove();
+
+        if (value) {
+            typeList.querySelectorAll('label[data-custom-draft="1"]').forEach(function (label) {
+                var nameNode = label.querySelector('.settings-business-type-name');
+                var txt = nameNode ? nameNode.textContent : '';
+                if (String(txt || '').trim().toLowerCase() === value) {
+                    label.remove();
+                }
+            });
+        }
+    });
+})();
+
+(function () {
+    function syncServiceSetupVisibility() {
+        var selectedSlugs = {};
+        var selectedCategoryIds = {};
+        var selectedCountBySlug = {};
+
+        document.querySelectorAll('#settings-business-types-list input[name="business_type_ids[]"]:checked').forEach(function (el) {
+            var slug = el.getAttribute('data-bt-slug');
+            if (slug) selectedSlugs[slug] = true;
+        });
+
+        var anyCategoryVisible = false;
+        document.querySelectorAll('.settings-service-category-option').forEach(function (el) {
+            var slug = el.getAttribute('data-bt-slug');
+            var show = !!(slug && selectedSlugs[slug]);
+            el.classList.toggle('hidden', !show);
+            if (show) anyCategoryVisible = true;
+
+            var chk = el.querySelector('input[type="checkbox"]');
+            if (!chk) return;
+            if (!show) chk.checked = false;
+            if (show && chk.checked) {
+                var catId = el.getAttribute('data-cat-id');
+                selectedCategoryIds[catId] = true;
+                selectedCountBySlug[slug] = (selectedCountBySlug[slug] || 0) + 1;
+            }
+        });
+
+        var anyServiceVisible = false;
+        document.querySelectorAll('.settings-service-offer-option').forEach(function (el) {
+            var slug = el.getAttribute('data-bt-slug');
+            var catId = el.getAttribute('data-cat-id');
+            var show = !!(slug && selectedSlugs[slug]);
+
+            // Keep services hidden until at least one category is selected for this slug.
+            if (show) {
+                var hasSelectedCategoryForSlug = (selectedCountBySlug[slug] || 0) > 0;
+                show = hasSelectedCategoryForSlug && !!selectedCategoryIds[catId];
+            }
+
+            el.classList.toggle('hidden', !show);
+            if (show) anyServiceVisible = true;
+
+            var chk = el.querySelector('input[type="checkbox"]');
+            var meta = el.querySelector('.settings-service-meta-grid');
+            var metaInputs = el.querySelectorAll('.settings-service-meta-input');
+            if (!show && chk) chk.checked = false;
+
+            var checkedAndVisible = !!(show && chk && chk.checked);
+            if (meta) meta.classList.toggle('hidden', !checkedAndVisible);
+            metaInputs.forEach(function (inp) {
+                inp.disabled = !checkedAndVisible;
+                inp.required = checkedAndVisible;
+            });
+        });
+
+        document.querySelectorAll('.settings-service-offers-type-bundle').forEach(function (bundle) {
+            var slug = bundle.getAttribute('data-bt-slug');
+            var show = !!(slug && selectedSlugs[slug]);
+            bundle.classList.toggle('hidden', !show);
+        });
+        document.querySelectorAll('.settings-service-offers-cat-bundle').forEach(function (bundle) {
+            var any = false;
+            bundle.querySelectorAll('.settings-service-offer-option').forEach(function (row) {
+                if (!row.classList.contains('hidden')) {
+                    any = true;
+                }
+            });
+            bundle.classList.toggle('hidden', !any);
+        });
+
+        var categoriesWrap = document.getElementById('settings-service-categories-list');
+        if (categoriesWrap) categoriesWrap.classList.toggle('opacity-50', !anyCategoryVisible);
+
+        var servicesWrap = document.getElementById('settings-service-offers-list');
+        if (servicesWrap) servicesWrap.classList.toggle('opacity-50', !anyServiceVisible);
+    }
+
+    document.addEventListener('change', function (e) {
+        if (!e.target) return;
+        if (
+            e.target.matches('#settings-business-types-list input[name="business_type_ids[]"]') ||
+            e.target.closest('.settings-service-category-option') ||
+            e.target.classList.contains('settings-service-checkbox')
+        ) {
+            syncServiceSetupVisibility();
+        }
+    });
+    document.addEventListener('DOMContentLoaded', syncServiceSetupVisibility);
+})();
+
+(function () {
+    var maxRows = 10;
+    var container = document.getElementById('settings-staff-rows');
+    var addBtn = document.getElementById('settings-add-staff-member');
+    if (!container || !addBtn) return;
+
+    function accountDetails() {
+        return {
+            name: container.getAttribute('data-account-name') || '',
+            email: container.getAttribute('data-account-email') || '',
+            phone: container.getAttribute('data-account-phone') || '',
+        };
+    }
+
+    function applyUseMyDetails(checkbox, checked) {
+        var row = checkbox.closest('.settings-staff-member-row');
+        if (!row) return;
+        // Never overwrite an existing saved staff member — only new (empty id) rows.
+        var idInput = row.querySelector('input[name="staff_members[0][id]"]');
+        if (idInput && String(idInput.value || '').trim() !== '') {
+            checkbox.checked = false;
+            return;
+        }
+        var nameEl = row.querySelector('.settings-staff-field-name');
+        var emailEl = row.querySelector('.settings-staff-field-email');
+        var phoneEl = row.querySelector('.settings-staff-field-phone');
+        if (!nameEl || !emailEl || !phoneEl) return;
+
+        if (checked) {
+            checkbox.dataset.prevName = nameEl.value;
+            checkbox.dataset.prevEmail = emailEl.value;
+            checkbox.dataset.prevPhone = phoneEl.value;
+            var acct = accountDetails();
+            nameEl.value = acct.name;
+            emailEl.value = acct.email;
+            phoneEl.value = acct.phone;
+            nameEl.dispatchEvent(new Event('input', { bubbles: true }));
+            emailEl.dispatchEvent(new Event('input', { bubbles: true }));
+            phoneEl.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+
+        nameEl.value = checkbox.dataset.prevName != null ? checkbox.dataset.prevName : '';
+        emailEl.value = checkbox.dataset.prevEmail != null ? checkbox.dataset.prevEmail : '';
+        phoneEl.value = checkbox.dataset.prevPhone != null ? checkbox.dataset.prevPhone : '';
+        delete checkbox.dataset.prevName;
+        delete checkbox.dataset.prevEmail;
+        delete checkbox.dataset.prevPhone;
+    }
+
+    container.addEventListener('change', function (e) {
+        var cb = e.target && e.target.closest ? e.target.closest('.settings-use-my-details') : null;
+        if (!cb || !container.contains(cb)) return;
+        applyUseMyDetails(cb, cb.checked);
+    });
+
+    function renumberStaffRows() {
+        var rows = container.querySelectorAll('.settings-staff-member-row');
+        rows.forEach(function (row, i) {
+            var title = row.querySelector('.settings-staff-row-title');
+            if (title) title.textContent = 'Team member ' + (i + 1);
+            var rm = row.querySelector('.settings-staff-remove-btn');
+            if (rm) rm.classList.toggle('hidden', rows.length <= 1);
+        });
+    }
+
+    addBtn.addEventListener('click', function () {
+        var rows = container.querySelectorAll('.settings-staff-member-row');
+        if (rows.length >= maxRows) return;
+        var clone = rows[0].cloneNode(true);
+        clone.querySelectorAll('input[type="file"]').forEach(function (el) {
+            el.value = '';
+            el.removeAttribute('data-compressing');
+            if (el.name === 'staff_member_avatar') {
+                el.setAttribute('required', 'required');
+            }
+        });
+        clone.querySelectorAll('[data-compress-hint]').forEach(function (el) {
+            var def = el.getAttribute('data-compress-hint-default');
+            if (def) el.textContent = def;
+            else el.textContent = 'JPG, PNG or WebP · large images are auto-compressed';
+        });
+        // Hide remove-photo for new empty rows
+        clone.querySelectorAll('input[name="staff_member_remove_avatar"]').forEach(function (el) {
+            var lab = el.closest('label');
+            if (lab) lab.classList.add('hidden');
+            el.checked = false;
+        });
+        clone.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], textarea').forEach(function (el) {
+            el.value = '';
+        });
+        clone.querySelectorAll('input[type="color"]').forEach(function (el) {
+            el.value = '#7C3AED';
+        });
+        clone.querySelectorAll('select').forEach(function (el) {
+            el.selectedIndex = 0;
+        });
+        clone.querySelectorAll('input[type="checkbox"]').forEach(function (el) {
+            el.checked = false;
+            if (el.classList.contains('settings-use-my-details')) {
+                delete el.dataset.prevName;
+                delete el.dataset.prevEmail;
+                delete el.dataset.prevPhone;
+            }
+        });
+        clone.querySelectorAll('input[type="hidden"]').forEach(function (el) {
+            if (el.name && el.name.indexOf('[id]') !== -1) el.value = '';
+        });
+        // New rows can use account autofill; existing saved members keep the control hidden.
+        var useWrap = clone.querySelector('.settings-use-my-details-wrap');
+        if (useWrap) useWrap.classList.remove('hidden');
+        var toggle = clone.querySelector('.settings-staff-row-toggle');
+        var body = clone.querySelector('.settings-staff-row-body');
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', 'true');
+            var chev = toggle.querySelector('.settings-staff-row-chevron');
+            if (chev) chev.classList.remove('rotate-180');
+        }
+        if (body) body.classList.remove('hidden');
+        container.appendChild(clone);
+        renumberStaffRows();
+    });
+
+    container.addEventListener('click', function (e) {
+        var tbtn = e.target.closest('.settings-staff-row-toggle');
+        if (tbtn && container.contains(tbtn)) {
+            var row = tbtn.closest('.settings-staff-member-row');
+            var body = row && row.querySelector('.settings-staff-row-body');
+            if (body) {
+                var open = tbtn.getAttribute('aria-expanded') !== 'false';
+                var next = !open;
+                tbtn.setAttribute('aria-expanded', next ? 'true' : 'false');
+                body.classList.toggle('hidden', !next);
+                var chev = tbtn.querySelector('.settings-staff-row-chevron');
+                if (chev) chev.classList.toggle('rotate-180', !next);
+            }
+            return;
+        }
+        var btn = e.target.closest('.settings-staff-remove-btn');
+        if (!btn) return;
+        var row = btn.closest('.settings-staff-member-row');
+        if (!row || container.querySelectorAll('.settings-staff-member-row').length <= 1) return;
+        row.remove();
+        renumberStaffRows();
+    });
+
+    renumberStaffRows();
+})();
+</script>
+
+@push('scripts')
+<script>
+(function () {
+    var root = document.querySelector('[data-awards-editor]');
+    if (!root) return;
+    var surface = root.querySelector('.awards-editor-surface');
+    var textarea = root.querySelector('textarea[name="awards_accolades"]');
+    var fileInput = root.querySelector('[data-awards-file]');
+    var uploadUrl = root.getAttribute('data-upload-url');
+    var form = root.closest('form');
+    if (!surface || !textarea) return;
+
+    function syncAwards() {
+        textarea.value = surface.innerHTML.trim();
+    }
+
+    root.querySelectorAll('[data-cmd]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            surface.focus();
+            document.execCommand(btn.getAttribute('data-cmd'), false, null);
+            syncAwards();
+        });
+    });
+
+    var imageBtn = root.querySelector('[data-awards-image]');
+    if (imageBtn && fileInput) {
+        imageBtn.addEventListener('click', function () {
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', function () {
+            var file = fileInput.files && fileInput.files[0];
+            fileInput.value = '';
+            if (!file || !uploadUrl) return;
+            var body = new FormData();
+            body.append('image', file);
+            var token = document.querySelector('meta[name="csrf-token"]');
+            fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': token ? token.getAttribute('content') : '',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: body
+            }).then(function (res) {
+                return res.json().then(function (data) {
+                    if (!res.ok) {
+                        var msg = data.message || data.error;
+                        if (data.errors && data.errors.image && data.errors.image[0]) msg = data.errors.image[0];
+                        throw new Error(msg || 'Upload failed');
+                    }
+                    return data;
+                });
+            }).then(function (data) {
+                if (!data.url) return;
+                surface.focus();
+                var img = document.createElement('img');
+                img.src = data.url;
+                img.alt = 'Award';
+                var sel = window.getSelection();
+                if (sel && sel.rangeCount) {
+                    var range = sel.getRangeAt(0);
+                    if (surface.contains(range.commonAncestorContainer) || surface === range.commonAncestorContainer) {
+                        range.deleteContents();
+                        range.insertNode(img);
+                    } else {
+                        surface.appendChild(img);
+                    }
+                } else {
+                    surface.appendChild(img);
+                }
+                syncAwards();
+            }).catch(function (err) {
+                alert(err.message || 'Could not upload image.');
+            });
+        });
+    }
+
+    surface.addEventListener('input', syncAwards);
+    surface.addEventListener('blur', syncAwards);
+    if (form) form.addEventListener('submit', syncAwards);
+    syncAwards();
+})();
+document.addEventListener('alpine:init', () => {
+  Alpine.data('settingsPage', (cfg) => ({
+    ...cfg,
+    canEditTab(tab) {
+      if (this.adminBrowse) return false;
+      return this.canEdit[tab] !== false;
+    },
+  }));
+});
+</script>
+@endpush
+
+@endsection
