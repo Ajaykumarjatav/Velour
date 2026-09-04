@@ -79,17 +79,15 @@ class PreventPublicSessionClobber
             return true;
         }
 
-        // /{store}/reviews/share/{token}
-        if (preg_match('#^[a-z0-9]+(?:-[a-z0-9]+)*/reviews/share/#', $path)) {
-            return true;
-        }
+        // Do NOT treat /{store}/reviews/share/* as a public surface here.
+        // Those URLs live under SESSION_PATH (same cookie as the panel), need a
+        // real session for CSRF + validation flash, and array sessions caused 419s.
 
         $prefixes = [
             's/',
             'book/',
             'website/',
             'widget/',
-            'reviews/share/',
             'api/v1/book/',
             'api/v1/client/',
             'api/v1/track/',

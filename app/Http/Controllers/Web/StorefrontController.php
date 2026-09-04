@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 class StorefrontController extends Controller
 {
-    public function show(string $slug, ?string $path = null): Response|View
+    public function show(string $slug, ?string $path = null): Response|View|RedirectResponse
     {
         $salon = PublicSalonAccess::findBySlug($slug);
 
@@ -31,6 +31,16 @@ class StorefrontController extends Controller
             }
 
             abort(404);
+        }
+
+        $canonical = strtolower(trim((string) $salon->slug));
+        if ($canonical !== '' && strtolower($slug) !== $canonical) {
+            $target = StorefrontUrl::website($salon);
+            if ($path) {
+                $target = rtrim($target, '/').'/'.ltrim($path, '/');
+            }
+
+            return redirect()->to($target, 301);
         }
 
         $theme = StorefrontTheme::forSalon($salon);
@@ -67,7 +77,7 @@ class StorefrontController extends Controller
         return $this->legalDocument($slug, 'storefront.legal.privacy');
     }
 
-    private function legalDocument(string $slug, string $view): Response|View
+    private function legalDocument(string $slug, string $view): Response|View|RedirectResponse
     {
         $salon = PublicSalonAccess::findBySlug($slug);
 
@@ -82,6 +92,13 @@ class StorefrontController extends Controller
             }
 
             abort(404);
+        }
+
+        $canonical = strtolower(trim((string) $salon->slug));
+        if ($canonical !== '' && strtolower($slug) !== $canonical) {
+            $page = str_contains($view, 'privacy') ? 'privacy' : 'terms';
+
+            return redirect()->to(StorefrontUrl::legal($salon, $page), 301);
         }
 
         $theme = StorefrontTheme::forSalon($salon);

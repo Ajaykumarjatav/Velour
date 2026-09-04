@@ -947,7 +947,7 @@
                                 if (($currentSalon ?? null) && auth()->user()->dashboardScopedStaffId() === null) {
                                     $profileBookingUrl = \App\Support\StorefrontUrl::booking($currentSalon);
                                     if ($profileBookingUrl !== '') {
-                                        $profileWaShareUrl = 'https://wa.me/?text=' . rawurlencode('Book your next appointment with us!' . "\n" . $profileBookingUrl);
+                                        $profileWaShareUrl = \App\Support\StorefrontUrl::whatsappBookingShareUrl($currentSalon);
                                     }
                                 }
                             @endphp
@@ -1222,6 +1222,7 @@
 <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none w-80 max-w-[calc(100vw-2.5rem)]"></div>
 
 @include('partials.chatbot')
+@include('partials.tenant-feedback-popup')
 @include('partials.form-client-validation')
 @include('partials.disable-double-submit')
 <script src="{{ asset('js/image-compress-upload.js') }}?v=1" defer></script>

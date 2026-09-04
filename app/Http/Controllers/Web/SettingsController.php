@@ -225,7 +225,7 @@ class SettingsController extends Controller
         $salon = $this->salon();
 
         $data = $request->validate([
-            'name'                 => ['required', 'string', 'max:150'],
+            'name'                 => \App\Support\SalonSlug::uniqueNameRules((int) $salon->id),
             'phone'              => ['nullable', 'string', 'max:20'],
             'whatsapp_number'    => ['nullable', 'string', 'max:30'],
             'whatsapp_same_as_phone' => ['required', 'in:0,1'],
@@ -243,7 +243,7 @@ class SettingsController extends Controller
             'gst_number'         => ['nullable', 'string', 'max:30'],
             'booking_time_display' => ['nullable', 'in:business,customer'],
             'home_services_enabled' => ['sometimes', 'boolean'],
-        ]);
+        ], \App\Support\SalonSlug::uniqueNameMessages('name'));
 
         $bookingTimeDisplay = $data['booking_time_display'] ?? 'business';
         unset($data['booking_time_display']);
@@ -263,6 +263,20 @@ class SettingsController extends Controller
         $data['map_url'] = $mapUrl !== '' ? \App\Support\MapLink::normalize($mapUrl) : null;
         $gst = strtoupper(trim((string) ($data['gst_number'] ?? '')));
         $data['gst_number'] = $gst !== '' ? $gst : null;
+
+        $oldName = (string) $salon->name;
+        $newName = trim((string) $data['name']);
+        $data['name'] = $newName;
+
+        if (\App\Support\SalonSlug::shouldSyncFromName($salon, $oldName, $newName)) {
+            $newSlug = \App\Support\SalonSlug::uniqueFromName($newName, (int) $salon->id);
+            \App\Support\SalonSlug::rememberAlias((int) $salon->id, (string) ($salon->subdomain ?: $salon->slug));
+            if ($salon->slug && strtolower((string) $salon->slug) !== strtolower((string) ($salon->subdomain ?: ''))) {
+                \App\Support\SalonSlug::rememberAlias((int) $salon->id, (string) $salon->slug);
+            }
+            $data['slug'] = $newSlug;
+            $data['subdomain'] = $newSlug;
+        }
 
         $links = is_array($salon->social_links) ? $salon->social_links : [];
         $waDigits = preg_replace('/\D+/', '', (string) ($data['whatsapp_same_as_phone'] ? ($data['phone'] ?? '') : ($data['whatsapp_number'] ?? '')));

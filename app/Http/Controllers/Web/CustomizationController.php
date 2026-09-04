@@ -64,7 +64,7 @@ class CustomizationController extends Controller
     {
         $salon = $this->salon();
         $validated = $request->validate([
-            'business_name' => ['required', 'string', 'max:150'],
+            'business_name' => \App\Support\SalonSlug::uniqueNameRules((int) $salon->id),
             'tagline' => ['nullable', 'string', 'max:200'],
             'custom_domain' => ['nullable', 'string', 'max:120'],
             'support_email' => ['nullable', 'email', 'max:150'],
@@ -72,9 +72,15 @@ class CustomizationController extends Controller
             'secondary_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'accent_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
-        ]);
+        ], \App\Support\SalonSlug::uniqueNameMessages());
 
-        $salon->name = $validated['business_name'];
+        $oldName = (string) $salon->name;
+        $newName = trim($validated['business_name']);
+        $salon->name = $newName;
+        if (\App\Support\SalonSlug::shouldSyncFromName($salon, $oldName, $newName)) {
+            $slug = \App\Support\SalonSlug::uniqueFromName($newName, (int) $salon->id);
+            \App\Support\SalonSlug::applyNewSlug($salon, $slug);
+        }
         $salon->domain = $validated['custom_domain'] ?? $salon->domain;
         if (! empty($validated['support_email'])) {
             $salon->email = $validated['support_email'];

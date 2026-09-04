@@ -64,4 +64,64 @@ final class StorefrontUrl
     {
         return self::website($salon) . '#book';
     }
+
+    /**
+     * Customer-facing WhatsApp message for sharing the booking page
+     * (business name, contact, location + link — not URL alone).
+     */
+    public static function whatsappBookingShareText(Salon $salon): string
+    {
+        $name = trim((string) $salon->name);
+        $lines = [];
+
+        if ($name !== '') {
+            $lines[] = $name;
+            $lines[] = '';
+        }
+
+        $lines[] = 'Book your next appointment with us online!';
+        $lines[] = '';
+
+        $address = self::formatShareAddress($salon);
+        if ($address !== '') {
+            $lines[] = 'Location: '.$address;
+        }
+
+        $phone = trim((string) ($salon->whatsappNumberForSite() ?: $salon->phone ?: ''));
+        if ($phone !== '') {
+            $lines[] = 'Phone: '.$phone;
+        }
+
+        $email = trim((string) ($salon->email ?? ''));
+        if ($email !== '') {
+            $lines[] = 'Email: '.$email;
+        }
+
+        if ($address !== '' || $phone !== '' || $email !== '') {
+            $lines[] = '';
+        }
+
+        $lines[] = 'Book here:';
+        $lines[] = self::booking($salon);
+
+        return implode("\n", $lines);
+    }
+
+    public static function whatsappBookingShareUrl(Salon $salon): string
+    {
+        return 'https://wa.me/?text='.rawurlencode(self::whatsappBookingShareText($salon));
+    }
+
+    private static function formatShareAddress(Salon $salon): string
+    {
+        $parts = array_values(array_filter([
+            trim((string) ($salon->address_line1 ?? '')),
+            trim((string) ($salon->address_line2 ?? '')),
+            trim((string) ($salon->city ?? '')),
+            trim((string) ($salon->county ?? '')),
+            trim((string) ($salon->postcode ?? '')),
+        ], fn (string $p) => $p !== ''));
+
+        return implode(', ', $parts);
+    }
 }

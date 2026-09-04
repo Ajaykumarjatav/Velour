@@ -20,6 +20,19 @@ class ResolveStorePath
         $salon = SalonUrl::findByKey($key);
         abort_unless($salon, 404, 'Salon not found.');
 
+        $canonical = SalonUrl::key($salon);
+        if ($canonical !== '' && strtolower($key) !== $canonical) {
+            $path = $request->path();
+            $suffix = preg_replace('#^'.preg_quote($key, '#').'#i', $canonical, $path, 1) ?: $canonical;
+            $target = url($suffix);
+            $query = $request->getQueryString();
+            if ($query) {
+                $target .= '?'.$query;
+            }
+
+            return redirect()->to($target, 301);
+        }
+
         $user = $request->user();
         abort_unless($user && SalonUrl::userCanAccess($user, $salon), 403, 'You do not have access to this salon.');
 
@@ -27,7 +40,7 @@ class ResolveStorePath
             $request->session()->put('active_salon_id', $salon->id);
         }
 
-        URL::defaults(['store' => SalonUrl::key($salon)]);
+        URL::defaults(['store' => $canonical]);
 
         $tenant = Tenant::query()->withoutGlobalScopes()->find($salon->id);
         if ($tenant) {

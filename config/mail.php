@@ -85,9 +85,9 @@ return [
         'name'    => env('MAIL_FROM_NAME', 'EasyGrox'),
     ],
 
-    // Internal ops inbox for new user / new store alerts (recipient, not sender)
+    // Internal ops inbox for new user / new store / tenant feedback alerts (recipient, not sender)
     'ops_notify'     => env('MAIL_OPS_NOTIFY', 'ajayajatav439@gmail.com'),
-    'support_notify' => env('MAIL_SUPPORT_NOTIFY', env('MAIL_OPS_NOTIFY', 'ajayajatav439@gmail.com')),
+    'support_notify' => env('MAIL_SUPPORT_NOTIFY', 'support@easygrox.com'),
     'ops_notify_cc'  => env('MAIL_OPS_NOTIFY_CC', ''),
 
     /*

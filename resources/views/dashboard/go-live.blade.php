@@ -592,12 +592,14 @@
 const _serverData = {
   websiteUrl:  @json($websiteUrl),
   bookingUrl:  @json($bookingUrl),
+  whatsappShareText: @json($whatsappShareText ?? ''),
   qrUrl:       "{{ $qrUrl }}",
   embedCodes:  @json($embedCodes),
   shareClicks: @json($shareclicks),
   socialLinks: @json($salon->social_links ?? []),
   salon: {
     slug:                    "{{ $salon->slug }}",
+    name:                    @json($salon->name),
     currency_symbol:         @json(\App\Helpers\CurrencyHelper::symbol($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode())),
     online_booking_enabled:  {{ $salon->online_booking_enabled  ? 'true' : 'false' }},
     new_client_booking_enabled: {{ $salon->new_client_booking_enabled ? 'true' : 'false' }},
@@ -670,9 +672,9 @@ function goLivePage() {
         get href() {
           const profile = (_serverData.socialLinks || {}).whatsapp;
           if (profile) return profile;
-          const url = _serverData.bookingUrl;
-          const text = encodeURIComponent(`Book your next appointment with us! 💅\n${url}`);
-          return `https://wa.me/?text=${text}`;
+          const text = _serverData.whatsappShareText
+            || `Book your next appointment with us!\n${_serverData.bookingUrl}`;
+          return `https://wa.me/?text=${encodeURIComponent(text)}`;
         }
       },
       {

@@ -266,6 +266,7 @@
           ['route' => 'admin.tenant-modules','icon' => 'settings',     'label' => 'Tenant tabs'],
           ['route' => 'admin.support.index', 'icon' => 'support',      'label' => 'Support'],
           ['route' => 'admin.contact-queries.index', 'icon' => 'mail', 'label' => 'Contact queries'],
+          ['route' => 'admin.tenant-feedback.index', 'icon' => 'reviews', 'label' => 'Tenant feedback'],
           ['route' => 'admin.analytics',     'icon' => 'analytics',    'label' => 'Analytics'],
           ['route' => 'admin.billing',       'icon' => 'billing',      'label' => 'Billing'],
           ['route' => 'admin.audit.index',   'icon' => 'audit',        'label' => 'Audit Log'],

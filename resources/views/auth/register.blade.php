@@ -13,14 +13,32 @@
     @csrf
     <div class="auth-grid">
         <div class="auth-field auth-field--full">
+            <label for="register-business-name" class="auth-label">Business name</label>
+            <input id="register-business-name" type="text" name="business_name" value="{{ old('business_name') }}"
+                   required minlength="2" maxlength="150"
+                   autocomplete="organization"
+                   placeholder="Glow Hair Studio"
+                   pattern="[A-Za-z0-9\s'&.,\-]+"
+                   data-validation-message="Business name"
+                   data-pattern-message="Use letters, numbers, spaces, and . , ' & - only."
+                   class="auth-input @error('business_name') is-invalid @enderror">
+            @error('business_name')<p class="auth-error">{{ $message }}</p>@enderror
+            <p class="auth-field-hint">Your booking page URL will use this name (must be unique).</p>
+        </div>
+        <div class="auth-field auth-field--full">
             <label for="register-name" class="auth-label">Full name</label>
-            <input id="register-name" type="text" name="name" value="{{ old('name') }}" required maxlength="100" autocomplete="name" placeholder="Alex Morgan"
+            <input id="register-name" type="text" name="name" value="{{ old('name') }}"
+                   required minlength="2" maxlength="100" autocomplete="name"
+                   placeholder="Alex Morgan"
+                   data-validation-message="Full name"
                    class="auth-input @error('name') is-invalid @enderror">
             @error('name')<p class="auth-error">{{ $message }}</p>@enderror
         </div>
         <div class="auth-field auth-field--full">
             <label for="register-email" class="auth-label">Email</label>
-            <input id="register-email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" placeholder="you@business.com"
+            <input id="register-email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email"
+                   placeholder="you@business.com"
+                   data-validation-message="Email"
                    class="auth-input @error('email') is-invalid @enderror">
             @error('email')<p class="auth-error">{{ $message }}</p>@enderror
         </div>

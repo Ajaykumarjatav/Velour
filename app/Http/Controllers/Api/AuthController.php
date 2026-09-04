@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 
@@ -26,7 +25,7 @@ class AuthController extends Controller
             'name'                 => 'required|string|max:255',
             'email'                => 'required|email|unique:users,email',
             'password'             => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
-            'salon_name'           => 'required|string|max:255',
+            'salon_name'           => \App\Support\SalonSlug::uniqueNameRules(),
             'business_type_ids'    => 'required|array|min:1',
             'business_type_ids.*'  => 'integer|exists:business_types,id',
             'salon_phone'          => 'nullable|string|max:30',
@@ -43,7 +42,7 @@ class AuthController extends Controller
             'staff_members.*.bio'    => 'nullable|string|max:1000',
             'staff_members.*.color'  => 'nullable|string|max:7',
             'plan'                 => 'nullable|'.Plan::validationRule(),
-        ]);
+        ], \App\Support\SalonSlug::uniqueNameMessages('salon_name'));
 
         $typeIds = array_values(array_unique(array_map('intval', $data['business_type_ids'])));
         $allowedCategoryKeys = RegistrationStarterServices::allowedCategoryKeysForTypeIds($typeIds);
@@ -91,14 +90,12 @@ class AuthController extends Controller
             'trial_ends_at' => now()->addDays((int) config('billing.trial_days', 15)),
         ]);
 
-        $slug = Str::slug($data['salon_name']);
-        $count = Salon::where('slug', 'like', $slug . '%')->count();
-        if ($count) $slug .= '-' . ($count + 1);
+        $slug = \App\Support\SalonSlug::uniqueFromName($data['salon_name']);
 
         $salon = Salon::create([
             'owner_id'         => $user->id,
             'business_type_id' => $typeIds[0],
-            'name'             => $data['salon_name'],
+            'name'             => trim($data['salon_name']),
             'slug'             => $slug,
             'subdomain'        => $slug,
             'phone'            => $data['salon_phone'] ?? null,

@@ -18,7 +18,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 
@@ -152,10 +151,11 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
-            'name'                 => ['required', 'string', 'max:100'],
-            'email'                => ['required', 'email', 'unique:users,email'],
-            'password'             => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
-        ]);
+            'business_name' => \App\Support\SalonSlug::uniqueNameRules(),
+            'name'          => ['required', 'string', 'min:2', 'max:100'],
+            'email'         => ['required', 'email', 'unique:users,email'],
+            'password'      => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
+        ], \App\Support\SalonSlug::uniqueNameMessages());
 
         $user = User::create([
             'name'          => $data['name'],
@@ -169,14 +169,9 @@ class AuthController extends Controller
         // Assign tenant_admin role to salon owners
         $user->assignRole('tenant_admin');
 
-        // Create a default salon; richer setup now happens in Settings post-login.
-        $defaultSalonName = trim($data['name']) !== '' ? ($data['name'] . "'s Business") : 'My Business';
-        $slug  = Str::slug($defaultSalonName);
-        if ($slug === '') {
-            $slug = 'my-salon';
-        }
-        $count = Salon::withoutGlobalScopes()->where('slug', 'like', $slug . '%')->count();
-        if ($count) $slug .= '-' . ($count + 1);
+        // Salon name + storefront URL slug come from business name — never from the owner's personal name.
+        $businessName = trim($data['business_name']);
+        $slug = \App\Support\SalonSlug::uniqueFromName($businessName);
         $defaultBusinessTypeId = (int) \App\Models\BusinessType::query()->orderBy('sort_order')->value('id');
         if ($defaultBusinessTypeId < 1) {
             $defaultBusinessTypeId = (int) \App\Models\BusinessType::query()->orderBy('id')->value('id');
@@ -190,7 +185,7 @@ class AuthController extends Controller
         $salon = Salon::withoutGlobalScopes()->create([
             'owner_id'         => $user->id,
             'business_type_id' => $defaultBusinessTypeId,
-            'name'             => $defaultSalonName,
+            'name'             => $businessName,
             'slug'             => $slug,
             'subdomain'        => $slug,
             'email'            => $data['email'],

@@ -14,8 +14,13 @@ class RegisterRequest extends FormRequest
             'email'      => ['required','email:rfc,dns','max:255','unique:users,email'],
             'password'   => ['required','confirmed', Password::min(8)->letters()->mixedCase()->numbers()],
             'phone'      => ['nullable','string','max:30','regex:/^[\+\d\s\(\)\-]+$/'],
-            'salon_name' => ['required','string','max:150'],
+            'salon_name' => \App\Support\SalonSlug::uniqueNameRules(),
             'plan'       => ['nullable', Plan::validationRule()],
         ];
+    }
+
+    public function messages(): array
+    {
+        return \App\Support\SalonSlug::uniqueNameMessages('salon_name');
     }
 }

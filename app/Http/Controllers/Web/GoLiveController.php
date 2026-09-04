@@ -70,6 +70,7 @@ class GoLiveController extends Controller
         $themes     = StorefrontTheme::all();
         $websiteUrl = StorefrontUrl::website($salon);
         $bookingUrl = StorefrontUrl::booking($salon);
+        $whatsappShareText = StorefrontUrl::whatsappBookingShareText($salon);
 
         // ── Checklist ──────────────────────────────────────────────────────
         $checklist = $this->buildChecklist($salon);
@@ -118,6 +119,7 @@ class GoLiveController extends Controller
             'salon',
             'websiteUrl',
             'bookingUrl',
+            'whatsappShareText',
             'qrUrl',
             'checklist',
             'thisMonthVisits',

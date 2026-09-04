@@ -220,6 +220,12 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
             return response()->json(['ok' => true]);
         })->name('ui.hide-profile-bar');
 
+        Route::get('feedback/status', [\App\Http\Controllers\Web\TenantFeedbackController::class, 'status'])
+            ->name('feedback.status');
+        Route::post('feedback', [\App\Http\Controllers\Web\TenantFeedbackController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('feedback.store');
+
         Route::get('guide', [GuideController::class, 'index'])->name('guide.index');
 
         Route::get('deleted-items', [DeletedItemsController::class, 'index'])->name('deleted-items.index');
@@ -499,7 +505,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
     // Do not catch public share URLs (reviews/share/{token}) — those are guest routes.
     Route::middleware(['salon.panel'])->group(function () {
         Route::any('{legacy}', LegacySalonUrlController::class)
-            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|website-about|security-support|support-tickets|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|theme-preview|set_socket_blocking|account|billing|onboarding)(/.*)?$')
+            ->where('legacy', '^(?!reviews/share)(dashboard|calendar|guide|tasks|deleted-items|appointments|clients|staff|services|service-packages|service-categories|multi-location|availability|inventory|expenses|facilities|pos|marketing|revenue|reports|reviews|notifications|activity-log|go-live|setup-progress|website-seo|website-about|security-support|support-tickets|customization|settings|payments|chatbot|salon-admin|lookup|quick-create|action-items|ui|feedback|theme-preview|set_socket_blocking|account|billing|onboarding)(/.*)?$')
             ->name('legacy.salon.redirect');
     });
 
@@ -521,6 +527,7 @@ use App\Http\Controllers\Admin\AdminRevenueController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSupportController;
 use App\Http\Controllers\Admin\AdminContactQueryController;
+use App\Http\Controllers\Admin\AdminTenantFeedbackController;
 use App\Http\Controllers\Admin\AdminAnalyticsController;
 use App\Http\Controllers\Admin\AdminTenantOwnerController;
 use App\Http\Controllers\Admin\AdminTenantStoresController;
@@ -646,6 +653,10 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin',
     // ── Contact form queries (website) ────────────────────────────────────────
     Route::get('contact-queries',            [AdminContactQueryController::class, 'index'])->name('contact-queries.index');
     Route::get('contact-queries/{contactQuery}', [AdminContactQueryController::class, 'show'])->name('contact-queries.show');
+
+    Route::get('tenant-feedback', [AdminTenantFeedbackController::class, 'index'])->name('tenant-feedback.index');
+    Route::get('tenant-feedback/{tenantFeedback}', [AdminTenantFeedbackController::class, 'show'])->name('tenant-feedback.show');
+    Route::post('tenant-feedback/{tenantFeedback}/reviewed', [AdminTenantFeedbackController::class, 'markReviewed'])->name('tenant-feedback.reviewed');
 
     // ── Usage Analytics ───────────────────────────────────────────────────────
     Route::get('analytics',                  [AdminAnalyticsController::class, 'index'])->name('analytics');

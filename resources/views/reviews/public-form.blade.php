@@ -115,38 +115,39 @@
         <p class="review-error-msg review-error-msg--center" x-show="ratingError" x-text="ratingError" x-cloak></p>
     </div>
 
-    {{-- Name --}}
-    <div class="review-block">
-        <label for="reviewer-name" class="review-label">Your name <span class="review-required">*</span></label>
-        <input
-            id="reviewer-name"
-            type="text"
-            name="reviewer_name"
-            x-ref="nameInput"
-            x-model="name"
-            autocomplete="name"
-            class="auth-input"
-            :class="nameError ? 'is-invalid' : ''"
-            placeholder="Enter your name"
-            @input="nameError = ''"
-        >
-        <p class="review-error-msg" x-show="nameError" x-text="nameError" x-cloak></p>
-    </div>
+    {{-- Name + Service --}}
+    <div class="review-fields-row {{ $services->isEmpty() ? 'review-fields-row--single' : '' }}">
+        <div class="review-block">
+            <label for="reviewer-name" class="review-label">Your name <span class="review-required">*</span></label>
+            <input
+                id="reviewer-name"
+                type="text"
+                name="reviewer_name"
+                x-ref="nameInput"
+                x-model="name"
+                autocomplete="name"
+                class="auth-input"
+                :class="nameError ? 'is-invalid' : ''"
+                placeholder="Enter your name"
+                @input="nameError = ''"
+            >
+            <p class="review-error-msg" x-show="nameError" x-text="nameError" x-cloak></p>
+        </div>
 
-    {{-- Service (optional) --}}
-    @if($services->isNotEmpty())
-    <div class="review-block">
-        <label for="review-service" class="review-label">Service <span class="review-optional">(optional)</span></label>
-        <select id="review-service" name="service_id" class="auth-input">
-            <option value="">Select a service</option>
-            @foreach($services as $service)
-            <option value="{{ $service->id }}" {{ (string) old('service_id') === (string) $service->id ? 'selected' : '' }}>
-                {{ $service->name }}
-            </option>
-            @endforeach
-        </select>
+        @if($services->isNotEmpty())
+        <div class="review-block">
+            <label for="review-service" class="review-label">Service <span class="review-optional">(optional)</span></label>
+            <select id="review-service" name="service_id" class="auth-input">
+                <option value="">Select a service</option>
+                @foreach($services as $service)
+                <option value="{{ $service->id }}" {{ (string) old('service_id') === (string) $service->id ? 'selected' : '' }}>
+                    {{ $service->name }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+        @endif
     </div>
-    @endif
 
     {{-- Quick templates --}}
     <div class="review-block">
@@ -174,7 +175,7 @@
         <textarea
             id="review-comment"
             name="comment"
-            rows="4"
+            rows="3"
             class="auth-input review-textarea"
             x-model="comment"
             placeholder="Write your own review or edit the message above…"
@@ -191,32 +192,55 @@
 <style>
 [x-cloak] { display: none !important; }
 
-/* Compact branding + wider card for review page only */
+/* Wider card so the form feels less tall */
 .auth-container.auth-container--review {
-    max-width: 480px;
+    max-width: 720px;
+    width: 100%;
 }
 .auth-container.auth-container--review .auth-brand {
-    margin-bottom: 0.875rem;
+    margin-bottom: 0.4rem;
 }
 .auth-container.auth-container--review .auth-logo-img {
-    height: 2.75rem;
+    height: 2rem;
 }
 .auth-container.auth-container--review .auth-tagline {
     display: none;
 }
+.auth-container.auth-container--review .auth-panel-body {
+    padding: 1.1rem 1.15rem 1.2rem;
+}
 .auth-shell:has(.auth-container--review) {
-    padding: 1.25rem 1rem 1.75rem;
-    justify-content: flex-start;
-    padding-top: max(1.25rem, env(safe-area-inset-top));
+    justify-content: flex-start !important;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0.65rem 1rem 1.15rem;
+    padding-top: max(0.65rem, env(safe-area-inset-top));
 }
 @media (min-width: 640px) {
     .auth-shell:has(.auth-container--review) {
-        justify-content: center;
-        padding: 2rem 1.25rem;
+        justify-content: flex-start !important;
+        padding: 0.85rem 1.25rem 1.35rem;
+        padding-top: max(0.85rem, env(safe-area-inset-top));
+    }
+    .auth-container.auth-container--review .auth-panel-body {
+        padding: 1.25rem 1.5rem 1.35rem;
+    }
+}
+@media (min-width: 900px) {
+    .auth-container.auth-container--review {
+        max-width: 780px;
     }
 }
 .auth-container.auth-container--review .auth-meta {
-    margin-top: 1rem;
+    margin-top: 0.65rem;
+}
+.auth-container.auth-container--review .auth-meta-rule {
+    display: none;
+}
+.auth-container.auth-container--review .auth-meta-copy,
+.auth-container.auth-container--review .auth-meta-credit {
+    font-size: 0.7rem;
+    line-height: 1.3;
 }
 
 /* Subtle background focus */
@@ -226,42 +250,60 @@ body:has(.auth-container--review) .auth-glow {
 
 .review-page-header {
     text-align: center;
-    margin-bottom: 1.35rem;
+    margin-bottom: 0.7rem;
 }
 .review-salon-name {
-    margin: 0 0 0.35rem;
-    font-size: 1.375rem;
+    margin: 0 0 0.15rem;
+    font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: -0.02em;
     color: #0f172a;
-    line-height: 1.25;
+    line-height: 1.2;
 }
 .dark .review-salon-name { color: #f8fafc; }
 .review-salon-lead {
-    margin: 0 0 0.35rem;
-    font-size: 1rem;
+    margin: 0 0 0.15rem;
+    font-size: 0.9375rem;
     font-weight: 600;
     color: #334155;
 }
 .dark .review-salon-lead { color: #e2e8f0; }
 .review-salon-sub {
     margin: 0;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     color: #64748b;
-    line-height: 1.45;
+    line-height: 1.35;
 }
 .dark .review-salon-sub { color: #94a3b8; }
 
 .review-simple-form {
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
+    gap: 0.7rem;
+}
+
+.review-fields-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+}
+@media (min-width: 640px) {
+    .review-fields-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+        align-items: start;
+    }
+    .review-fields-row--single {
+        grid-template-columns: 1fr;
+        max-width: 50%;
+    }
 }
 
 .review-block {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.3rem;
+    min-width: 0;
 }
 .review-block--center {
     align-items: center;
@@ -269,7 +311,7 @@ body:has(.auth-container--review) .auth-glow {
 
 .review-label {
     margin: 0;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: #334155;
 }
@@ -282,15 +324,21 @@ body:has(.auth-container--review) .auth-glow {
 
 .review-helper {
     margin: 0;
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     color: #94a3b8;
-    line-height: 1.4;
+    line-height: 1.35;
 }
 
 .review-templates {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+}
+@media (min-width: 640px) {
+    .review-templates {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.45rem;
+    }
 }
 
 .review-chip {
@@ -298,17 +346,18 @@ body:has(.auth-container--review) .auth-glow {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.5rem;
     width: 100%;
+    height: 100%;
     text-align: left;
     border: 1px solid #e2e8f0;
     background: #f8fafc;
     color: #334155;
-    border-radius: 0.875rem;
-    padding: 0.75rem 0.875rem;
-    min-height: 3.25rem;
-    font-size: 0.8125rem;
-    line-height: 1.45;
+    border-radius: 0.7rem;
+    padding: 0.55rem 0.7rem;
+    min-height: 0;
+    font-size: 0.76rem;
+    line-height: 1.35;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
 }
@@ -339,8 +388,8 @@ body:has(.auth-container--review) .auth-glow {
     word-break: break-word;
 }
 .review-chip-check {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 1rem;
+    height: 1rem;
     flex-shrink: 0;
     margin-top: 0.1rem;
     color: #7c3aed;
@@ -348,14 +397,14 @@ body:has(.auth-container--review) .auth-glow {
 .dark .review-chip-check { color: #c4b5fd; }
 
 .review-textarea {
-    min-height: 6.5rem;
+    min-height: 4rem;
     resize: vertical;
-    line-height: 1.5;
+    line-height: 1.45;
 }
 
 .review-error-msg {
     color: #dc2626 !important;
-    font-size: 0.8125rem !important;
+    font-size: 0.75rem !important;
     font-weight: 600 !important;
     margin: 0 !important;
 }
@@ -364,27 +413,27 @@ body:has(.auth-container--review) .auth-glow {
 
 .review-stars {
     display: flex;
-    gap: 0.35rem;
+    gap: 0.25rem;
     justify-content: center;
 }
 .review-star {
     appearance: none;
     border: 0;
     background: transparent;
-    padding: 0.15rem;
+    padding: 0.1rem;
     cursor: pointer;
     color: #cbd5e1;
     line-height: 0;
     position: relative;
-    width: 2.35rem;
-    height: 2.35rem;
+    width: 2rem;
+    height: 2rem;
     transition: transform 0.12s ease;
 }
 .review-star:hover { transform: scale(1.08); }
 .dark .review-star { color: #4b5563; }
 .review-star svg {
-    width: 2.15rem;
-    height: 2.15rem;
+    width: 1.85rem;
+    height: 1.85rem;
     position: absolute;
     inset: 0;
     margin: auto;
@@ -396,12 +445,22 @@ body:has(.auth-container--review) .auth-glow {
 .review-star.is-on { color: #f59e0b; }
 
 .review-rating-label {
-    margin: 0.5rem 0 0;
-    font-size: 0.875rem;
+    margin: 0.25rem 0 0;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: #f59e0b;
-    min-height: 1.25rem;
+    min-height: 1.1rem;
     text-align: center;
+}
+
+.auth-container.auth-container--review .auth-input {
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+}
+.auth-container.auth-container--review .auth-btn {
+    margin-top: 0.15rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
 }
 
 .review-submit-btn:disabled {
@@ -419,8 +478,8 @@ body:has(.auth-container--review) .auth-glow {
         max-width: none;
     }
     .auth-shell:has(.auth-container--review) {
-        padding-left: max(1rem, env(safe-area-inset-left));
-        padding-right: max(1rem, env(safe-area-inset-right));
+        padding-left: max(0.875rem, env(safe-area-inset-left));
+        padding-right: max(0.875rem, env(safe-area-inset-right));
     }
 }
 </style>

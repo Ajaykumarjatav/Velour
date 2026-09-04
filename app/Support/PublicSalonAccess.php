@@ -19,7 +19,18 @@ final class PublicSalonAccess
 
     public static function findBySlug(string $slug): ?Salon
     {
-        return static::query()->where('slug', $slug)->first();
+        $slug = strtolower(trim($slug));
+        $salon = static::query()->where('slug', $slug)->first();
+        if ($salon) {
+            return $salon;
+        }
+
+        $viaAlias = SalonSlug::findSalonByAlias($slug);
+        if (! $viaAlias) {
+            return null;
+        }
+
+        return static::query()->whereKey($viaAlias->id)->first();
     }
 
     public static function findBySlugOrFail(string $slug): Salon

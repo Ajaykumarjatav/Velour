@@ -57,11 +57,17 @@ final class SalonUrl
             return null;
         }
 
-        return Salon::query()->withoutGlobalScopes()
+        $salon = Salon::query()->withoutGlobalScopes()
             ->where(function ($q) use ($key) {
                 $q->where('subdomain', $key)->orWhere('slug', $key);
             })
             ->first();
+
+        if ($salon) {
+            return $salon;
+        }
+
+        return SalonSlug::findSalonByAlias($key);
     }
 
     public static function userCanAccess(User $user, Salon $salon): bool

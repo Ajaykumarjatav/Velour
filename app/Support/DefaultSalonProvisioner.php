@@ -7,10 +7,10 @@ namespace App\Support;
 use App\Jobs\OnboardNewTenant;
 use App\Models\Salon;
 use App\Models\User;
-use Illuminate\Support\Str;
 
 /**
  * Ensures salon owners have a default salon (registration normally does this).
+ * Fallback name is a placeholder — real business name should be set in Settings.
  */
 final class DefaultSalonProvisioner
 {
@@ -33,19 +33,10 @@ final class DefaultSalonProvisioner
             return null;
         }
 
-        $defaultSalonName = trim((string) $user->name) !== ''
-            ? trim($user->name) . "'s Salon"
-            : 'My Salon';
-
-        $slug = Str::slug($defaultSalonName);
-        if ($slug === '') {
-            $slug = 'my-salon';
-        }
-
-        $count = Salon::withoutGlobalScopes()->where('slug', 'like', $slug . '%')->count();
-        if ($count) {
-            $slug .= '-' . ($count + 1);
-        }
+        // Prefer a temporary business name from the owner's full name (not "{name}'s Salon").
+        $ownerName = trim((string) $user->name);
+        $defaultSalonName = $ownerName !== '' ? $ownerName : 'My Business';
+        $slug = SalonSlug::uniqueFromName($defaultSalonName);
 
         $defaultBusinessTypeId = (int) \App\Models\BusinessType::query()->orderBy('sort_order')->value('id');
         if ($defaultBusinessTypeId < 1) {
