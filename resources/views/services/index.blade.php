@@ -65,11 +65,11 @@
     </p>
 
     {{-- Search & filters --}}
-    <div class="rounded-2xl border border-gray-200/90 dark:border-gray-700/80 bg-white/85 dark:bg-gray-900/45 backdrop-blur-sm p-4 sm:p-5 shadow-sm dark:shadow-none space-y-4">
+    <div class="rounded-2xl border border-gray-200/90 dark:border-gray-700/80 bg-white/85 dark:bg-gray-900/45 backdrop-blur-sm p-4 sm:p-5 shadow-sm dark:shadow-none space-y-4 overflow-visible">
         <form method="GET" action="{{ route('services.index') }}">
-            {{-- Wraps into rows below xl; the single scrolling row only pays off when it actually fits. --}}
-            <div class="svc-filters-row flex flex-wrap xl:flex-nowrap items-end gap-3 xl:overflow-x-auto pb-1 -mx-0.5 px-0.5">
-                <div class="flex-[2] min-w-[11rem] space-y-1.5 shrink-0">
+            {{-- Wrap instead of overflow-x-auto: a scroll container clips searchable-select panels and shifts the layout. --}}
+            <div class="svc-filters-row flex flex-wrap items-end gap-3">
+                <div class="flex-[2] min-w-[11rem] space-y-1.5">
                     <label for="svc-search" class="form-label text-xs mb-0 uppercase tracking-wide text-muted">Search</label>
                     <div class="relative">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none z-[1]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -79,7 +79,7 @@
                                class="form-input w-full min-h-[2.5rem] !pl-10 pr-3 text-sm">
                     </div>
                 </div>
-                <div class="flex-[1.35] min-w-[10.5rem] space-y-1.5 shrink-0">
+                <div class="flex-[1.35] min-w-[10.5rem] space-y-1.5 relative z-30">
                     <label for="svc-category-trigger" class="form-label text-xs mb-0 uppercase tracking-wide text-muted">Category</label>
                     <x-searchable-select
                         id="svc-category"
@@ -96,7 +96,7 @@
                         @endforeach
                     </x-searchable-select>
                 </div>
-                <div class="w-[7.5rem] min-w-[7.5rem] space-y-1.5 shrink-0">
+                <div class="w-[7.5rem] min-w-[7.5rem] space-y-1.5 relative z-20">
                     <label for="svc-status-trigger" class="form-label text-xs mb-0 uppercase tracking-wide text-muted">Status</label>
                     <x-searchable-select
                         id="svc-status"

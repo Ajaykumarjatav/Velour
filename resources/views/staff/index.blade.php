@@ -157,6 +157,7 @@ document.addEventListener('alpine:init', function () {
                         :from-value="$monthFrom"
                         :to-value="$monthTo"
                         :salon-today="$salonToday"
+                        :all-time-from="\App\Support\SalonTime::earliestReportDateString($salon)"
                         class="relative z-10" />
                     <div class="flex justify-end gap-1.5 pt-2 mt-2 border-t border-gray-100 dark:border-gray-800">
                         <button type="button" class="btn-outline btn-sm !py-1 !px-2.5 !text-xs" @click="openRangePicker = false">Cancel</button>
@@ -167,7 +168,7 @@ document.addEventListener('alpine:init', function () {
         </div>
         <div class="flex flex-wrap gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
             <span class="text-[11px] font-semibold uppercase tracking-wide text-muted self-center mr-1">Open for this period:</span>
-            <a href="{{ route('appointments.index', ['date' => $monthFrom]) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Appointments</a>
+            <a href="{{ route('appointments.index', ['from' => $monthFrom, 'to' => $monthTo]) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Appointments</a>
             <a href="{{ route('pos.index', ['from' => $monthFrom, 'to' => $monthTo]) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">POS sales</a>
             <a href="{{ route('expenses.index', array_filter(['from' => $monthFrom, 'to' => $monthTo, 'category_id' => $salaryCategoryId])) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Salary / expenses</a>
             <a href="{{ route('availability.index', ['tab' => 'attendance', 'period' => 'month', 'month' => $monthKey]) }}" class="text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/70 text-body hover:bg-velour-50 dark:hover:bg-velour-900/30">Attendance</a>
@@ -313,7 +314,7 @@ document.addEventListener('alpine:init', function () {
                     @endunless
                 </div>
                 <div class="grid grid-cols-2 gap-2 mt-2">
-                    <a href="{{ route('appointments.index', ['staff_id' => $member->id, 'date' => $monthFrom]) }}"
+                    <a href="{{ route('appointments.index', ['staff_id' => $member->id, 'from' => $monthFrom, 'to' => $monthTo]) }}"
                        class="btn-primary text-center text-xs py-2">Appointments</a>
                     @unless($adminStoreBrowse ?? false)
                     <button type="button"

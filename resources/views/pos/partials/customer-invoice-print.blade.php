@@ -5,14 +5,14 @@
     $logoSrc = ($logoDataUri ?? null) ?: ($logoUrl ?? null);
 @endphp
 
-<div style="border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;font-family:DejaVu Sans,Helvetica,Arial,sans-serif;color:#18181b;">
+<div class="customer-invoice-sheet" style="border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;font-family:DejaVu Sans,Helvetica,Arial,sans-serif;color:#18181b;width:100%;">
     <div style="height:4px;background:linear-gradient(90deg,#7c3aed,#a78bfa,#c4b5fd);"></div>
 
     {{-- Header --}}
     <div style="padding:22px 24px 20px;border-bottom:1px solid #ececf0;background:#fafafa;">
-        <table width="100%" cellpadding="0" cellspacing="0">
+        <table class="customer-invoice-head" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">
             <tr>
-                <td valign="top" style="padding-right:16px;">
+                <td valign="top" style="padding-right:16px;width:62%;">
                     <table cellpadding="0" cellspacing="0">
                         <tr>
                             @if($logoSrc)
@@ -45,14 +45,14 @@
                         </tr>
                     </table>
                 </td>
-                <td valign="top" align="right" style="white-space:nowrap;width:200px;">
+                <td valign="top" align="right" style="width:38%;vertical-align:top;">
                     <div style="border:1px solid #ddd6fe;border-radius:10px;background:#fff;padding:14px 16px;text-align:right;">
                         <p style="margin:0;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#71717a;">{{ $amountLabel ?? 'Amount due' }}</p>
-                        <p style="margin:4px 0 0;font-size:24px;font-weight:700;color:#7c3aed;">{{ $fmt((float) $transaction->total) }}</p>
-                        <table cellpadding="0" cellspacing="0" style="margin-top:12px;font-size:11px;width:100%;" align="right">
+                        <p style="margin:4px 0 0;font-size:22px;font-weight:700;color:#7c3aed;word-break:break-all;">{{ $fmt((float) $transaction->total) }}</p>
+                        <table cellpadding="0" cellspacing="0" style="margin-top:12px;font-size:11px;width:100%;">
                             <tr>
-                                <td style="color:#71717a;padding:2px 8px 2px 0;text-align:left;">Invoice no.</td>
-                                <td style="font-family:DejaVu Sans Mono,monospace;font-weight:600;text-align:right;">{{ $transaction->reference }}</td>
+                                <td style="color:#71717a;padding:2px 8px 2px 0;text-align:left;white-space:nowrap;">Invoice no.</td>
+                                <td style="font-family:DejaVu Sans Mono,monospace;font-weight:600;text-align:right;word-break:break-all;">{{ $transaction->reference }}</td>
                             </tr>
                             <tr>
                                 <td style="color:#71717a;padding:2px 8px 2px 0;text-align:left;">Date</td>

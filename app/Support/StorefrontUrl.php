@@ -66,6 +66,19 @@ final class StorefrontUrl
     }
 
     /**
+     * Customer-facing review form URL (no /admin — uses public /s/{slug}/… surface).
+     */
+    public static function reviewShare(Salon $salon, string $token): string
+    {
+        $key = SalonUrl::key($salon);
+        $token = trim($token);
+
+        return rtrim(self::publicAppUrl(), '/')
+            .'/s/'.rawurlencode($key)
+            .'/reviews/share/'.rawurlencode($token);
+    }
+
+    /**
      * Customer-facing WhatsApp message for sharing the booking page
      * (business name, contact, location + link — not URL alone).
      */

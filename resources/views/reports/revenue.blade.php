@@ -6,6 +6,7 @@
 @php
     $tzAbbr = \App\Support\SalonTime::abbrev($salon);
     $salonToday = \App\Support\SalonTime::todayDateString($salon);
+    $allTimeFrom = \App\Support\SalonTime::earliestReportDateString($salon);
 @endphp
 
 <div class="mb-4 space-y-0.5 text-[11px] leading-snug text-gray-400 dark:text-gray-500">
@@ -22,6 +23,7 @@
                     :from-value="$from"
                     :to-value="$to"
                     :salon-today="$salonToday"
+                    :all-time-from="$allTimeFrom"
                     class="w-full" />
             </div>
             <div class="flex flex-col gap-1.5 w-[calc(50%-0.375rem)] sm:w-36 shrink-0">
@@ -167,6 +169,9 @@
         @endforelse
         </tbody>
     </table>
+    @if($daily instanceof \Illuminate\Contracts\Pagination\Paginator && $daily->hasPages())
+    <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-800">{{ $daily->links() }}</div>
+    @endif
 </div>
 
 <div class="table-wrap">

@@ -82,14 +82,14 @@
     $storeKey = \App\Support\SalonUrl::key($salon);
     $totalReviews = $reviews->total();
 
-    $shortReviewPath = static function (string $token): string {
+    $shortReviewPath = static function (string $token) use ($storeKey): string {
         $token = trim($token);
         if ($token === '') {
-            return 'reviews/share/…';
+            return 's/'.$storeKey.'/reviews/share/…';
         }
         $visible = strlen($token) > 14 ? substr($token, 0, 14).'…' : $token;
 
-        return 'reviews/share/'.$visible;
+        return 's/'.$storeKey.'/reviews/share/'.$visible;
     };
 
     $reviewerDisplayName = static function ($review): string {
@@ -130,7 +130,7 @@
         <div class="space-y-5">
             @if(!($isScopedStaff ?? false) && $tenantReviewLink)
             @php
-                $tenantUrl = route('reviews.public', ['store' => $storeKey, 'token' => $tenantReviewLink->token]);
+                $tenantUrl = \App\Support\StorefrontUrl::reviewShare($salon, $tenantReviewLink->token);
             @endphp
             <div class="reviews-tenant-card">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -178,7 +178,7 @@
                             @php
                                 $staff = $row['staff'];
                                 $link = $row['link'];
-                                $staffUrl = route('reviews.public', ['store' => $storeKey, 'token' => $link->token]);
+                                $staffUrl = \App\Support\StorefrontUrl::reviewShare($salon, $link->token);
                             @endphp
                             <tr>
                                 <td>
@@ -213,7 +213,7 @@
                     @php
                         $staff = $row['staff'];
                         $link = $row['link'];
-                        $staffUrl = route('reviews.public', ['store' => $storeKey, 'token' => $link->token]);
+                        $staffUrl = \App\Support\StorefrontUrl::reviewShare($salon, $link->token);
                     @endphp
                     <div class="reviews-staff-mobile-card flex items-center justify-between gap-3">
                         <div class="min-w-0 flex-1">

@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ServicePackageController extends Controller
 {
@@ -28,7 +29,14 @@ class ServicePackageController extends Controller
         Gate::authorize('viewAny', ServicePackage::class);
 
         $salon = $this->salon();
-        $packages = ServicePackage::withoutTenantScope()
+        $section = $request->get('section') === 'loyalty' ? 'loyalty' : 'packages';
+
+        $search = trim((string) $request->get('search', ''));
+        $statusFilter = (string) $request->get('status', '');
+        $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
+        $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
+
+        $packagesQuery = ServicePackage::withoutTenantScope()
             ->where('salon_id', $salon->id)
             ->with([
                 'services' => function ($q) use ($salon) {
@@ -38,12 +46,35 @@ class ServicePackageController extends Controller
                 },
             ])
             ->withCount(['services' => fn ($q) => $q->withoutTenantScope()->where('services.salon_id', $salon->id)])
-            ->withSum(['services' => fn ($q) => $q->withoutTenantScope()->where('services.salon_id', $salon->id)], 'price')
+            ->withSum(['services' => fn ($q) => $q->withoutTenantScope()->where('services.salon_id', $salon->id)], 'price');
+
+        if ($search !== '') {
+            $packagesQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('description', 'like', '%'.$search.'%');
+            });
+        }
+
+        if (in_array($statusFilter, ['active', 'inactive'], true)) {
+            $packagesQuery->where('status', $statusFilter);
+        }
+
+        if ($priceMin !== null) {
+            $packagesQuery->where('price', '>=', $priceMin);
+        }
+
+        if ($priceMax !== null) {
+            $packagesQuery->where('price', '<=', $priceMax);
+        }
+
+        $packages = $packagesQuery
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        $section = $request->get('section') === 'loyalty' ? 'loyalty' : 'packages';
+        $totalPackages = ServicePackage::withoutTenantScope()
+            ->where('salon_id', $salon->id)
+            ->count();
 
         $loyaltyTiers = LoyaltyTier::where('salon_id', $salon->id)
             ->orderBy('sort_order')
@@ -57,7 +88,17 @@ class ServicePackageController extends Controller
                 ->count();
         }
 
-        return view('service-packages.index', compact('salon', 'packages', 'section', 'loyaltyTiers'));
+        return view('service-packages.index', compact(
+            'salon',
+            'packages',
+            'section',
+            'loyaltyTiers',
+            'search',
+            'statusFilter',
+            'priceMin',
+            'priceMax',
+            'totalPackages',
+        ));
     }
 
     public function create()
@@ -94,6 +135,7 @@ class ServicePackageController extends Controller
         ]);
 
         $serviceIds = array_values(array_unique(array_map('intval', $data['service_ids'])));
+        $this->assertPackagePriceWithinCatalog($salon->id, $serviceIds, (float) $data['price'], $salon->currency ?? CurrencyHelper::defaultCode());
 
         $package = ServicePackage::create([
             'salon_id' => $salon->id,
@@ -158,6 +200,7 @@ class ServicePackageController extends Controller
         ]);
 
         $serviceIds = array_values(array_unique(array_map('intval', $data['service_ids'])));
+        $this->assertPackagePriceWithinCatalog($salon->id, $serviceIds, (float) $data['price'], $salon->currency ?? CurrencyHelper::defaultCode());
 
         $update = [
             'name' => $data['name'],
@@ -186,6 +229,19 @@ class ServicePackageController extends Controller
         $servicePackage->delete();
 
         return redirect()->route('service-packages.index')->with('success', 'Service package removed.');
+    }
+
+    public function toggleStatus(ServicePackage $servicePackage)
+    {
+        $this->authorise($servicePackage);
+        Gate::authorize('update', $servicePackage);
+
+        $next = $servicePackage->status === 'active' ? 'inactive' : 'active';
+        $servicePackage->update(['status' => $next]);
+
+        return redirect()
+            ->route('service-packages.index')
+            ->with('success', $next === 'active' ? 'Package activated.' : 'Package deactivated.');
     }
 
     private function authorise(ServicePackage $package): void
@@ -254,9 +310,27 @@ class ServicePackageController extends Controller
         return $services->map(fn (Service $s) => [
             'id' => (int) $s->id,
             'name' => $s->name,
+            'price' => round((float) $s->price, 2),
             'priceLabel' => CurrencyHelper::format((float) $s->price, $currency),
             'status' => (string) $s->status,
         ])->values()->all();
+    }
+
+    /**
+     * @param  list<int>  $serviceIds
+     */
+    private function assertPackagePriceWithinCatalog(int $salonId, array $serviceIds, float $packagePrice, string $currency): void
+    {
+        $catalogTotal = round((float) Service::withoutTenantScope()
+            ->where('salon_id', $salonId)
+            ->whereIn('id', $serviceIds)
+            ->sum('price'), 2);
+
+        if ($packagePrice > $catalogTotal) {
+            throw ValidationException::withMessages([
+                'price' => 'Package price cannot be greater than the selected services total ('.CurrencyHelper::format($catalogTotal, $currency).').',
+            ]);
+        }
     }
 
     /** @param  array<int, mixed>|null  $roles */

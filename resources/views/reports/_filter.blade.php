@@ -3,6 +3,9 @@
     $salonToday = isset($salon)
         ? \App\Support\SalonTime::todayDateString($salon)
         : now()->toDateString();
+    $allTimeFrom = isset($salon)
+        ? \App\Support\SalonTime::earliestReportDateString($salon)
+        : '2020-01-01';
 @endphp
 <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 overflow-visible">
     <form action="{{ route('reports.show', $type) }}" method="GET" class="flex flex-wrap items-end gap-3 min-w-0 overflow-visible">
@@ -12,6 +15,7 @@
                 :from-value="$from"
                 :to-value="$to"
                 :salon-today="$salonToday"
+                :all-time-from="$allTimeFrom"
                 class="w-full" />
         </div>
         <button type="submit" class="btn-primary shrink-0">Apply</button>

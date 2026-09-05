@@ -25,12 +25,7 @@
                 <textarea name="description" rows="3" class="form-textarea @error('description') form-input-error @enderror">{{ old('description', $servicePackage->description) }}</textarea>
                 @error('description')<p class="form-error">{{ $message }}</p>@enderror
             </div>
-            <div>
-                <label class="form-label">Package price ({{ \App\Helpers\CurrencyHelper::symbol($currentSalon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()) }}) <span class="text-red-500">*</span></label>
-                <input type="number" name="price" value="{{ old('price', $servicePackage->price) }}" required min="0" step="0.01"
-                       class="form-input @error('price') form-input-error @enderror">
-                @error('price')<p class="form-error">{{ $message }}</p>@enderror
-            </div>
+            @include('service-packages.partials.package-price-field', ['priceValue' => old('price', $servicePackage->price)])
             <div>
                 <label class="form-label">Allowed staff roles</label>
                 <p class="form-hint mb-2">Optional. Leave all unchecked to allow any role (where booking supports packages).</p>

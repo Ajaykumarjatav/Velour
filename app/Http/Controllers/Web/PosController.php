@@ -32,8 +32,11 @@ class PosController extends Controller
         $salon  = $this->activeSalon();
         $search = $request->get('search');
         $salonToday = SalonTime::todayDateString($salon);
-        $from   = $request->get('from', $salonToday);
-        $to     = $request->get('to', $salonToday);
+        $from   = SalonTime::clampReportFrom($salon, (string) $request->get('from', $salonToday));
+        $to     = (string) $request->get('to', $salonToday);
+        if ($to < $from) {
+            $to = $from;
+        }
         $method = $request->get('payment_method');
         $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
 

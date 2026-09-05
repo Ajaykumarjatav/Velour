@@ -18,6 +18,7 @@ use App\Support\SalonTime;
 use App\Support\StorefrontUrl;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -324,22 +325,28 @@ class ReportController extends Controller
         }
 
         $salon = $this->activeSalon();
-        $from = $request->get('from', SalonTime::monthStartDateString($salon));
+        $from = SalonTime::clampReportFrom(
+            $salon,
+            (string) $request->get('from', SalonTime::monthStartDateString($salon))
+        );
         // Appointments are scheduled in the future; default "to" to month-end so the report
         // includes in-month bookings (revenue-style "to = today" hides them).
         $defaultTo = $type === 'appointments'
             ? SalonTime::monthEndDateString($salon)
             : SalonTime::todayDateString($salon);
-        $to = $request->get('to', $defaultTo);
+        $to = (string) $request->get('to', $defaultTo);
+        if ($to < $from) {
+            $to = $from;
+        }
 
         $data = match ($type) {
             'revenue' => $this->revenueReport($salon, $from, $to, $request),
-            'appointments' => $this->appointmentsReport($salon, $from, $to),
+            'appointments' => $this->appointmentsReport($salon, $from, $to, $request),
             'staff' => $this->staffReport($salon, $from, $to),
             'clients' => $this->clientsReport($salon, $from, $to),
             'services' => $this->servicesReport($salon, $from, $to),
             'inventory' => $this->inventoryReport($salon, $from, $to),
-            'marketing' => $this->marketingReport($salon, $from, $to),
+            'marketing' => $this->marketingReport($salon, $from, $to, $request),
             default => abort(404),
         };
 
@@ -352,8 +359,14 @@ class ReportController extends Controller
     public function exportRevenue(Request $request): StreamedResponse
     {
         $salon = $this->activeSalon();
-        $from = $request->get('from', SalonTime::monthStartDateString($salon));
-        $to = $request->get('to', SalonTime::todayDateString($salon));
+        $from = SalonTime::clampReportFrom(
+            $salon,
+            (string) $request->get('from', SalonTime::monthStartDateString($salon))
+        );
+        $to = (string) $request->get('to', SalonTime::todayDateString($salon));
+        if ($to < $from) {
+            $to = $from;
+        }
         [$rangeStart, $rangeEnd] = $this->revenueRecognizedRangeUtc($salon, $from, $to);
         $staffId = $request->filled('staff_id') ? (int) $request->get('staff_id') : null;
         if ($staffId && ! Staff::withoutGlobalScopes()->where('salon_id', $salon->id)->whereKey($staffId)->exists()) {
@@ -430,8 +443,18 @@ class ReportController extends Controller
             [$fromDay, $toDay] = [$toDay, $fromDay];
         }
 
-        $cursor = $fromDay->copy();
-        while ($cursor->lte($toDay)) {
+        $totalDays = $fromDay->diffInDays($toDay) + 1;
+        $perPage = 31;
+        $page = max(1, (int) $request->get('daily_page', 1));
+        $offset = ($page - 1) * $perPage;
+        if ($offset >= $totalDays && $totalDays > 0) {
+            $page = (int) ceil($totalDays / $perPage);
+            $offset = ($page - 1) * $perPage;
+        }
+        $pageEnd = min($offset + $perPage, $totalDays);
+
+        $cursor = $fromDay->copy()->addDays($offset);
+        for ($i = $offset; $i < $pageEnd; $i++) {
             $ymd = $cursor->toDateString();
             [$ds, $de] = SalonTime::dayRangeUtcFromYmd($salon, $ymd);
             $q = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->recognizedBetweenUtc($ds, $de);
@@ -448,6 +471,18 @@ class ReportController extends Controller
             ]);
             $cursor->addDay();
         }
+
+        $daily = new LengthAwarePaginator(
+            $daily,
+            $totalDays,
+            $perPage,
+            $page,
+            [
+                'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'pageName' => 'daily_page',
+            ]
+        );
+        $daily->appends($request->except('daily_page'));
 
         $base = PosTransaction::withoutGlobalScopes()->where('salon_id', $salon->id)->recognizedBetweenUtc($rangeStart, $rangeEnd);
         if ($staffId) {
@@ -545,7 +580,7 @@ class ReportController extends Controller
         );
     }
 
-    private function appointmentsReport($salon, $from, $to): array
+    private function appointmentsReport($salon, string $from, string $to, Request $request): array
     {
         [$rangeStart, $rangeEnd] = SalonTime::ymdRangeUtcInclusive($salon, $from, $to);
 
@@ -561,6 +596,8 @@ class ReportController extends Controller
             ->groupBy('date')
             ->orderBy('date')
             ->get();
+
+        $daily = $this->paginateReportRows($daily, $request, 31, 'daily_page');
 
         $total = Appointment::withoutGlobalScopes()->where('salon_id', $salon->id)
             ->whereBetween('starts_at', [$rangeStart, $rangeEnd])
@@ -687,8 +724,40 @@ class ReportController extends Controller
         return array_merge($base, compact('lowStockItems', 'adjustments', 'recentAdjustments'));
     }
 
-    private function marketingReport($salon, string $from, string $to): array
+    private function marketingReport($salon, string $from, string $to, Request $request): array
     {
-        return $this->reportService->marketing($salon->id, $from, $to);
+        $data = $this->reportService->marketing($salon->id, $from, $to);
+        $data['campaigns'] = $this->paginateReportRows($data['campaigns'], $request, 31, 'campaigns_page');
+
+        return $data;
+    }
+
+    /**
+     * Paginate report table rows with subdirectory-safe URLs (same as Eloquent paginate).
+     *
+     * @param  \Illuminate\Support\Collection|array  $rows
+     */
+    private function paginateReportRows($rows, Request $request, int $perPage, string $pageName): LengthAwarePaginator
+    {
+        $items = collect($rows)->values();
+        $total = $items->count();
+        $page = max(1, (int) $request->get($pageName, 1));
+        if ($total > 0 && ($page - 1) * $perPage >= $total) {
+            $page = (int) ceil($total / $perPage);
+        }
+
+        $paginator = new LengthAwarePaginator(
+            $items->forPage($page, $perPage)->values(),
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'pageName' => $pageName,
+            ]
+        );
+        $paginator->appends($request->except($pageName));
+
+        return $paginator;
     }
 }

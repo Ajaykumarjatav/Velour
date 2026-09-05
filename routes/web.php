@@ -271,6 +271,8 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
         Route::put('services/{service}/variants', [ServiceController::class, 'updateVariants'])->name('services.variants');
         Route::resource('services', ServiceController::class)->middleware('plan.limit:services');
         Route::resource('service-packages', ServicePackageController::class)->except(['show']);
+        Route::patch('service-packages/{service_package}/toggle-status', [ServicePackageController::class, 'toggleStatus'])
+            ->name('service-packages.toggle-status');
         Route::middleware('subscription:feature:multi_location')->group(function () {
             Route::get('multi-location', [MultiLocationController::class, 'index'])->name('multi-location.index');
             Route::post('multi-location', [MultiLocationController::class, 'store'])->name('multi-location.store')->middleware('plan.limit:stores');
@@ -699,6 +701,15 @@ Route::get('s/{slug}/privacy', [\App\Http\Controllers\Web\StorefrontController::
 Route::get('s/{slug}/out/{platform}', [\App\Http\Controllers\Web\StorefrontController::class, 'socialOut'])
     ->where('platform', '[a-z]+')
     ->name('storefront.social.out');
+// Public review forms on the storefront path (no /admin in shared links)
+Route::get('s/{store}/reviews/share/{token}', [ReviewController::class, 'publicForm'])
+    ->middleware('throttle:60,1')
+    ->where(['store' => '[a-z0-9\-]+', 'token' => '[A-Za-z0-9]+'])
+    ->name('reviews.public.storefront');
+Route::post('s/{store}/reviews/share/{token}', [ReviewController::class, 'submitPublicForm'])
+    ->middleware('throttle:20,1')
+    ->where(['store' => '[a-z0-9\-]+', 'token' => '[A-Za-z0-9]+'])
+    ->name('reviews.public.storefront.submit');
 Route::get('s/{slug}/{path}', [\App\Http\Controllers\Web\StorefrontController::class, 'show'])
     ->where('path', '.*')
     ->name('storefront.show.path');

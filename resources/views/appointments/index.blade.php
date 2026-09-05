@@ -13,9 +13,15 @@
               class="flex flex-1 flex-wrap items-center gap-2.5 sm:gap-3 min-w-0">
             <input type="text" name="search" value="{{ $search }}" placeholder="Search client or reference…"
                    class="form-input w-full min-w-0 sm:flex-1 sm:min-w-[12rem] lg:max-w-md">
-            <input type="date" name="date" value="{{ $date }}"
-                   title="Filter by date"
-                   class="form-input w-full min-w-[10.5rem] sm:w-[11.5rem] sm:flex-initial shrink-0">
+            <div class="w-full min-w-0 sm:w-[14.5rem] shrink-0 relative z-30">
+                <x-date-range-picker
+                    :from-value="$from"
+                    :to-value="$to"
+                    :salon-today="$salonToday"
+                    :all-time-from="$allTimeFrom"
+                    :all-time-to="$allTimeTo"
+                    class="w-full" />
+            </div>
             <x-searchable-select
                 id="appt-ix-status"
                 name="status"
@@ -135,8 +141,9 @@
             window.addEventListener('popstate', this._onPopState);
         },
      }">
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-5 xl:gap-6">
-    <div class="table-wrap [&_thead_th]:py-3 [&_thead_th]:px-5 [&_tbody_td]:py-2.5 [&_tbody_td]:px-5 [&_thead_th:last-child]:pr-6 [&_tbody_td:last-child]:pr-6 min-w-0 overflow-x-auto"
+<div class="grid grid-cols-1 gap-5 xl:gap-6"
+     :class="selectedAppointment() ? 'xl:grid-cols-2' : ''">
+    <div class="table-wrap w-full [&_thead_th]:py-3 [&_thead_th]:px-5 [&_tbody_td]:py-2.5 [&_tbody_td]:px-5 [&_thead_th:last-child]:pr-6 [&_tbody_td:last-child]:pr-6 min-w-0 overflow-x-auto"
          :class="{ 'opacity-60 pointer-events-none': loading }">
         <table class="data-table min-w-[36rem] w-full">
             <thead>

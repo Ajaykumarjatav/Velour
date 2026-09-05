@@ -29,6 +29,7 @@
         <div class="sf-home-packages__grid {{ $gridClass }}">
             <template x-for="(pkg, index) in packages" :key="pkg.id">
                 <article role="button" tabindex="0"
+                         x-data="{ expanded: false }"
                          :data-home-package="pkg.id"
                          @click="togglePackage(pkg.id)"
                          @keydown.enter.prevent="togglePackage(pkg.id)"
@@ -39,10 +40,12 @@
                         <img :src="packageImage(index)" :alt="pkg.name" draggable="false">
                         <span class="sf-home-packages__badge sf-home-packages__badge--featured"
                               x-show="pkg.badge_label"
-                              x-text="pkg.badge_label"></span>
+                              x-text="pkg.badge_label"
+                              x-cloak></span>
                         <span class="sf-home-packages__badge sf-home-packages__badge--save"
                               x-show="pkg.save_badge"
-                              x-text="pkg.save_badge"></span>
+                              x-text="pkg.save_badge"
+                              x-cloak></span>
                     </div>
                     <div class="sf-home-packages__body">
                         <h3 class="sf-home-packages__name" x-text="pkg.name"></h3>
@@ -52,7 +55,7 @@
                         <p class="sf-home-packages__meta" x-text="packageMeta(pkg)"></p>
 
                         <ul class="sf-home-packages__items">
-                            <template x-for="item in visibleItems(pkg)" :key="item.name + item.price">
+                            <template x-for="item in visibleItems(pkg, expanded)" :key="item.name + '-' + item.price">
                                 <li class="sf-home-packages__item">
                                     <span class="sf-home-packages__item-name" x-text="item.name"></span>
                                     <span class="sf-home-packages__item-price" x-text="item.price"></span>
@@ -61,26 +64,27 @@
                         </ul>
                         <button type="button"
                                 class="sf-home-packages__more"
-                                x-show="hiddenCount(pkg) > 0 && !isExpanded(pkg.id)"
-                                @click.stop="toggleExpand(pkg.id, $event)"
+                                x-show="hiddenCount(pkg) > 0 && !expanded"
+                                @click.stop="expanded = true"
                                 x-text="'+' + hiddenCount(pkg) + ' more service' + (hiddenCount(pkg) === 1 ? '' : 's')"></button>
                         <button type="button"
                                 class="sf-home-packages__more"
-                                x-show="hiddenCount(pkg) > 0 && isExpanded(pkg.id)"
-                                @click.stop="toggleExpand(pkg.id, $event)">Show less</button>
+                                x-show="hiddenCount(pkg) > 0 && expanded"
+                                @click.stop="expanded = false">Show less</button>
 
                         <div class="sf-home-packages__pricing">
-                            <template x-if="showIndividualValue(pkg)">
-                                <div class="sf-home-packages__value-row" :class="pkg.has_savings ? 'is-struck' : ''">
-                                    <span>Individual value</span>
-                                    <span x-text="pkg.components_formatted"></span>
-                                </div>
-                            </template>
+                            <div class="sf-home-packages__value-row"
+                                 x-show="Number(pkg.components_total) > 0"
+                                 :class="pkg.has_savings ? 'is-struck' : ''"
+                                 x-cloak>
+                                <span>Individual value</span>
+                                <span x-text="pkg.components_formatted"></span>
+                            </div>
                             <div class="sf-home-packages__value-row">
                                 <span>Package price</span>
                                 <span class="sf-home-packages__price" x-text="pkg.price_formatted"></span>
                             </div>
-                            <div class="sf-home-packages__save-row" x-show="pkg.has_savings">
+                            <div class="sf-home-packages__save-row" x-show="pkg.has_savings" x-cloak>
                                 <span class="sf-home-packages__save"
                                       x-text="'SAVE ' + pkg.savings_formatted + ' • ' + pkg.savings_percent + '% OFF'"></span>
                             </div>
@@ -127,7 +131,6 @@ function packagesSection(packages, packageImageUrls, currencySymbol, bookingEnab
         currencySymbol,
         bookingEnabled,
         selectedPackageId: null,
-        expandedPackages: {},
         get selectedPackage() {
             if (this.selectedPackageId === null) return null;
             return this.packages.find(p => Number(p.id) === Number(this.selectedPackageId)) ?? null;
@@ -165,22 +168,15 @@ function packagesSection(packages, packageImageUrls, currencySymbol, bookingEnab
             return parts.join(' • ');
         },
         showIndividualValue(pkg) {
-            return Number(pkg.components_total) > 0 && Number(pkg.price) <= Number(pkg.components_total);
+            return Number(pkg.components_total) > 0;
         },
-        visibleItems(pkg) {
+        visibleItems(pkg, expanded) {
             const items = pkg.items || [];
-            if (this.isExpanded(pkg.id)) return items;
+            if (expanded) return items;
             return items.slice(0, 3);
         },
         hiddenCount(pkg) {
             return Math.max(0, (pkg.items || []).length - 3);
-        },
-        isExpanded(id) {
-            return !!this.expandedPackages[id];
-        },
-        toggleExpand(id, event) {
-            event?.stopPropagation();
-            this.expandedPackages[id] = !this.expandedPackages[id];
         },
         packageImage(index) {
             const urls = this.packageImageUrls || [];

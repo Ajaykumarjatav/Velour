@@ -96,27 +96,25 @@
                    title="Previous">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </a>
-                @if($view === 'week')
                 <button type="button"
                         @click="openRangePicker = !openRangePicker"
                         @keydown.escape.window="openRangePicker = false"
                         class="flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm font-semibold text-heading tabular-nums min-w-[10.5rem] sm:min-w-[12.5rem] text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        :aria-expanded="openRangePicker">
-                    {{ $start->format('d M') }} – {{ $end->format('d M Y') }}
-                </button>
-                @else
-                <span class="flex items-center justify-center px-3 sm:px-4 text-xs sm:text-sm font-semibold text-heading tabular-nums min-w-[10.5rem] sm:min-w-[12.5rem] text-center">
-                    @if($view === 'day'){{ $date->format('d F Y') }}
-                    @else{{ $date->format('F Y') }}
+                        :aria-expanded="openRangePicker"
+                        title="Pick date">
+                    @if($view === 'week')
+                        {{ $start->format('d M') }} – {{ $end->format('d M Y') }}
+                    @elseif($view === 'day')
+                        {{ $date->format('d F Y') }}
+                    @else
+                        {{ $date->format('F Y') }}
                     @endif
-                </span>
-                @endif
+                </button>
                 <a href="{{ $calRoute($view, $nextDate->toDateString(), ($view === 'week' && $customRangeActive) ? ['from' => $nextFrom, 'to' => $nextTo] : []) }}"
                    class="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-body transition-colors"
                    title="Next">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
-                @if($view === 'week')
                 <div x-show="openRangePicker"
                      x-cloak
                      x-transition:enter="transition ease-out duration-150"
@@ -125,21 +123,34 @@
                      @click.outside="openRangePicker = false"
                      class="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-[min(100vw-1.5rem,44rem)] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 p-3 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[80] overflow-visible">
                     <form method="GET" action="{{ route('calendar') }}" class="space-y-3">
-                        <input type="hidden" name="view" value="week">
+                        <input type="hidden" name="view" value="{{ $view }}">
                         <input type="hidden" name="staff_id" value="{{ $filterStaffId }}">
+                        @if($view === 'week')
                         <x-date-range-picker
                             :inline="true"
                             :from-value="$rangeFromYmd ?? $start->toDateString()"
                             :to-value="$rangeToYmd ?? $end->toDateString()"
                             :salon-today="$salonTodayYmd"
+                            :all-time-from="\App\Support\SalonTime::earliestReportDateString($salon)"
                             class="relative z-10" />
+                        @else
+                        {{-- Day / month: primary navigation uses `date`; ignore unused end field. --}}
+                        <x-date-range-picker
+                            :inline="true"
+                            from-name="date"
+                            to-name="_to"
+                            :from-value="$date->toDateString()"
+                            :to-value="$date->toDateString()"
+                            :salon-today="$salonTodayYmd"
+                            :all-time-from="\App\Support\SalonTime::earliestReportDateString($salon)"
+                            class="relative z-10" />
+                        @endif
                         <div class="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                             <button type="button" class="btn-outline btn-sm" @click="openRangePicker = false">Cancel</button>
                             <button type="submit" class="btn-primary btn-sm" @click="openRangePicker = false">Apply</button>
                         </div>
                     </form>
                 </div>
-                @endif
             </div>
             <a href="{{ $calRoute($view, $salonTodayYmd, ['from' => null, 'to' => null]) }}" class="btn-outline btn-sm whitespace-nowrap">Today</a>
         </div>

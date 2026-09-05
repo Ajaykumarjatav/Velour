@@ -108,9 +108,10 @@ class SalonWebsitePayloadService
                 'duration_minutes' => $durationMinutes,
                 'duration_formatted' => $this->formatDurationLabel($durationMinutes),
                 'discount_percent' => $savingsPercent > 0 ? $savingsPercent.'% OFF' : null,
-                'save_badge'       => $savingsPercent > 0 ? 'SAVE '.$savingsPercent.'%' : null,
+                'save_badge'       => $savingsPercent > 0 ? $savingsPercent.'% OFF' : null,
                 'badge_label'      => null,
                 'is_best_value'    => false,
+                'show_comparison'  => $components > 0,
                 'items'            => $pkg->services->map(fn ($s) => [
                     'name'  => $s->name,
                     'price' => CurrencyHelper::format((float) $s->price, $currency),

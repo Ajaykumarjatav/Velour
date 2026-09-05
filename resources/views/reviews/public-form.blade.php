@@ -34,7 +34,7 @@
 </div>
 
 <form
-    action="{{ route('reviews.public.submit', ['store' => $store, 'token' => $reviewLink->token]) }}"
+    action="{{ $shareUrl ?? \App\Support\StorefrontUrl::reviewShare($salon, $reviewLink->token) }}"
     method="POST"
     class="review-simple-form"
     novalidate

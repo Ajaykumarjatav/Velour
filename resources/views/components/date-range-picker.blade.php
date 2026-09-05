@@ -4,6 +4,10 @@
     'fromValue' => '',
     'toValue' => '',
     'salonToday' => null,
+    /** Earliest selectable day / "All time" start (tenant onboard). Default keeps admin filters working. */
+    'allTimeFrom' => '2020-01-01',
+    /** Inclusive end for "All time". Default is salon today (reports/POS). Appointments may pass a future date. */
+    'allTimeTo' => null,
     'fromLabel' => 'From',
     'toLabel' => 'To',
     /** Embed picker panel without trigger (e.g. calendar week popup). */
@@ -16,8 +20,19 @@
 
 @php
     $salonToday = $salonToday ?: now()->toDateString();
+    $allTimeFrom = $allTimeFrom ?: '2020-01-01';
+    $allTimeTo = $allTimeTo ?: $salonToday;
+    if ($allTimeTo < $allTimeFrom) {
+        $allTimeTo = $allTimeFrom;
+    }
     $initialFrom = $fromValue ?: $salonToday;
     $initialTo = $toValue ?: $salonToday;
+    if ($initialFrom < $allTimeFrom) {
+        $initialFrom = $allTimeFrom;
+    }
+    if ($initialTo < $initialFrom) {
+        $initialTo = $initialFrom;
+    }
 @endphp
 
 <div
@@ -25,6 +40,8 @@
         from: @js($initialFrom),
         to: @js($initialTo),
         today: @js($salonToday),
+        allTimeFrom: @js($allTimeFrom),
+        allTimeTo: @js($allTimeTo),
         fromName: @js($fromName),
         toName: @js($toName),
         inline: @js($inline),
@@ -188,12 +205,13 @@
                                         <button type="button"
                                                 x-show="cell"
                                                 @click="selectDay(cell.ymd)"
+                                                :disabled="cell && isBeforeMin(cell.ymd)"
                                                 @class([
                                                     'rounded-full font-normal transition-colors',
                                                     'h-8 w-8 text-sm' => $compact,
                                                     'h-9 w-9 text-sm' => ! $compact,
                                                 ])
-                                                :class="cell && isEdge(cell.ymd) ? 'bg-velour-600 text-white hover:bg-velour-700' : (cell && inRange(cell.ymd) ? 'bg-velour-50 dark:bg-velour-950/50 text-velour-800 dark:text-velour-200' : (cell && cell.ymd > today ? 'text-gray-300 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'))"
+                                                :class="cell && isBeforeMin(cell.ymd) ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-40' : (cell && isEdge(cell.ymd) ? 'bg-velour-600 text-white hover:bg-velour-700' : (cell && inRange(cell.ymd) ? 'bg-velour-50 dark:bg-velour-950/50 text-velour-800 dark:text-velour-200' : (cell && cell.ymd > today ? 'text-gray-300 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800')))"
                                                 x-text="cell ? cell.day : ''"></button>
                                     </div>
                                 </template>
@@ -221,6 +239,8 @@ document.addEventListener('alpine:init', () => {
         from: config.from,
         to: config.to,
         today: config.today,
+        allTimeFrom: config.allTimeFrom || '2020-01-01',
+        allTimeTo: config.allTimeTo || config.today,
         fromName: config.fromName,
         toName: config.toName,
         preset: 'custom',
@@ -351,6 +371,18 @@ document.addEventListener('alpine:init', () => {
             return this.ymdFromDate(new Date(date.getFullYear(), date.getMonth() - 1, 1));
         },
 
+        clampToMin(ymd) {
+            if (!ymd) return ymd;
+            if (this.allTimeFrom && ymd < this.allTimeFrom) {
+                return this.allTimeFrom;
+            }
+            return ymd;
+        },
+
+        isBeforeMin(ymd) {
+            return !!(ymd && this.allTimeFrom && ymd < this.allTimeFrom);
+        },
+
         normalizeRange() {
             if (!this.from) this.from = this.today;
             if (!this.to) this.to = this.from;
@@ -358,6 +390,11 @@ document.addEventListener('alpine:init', () => {
                 const swap = this.from;
                 this.from = this.to;
                 this.to = swap;
+            }
+            this.from = this.clampToMin(this.from);
+            this.to = this.clampToMin(this.to);
+            if (this.to < this.from) {
+                this.to = this.from;
             }
         },
 
@@ -524,13 +561,14 @@ document.addEventListener('alpine:init', () => {
                     break;
                 }
                 case 'all_time':
-                    this.from = '2020-01-01';
-                    this.to = t;
+                    this.from = this.allTimeFrom;
+                    this.to = this.allTimeTo || t;
                     break;
                 default:
                     return;
             }
 
+            this.normalizeRange();
             this.viewAnchor = this.to || this.from;
             this.awaitingEnd = false;
             this.syncInputs();
@@ -555,7 +593,7 @@ document.addEventListener('alpine:init', () => {
                     const prev = this.prevMonthStart(this.today);
                     return this.from === prev && this.to === this.monthEnd(prev);
                 }],
-                ['all_time', () => this.from === '2020-01-01' && this.to === this.today],
+                ['all_time', () => this.from === this.allTimeFrom && this.to === (this.allTimeTo || this.today)],
             ];
 
             for (const [key, fn] of checks) {
@@ -568,6 +606,9 @@ document.addEventListener('alpine:init', () => {
         },
 
         selectDay(ymd) {
+            if (this.isBeforeMin(ymd)) {
+                return;
+            }
             if (!this.awaitingEnd) {
                 this.from = ymd;
                 this.to = ymd;

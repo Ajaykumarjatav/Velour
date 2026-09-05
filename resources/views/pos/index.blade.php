@@ -56,6 +56,7 @@
                         :from-value="$from"
                         :to-value="$to"
                         :salon-today="$salonToday"
+                        :all-time-from="\App\Support\SalonTime::earliestReportDateString($salon)"
                         class="relative z-10" />
                     <div class="flex justify-end gap-1.5 pt-2 mt-2 border-t border-gray-100 dark:border-gray-800">
                         <button type="button" class="btn-outline btn-sm !py-1 !px-2.5 !text-xs" @click="openRangePicker = false">Cancel</button>

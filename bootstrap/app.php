@@ -75,12 +75,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Cashfree subscription checkout redirects back via POST (no CSRF token).
         // Public guest booking widget posts from /s/* (session path is the APP_URL subdirectory).
+        // Storefront review share forms use array sessions (no durable CSRF cookie).
         $middleware->validateCsrfTokens(except: [
             'billing/return',
             'api/v1/book/*/hold',
             'api/v1/book/*/confirm',
             'api/v1/book/*/cancel/*',
             'api/v1/book/*/reschedule/*',
+            's/*/reviews/share/*',
         ]);
 
         // Cashfree may append status fields when redirecting back to return_url.

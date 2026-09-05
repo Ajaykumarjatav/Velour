@@ -164,10 +164,7 @@ class ReviewController extends Controller
 
         $store = \App\Support\SalonUrl::key($reviewLink->salon);
 
-        return redirect()->route('reviews.public', [
-            'store' => $store,
-            'token' => $token,
-        ]);
+        return redirect()->away(\App\Support\StorefrontUrl::reviewShare($reviewLink->salon, $token));
     }
 
     public function publicForm(string $store, string $token)
@@ -193,12 +190,15 @@ class ReviewController extends Controller
             $services->whereIn('id', $staffServiceIds);
         }
 
+        $shareUrl = \App\Support\StorefrontUrl::reviewShare($salon, $token);
+
         return view('reviews.public-form', [
             'reviewLink' => $reviewLink,
             'salon' => $salon,
             'store' => $store,
             'staff' => $reviewLink->staff,
             'services' => $services->get(['id', 'name']),
+            'shareUrl' => $shareUrl,
         ]);
     }
 
@@ -250,7 +250,7 @@ class ReviewController extends Controller
         $reviewLink->update(['last_used_at' => now()]);
 
         return redirect()
-            ->route('reviews.public', ['store' => $store, 'token' => $token])
+            ->away(\App\Support\StorefrontUrl::reviewShare($reviewLink->salon, $token))
             ->with('success', 'Thank you for your review!');
     }
 }

@@ -66,6 +66,9 @@
         @endforelse
         </tbody>
     </table>
+    @if($campaigns instanceof \Illuminate\Contracts\Pagination\Paginator && $campaigns->hasPages())
+    <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-800">{{ $campaigns->links() }}</div>
+    @endif
 </div>
 
 @endsection

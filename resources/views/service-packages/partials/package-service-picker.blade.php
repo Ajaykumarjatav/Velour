@@ -111,14 +111,28 @@ function packageServicePicker(catalog, initialIds) {
                 return (s.name || '').toLowerCase().includes(term) || String(s.id).includes(term);
             });
         },
+        init() {
+            this.emitCatalogTotal();
+        },
+        selectedTotal() {
+            return this.selectedIds.reduce((sum, id) => {
+                const s = byId[id];
+                return sum + (s ? Number(s.price) || 0 : 0);
+            }, 0);
+        },
+        emitCatalogTotal() {
+            this.$dispatch('package-services-changed', { total: this.selectedTotal() });
+        },
         add(id) {
             id = parseInt(id, 10);
             if (!byId[id] || this.selectedIds.includes(id)) return;
             this.selectedIds.push(id);
+            this.emitCatalogTotal();
         },
         remove(id) {
             id = parseInt(id, 10);
             this.selectedIds = this.selectedIds.filter(i => i !== id);
+            this.emitCatalogTotal();
         },
         moveUp(index) {
             if (index <= 0) return;

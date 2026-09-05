@@ -24,15 +24,11 @@
 <body class="min-h-full bg-gradient-to-br from-gray-50 to-velour-50 flex items-center justify-center p-4 sm:p-6 py-10">
     <div class="text-center max-w-md w-full">
         {{-- Logo --}}
-        <div class="inline-flex items-center gap-2 mb-8 sm:mb-10">
-            <div class="w-8 h-8 bg-velour-600 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                </svg>
-            </div>
-            <span class="font-bold text-gray-900">EasyGrox</span>
-        </div>
+        <a href="{{ url('/') }}" class="inline-flex items-center justify-center mb-8 sm:mb-10">
+            <img src="{{ asset('images/easygrox-logo-light.png') }}"
+                 alt="EasyGrox"
+                 class="h-9 sm:h-10 w-auto max-w-[11rem] object-contain">
+        </a>
 
         {{-- Error code --}}
         <h1 class="text-6xl sm:text-8xl font-black text-velour-600 leading-none mb-4">@yield('code')</h1>

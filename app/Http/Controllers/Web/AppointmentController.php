@@ -51,8 +51,24 @@ class AppointmentController extends Controller
         $salon   = $this->salon();
         $search  = $request->get('search');
         $status  = $request->get('status');
-        $date    = $request->get('date');
         $staffId = $request->get('staff_id');
+        $legacyDate = $request->get('date');
+        $salonToday = SalonTime::todayDateString($salon);
+        $allTimeFrom = SalonTime::earliestReportDateString($salon);
+        $allTimeTo = SalonTime::now($salon)->copy()->addYears(2)->toDateString();
+        if ($request->filled('from') || $request->filled('to')) {
+            $from = SalonTime::clampReportFrom($salon, (string) $request->get('from', $salonToday));
+            $to = (string) $request->get('to', $from);
+        } elseif (is_string($legacyDate) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $legacyDate)) {
+            $from = SalonTime::clampReportFrom($salon, $legacyDate);
+            $to = $from;
+        } else {
+            $from = $allTimeFrom;
+            $to = $allTimeTo;
+        }
+        if ($to < $from) {
+            $to = $from;
+        }
         $scopedStaffId = Auth::user()->dashboardScopedStaffId();
         if ($scopedStaffId !== null) {
             $staffId = $scopedStaffId;
@@ -79,9 +95,8 @@ class AppointmentController extends Controller
             $query->where('status', $status);
         }
 
-        if ($date) {
-            $query->whereDate('starts_at', $date);
-        }
+        [$rangeStartUtc, $rangeEndUtc] = SalonTime::ymdRangeUtcInclusive($salon, $from, $to);
+        $query->whereBetween('starts_at', [$rangeStartUtc, $rangeEndUtc]);
 
         if ($staffId) {
             $query->where('staff_id', $staffId);
@@ -130,7 +145,11 @@ class AppointmentController extends Controller
             'staff',
             'search',
             'status',
-            'date',
+            'from',
+            'to',
+            'allTimeFrom',
+            'allTimeTo',
+            'salonToday',
             'staffId',
             'initialSelectedAppointmentId'
         ));

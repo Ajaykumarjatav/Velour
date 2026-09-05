@@ -220,7 +220,10 @@ class StaffController extends Controller
             }
         }
 
-        $from = (string) $request->query('from', $nowLocal->copy()->startOfMonth()->toDateString());
+        $from = SalonTime::clampReportFrom(
+            $salon,
+            (string) $request->query('from', $nowLocal->copy()->startOfMonth()->toDateString())
+        );
         $to = (string) $request->query('to', $salonToday);
 
         try {
@@ -229,6 +232,8 @@ class StaffController extends Controller
             $rangeFrom = $nowLocal->copy()->startOfMonth()->startOfDay();
             $from = $rangeFrom->toDateString();
         }
+        $from = SalonTime::clampReportFrom($salon, $from);
+        $rangeFrom = Carbon::createFromFormat('Y-m-d', $from, $tz)->startOfDay();
 
         try {
             $rangeTo = Carbon::createFromFormat('Y-m-d', $to, $tz)->startOfDay();

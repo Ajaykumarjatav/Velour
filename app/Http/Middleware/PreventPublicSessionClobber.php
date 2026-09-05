@@ -82,6 +82,8 @@ class PreventPublicSessionClobber
         // Do NOT treat /{store}/reviews/share/* as a public surface here.
         // Those URLs live under SESSION_PATH (same cookie as the panel), need a
         // real session for CSRF + validation flash, and array sessions caused 419s.
+        // Storefront share links (/s/{slug}/reviews/share/*) intentionally use the
+        // public /s/ session surface so customers never see /admin in the URL.
 
         $prefixes = [
             's/',

@@ -33,6 +33,34 @@ final class SalonTime
         return self::now($salon)->toDateString();
     }
 
+    /**
+     * Earliest salon-local calendar day for reports / "All time" ranges:
+     * the day the salon (tenant store) was created on the software.
+     * Never earlier than this — even after long inactivity.
+     */
+    public static function earliestReportDateString(Salon $salon): string
+    {
+        $tz = self::timezone($salon);
+        $at = $salon->created_at;
+        if (! $at) {
+            $owner = $salon->relationLoaded('owner') ? $salon->owner : $salon->owner()->first();
+            $at = $owner?->created_at;
+        }
+        if (! $at) {
+            return '2020-01-01';
+        }
+
+        return Carbon::parse($at)->timezone($tz)->toDateString();
+    }
+
+    /** Clamp a Y-m-d so it is not before {@see earliestReportDateString()}. */
+    public static function clampReportFrom(Salon $salon, string $fromYmd): string
+    {
+        $earliest = self::earliestReportDateString($salon);
+
+        return $fromYmd < $earliest ? $earliest : $fromYmd;
+    }
+
     public static function tomorrowDateString(Salon $salon): string
     {
         return self::now($salon)->copy()->addDay()->toDateString();
