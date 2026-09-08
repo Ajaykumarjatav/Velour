@@ -25,7 +25,7 @@ class ServiceFactory extends Factory
             },
             'name'             => $this->faker->randomElement(['Balayage','Cut & Blowdry','Gel Manicure','Signature Facial','Swedish Massage']),
             'duration_minutes' => $this->faker->randomElement([30, 45, 60, 90, 120]),
-            'buffer_minutes'   => 10,
+            'buffer_minutes'   => 0,
             'price'            => $this->faker->randomFloat(2, 25, 250),
             'deposit_type'     => 'none',
             'deposit_value'    => 0,

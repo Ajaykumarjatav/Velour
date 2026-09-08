@@ -205,7 +205,7 @@ class RegistrationStarterServices
                     $baseName . ' (Men)',
                     isset($men['duration_minutes']) ? max(1, (int) $men['duration_minutes']) : (int) ($def['duration_minutes'] ?? 0),
                     isset($men['price']) ? round((float) $men['price'], 2) : (float) ($def['price'] ?? 0),
-                    (int) ($def['buffer_minutes'] ?? 10),
+                    (int) ($def['buffer_minutes'] ?? 0),
                     $sort
                 );
                 self::upsertStarterService(
@@ -215,7 +215,7 @@ class RegistrationStarterServices
                     $baseName . ' (Women)',
                     isset($women['duration_minutes']) ? max(1, (int) $women['duration_minutes']) : (int) ($def['duration_minutes'] ?? 0),
                     isset($women['price']) ? round((float) $women['price'], 2) : (float) ($def['price'] ?? 0),
-                    (int) ($def['buffer_minutes'] ?? 10),
+                    (int) ($def['buffer_minutes'] ?? 0),
                     $sort
                 );
                 continue;
@@ -228,7 +228,7 @@ class RegistrationStarterServices
                 $baseName,
                 isset($override['duration_minutes']) ? max(1, (int) $override['duration_minutes']) : (int) ($def['duration_minutes'] ?? 0),
                 isset($override['price']) ? round((float) $override['price'], 2) : (float) ($def['price'] ?? 0),
-                (int) ($def['buffer_minutes'] ?? 10),
+                (int) ($def['buffer_minutes'] ?? 0),
                 $sort
             );
         }

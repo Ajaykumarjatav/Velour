@@ -9,6 +9,7 @@ use App\Models\PosTransaction;
 use App\Models\Client;
 use App\Models\LoyaltyTier;
 use App\Models\Service;
+use App\Models\ServicePackage;
 use App\Models\InventoryItem;
 use App\Models\Staff;
 use App\Mail\PosTransactionInvoiceMail;
@@ -102,6 +103,16 @@ class PosController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'retail_price', 'stock_quantity', 'category_id']);
 
+        $packages = ServicePackage::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->active()
+            ->with(['services:id,name,duration_minutes,buffer_minutes,price'])
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (ServicePackage $pkg) => $pkg->services->isNotEmpty())
+            ->values();
+
         $prefillFromAppointment = null;
         if ($request->filled('appointment')) {
             $appt = Appointment::withoutGlobalScopes()
@@ -112,33 +123,14 @@ class PosController extends Controller
                 ->first();
 
             if ($appt !== null) {
-                $lines = [];
-                $seenServiceIds = [];
-                foreach ($appt->services as $row) {
-                    if (! $row->service_id) {
-                        continue;
-                    }
-                    $svcId = (int) $row->service_id;
-                    if (in_array($svcId, $seenServiceIds, true)) {
-                        continue;
-                    }
-                    $svc = $services->firstWhere('id', $svcId);
-                    if ($svc === null) {
-                        continue;
-                    }
-                    $seenServiceIds[] = $svcId;
-                    $lines[] = [
-                        'type' => 'service',
-                        'id' => $svcId,
-                        'qty' => 1,
-                        'staff_id' => $appt->staff_id,
-                    ];
-                }
-
+                $lines = $this->posPrefillLinesFromAppointment($appt, $services, $packages);
                 $prefillFromAppointment = [
                     'client_id' => $appt->client_id,
                     'staff_id' => $appt->staff_id,
                     'lines' => $lines,
+                    'prefer_section' => collect($lines)->contains(fn (array $l) => ($l['type'] ?? '') === 'package')
+                        ? 'package'
+                        : 'service',
                 ];
 
                 if ($appt->client_id) {
@@ -196,6 +188,7 @@ class PosController extends Controller
             'clients',
             'services',
             'products',
+            'packages',
             'categories',
             'recentTransactions',
             'clientQuickCreateLoyaltyTiers',
@@ -213,7 +206,7 @@ class PosController extends Controller
         $data = $request->validate([
             'client_id'         => ['nullable', 'exists:clients,id'],
             'items'             => ['required', 'array', 'min:1'],
-            'items.*.type'      => ['required', 'in:service,product'],
+            'items.*.type'      => ['required', 'in:service,product,package'],
             'items.*.id'        => ['required', 'integer'],
             'items.*.qty'       => ['required', 'integer', 'min:1'],
             'items.*.price'     => ['required', 'numeric', 'min:0'],
@@ -262,6 +255,29 @@ class PosController extends Controller
                     'name' => $svc->name,
                     'qty' => (int) $line['qty'],
                     'price' => (float) $svc->price,
+                ];
+            } elseif ($line['type'] === 'package') {
+                $hasServices = true;
+                $pkg = ServicePackage::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->whereKey($line['id'])
+                    ->first();
+                if (! $pkg || $pkg->status !== 'active') {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.id" => __('One or more packages are missing or inactive. Refresh and try again.'),
+                    ]);
+                }
+                if ($pkg->orderedServiceIds() === []) {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.id" => __('Package ":name" has no services. Add services to the package first.', ['name' => $pkg->name]),
+                    ]);
+                }
+                $resolvedItems[] = [
+                    'type' => 'package',
+                    'id' => (int) $pkg->id,
+                    'name' => $pkg->name,
+                    'qty' => (int) $line['qty'],
+                    'price' => (float) $pkg->price,
                 ];
             } else {
                 $prod = InventoryItem::withoutGlobalScopes()
@@ -349,9 +365,9 @@ class PosController extends Controller
             return back()->withErrors(['status' => 'No active staff member found for this sale.'])->withInput();
         }
 
-        // Ensure service lines without explicit staff inherit the sale staff.
+        // Ensure service/package lines without explicit staff inherit the sale staff.
         foreach ($resolvedItems as $i => $item) {
-            if ($item['type'] === 'service' && empty($item['staff_id'])) {
+            if (in_array($item['type'], ['service', 'package'], true) && empty($item['staff_id'])) {
                 $resolvedItems[$i]['staff_id'] = (int) $staffId;
             }
         }
@@ -378,8 +394,14 @@ class PosController extends Controller
             ]);
 
             foreach ($resolvedItems as $item) {
-                $itemableClass = $item['type'] === 'service' ? Service::class : InventoryItem::class;
-                $lineStaffId = $item['type'] === 'service' ? (int) ($item['staff_id'] ?? $staffId) : null;
+                $itemableClass = match ($item['type']) {
+                    'service' => Service::class,
+                    'package' => ServicePackage::class,
+                    default => InventoryItem::class,
+                };
+                $lineStaffId = in_array($item['type'], ['service', 'package'], true)
+                    ? (int) ($item['staff_id'] ?? $staffId)
+                    : null;
                 $tx->items()->create([
                     'itemable_id'   => $item['id'],
                     'itemable_type' => $itemableClass,
@@ -541,5 +563,106 @@ class PosController extends Controller
         $safeRef = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string) $po->reference) ?: 'invoice';
 
         return $pdf->download('invoice-'.$safeRef.'.pdf');
+    }
+
+    /**
+     * Prefill POS cart from an appointment: package bookings become package lines (not expanded services).
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Service>  $services
+     * @param  \Illuminate\Support\Collection<int, ServicePackage>  $packages
+     * @return list<array{type: string, id: int, qty: int, staff_id: mixed}>
+     */
+    private function posPrefillLinesFromAppointment(Appointment $appt, $services, $packages): array
+    {
+        $staffId = $appt->staff_id;
+        $coveredServiceIds = [];
+        $lines = [];
+
+        // 1) Groups stamped with package_id in line_meta (online package booking / POS expand).
+        $byPackage = [];
+        foreach ($appt->services as $row) {
+            $svcId = (int) ($row->service_id ?? 0);
+            if ($svcId <= 0) {
+                continue;
+            }
+            $meta = is_array($row->line_meta) ? $row->line_meta : [];
+            $packageId = isset($meta['package_id']) ? (int) $meta['package_id'] : 0;
+            if ($packageId <= 0) {
+                continue;
+            }
+            $byPackage[$packageId][] = $svcId;
+        }
+
+        foreach ($byPackage as $packageId => $componentIds) {
+            $pkg = $packages->firstWhere('id', (int) $packageId);
+            if ($pkg === null) {
+                continue;
+            }
+            $lines[] = [
+                'type' => 'package',
+                'id' => (int) $pkg->id,
+                'qty' => 1,
+                'staff_id' => $staffId,
+            ];
+            foreach ($componentIds as $sid) {
+                $coveredServiceIds[(int) $sid] = true;
+            }
+        }
+
+        // 2) Exact match fallback: booked service set equals an active package (legacy online bookings).
+        $remainingIds = [];
+        foreach ($appt->services as $row) {
+            $svcId = (int) ($row->service_id ?? 0);
+            if ($svcId <= 0 || isset($coveredServiceIds[$svcId])) {
+                continue;
+            }
+            if (! in_array($svcId, $remainingIds, true)) {
+                $remainingIds[] = $svcId;
+            }
+        }
+
+        if ($remainingIds !== []) {
+            $sortedRemaining = $remainingIds;
+            sort($sortedRemaining, SORT_NUMERIC);
+
+            foreach ($packages as $pkg) {
+                $componentIds = $pkg->services->pluck('id')->map(fn ($id) => (int) $id)->all();
+                if (count($componentIds) !== count($sortedRemaining)) {
+                    continue;
+                }
+                $sortedComponents = $componentIds;
+                sort($sortedComponents, SORT_NUMERIC);
+                if ($sortedComponents !== $sortedRemaining) {
+                    continue;
+                }
+
+                $lines[] = [
+                    'type' => 'package',
+                    'id' => (int) $pkg->id,
+                    'qty' => 1,
+                    'staff_id' => $staffId,
+                ];
+                foreach ($remainingIds as $sid) {
+                    $coveredServiceIds[$sid] = true;
+                }
+                $remainingIds = [];
+                break;
+            }
+        }
+
+        // 3) Leftover a-la-carte services.
+        foreach ($remainingIds as $svcId) {
+            if ($services->firstWhere('id', $svcId) === null) {
+                continue;
+            }
+            $lines[] = [
+                'type' => 'service',
+                'id' => $svcId,
+                'qty' => 1,
+                'staff_id' => $staffId,
+            ];
+        }
+
+        return $lines;
     }
 }

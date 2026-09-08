@@ -204,7 +204,7 @@ class RelationQuickCreateController extends Controller
             'name' => $data['name'],
             'slug' => $slug,
             'duration_minutes' => $data['duration_minutes'],
-            'buffer_minutes' => 10,
+            'buffer_minutes' => 0,
             'price' => $data['price'],
             'status' => 'active',
             'online_bookable' => true,

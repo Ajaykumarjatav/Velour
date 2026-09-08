@@ -109,8 +109,9 @@ class ServicePackageController extends Controller
         $services = $this->servicesForPackageCatalog($salon->id);
         $servicesPayload = $this->servicesPayload($services, $salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode());
         $initialSelectedIds = array_values(array_unique(array_map('intval', (array) old('service_ids', []))));
+        $maxOpenMinutes = $salon->maxOpenMinutesPerDay();
 
-        return view('service-packages.create', compact('salon', 'services', 'servicesPayload', 'initialSelectedIds'));
+        return view('service-packages.create', compact('salon', 'services', 'servicesPayload', 'initialSelectedIds', 'maxOpenMinutes'));
     }
 
     public function store(Request $request)
@@ -135,6 +136,7 @@ class ServicePackageController extends Controller
         ]);
 
         $serviceIds = array_values(array_unique(array_map('intval', $data['service_ids'])));
+        $this->assertPackageFitsOpeningHours($salon, $serviceIds);
         $this->assertPackagePriceWithinCatalog($salon->id, $serviceIds, (float) $data['price'], $salon->currency ?? CurrencyHelper::defaultCode());
 
         $package = ServicePackage::create([
@@ -173,8 +175,9 @@ class ServicePackageController extends Controller
         $initialSelectedIds = old('service_ids') !== null
             ? array_values(array_unique(array_map('intval', (array) old('service_ids'))))
             : $attachedIds;
+        $maxOpenMinutes = $salon->maxOpenMinutesPerDay();
 
-        return view('service-packages.edit', compact('salon', 'services', 'servicesPayload', 'initialSelectedIds', 'servicePackage'));
+        return view('service-packages.edit', compact('salon', 'services', 'servicesPayload', 'initialSelectedIds', 'servicePackage', 'maxOpenMinutes'));
     }
 
     public function update(Request $request, ServicePackage $servicePackage)
@@ -200,6 +203,7 @@ class ServicePackageController extends Controller
         ]);
 
         $serviceIds = array_values(array_unique(array_map('intval', $data['service_ids'])));
+        $this->assertPackageFitsOpeningHours($salon, $serviceIds);
         $this->assertPackagePriceWithinCatalog($salon->id, $serviceIds, (float) $data['price'], $salon->currency ?? CurrencyHelper::defaultCode());
 
         $update = [
@@ -301,7 +305,7 @@ class ServicePackageController extends Controller
             })
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'price', 'duration_minutes', 'status']);
+            ->get(['id', 'name', 'price', 'duration_minutes', 'buffer_minutes', 'status']);
     }
 
     /** @param  \Illuminate\Support\Collection<int, \App\Models\Service>  $services */
@@ -312,8 +316,50 @@ class ServicePackageController extends Controller
             'name' => $s->name,
             'price' => round((float) $s->price, 2),
             'priceLabel' => CurrencyHelper::format((float) $s->price, $currency),
+            'duration' => max(1, (int) ($s->duration_minutes ?? 30)),
+            'buffer' => max(0, (int) ($s->buffer_minutes ?? 0)),
             'status' => (string) $s->status,
         ])->values()->all();
+    }
+
+    /**
+     * Package total time must fit within the salon's longest open day.
+     *
+     * @param  list<int>  $serviceIds
+     */
+    private function assertPackageFitsOpeningHours($salon, array $serviceIds): void
+    {
+        $maxOpen = (int) $salon->maxOpenMinutesPerDay();
+        if ($maxOpen <= 0) {
+            return;
+        }
+
+        $span = (int) Service::summarizeForAppointment((int) $salon->id, $serviceIds, [])['total_span_minutes'];
+        if ($span <= $maxOpen) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'service_ids' => __(
+                'This package takes :package (including buffers), which is longer than your longest store open day (:open). Shorten the package or extend opening hours in Settings.',
+                [
+                    'package' => $this->formatMinutesLabel($span),
+                    'open' => $this->formatMinutesLabel($maxOpen),
+                ]
+            ),
+        ]);
+    }
+
+    private function formatMinutesLabel(int $minutes): string
+    {
+        $minutes = max(0, $minutes);
+        if ($minutes < 60) {
+            return $minutes.' min';
+        }
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+
+        return $m > 0 ? "{$h}h {$m}m" : "{$h}h";
     }
 
     /**

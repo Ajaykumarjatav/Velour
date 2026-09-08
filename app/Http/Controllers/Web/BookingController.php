@@ -78,10 +78,7 @@ class BookingController extends Controller
             ->where('is_public', true)
             ->count();
         $todayYmd = SalonTime::todayDateString($salon);
-        $maxDateYmd = SalonTime::now($salon)
-            ->copy()
-            ->addDays((int) ($salon->booking_advance_days ?? 90))
-            ->toDateString();
+        $maxDateYmd = \App\Support\SalonBookingRules::forSalon($salon)->latestBookableDate()->toDateString();
 
         return view('booking.show', compact(
             'salon',

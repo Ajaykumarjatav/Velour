@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentService as ApptService;
 use App\Models\Salon;
 use App\Models\Service;
+use App\Models\ServicePackage;
 use App\Models\Staff;
 use App\Services\Scheduling\AvailabilityRejectedException;
 use App\Support\SalonTime;
@@ -25,6 +26,7 @@ class AppointmentService
      *   client_id: int,
      *   staff_id: int,
      *   service_ids: array<int>,
+     *   package_ids?: array<int>,
      *   starts_at: string,
      *   source?: string,
      *   payment_status?: string,
@@ -43,6 +45,11 @@ class AppointmentService
                 $data['service_ids'],
                 $data['service_options'] ?? []
             );
+            $snapshot = $this->applyPackagesToSnapshot(
+                $salonId,
+                $snapshot,
+                array_values(array_map('intval', $data['package_ids'] ?? []))
+            );
             if ($options['enforce_staff_services'] ?? true) {
                 $this->assertStaffCanPerformServices($salonId, (int) $data['staff_id'], $data['service_ids']);
             }
@@ -50,6 +57,11 @@ class AppointmentService
             $salon    = Salon::findOrFail($salonId);
             $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
             $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
+
+            // Advance window + last-minute cut-off apply to tenant/staff/admin/online (not skipped with relaxed overlap).
+            if ($options['enforce_booking_rules'] ?? true) {
+                \App\Support\SalonBookingRules::forSalon($salon)->assertStartsAtAllowed($startsAt);
+            }
 
             if ($options['enforce_availability'] ?? true) {
                 $this->assertWindowAllowed($salonId, (int) $data['staff_id'], $startsAt, $endsAt, null, false);
@@ -330,5 +342,74 @@ class AppointmentService
 
         Staff::withoutGlobalScopes()->where('salon_id', $salonId)->findOrFail($staffId);
         // Intentionally no service assignment / role checks.
+    }
+
+    /**
+     * Stamp package provenance on component lines and apply package catalogue prices.
+     *
+     * @param  array{
+     *   total_price: float,
+     *   lines: list<array{service_id: int, service_name: string, duration_minutes: int, price: float, line_meta: array, sort_order: int}>
+     * }  $snapshot
+     * @param  list<int>  $packageIds
+     * @return array{
+     *   total_price: float,
+     *   lines: list<array{service_id: int, service_name: string, duration_minutes: int, price: float, line_meta: array, sort_order: int}>
+     * }
+     */
+    private function applyPackagesToSnapshot(int $salonId, array $snapshot, array $packageIds): array
+    {
+        $packageIds = array_values(array_unique(array_filter(array_map('intval', $packageIds), fn (int $id) => $id > 0)));
+        if ($packageIds === []) {
+            return $snapshot;
+        }
+
+        $packages = ServicePackage::withoutGlobalScopes()
+            ->where('salon_id', $salonId)
+            ->where('status', 'active')
+            ->whereIn('id', $packageIds)
+            ->with(['services' => fn ($q) => $q->orderByPivot('sort_order')])
+            ->get()
+            ->keyBy('id');
+
+        $assignedServiceIds = [];
+
+        foreach ($packageIds as $packageId) {
+            $pkg = $packages->get($packageId);
+            if ($pkg === null || $pkg->services->isEmpty()) {
+                continue;
+            }
+
+            $componentIds = $pkg->orderedServiceIds();
+            $componentSet = array_fill_keys($componentIds, true);
+            $first = true;
+            $packagePrice = (float) $pkg->price;
+
+            foreach ($snapshot['lines'] as $idx => $line) {
+                $serviceId = (int) ($line['service_id'] ?? 0);
+                if ($serviceId <= 0 || ! isset($componentSet[$serviceId])) {
+                    continue;
+                }
+                if (isset($assignedServiceIds[$serviceId])) {
+                    continue;
+                }
+
+                $meta = is_array($line['line_meta'] ?? null) ? $line['line_meta'] : [];
+                $meta['package_id'] = (int) $pkg->id;
+                $meta['package_name'] = (string) $pkg->name;
+
+                $snapshot['lines'][$idx]['line_meta'] = $meta;
+                $snapshot['lines'][$idx]['price'] = $first ? round($packagePrice, 2) : 0.0;
+                $assignedServiceIds[$serviceId] = true;
+                $first = false;
+            }
+        }
+
+        $snapshot['total_price'] = round(
+            array_sum(array_map(fn (array $line) => (float) ($line['price'] ?? 0), $snapshot['lines'])),
+            2
+        );
+
+        return $snapshot;
     }
 }

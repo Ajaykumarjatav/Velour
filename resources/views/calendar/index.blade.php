@@ -132,6 +132,7 @@
                             :to-value="$rangeToYmd ?? $end->toDateString()"
                             :salon-today="$salonTodayYmd"
                             :all-time-from="\App\Support\SalonTime::earliestReportDateString($salon)"
+                            :all-time-to="$salonTodayYmd"
                             class="relative z-10" />
                         @else
                         {{-- Day / month: primary navigation uses `date`; ignore unused end field. --}}
@@ -143,6 +144,7 @@
                             :to-value="$date->toDateString()"
                             :salon-today="$salonTodayYmd"
                             :all-time-from="\App\Support\SalonTime::earliestReportDateString($salon)"
+                            :all-time-to="$salonTodayYmd"
                             class="relative z-10" />
                         @endif
                         <div class="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">

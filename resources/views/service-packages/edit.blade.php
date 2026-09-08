@@ -12,7 +12,13 @@
             @include('service-packages.partials.package-service-picker', [
                 'servicesPayload' => $servicesPayload,
                 'initialSelectedIds' => $initialSelectedIds,
+                'maxOpenMinutes' => $maxOpenMinutes ?? 0,
+                'salonBufferBefore' => \App\Support\SalonBookingRules::forSalon($salon)->bufferBeforeMinutes(),
+                'salonBufferAfter' => \App\Support\SalonBookingRules::forSalon($salon)->bufferAfterMinutes(),
             ])
+            @error('service_ids')
+                <p class="form-error -mt-4">{{ $message }}</p>
+            @enderror
 
             <div>
                 <label class="form-label">Package name <span class="text-red-500">*</span></label>

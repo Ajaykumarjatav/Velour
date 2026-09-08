@@ -220,6 +220,11 @@ class AppointmentController extends Controller
                     'price' => CurrencyHelper::format((float) $line['price'], $currency),
                     'duration' => $line['duration'],
                     'source' => $line['source'],
+                    'is_package' => ($line['source'] ?? '') === 'package' || ! empty($line['line_meta']['is_package']),
+                    'components' => collect($line['line_meta']['components'] ?? [])->map(fn ($c) => [
+                        'name' => $c['name'] ?? '',
+                        'duration' => $c['duration'] ?? null,
+                    ])->values()->all(),
                 ])->values()->all(),
             ];
         })->values()->all();
@@ -404,6 +409,7 @@ class AppointmentController extends Controller
             // Without a service selection, the catalog "longest" offering (e.g. day packages) must
             // not drive the grid: it makes probes cross midnight and breaks salon-hours checks.
             $maxMinutes = min($maxMinutes, 180);
+            $maxMinutes += \App\Support\SalonBookingRules::forSalon($salon)->salonPaddingMinutes();
         }
 
         $slotTimes = \App\Support\AppointmentSlotGrid::allTimes();

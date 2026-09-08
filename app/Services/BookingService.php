@@ -62,11 +62,18 @@ class BookingService
         }
 
         $salon    = Salon::findOrFail($salonId);
+        $rules    = \App\Support\SalonBookingRules::forSalon($salon);
         $duration = self::combinedDurationMinutes($collection, $salonId);
         $tz       = SalonTime::timezone($salon);
         $ymd      = $date->format('Y-m-d');
         $todayYmd = SalonTime::todayDateString($salon);
         $nowLocal = SalonTime::now($salon);
+        $earliest = $rules->earliestBookableAt();
+        $latestYmd = $rules->latestBookableDate()->toDateString();
+
+        if ($ymd < $todayYmd || $ymd > $latestYmd) {
+            return [];
+        }
 
         // Weekday + opening hours for this calendar day in the salon (not app UTC).
         $localDay = Carbon::createFromFormat('Y-m-d', $ymd, $tz)->startOfDay();
@@ -129,8 +136,8 @@ class BookingService
         $current   = $open->copy();
 
         while ($current->copy()->addMinutes($duration)->lte($close)) {
-            // For today's date, only show slots that start after the current salon time.
-            if ($ymd === $todayYmd && $current->lte($nowLocal)) {
+            // Last-minute cut-off + do not show past slots.
+            if ($current->lt($earliest) || ($ymd === $todayYmd && $current->lte($nowLocal))) {
                 $current->addMinutes($interval);
                 continue;
             }
@@ -220,9 +227,7 @@ class BookingService
         $snapshot = Service::summarizeForAppointment($salonId, $ids, $serviceOptions);
         $startsAt = SalonTime::parseAppointmentStartsAt($salon, $data['starts_at']);
         $endsAt   = $startsAt->copy()->addMinutes($snapshot['total_span_minutes']);
-        if ($startsAt->lte(SalonTime::now($salon))) {
-            throw new \InvalidArgumentException('Please choose a time later than the current time.');
-        }
+        \App\Support\SalonBookingRules::forSalon($salon)->assertStartsAtAllowed($startsAt);
 
         $apptSvc = app(AppointmentService::class);
         $staffId = isset($data['staff_id']) ? (int) $data['staff_id'] : null;
@@ -253,6 +258,7 @@ class BookingService
         Cache::put($cacheKey, [
             'salon_id'         => $salonId,
             'service_ids'      => $data['service_ids'],
+            'package_ids'      => array_values(array_map('intval', $data['package_ids'] ?? [])),
             'service_options'  => $serviceOptions,
             'staff_id'         => $data['staff_id'] ?? null,
             'starts_at'        => $data['starts_at'],
@@ -320,6 +326,7 @@ class BookingService
                 'client_id'       => $client->id,
                 'staff_id'        => $staffId,
                 'service_ids'     => $hold['service_ids'],
+                'package_ids'     => $hold['package_ids'] ?? [],
                 'service_options' => $hold['service_options'] ?? [],
                 'starts_at'       => $hold['starts_at'],
                 'source'          => 'online',

@@ -172,6 +172,7 @@ class ServiceController extends Controller
             $data['addons_text'] ?? null
         );
         $data['allowed_roles']           = null;
+        $data['buffer_minutes']          = (int) ($data['buffer_minutes'] ?? 0);
         unset($data['is_active'], $data['online_booking'], $data['addons_text']);
 
         $data['slug'] = $this->uniqueServiceSlug($salon->id, $data['name']);

@@ -1,14 +1,18 @@
 {{--
   Clear package builder: catalog (left) → package contents (right), search, add/remove, reorder.
   Expects: $servicesPayload (array), $initialSelectedIds (array of int)
+  Optional: $maxOpenMinutes, $salonBufferBefore, $salonBufferAfter
 --}}
 @php
     $pickerId = 'pkg-svc-' . substr(md5(json_encode($servicesPayload) . json_encode($initialSelectedIds)), 0, 8);
+    $maxOpenMinutes = (int) ($maxOpenMinutes ?? 0);
+    $salonBufferBefore = (int) ($salonBufferBefore ?? 0);
+    $salonBufferAfter = (int) ($salonBufferAfter ?? 0);
 @endphp
 
 <div id="{{ $pickerId }}"
      class="rounded-xl border-2 border-velour-300/80 dark:border-velour-700/80 bg-white dark:bg-gray-900/40 p-4 space-y-4"
-     x-data="packageServicePicker(@js($servicesPayload), @js($initialSelectedIds))">
+     x-data="packageServicePicker(@js($servicesPayload), @js($initialSelectedIds), {{ $maxOpenMinutes }}, {{ $salonBufferBefore }}, {{ $salonBufferAfter }})">
 
     <div class="flex flex-col gap-1">
         <p class="font-semibold text-heading text-base">Add services to this package</p>
@@ -40,7 +44,7 @@
                     <div class="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-medium text-body truncate" x-text="s.name"></p>
-                            <p class="text-xs text-muted" x-text="s.priceLabel"></p>
+                            <p class="text-xs text-muted" x-text="s.priceLabel + (s.duration ? (' · ' + formatMinutes(s.duration)) : '')"></p>
                         </div>
                         <button type="button"
                                 @click="add(s.id)"
@@ -57,8 +61,8 @@
             <div class="px-3 py-2 border-b border-velour-200/80 dark:border-velour-800 flex items-center justify-between gap-2">
                 <span class="text-xs font-semibold uppercase tracking-wide text-velour-800 dark:text-velour-200">In this package</span>
                 <span class="text-xs font-bold tabular-nums"
-                      :class="selectedIds.length >= 2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'"
-                      x-text="selectedIds.length + ' / min 2' + (selectedIds.length ? ' · ' + selectedTotalLabel() : '')"></span>
+                      :class="durationOverLimit() ? 'text-red-600 dark:text-red-400' : (selectedIds.length >= 2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')"
+                      x-text="selectedIds.length + ' / min 2' + (selectedIds.length ? ' · ' + selectedTotalLabel() + ' · ' + formatMinutes(selectedSpanMinutes()) : '')"></span>
             </div>
             <div class="flex-1 overflow-y-auto max-h-72 p-2 space-y-1">
                 <p x-show="selectedIds.length === 0" x-cloak class="text-sm text-muted px-2 py-6 text-center">Nothing added yet. Choose services from the left and click <strong>Add</strong>.</p>
@@ -91,15 +95,21 @@
     <p x-show="selectedIds.length > 0 && selectedIds.length < 2" class="text-sm text-amber-700 dark:text-amber-300">
         Add at least one more service before saving.
     </p>
+    <p x-show="durationOverLimit()" x-cloak class="text-sm text-red-700 dark:text-red-300 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2">
+        Package duration (<span x-text="formatMinutes(selectedSpanMinutes())"></span>) is longer than your longest store open day (<span x-text="formatMinutes(maxOpenMinutes)"></span>). Remove services or extend opening hours in Settings — package cannot be saved until this fits.
+    </p>
 </div>
 
 @push('scripts')
 <script>
-function packageServicePicker(catalog, initialIds) {
+function packageServicePicker(catalog, initialIds, maxOpenMinutes, salonBufferBefore, salonBufferAfter) {
     const byId = Object.fromEntries((catalog || []).map(s => [s.id, s]));
     return {
         q: '',
         catalog: catalog || [],
+        maxOpenMinutes: Number(maxOpenMinutes) || 0,
+        salonBufferBefore: Number(salonBufferBefore) || 0,
+        salonBufferAfter: Number(salonBufferAfter) || 0,
         selectedIds: Array.isArray(initialIds)
             ? initialIds.map(id => parseInt(id, 10)).filter(id => byId[id] !== undefined)
             : [],
@@ -113,6 +123,35 @@ function packageServicePicker(catalog, initialIds) {
         },
         init() {
             this.emitCatalogTotal();
+            const form = this.$el.closest('form');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    if (this.durationOverLimit()) {
+                        e.preventDefault();
+                        this.$el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+        },
+        formatMinutes(mins) {
+            const m = Math.max(0, Number(mins) || 0);
+            if (m < 60) return m + ' min';
+            const h = Math.floor(m / 60);
+            const r = m % 60;
+            return r ? (h + 'h ' + r + 'm') : (h + 'h');
+        },
+        selectedSpanMinutes() {
+            const serviceSpan = this.selectedIds.reduce((sum, id) => {
+                const s = byId[id];
+                if (!s) return sum;
+                return sum + (Number(s.duration) || 0) + (Number(s.buffer) || 0);
+            }, 0);
+            if (serviceSpan <= 0) return 0;
+            return serviceSpan + this.salonBufferBefore + this.salonBufferAfter;
+        },
+        durationOverLimit() {
+            if (this.maxOpenMinutes <= 0 || this.selectedIds.length === 0) return false;
+            return this.selectedSpanMinutes() > this.maxOpenMinutes;
         },
         selectedTotal() {
             return this.selectedIds.reduce((sum, id) => {

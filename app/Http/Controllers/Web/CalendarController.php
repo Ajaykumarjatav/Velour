@@ -35,8 +35,15 @@ class CalendarController extends Controller
                 $from = SalonTime::parseLocalDate($salon, (string) $request->get('from'))->startOfDay();
                 $to = SalonTime::parseLocalDate($salon, (string) $request->get('to'))->endOfDay();
                 $earliest = SalonTime::parseLocalDate($salon, SalonTime::earliestReportDateString($salon))->startOfDay();
+                $latest = SalonTime::parseLocalDate($salon, SalonTime::todayDateString($salon))->endOfDay();
                 if ($from->lt($earliest)) {
                     $from = $earliest->copy();
+                }
+                if ($to->gt($latest)) {
+                    $to = $latest->copy();
+                }
+                if ($from->gt($latest)) {
+                    $from = $latest->copy()->startOfDay();
                 }
                 if ($to->lt($from)) {
                     [$from, $to] = [$to->startOfDay(), $from->endOfDay()];

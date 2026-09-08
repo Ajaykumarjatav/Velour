@@ -139,11 +139,13 @@
         <h3 class="px-6 py-4 font-semibold text-heading border-b border-gray-100 dark:border-gray-800">Services</h3>
         <div class="divide-y divide-gray-100 dark:divide-gray-800">
             @foreach($displayServiceLines as $line)
-            <div class="flex items-center justify-between px-6 py-3.5 gap-3">
+            <div class="flex items-start justify-between px-6 py-3.5 gap-3">
                 <div class="min-w-0">
                     <p class="font-medium text-heading">
                         {{ $line['name'] }}
-                        @if($line['source'] === 'pos')
+                        @if(($line['source'] ?? '') === 'package' || ! empty($line['line_meta']['is_package']))
+                            <span class="ml-1.5 text-[10px] font-semibold uppercase text-velour-600 dark:text-velour-400">Package</span>
+                        @elseif(($line['source'] ?? '') === 'pos')
                             <span class="ml-1.5 text-[10px] font-semibold uppercase text-velour-600 dark:text-velour-400">Added at POS</span>
                         @endif
                     </p>
@@ -154,6 +156,18 @@
                             —
                         @endif
                     </p>
+                    @if(! empty($line['line_meta']['components']))
+                        <ul class="mt-1.5 space-y-0.5">
+                            @foreach($line['line_meta']['components'] as $component)
+                                <li class="text-[11px] text-muted">
+                                    · {{ $component['name'] ?? '' }}
+                                    @if(! empty($component['duration']))
+                                        <span class="opacity-70">({{ $component['duration'] }} min)</span>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                     @if(! empty($line['line_meta']['variant']) || ! empty($line['line_meta']['addons']))
                         <p class="text-[11px] text-muted mt-1">
                             @if(! empty($line['line_meta']['variant']))

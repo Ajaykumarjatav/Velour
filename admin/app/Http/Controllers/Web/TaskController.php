@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Web\Concerns\ResolvesActiveSalon;
 use App\Models\Appointment;
 use App\Models\SalonActionItem;
+use App\Models\ServicePackage;
 use App\Models\Staff;
 use App\Support\AppointmentLifecycle;
 use App\Support\SalonTime;
@@ -94,7 +95,7 @@ class TaskController extends Controller
             ->where('salon_id', $salon->id)
             ->where('starts_at', '>=', $todayStartUtc)
             ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->with(['client', 'staff', 'services']);
+            ->with(['client', 'staff', 'services', 'transaction.items']);
 
         if ($staffScopeId !== null) {
             $appointmentsQuery->where('staff_id', $staffScopeId);
@@ -137,6 +138,13 @@ class TaskController extends Controller
 
         $deskKindLabels = SalonActionItem::kindLabels();
 
+        $salonPackages = ServicePackage::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('status', 'active')
+            ->with(['services' => fn ($q) => $q->withoutGlobalScopes()->orderByPivot('sort_order')])
+            ->orderBy('sort_order')
+            ->get();
+
         return view('tasks.index', compact(
             'salon',
             'canManage',
@@ -155,7 +163,8 @@ class TaskController extends Controller
             'appointmentDone',
             'staffForAssign',
             'boardStaff',
-            'deskKindLabels'
+            'deskKindLabels',
+            'salonPackages'
         ));
     }
 

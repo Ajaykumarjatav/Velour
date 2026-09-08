@@ -70,6 +70,7 @@ class ServiceController extends Controller
         ]);
 
         $data['dynamic_pricing_enabled'] = $request->boolean('dynamic_pricing_enabled');
+        $data['buffer_minutes']          = (int) ($data['buffer_minutes'] ?? 0);
         $data['variants']                = Service::normalizePriceRows($data['variants'] ?? null);
         $data['addons']                  = Service::mergeAddonsFromText(
             Service::normalizePriceRows($data['addons'] ?? null),

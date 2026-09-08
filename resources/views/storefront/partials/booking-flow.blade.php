@@ -10,6 +10,7 @@
     'currency' => $currency,
     'salonName' => $salonName,
     'onlineBookingEnabled' => $onlineBookingEnabled,
+    'advanceBookingDays' => \App\Support\SalonBookingRules::forSalon($salon)->advanceBookingDays(),
 ]))"
      x-init="init()"
      @storefront-booking-toggle.window="onBookingToggle($event.detail.open)"
@@ -44,7 +45,7 @@
                 <p class="text-white/70 text-sm mb-4" x-html="bookingStatus === 'pending' ? 'We\'ve received your booking request. You\'ll get a confirmation at <strong class=\'text-white\'>' + client.email + '</strong> once the salon approves it.' : 'Confirmation sent to <strong class=\'text-white\'>' + client.email + '</strong>'"></p>
                 <p x-show="bookingRef" class="inline-block bg-white/10 rounded-full px-4 py-1 text-xs font-mono mb-8" x-text="'Ref: ' + bookingRef"></p>
                 <div class="bg-white/5 border border-white/10 rounded-2xl p-5 text-left text-sm space-y-3 mb-8">
-                    <div class="flex justify-between gap-4"><span class="text-white/50">Services</span><span class="font-semibold text-right" x-text="selected.services.map(s => s.name).join(', ')"></span></div>
+                    <div class="flex justify-between gap-4"><span class="text-white/50" x-text="summaryLines().some(l => l.type === 'package') && !summaryLines().some(l => l.type === 'service') ? 'Package' : 'Services'"></span><span class="font-semibold text-right" x-text="selectedSummaryNames()"></span></div>
                     <div class="flex justify-between"><span class="text-white/50">Date</span><span class="font-semibold" x-text="confirmDisplay?.date_long || formatDate(selected.date)"></span></div>
                     <div class="flex justify-between"><span class="text-white/50">Time</span><span class="font-semibold" x-text="confirmDisplay?.time || selected.slot?.time"></span></div>
                     <div class="flex justify-between"><span class="text-white/50">With</span><span class="font-semibold" x-text="staffDisplayName()"></span></div>
@@ -457,7 +458,7 @@
                 <div x-show="step === 4">
                     <h2 class="font-bold text-lg mb-4">Confirm your booking</h2>
                     <div class="bg-white/5 border border-white/10 rounded-2xl p-5 text-sm space-y-3 mb-6">
-                        <div class="flex justify-between gap-4"><span class="text-white/50">Services</span><span class="font-semibold text-right" x-text="selected.services.map(s => s.name).join(', ')"></span></div>
+                        <div class="flex justify-between gap-4"><span class="text-white/50" x-text="summaryLines().some(l => l.type === 'package') && !summaryLines().some(l => l.type === 'service') ? 'Package' : 'Services'"></span><span class="font-semibold text-right" x-text="selectedSummaryNames()"></span></div>
                         <div class="flex justify-between"><span class="text-white/50">Total</span><span class="font-bold text-primary" x-text="currency + totalPrice().toFixed(2)"></span></div>
                         <div class="flex justify-between"><span class="text-white/50">When</span><span class="font-semibold" x-text="formatDate(selected.date) + ' at ' + (selected.slot?.time || '')"></span></div>
                         <div class="flex justify-between"><span class="text-white/50">With</span><span class="font-semibold" x-text="staffDisplayName()"></span></div>
@@ -511,7 +512,12 @@ function storefrontBooking(config) {
         confirmedStaff: null,
         confirmDisplay: null,
         get today() { return new Date().toISOString().slice(0, 10); },
-        get maxDate() { const d = new Date(); d.setDate(d.getDate() + 60); return d.toISOString().slice(0, 10); },
+        get maxDate() {
+            const days = Math.max(1, parseInt(this.advanceBookingDays || 60, 10) || 60);
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            return d.toISOString().slice(0, 10);
+        },
         get bookCategories() { return this.allServices.filter(c => (c.services?.length ?? 0) > 0); },
         get flatServices() { return this.bookCategories.flatMap(c => c.services ?? []); },
         toggleSection(id) {
@@ -1217,6 +1223,7 @@ function storefrontBooking(config) {
             const nameParts = this.splitClientName();
             this.api('/hold', { method: 'POST', body: JSON.stringify({
                 service_ids: this.selected.services.map(s => s.id),
+                package_ids: this.bookPackages.filter(pkg => this.isPackageSelected(pkg)).map(pkg => pkg.id),
                 staff_id: this.resolveHoldStaffId(),
                 starts_at: `${this.selected.date} ${this.selected.slot.time}:00`,
             }) }).then(hold => this.api('/confirm', { method: 'POST', body: JSON.stringify({

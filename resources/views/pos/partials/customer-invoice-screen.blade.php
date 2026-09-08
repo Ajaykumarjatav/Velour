@@ -152,5 +152,27 @@
             <p class="mt-4 border-t border-gray-200 pt-4 text-xs italic text-muted dark:border-gray-700">{{ $transaction->notes }}</p>
         @endif
         <p class="mt-4 text-center text-xs text-muted">{{ $footerNote ?? '' }}</p>
+        @php
+            $platform = $platform ?? \App\Support\PosInvoiceFormatting::platformBrand();
+            $platformLogo = $platform['logo_url'] ?? null;
+        @endphp
+        <div class="mt-5 border-t border-gray-200 pt-4 text-center dark:border-gray-700">
+            @if($platformLogo)
+                <img src="{{ $platformLogo }}" alt="{{ $platform['name'] ?? 'EasyGrox' }}" class="mx-auto mb-2 h-12 w-auto max-w-[14rem] object-contain dark:brightness-110">
+            @else
+                <p class="mb-2 text-xl font-bold tracking-tight text-teal-700 dark:text-teal-400">EasyGrox</p>
+            @endif
+            <p class="text-xs text-muted leading-relaxed">
+                Powered by <span class="font-semibold text-heading">{{ $platform['name'] ?? 'EasyGrox' }}</span>
+                @if(!empty($platform['email']))
+                    · Support:
+                    <a href="mailto:{{ $platform['email'] }}" class="text-link font-medium">{{ $platform['email'] }}</a>
+                @endif
+                @if(!empty($platform['phone']))
+                    ·
+                    <a href="{{ \App\Support\SupportContact::phoneTelHref() }}" class="text-link font-medium">{{ $platform['phone'] }}</a>
+                @endif
+            </p>
+        </div>
     </div>
 </article>

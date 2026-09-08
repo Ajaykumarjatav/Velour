@@ -353,11 +353,22 @@
                             <tbody>
                                 <template x-for="(svc, idx) in (selectedAppointment().services || [])" :key="idx">
                                     <tr class="border-t border-gray-100 dark:border-gray-800/80">
-                                        <td class="px-5 py-2.5 text-body">
-                                            <span x-text="svc.name"></span>
-                                            <span x-show="svc.source === 'pos'" class="ml-1.5 text-[10px] font-semibold uppercase text-velour-600 dark:text-velour-400">POS</span>
+                                        <td class="px-5 py-2.5 text-body align-top">
+                                            <div>
+                                                <span x-text="svc.name"></span>
+                                                <span x-show="svc.is_package" class="ml-1.5 text-[10px] font-semibold uppercase text-velour-600 dark:text-velour-400">Package</span>
+                                                <span x-show="!svc.is_package && svc.source === 'pos'" class="ml-1.5 text-[10px] font-semibold uppercase text-velour-600 dark:text-velour-400">POS</span>
+                                            </div>
+                                            <ul x-show="svc.components && svc.components.length" class="mt-1 space-y-0.5">
+                                                <template x-for="(comp, cidx) in (svc.components || [])" :key="cidx">
+                                                    <li class="text-[11px] text-muted">
+                                                        <span x-text="'· ' + comp.name"></span>
+                                                        <span x-show="comp.duration" class="opacity-70" x-text="comp.duration ? (' (' + comp.duration + ' min)') : ''"></span>
+                                                    </li>
+                                                </template>
+                                            </ul>
                                         </td>
-                                        <td class="px-5 py-2.5 text-muted">
+                                        <td class="px-5 py-2.5 text-muted align-top">
                                             <template x-if="svc.duration != null && svc.duration > 0">
                                                 <span><span x-text="svc.duration"></span> min</span>
                                             </template>
@@ -365,7 +376,7 @@
                                                 <span>—</span>
                                             </template>
                                         </td>
-                                        <td class="px-5 py-2.5 text-body tabular-nums" x-text="svc.price"></td>
+                                        <td class="px-5 py-2.5 text-body tabular-nums align-top" x-text="svc.price"></td>
                                     </tr>
                                 </template>
                             </tbody>

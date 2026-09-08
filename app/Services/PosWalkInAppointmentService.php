@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\PosTransaction;
 use App\Models\Salon;
 use App\Models\Service;
+use App\Models\ServicePackage;
 use Illuminate\Support\Carbon;
 
 /**
@@ -48,10 +49,7 @@ class PosWalkInAppointmentService
         array $resolvedItems,
         ?int $clientId,
     ): array {
-        $serviceItems = array_values(array_filter(
-            $resolvedItems,
-            fn (array $i) => ($i['type'] ?? '') === 'service'
-        ));
+        $serviceItems = self::expandBookableServiceLines($salon, $resolvedItems);
 
         if ($serviceItems === []) {
             return [];
@@ -102,6 +100,66 @@ class PosWalkInAppointmentService
     }
 
     /**
+     * Expand package POS lines into component service lines for calendar appointments.
+     * Package price stays on the first component of each package unit so appointment totals match POS.
+     *
+     * @param  list<array{type: string, id: int, name: string, qty: int, price: float, staff_id?: int}>  $resolvedItems
+     * @return list<array{type: string, id: int, name: string, qty: int, price: float, staff_id?: int}>
+     */
+    private static function expandBookableServiceLines(Salon $salon, array $resolvedItems): array
+    {
+        $out = [];
+
+        foreach ($resolvedItems as $item) {
+            $type = $item['type'] ?? '';
+
+            if ($type === 'service') {
+                $out[] = $item;
+                continue;
+            }
+
+            if ($type !== 'package') {
+                continue;
+            }
+
+            $pkg = ServicePackage::withoutGlobalScopes()
+                ->where('salon_id', $salon->id)
+                ->whereKey((int) $item['id'])
+                ->with(['services' => fn ($q) => $q->orderByPivot('sort_order')])
+                ->first();
+
+            if ($pkg === null || $pkg->services->isEmpty()) {
+                continue;
+            }
+
+            $staffId = (int) ($item['staff_id'] ?? 0);
+            $qty = max(1, (int) ($item['qty'] ?? 1));
+            $packagePrice = (float) ($item['price'] ?? $pkg->price);
+
+            for ($q = 0; $q < $qty; $q++) {
+                $first = true;
+                foreach ($pkg->services as $svc) {
+                    $out[] = [
+                        'type' => 'service',
+                        'id' => (int) $svc->id,
+                        'name' => (string) $svc->name,
+                        'qty' => 1,
+                        'price' => $first ? $packagePrice : 0.0,
+                        'staff_id' => $staffId,
+                        'line_meta' => [
+                            'package_id' => (int) $pkg->id,
+                            'package_name' => (string) ($item['name'] ?? $pkg->name),
+                        ],
+                    ];
+                    $first = false;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * @param  list<array{type: string, id: int, name: string, qty: int, price: float}>  $serviceItems
      */
     private static function createSingleAppointment(
@@ -145,7 +203,7 @@ class PosWalkInAppointmentService
                     'duration_minutes' => $dur,
                     'price'            => round($unitPrice, 2),
                     'sort_order'       => $sort,
-                    'line_meta'        => null,
+                    'line_meta'        => is_array($item['line_meta'] ?? null) ? $item['line_meta'] : null,
                 ];
                 $sort++;
             }
@@ -156,6 +214,7 @@ class PosWalkInAppointmentService
         }
 
         $spanMinutes = max(1, $totalDuration + $totalBuffer);
+        $spanMinutes = \App\Support\SalonBookingRules::forSalon($salon)->appointmentSpanMinutes($spanMinutes);
         $completedAt = Carbon::parse($transaction->completed_at ?? now());
         $endsAt      = $completedAt->copy();
         $startsAt    = $endsAt->copy()->subMinutes($spanMinutes);
@@ -200,7 +259,10 @@ class PosWalkInAppointmentService
     ): ?Appointment {
         $items = array_map(
             fn (array $i) => [...$i, 'staff_id' => $staffId],
-            array_values(array_filter($resolvedItems, fn (array $i) => ($i['type'] ?? '') === 'service'))
+            array_values(array_filter(
+                $resolvedItems,
+                fn (array $i) => in_array($i['type'] ?? '', ['service', 'package'], true)
+            ))
         );
 
         $appointments = self::createAppointmentsForWalkInSale($salon, $transaction, $items, $clientId);

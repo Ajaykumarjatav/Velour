@@ -5,6 +5,8 @@
 
 @php
     $platformLogo = \App\Support\MailAssets::logoUrl();
+    $supportEmail = \App\Support\SupportContact::emailDisplay();
+    $supportPhone = \App\Support\SupportContact::phoneDisplay();
 @endphp
 
 <div class="max-w-2xl space-y-4 print:max-w-none">
@@ -20,18 +22,18 @@
       <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex gap-4 min-w-0">
           @if($platformLogo)
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 dark:border-gray-700">
-              <img src="{{ $platformLogo }}" alt="{{ config('app.name') }}" class="max-h-full max-w-full object-contain">
+            <div class="flex h-16 w-40 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-700">
+              <img src="{{ $platformLogo }}" alt="EasyGrox" class="max-h-12 w-auto max-w-full object-contain">
             </div>
           @else
             <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-velour-600 to-velour-500 text-sm font-bold text-white">
-              {{ strtoupper(substr(config('app.name'), 0, 2)) }}
+              EG
             </div>
           @endif
           <div>
             <p class="text-xs font-semibold uppercase tracking-widest text-muted">Platform invoice</p>
             <h1 class="text-2xl font-black text-heading mt-1">#{{ $tx->id }}</h1>
-            <p class="text-sm text-muted mt-1">Subscription billing from {{ config('app.name') }} to your business account.</p>
+            <p class="text-sm text-muted mt-1">Subscription billing from EasyGrox to your business account.</p>
           </div>
         </div>
         <div class="shrink-0">
@@ -48,8 +50,9 @@
       <div class="grid sm:grid-cols-2 gap-4 text-sm rounded-xl bg-gray-50/90 p-4 dark:bg-gray-950/50">
         <div>
           <p class="text-muted text-xs uppercase font-semibold mb-1">From</p>
-          <p class="font-semibold text-heading">{{ config('app.name') }}</p>
-          <p class="text-body">{{ config('mail.purposes.billing.from.address') }}</p>
+          <p class="font-semibold text-heading">EasyGrox</p>
+          <p class="text-body">{{ $supportEmail }}</p>
+          <p class="text-body">{{ $supportPhone }}</p>
         </div>
         <div>
           <p class="text-muted text-xs uppercase font-semibold mb-1">Billed to (tenant)</p>
@@ -98,7 +101,12 @@
       <p class="text-sm text-red-600">{{ $tx->failure_reason }}</p>
       @endif
 
-      <p class="text-xs text-center text-muted">This is your EasyGrox subscription invoice. Customer sale invoices are issued separately from POS.</p>
+      <p class="text-xs text-center text-muted leading-relaxed">
+        This is your EasyGrox subscription invoice. Customer sale invoices are issued separately from POS.
+        <br>
+        Support: <a href="mailto:{{ $supportEmail }}" class="text-link">{{ $supportEmail }}</a>
+        · <a href="{{ \App\Support\SupportContact::phoneTelHref() }}" class="text-link">{{ $supportPhone }}</a>
+      </p>
     </div>
   </article>
 </div>

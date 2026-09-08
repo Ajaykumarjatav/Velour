@@ -2,7 +2,13 @@
     $isMissed = \App\Support\AppointmentLifecycle::isPastUnresolved($appointment, $salon);
     $statusLabel = \App\Support\AppointmentLifecycle::displayStatusLabel($appointment, $salon);
     $clientName = trim(($appointment->client?->first_name ?? '').' '.($appointment->client?->last_name ?? '')) ?: 'Walk-in';
-    $serviceNames = $appointment->services->pluck('service_name')->filter()->implode(', ');
+    $displayLines = \App\Support\AppointmentDisplayLines::serviceLines($appointment, $salonPackages ?? null);
+    $packageLines = $displayLines->filter(fn ($line) => ($line['source'] ?? '') === 'package' || ! empty($line['line_meta']['is_package']));
+    $plainServiceNames = $displayLines
+        ->reject(fn ($line) => ($line['source'] ?? '') === 'package' || ! empty($line['line_meta']['is_package']))
+        ->pluck('name')
+        ->filter()
+        ->implode(', ');
     $tz = \App\Support\SalonTime::timezone($salon);
     $todayLocal = \Carbon\Carbon::now($tz)->startOfDay();
     $aptDay = $appointment->starts_at->copy()->timezone($tz)->startOfDay();
@@ -43,8 +49,24 @@
         <h3 class="text-sm font-semibold text-heading leading-snug">{{ $clientName }}</h3>
         <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200">Booking</span>
     </div>
-    @if($serviceNames)
-        <p class="text-xs text-body/90 mt-2">{{ $serviceNames }}</p>
+    @if($packageLines->isNotEmpty() || $plainServiceNames !== '')
+        <div class="mt-2 space-y-1">
+            @foreach($packageLines as $packageLine)
+                <p class="text-xs font-medium text-heading">
+                    {{ $packageLine['name'] }}
+                    <span class="ml-1 text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">Package</span>
+                </p>
+                @php
+                    $componentNames = collect($packageLine['line_meta']['components'] ?? [])->pluck('name')->filter()->implode(', ');
+                @endphp
+                @if($componentNames !== '')
+                    <p class="text-[11px] text-muted">{{ $componentNames }}</p>
+                @endif
+            @endforeach
+            @if($plainServiceNames !== '')
+                <p class="text-xs text-body/90">{{ $plainServiceNames }}</p>
+            @endif
+        </div>
     @endif
     @if($isMissed)
         <p class="text-[11px] font-medium text-red-600 dark:text-red-400 mt-2">Overdue · {{ $statusLabel }}</p>

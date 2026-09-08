@@ -188,7 +188,7 @@ class SettingsController extends Controller
 
         $bufferRule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(
             ['salon_id' => $salon->id],
-            []
+            SalonBufferRule::defaultsForNewSalon()
         );
 
         return view('settings.index', compact(
@@ -337,6 +337,14 @@ class SettingsController extends Controller
             'cancellation_hours' => $request->input('cancellation_hours'),
         ]);
 
+        $bufferRule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(
+            ['salon_id' => $salon->id],
+            SalonBufferRule::defaultsForNewSalon()
+        );
+        $bufferRule->update([
+            'advance_booking_days' => (int) $request->input('booking_advance_days'),
+        ]);
+
         Cache::forget("share:checklist:{$salon->id}");
 
         return $this->redirectAfterSettingsSave($request, 'Booking settings updated.', 'booking');
@@ -350,14 +358,22 @@ class SettingsController extends Controller
         $data = $request->validate([
             'buffer_before_minutes' => ['required', 'integer', 'min:0', 'max:240'],
             'buffer_after_minutes' => ['required', 'integer', 'min:0', 'max:240'],
-            'max_daily_bookings_per_staff' => ['required', 'integer', 'min:1', 'max:100'],
             'advance_booking_days' => ['required', 'integer', 'min:1', 'max:730'],
             'last_minute_cutoff_hours' => ['required', 'integer', 'min:0', 'max:168'],
             'overbooking_percent' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
+        // max_daily_bookings_per_staff: UI disabled for now — keep existing DB value.
 
-        $rule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(['salon_id' => $salon->id], []);
+        $rule = SalonBufferRule::withoutGlobalScopes()->firstOrCreate(
+            ['salon_id' => $salon->id],
+            SalonBufferRule::defaultsForNewSalon()
+        );
         $rule->update($data);
+
+        // Keep salon booking_advance_days in sync (used by legacy surfaces + checklist).
+        $salon->update([
+            'booking_advance_days' => (int) $data['advance_booking_days'],
+        ]);
 
         Cache::forget("share:checklist:{$salon->id}");
 

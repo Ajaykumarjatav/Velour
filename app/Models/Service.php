@@ -17,6 +17,11 @@ class Service extends Model
         'deposit_value','online_bookable','online_booking','show_in_menu','status','sort_order','color',
         'variants','addons','dynamic_pricing_enabled','staff_level','allowed_roles','service_location',
     ];
+
+    protected $attributes = [
+        'buffer_minutes' => 0,
+    ];
+
     protected $casts = [
         'price'=>'decimal:2','price_from'=>'decimal:2','deposit_value'=>'decimal:2',
         'online_bookable'=>'boolean','show_in_menu'=>'boolean','price_on_consultation'=>'boolean',
@@ -269,10 +274,17 @@ class Service extends Model
             $sort++;
         }
 
+        $serviceSpan = $totalDuration + $totalBuffer;
+        $rules = \App\Support\SalonBookingRules::forSalon($salonId);
+        $salonBefore = $rules->bufferBeforeMinutes();
+        $salonAfter = $rules->bufferAfterMinutes();
+
         return [
             'total_duration_minutes' => $totalDuration,
-            'total_buffer_minutes'   => $totalBuffer,
-            'total_span_minutes'     => $totalDuration + $totalBuffer,
+            'total_buffer_minutes'   => $totalBuffer + $salonBefore + $salonAfter,
+            'salon_buffer_before_minutes' => $salonBefore,
+            'salon_buffer_after_minutes'  => $salonAfter,
+            'total_span_minutes'     => $rules->appointmentSpanMinutes($serviceSpan),
             'total_price'            => round($totalPrice, 2),
             'lines'                  => $lines,
         ];

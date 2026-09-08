@@ -98,6 +98,16 @@ class AvailabilityService
             return ScheduleValidationResult::failure($reasons);
         }
 
+        // Salon Settings → Buffer time & booking rules (advance window + last-minute cut-off).
+        // Overbooking % = 0 keeps hard no-overlap above. Max daily bookings is not enforced.
+        $policyReasons = \App\Support\SalonBookingRules::forSalon($salon)->windowPolicyReasons($startsAt, $endsAt);
+        foreach ($policyReasons as $reason) {
+            $reasons[] = $reason;
+        }
+        if ($reasons !== []) {
+            return ScheduleValidationResult::failure($reasons);
+        }
+
         return ScheduleValidationResult::success();
     }
 

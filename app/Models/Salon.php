@@ -139,6 +139,57 @@ class Salon extends Model
         return null;
     }
 
+    /**
+     * Open minutes for one weekday config row (from/to or start/end).
+     * Overnight windows (to before from) are treated as closing next day.
+     */
+    public static function openMinutesFromDayConfig(?array $day): int
+    {
+        if ($day === null || $day === []) {
+            return 0;
+        }
+
+        $openFlag = $day['open'] ?? true;
+        if ($openFlag === false || $openFlag === 0 || $openFlag === '0' || $openFlag === 'false') {
+            return 0;
+        }
+        if (! empty($day['closed'])) {
+            return 0;
+        }
+
+        $from = $day['from'] ?? $day['start'] ?? $day['open_time'] ?? null;
+        $to = $day['to'] ?? $day['end'] ?? $day['close_time'] ?? null;
+        if (! is_string($from) || ! is_string($to) || $from === '' || $to === '') {
+            return 0;
+        }
+
+        try {
+            $start = \Illuminate\Support\Carbon::createFromFormat('H:i', substr($from, 0, 5));
+            $end = \Illuminate\Support\Carbon::createFromFormat('H:i', substr($to, 0, 5));
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        if ($end->lte($start)) {
+            $end = $end->copy()->addDay();
+        }
+
+        return max(0, (int) $start->diffInMinutes($end));
+    }
+
+    /**
+     * Longest single open day in minutes (package / booking must fit within at least one day).
+     */
+    public function maxOpenMinutesPerDay(): int
+    {
+        $max = 0;
+        foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as $day) {
+            $max = max($max, self::openMinutesFromDayConfig($this->openingHoursForWeekdayKey($day)));
+        }
+
+        return $max;
+    }
+
     protected static function newFactory()
     {
         return \Database\Factories\SalonFactory::new();

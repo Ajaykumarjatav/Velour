@@ -37,16 +37,22 @@ class BookingController extends Controller
             return response()->json(['message' => 'Online booking is currently unavailable.'], 503);
         }
 
+        $rules = \App\Support\SalonBookingRules::forSalon($salon);
+
         return response()->json([
             'salon' => array_merge(
                 $salon->only([
                     'id', 'name', 'description', 'phone', 'email', 'address_line1',
                     'city', 'postcode', 'logo', 'cover_image', 'currency',
                     'deposit_required', 'deposit_percentage', 'instant_confirmation',
-                    'cancellation_hours', 'booking_advance_days', 'opening_hours',
+                    'cancellation_hours', 'opening_hours',
                 ]),
                 [
                     'home_services_enabled' => (bool) $salon->home_services_enabled,
+                    'booking_advance_days' => $rules->advanceBookingDays(),
+                    'last_minute_cutoff_hours' => $rules->lastMinuteCutoffHours(),
+                    'buffer_before_minutes' => $rules->bufferBeforeMinutes(),
+                    'buffer_after_minutes' => $rules->bufferAfterMinutes(),
                 ]
             ),
         ]);
@@ -185,7 +191,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $maxDays = $salon->booking_advance_days ?? 60;
+        $maxDays = \App\Support\SalonBookingRules::forSalon($salon)->advanceBookingDays();
         if ($date->diffInDays($today, false) < -$maxDays) {
             return response()->json([
                 'error' => "Bookings can only be made up to $maxDays days in advance",
@@ -218,6 +224,8 @@ class BookingController extends Controller
     public function hold(Request $request, string $salonSlug): JsonResponse
     {
         $data = $request->validate([
+            'package_ids'       => 'nullable|array',
+            'package_ids.*'     => 'integer',
             'service_ids'       => 'required|array|min:1',
             'service_ids.*'     => 'integer',
             'service_options'   => 'nullable|array',
@@ -231,6 +239,10 @@ class BookingController extends Controller
         abort_unless($salon->online_booking_enabled, 503, 'Online booking is unavailable');
 
         $data['service_ids'] = array_values(array_unique(array_map('intval', $data['service_ids'])));
+        $data['package_ids'] = array_values(array_unique(array_map(
+            'intval',
+            $data['package_ids'] ?? []
+        )));
 
         $data['staff_id'] = isset($data['staff_id']) ? (int) $data['staff_id'] : null;
         if ($data['staff_id'] === 0) {
@@ -239,6 +251,7 @@ class BookingController extends Controller
 
         try {
             $this->orderedOnlineServices($salon, $data['service_ids']);
+            $data['package_ids'] = $this->validatedOnlinePackageIds($salon, $data['package_ids'], $data['service_ids']);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -428,5 +441,50 @@ class BookingController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * @param  list<int>  $packageIds
+     * @param  list<int>  $serviceIds
+     * @return list<int>
+     */
+    private function validatedOnlinePackageIds(Salon $salon, array $packageIds, array $serviceIds): array
+    {
+        $packageIds = array_values(array_unique(array_map('intval', $packageIds)));
+        if ($packageIds === []) {
+            return [];
+        }
+
+        $serviceIdSet = array_fill_keys($serviceIds, true);
+        $packages = ServicePackage::withoutGlobalScope(TenantScope::class)
+            ->where('salon_id', $salon->id)
+            ->where('status', 'active')
+            ->where('online_bookable', true)
+            ->whereIn('id', $packageIds)
+            ->with(['services' => function ($q) use ($salon): void {
+                $q->withoutGlobalScope(TenantScope::class)
+                    ->where('services.salon_id', $salon->id)
+                    ->where('status', 'active')
+                    ->where('online_bookable', true)
+                    ->eligibleForPublicBooking($salon);
+            }])
+            ->get()
+            ->keyBy('id');
+
+        $validated = [];
+        foreach ($packageIds as $packageId) {
+            $pkg = $packages->get($packageId);
+            if ($pkg === null || $pkg->services->isEmpty()) {
+                throw new \InvalidArgumentException('One or more packages are invalid or not available for online booking.');
+            }
+            foreach ($pkg->orderedServiceIds() as $serviceId) {
+                if (! isset($serviceIdSet[$serviceId])) {
+                    throw new \InvalidArgumentException('Package "'.$pkg->name.'" is missing one or more required services.');
+                }
+            }
+            $validated[] = $packageId;
+        }
+
+        return $validated;
     }
 }

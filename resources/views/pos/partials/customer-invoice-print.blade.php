@@ -146,5 +146,31 @@
             <p style="margin:14px 0 0;font-size:11px;color:#71717a;font-style:italic;">{{ $transaction->notes }}</p>
         @endif
         <p style="margin:16px 0 0;font-size:11px;color:#71717a;text-align:center;line-height:1.5;">{{ $footerNote ?? '' }}</p>
+        @php
+            $platform = $platform ?? \App\Support\PosInvoiceFormatting::platformBrand();
+            $usePdfCrispMark = ! empty($platform['pdf_crisp_mark']);
+            $platformLogo = ($platform['logo_data_uri'] ?? null) ?: ($platform['logo_url'] ?? null);
+        @endphp
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #e4e4e7;text-align:center;">
+            @if($usePdfCrispMark)
+                {{-- DomPDF cannot render the metallic PNG/JPEG wordmark cleanly; use sharp HTML text. --}}
+                <p style="margin:0 0 10px;font-size:22px;font-weight:700;letter-spacing:-0.03em;color:#0f766e;font-family:DejaVu Sans,Helvetica,Arial,sans-serif;">
+                    EasyGrox
+                </p>
+            @elseif($platformLogo)
+                <img src="{{ $platformLogo }}" alt="EasyGrox" style="max-height:48px;max-width:220px;width:auto;height:auto;display:block;margin:0 auto 10px;">
+            @else
+                <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#0f766e;">EasyGrox</p>
+            @endif
+            <p style="margin:0;font-size:10px;color:#71717a;line-height:1.55;font-family:DejaVu Sans,Helvetica,Arial,sans-serif;">
+                Powered by EasyGrox
+                @if(!empty($platform['email']))
+                    · Support: {{ $platform['email'] }}
+                @endif
+                @if(!empty($platform['phone']))
+                    · {{ $platform['phone'] }}
+                @endif
+            </p>
+        </div>
     </div>
 </div>

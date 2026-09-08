@@ -25,9 +25,9 @@
     <div class="text-center max-w-md w-full">
         {{-- Logo --}}
         <a href="{{ url('/') }}" class="inline-flex items-center justify-center mb-8 sm:mb-10">
-            <img src="{{ asset('images/easygrox-logo-light.png') }}"
+            <img src="{{ asset('images/easygrox-logo-dark.png') }}"
                  alt="EasyGrox"
-                 class="h-9 sm:h-10 w-auto max-w-[11rem] object-contain">
+                 class="h-14 sm:h-16 w-auto max-w-[16rem] sm:max-w-[18rem] object-contain">
         </a>
 
         {{-- Error code --}}

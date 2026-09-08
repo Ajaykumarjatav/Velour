@@ -25,15 +25,41 @@
         'cat'   => $p->category?->name ?? 'Retail',
         'type'  => 'product',
     ])->values()->toArray();
-    $allItems = array_merge($allServices, $allProducts);
+    $allPackages = ($packages ?? collect())->map(function ($pkg) {
+        $serviceNames = $pkg->services->pluck('name')->filter()->values()->all();
+        $duration = (int) $pkg->services->sum(
+            fn ($s) => max(1, (int) ($s->duration_minutes ?? 30)) + max(0, (int) ($s->buffer_minutes ?? 0))
+        );
+
+        return [
+            'id'            => $pkg->id,
+            'name'          => $pkg->name,
+            'price'         => (float) $pkg->price,
+            'duration'      => $duration,
+            'service_count' => count($serviceNames),
+            'services'      => $serviceNames,
+            'cat'           => 'Packages',
+            'type'          => 'package',
+        ];
+    })->values()->toArray();
+    $allItems = array_merge($allServices, $allProducts, $allPackages);
     $serviceCategories = collect($allServices)
         ->countBy('cat')->sortDesc()->keys()->values()->toArray();
     $retailCategories = collect($allProducts)
         ->countBy('cat')->sortDesc()->keys()->values()->toArray();
+    $packageCategories = collect($allPackages)
+        ->countBy('cat')->sortDesc()->keys()->values()->toArray();
     $serviceCategoryCounts = collect($allServices)->countBy('cat')->all();
     $retailCategoryCounts   = collect($allProducts)->countBy('cat')->all();
-    $defaultSection = request('tab') === 'retail' ? 'product' : 'service';
+    $packageCategoryCounts  = collect($allPackages)->countBy('cat')->all();
+    $defaultSection = match (true) {
+        request('tab') === 'retail' => 'product',
+        in_array(request('tab'), ['packages', 'package'], true) => 'package',
+        ($prefillFromAppointment['prefer_section'] ?? null) === 'package' => 'package',
+        default => 'service',
+    };
     $retailProductCount = count($allProducts);
+    $packageItemCount = count($allPackages);
 @endphp
 
 @push('styles')
@@ -278,6 +304,15 @@
                 </span>
                 <span class="text-[10px] font-bold tabular-nums opacity-80">{{ $retailProductCount }}</span>
             </button>
+            <button type="button" @click="selectSection('package')"
+                    :class="section === 'package' ? 'bg-velour-600 text-white shadow-sm' : 'text-body hover:bg-white dark:hover:bg-gray-800'"
+                    class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-colors">
+                <span class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    Package
+                </span>
+                <span class="text-[10px] font-bold tabular-nums opacity-80">{{ $packageItemCount }}</span>
+            </button>
         </nav>
 
         <div class="mx-3 border-t border-gray-200 dark:border-gray-700 shrink-0" aria-hidden="true"></div>
@@ -319,11 +354,14 @@
             <button type="button" @click="selectSection('product')"
                     :class="section === 'product' ? 'text-velour-600 border-b-2 border-velour-600' : 'text-muted'"
                     class="flex-1 py-2.5 text-sm font-semibold">Retail</button>
+            <button type="button" @click="selectSection('package')"
+                    :class="section === 'package' ? 'text-velour-600 border-b-2 border-velour-600' : 'text-muted'"
+                    class="flex-1 py-2.5 text-sm font-semibold">Package</button>
         </div>
 
         @if(! empty($prefillFromAppointment['lines'] ?? []))
         <div class="shrink-0 px-4 py-2 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-100 dark:border-emerald-900/40">
-            Appointment services added — confirm payment and complete sale.
+            Appointment items added — confirm payment and complete sale.
         </div>
         @endif
 
@@ -334,7 +372,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
                 <input id="pos-search" x-model="search" type="search" autocomplete="off"
-                       :placeholder="section === 'product' ? 'Search products by name…' : 'Search services by name…'">
+                       :placeholder="section === 'product' ? 'Search products by name…' : (section === 'package' ? 'Search packages by name…' : 'Search services by name…')">
             </div>
             {{-- Category picker for the stacked layout --}}
             <div class="xl:hidden mt-2">
@@ -368,10 +406,12 @@
                         <div class="mt-auto space-y-1 pt-2">
                             <p class="text-lg font-bold tabular-nums text-velour-600 dark:text-velour-400 leading-none"
                                x-text="'{{ $sym }}' + formatMoney(item.price)"></p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 leading-none"
-                               x-show="item.duration || (item.type === 'product' && item.qty)">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 leading-none flex-wrap"
+                               x-show="item.duration || (item.type === 'product' && item.qty) || (item.type === 'package' && item.service_count)">
                                 <svg x-show="item.duration" class="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 <span x-show="item.duration" x-text="formatDuration(item.duration)"></span>
+                                <span x-show="item.type === 'package' && item.service_count && item.duration" class="opacity-50">·</span>
+                                <span x-show="item.type === 'package' && item.service_count" x-text="item.service_count + (item.service_count === 1 ? ' service' : ' services')"></span>
                                 <span x-show="item.type === 'product' && item.qty" x-text="item.qty + ' in stock'"></span>
                             </p>
                         </div>
@@ -384,7 +424,8 @@
             </div>
             <div x-show="filteredItems.length === 0" x-cloak class="py-16 text-center text-sm text-muted px-4">
                 <p x-show="section === 'product'">No retail products available. In <a href="{{ route('inventory.index') }}" class="text-link">Inventory &amp; Retail</a>, set a <strong>retail price</strong> and <strong>stock &gt; 0</strong>.</p>
-                <p x-show="section !== 'product'">No services found in this category.</p>
+                <p x-show="section === 'package'">No packages available. Create an active package under <a href="{{ route('service-packages.index') }}" class="text-link">Service packages</a>.</p>
+                <p x-show="section === 'service'">No services found in this category.</p>
             </div>
         </div>
     </main>
@@ -440,6 +481,8 @@
                                 </p>
                                 <p class="text-[10px] text-gray-500 dark:text-gray-400"
                                    x-show="row.item.type === 'product' && !row.item.duration">Retail</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400"
+                                   x-show="row.item.type === 'package' && !row.item.duration">Package</p>
                                 <div class="flex items-center gap-1.5 ml-auto shrink-0">
                                     <div class="pos-qty-stepper text-heading">
                                         <button type="button" @click="decQty(row.idx)" class="hover:bg-gray-200 dark:hover:bg-gray-800">−</button>
@@ -452,6 +495,12 @@
                                     </button>
                                 </div>
                             </div>
+                            <ul x-show="row.item.type === 'package' && row.item.services && row.item.services.length" x-cloak
+                                class="mt-1.5 space-y-0.5 pl-0.5">
+                                <template x-for="(svcName, svcIdx) in (row.item.services || [])" :key="svcIdx">
+                                    <li class="text-[10px] text-muted leading-snug truncate" x-text="'· ' + svcName"></li>
+                                </template>
+                            </ul>
                         </div>
                     </template>
                 </div>
@@ -581,14 +630,34 @@
         </div>
     </aside>
 
-    {{-- Variant picker --}}
+    {{-- Variant / package picker --}}
     <div x-show="pickerOpen" x-cloak class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50"
          @keydown.escape.window="pickerOpen = false">
         <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-sm w-full max-h-[85dvh] overflow-y-auto p-5 space-y-4" @click.outside="pickerOpen = false">
             <div class="flex justify-between items-start gap-2">
-                <h3 class="font-semibold text-heading text-base" x-text="pickItem ? pickItem.name : ''"></h3>
+                <div class="min-w-0">
+                    <h3 class="font-semibold text-heading text-base" x-text="pickItem ? pickItem.name : ''"></h3>
+                    <p x-show="pickItem && pickItem.type === 'package'" x-cloak
+                       class="text-sm font-bold tabular-nums text-velour-600 dark:text-velour-400 mt-1"
+                       x-text="pickItem ? ('{{ $sym }}' + formatMoney(pickItem.price)) : ''"></p>
+                </div>
                 <button type="button" class="text-muted hover:text-heading text-xl leading-none p-1" @click="pickerOpen = false">&times;</button>
             </div>
+            <template x-if="pickItem && pickItem.type === 'package' && pickItem.services && pickItem.services.length">
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-muted mb-2">Included services</p>
+                    <ul class="space-y-1.5 max-h-56 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-950/40 p-3">
+                        <template x-for="(svcName, svcIdx) in pickItem.services" :key="svcIdx + '-' + svcName">
+                            <li class="flex items-start gap-2 text-sm text-body">
+                                <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-velour-500 shrink-0"></span>
+                                <span class="leading-snug" x-text="svcName"></span>
+                            </li>
+                        </template>
+                    </ul>
+                    <p class="text-xs text-muted mt-2"
+                       x-text="(pickItem.service_count || pickItem.services.length) + ' services · billed as one package'"></p>
+                </div>
+            </template>
             <template x-if="pickItem && pickItem.variants && pickItem.variants.length">
                 <div>
                     <label class="form-label text-sm">Variant</label>
@@ -643,8 +712,10 @@ const POS_TAX_RATE           = {{ $taxRate }};
 const POS_PREFILL            = @json($prefillFromAppointment);
 const POS_SERVICE_CATEGORIES = @json($serviceCategories);
 const POS_RETAIL_CATEGORIES  = @json($retailCategories);
+const POS_PACKAGE_CATEGORIES = @json($packageCategories);
 const POS_SERVICE_CAT_COUNTS = @json($serviceCategoryCounts);
 const POS_RETAIL_CAT_COUNTS  = @json($retailCategoryCounts);
+const POS_PACKAGE_CAT_COUNTS = @json($packageCategoryCounts);
 const POS_STAFF              = @json($staffMembers->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values());
 const POS_DEFAULT_STAFF_ID   = @json($defaultStaffId);
 
@@ -656,8 +727,10 @@ function posApp() {
         categoriesExpanded:  false,
         serviceCategories:   POS_SERVICE_CATEGORIES,
         retailCategories:    POS_RETAIL_CATEGORIES,
+        packageCategories:   POS_PACKAGE_CATEGORIES,
         serviceCatCounts:    POS_SERVICE_CAT_COUNTS,
         retailCatCounts:     POS_RETAIL_CAT_COUNTS,
+        packageCatCounts:    POS_PACKAGE_CAT_COUNTS,
         serviceItemCount:    POS_ITEMS.filter(i => i.type === 'service').length,
         cart:            [],
         paymentMethod:   'cash',
@@ -709,7 +782,9 @@ function posApp() {
         },
 
         get sidebarCategories() {
-            return this.section === 'product' ? this.retailCategories : this.serviceCategories;
+            if (this.section === 'product') return this.retailCategories;
+            if (this.section === 'package') return this.packageCategories;
+            return this.serviceCategories;
         },
 
         get visibleSidebarCategories() {
@@ -729,6 +804,12 @@ function posApp() {
                 .filter(row => row.item.type === 'service');
         },
 
+        get cartPackages() {
+            return this.cart
+                .map((item, idx) => ({ item, idx }))
+                .filter(row => row.item.type === 'package');
+        },
+
         get cartProducts() {
             return this.cart
                 .map((item, idx) => ({ item, idx }))
@@ -738,12 +819,13 @@ function posApp() {
         get cartGroups() {
             const groups = [];
             if (this.cartServices.length) groups.push({ label: 'Services', rows: this.cartServices });
+            if (this.cartPackages.length) groups.push({ label: 'Packages', rows: this.cartPackages });
             if (this.cartProducts.length) groups.push({ label: 'Retail', rows: this.cartProducts });
             return groups;
         },
 
         get cartHasServices() {
-            return this.cart.some(i => i.type === 'service');
+            return this.cart.some(i => i.type === 'service' || i.type === 'package');
         },
 
         get taxModeLabel() {
@@ -751,9 +833,11 @@ function posApp() {
         },
 
         categoryCount(cat) {
-            const counts = this.section === 'product' ? this.retailCatCounts : this.serviceCatCounts;
+            const counts = this.section === 'product'
+                ? this.retailCatCounts
+                : (this.section === 'package' ? this.packageCatCounts : this.serviceCatCounts);
             if (cat === 'All') {
-                const type = this.section === 'product' ? 'product' : 'service';
+                const type = this.section === 'product' ? 'product' : (this.section === 'package' ? 'package' : 'service');
                 return POS_ITEMS.filter(i => i.type === type).length;
             }
             return counts[cat] || 0;
@@ -762,7 +846,9 @@ function posApp() {
         get gridHeading() {
             if (this.search.trim()) return 'Search results';
             if (this.activeCategory === 'All') {
-                return this.section === 'product' ? 'All products' : 'All services';
+                if (this.section === 'product') return 'All products';
+                if (this.section === 'package') return 'All packages';
+                return 'All services';
             }
             return this.activeCategory;
         },
@@ -770,9 +856,13 @@ function posApp() {
         get gridSubheading() {
             if (this.search.trim()) return 'Matching "' + this.search.trim() + '"';
             if (this.activeCategory === 'All') {
-                return this.section === 'product' ? 'Browse retail inventory' : 'Browse service catalogue';
+                if (this.section === 'product') return 'Browse retail inventory';
+                if (this.section === 'package') return 'Bill a package without picking services';
+                return 'Browse service catalogue';
             }
-            return this.section === 'product' ? 'Retail products' : 'Bookable services';
+            if (this.section === 'product') return 'Retail products';
+            if (this.section === 'package') return 'Service packages';
+            return 'Bookable services';
         },
 
         init() {
@@ -805,6 +895,9 @@ function posApp() {
                         if (!cat) continue;
                         this.addToCart({ ...cat });
                     }
+                    if (POS_PREFILL.prefer_section) {
+                        this.section = POS_PREFILL.prefer_section;
+                    }
                 }
                 if (POS_PREFILL && POS_PREFILL.client_id) {
                     const idStr = String(POS_PREFILL.client_id);
@@ -827,7 +920,7 @@ function posApp() {
         },
 
         get filteredItems() {
-            const type = this.section === 'product' ? 'product' : 'service';
+            const type = this.section === 'product' ? 'product' : (this.section === 'package' ? 'package' : 'service');
             return POS_ITEMS.filter(item => {
                 const matchType   = item.type === type;
                 const matchCat    = this.activeCategory === 'All' || item.cat === this.activeCategory;
@@ -853,8 +946,15 @@ function posApp() {
         },
 
         openServicePicker(item) {
+            if (item.type === 'package') {
+                this.pickItem        = JSON.parse(JSON.stringify(item));
+                this.pickVariantName = '';
+                this.pickAddonNames  = [];
+                this.pickerOpen      = true;
+                return;
+            }
             if (item.type !== 'service') {
-                if (this.productStockLeft(item) < 1) {
+                if (item.type === 'product' && this.productStockLeft(item) < 1) {
                     alert('Not enough stock for this product.');
                     return;
                 }
@@ -876,6 +976,11 @@ function posApp() {
         confirmServicePick() {
             const item = this.pickItem;
             if (!item) return;
+            if (item.type === 'package') {
+                this.addToCart({ ...item });
+                this.pickerOpen = false;
+                return;
+            }
             let price = Number(item.price);
             let name  = item.name;
             if (this.pickVariantName && item.variants) {
@@ -961,8 +1066,8 @@ function posApp() {
                 alert('Select staff for this sale.');
                 return;
             }
-            if (this.staffList.length === 0 && this.cart.some(i => i.type === 'service')) {
-                alert('Add at least one active staff member before selling services.');
+            if (this.staffList.length === 0 && this.cartHasServices) {
+                alert('Add at least one active staff member before selling services or packages.');
                 return;
             }
             document.getElementById('pos-form').submit();

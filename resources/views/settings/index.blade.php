@@ -632,17 +632,19 @@
                     $bufferRows = [
                         ['buffer_before_minutes', 'Buffer before service', 'Prep time before each appointment.', 'min', 0, 240],
                         ['buffer_after_minutes', 'Buffer after service', 'Clean-up / turnaround time.', 'min', 0, 240],
-                        ['max_daily_bookings_per_staff', 'Max daily bookings per staff', 'Cap appointments per staff member per day.', 'appts', 1, 100],
                         ['advance_booking_days', 'Advance booking window', 'How far ahead clients can book.', 'days', 1, 730],
                         ['last_minute_cutoff_hours', 'Last-minute cut-off', 'Minimum notice before start time.', 'hours', 0, 168],
                         ['overbooking_percent', 'Overbooking allowance', 'Extra capacity on busy days.', '%', 0, 100],
+                    ];
+                    $disabledBufferRows = [
+                        ['max_daily_bookings_per_staff', 'Max daily bookings per staff', 'Temporarily disabled — not used in live booking yet.', 'appts'],
                     ];
                 @endphp
                 <ul class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 divide-y divide-gray-200/80 dark:divide-gray-700/80">
                     @foreach($bufferRows as [$field, $label, $help, $unit, $min, $max])
                         <li class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_5.5rem_3rem] gap-2 sm:gap-x-4 sm:items-center px-4 py-3.5 sm:px-5">
                             <div class="min-w-0">
-                                <label for="settings-buf-{{ $field }}" class="text-sm font-medium text-heading">{{ $label }}</label>
+                                <label for="settings-buf-{{ $field }}" class="text-sm font-medium text-heading">{{ $label }} <span class="text-red-500">*</span></label>
                                 <p id="settings-buf-help-{{ $field }}" class="text-xs text-muted mt-0.5 leading-snug">{{ $help }}</p>
                                 @error($field)<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                             </div>
@@ -656,6 +658,22 @@
                             </div>
                         </li>
                     @endforeach
+                    @foreach($disabledBufferRows as [$field, $label, $help, $unit])
+                        <li class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_5.5rem_3rem] gap-2 sm:gap-x-4 sm:items-center px-4 py-3.5 sm:px-5 opacity-60">
+                            <div class="min-w-0">
+                                <label for="settings-buf-{{ $field }}" class="text-sm font-medium text-heading">{{ $label }}</label>
+                                <p id="settings-buf-help-{{ $field }}" class="text-xs text-muted mt-0.5 leading-snug">{{ $help }}</p>
+                            </div>
+                            <div class="flex items-center gap-2 sm:contents">
+                                <input id="settings-buf-{{ $field }}" type="number"
+                                       value="{{ $bufferRule?->$field }}"
+                                       aria-describedby="settings-buf-help-{{ $field }}"
+                                       disabled
+                                       class="form-input w-24 max-w-[40%] sm:max-w-none sm:w-[5.5rem] text-sm text-right tabular-nums py-2 px-2 sm:justify-self-end cursor-not-allowed">
+                                <span class="text-xs text-muted tabular-nums w-10 shrink-0 sm:w-auto sm:justify-self-end">{{ $unit }}</span>
+                            </div>
+                        </li>
+                    @endforeach
                 </ul>
                 </fieldset>
                 <div class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-gray-200/80 dark:border-gray-700/80 pt-5 pb-0.5">
@@ -663,7 +681,7 @@
                 </div>
             </form>
             <p class="text-xs text-muted mt-4 leading-relaxed">
-                Booking today still uses each service’s own buffers and staff working days. Hooking these business-wide rules into live availability can be added in a later release.
+                These rules apply to online booking and staff / tenant / admin appointment scheduling (advance window, last-minute cut-off, and salon buffer before/after). Max daily bookings per staff stays disabled. Overbooking at 0% keeps hard no-overlap. Existing appointment times are not rewritten; new bookings and reschedules use these rules.
             </p>
         </div>
         @endif

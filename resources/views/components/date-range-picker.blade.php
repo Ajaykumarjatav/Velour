@@ -33,6 +33,15 @@
     if ($initialTo < $initialFrom) {
         $initialTo = $initialFrom;
     }
+    if ($initialFrom > $allTimeTo) {
+        $initialFrom = $allTimeTo;
+    }
+    if ($initialTo > $allTimeTo) {
+        $initialTo = $allTimeTo;
+    }
+    if ($initialTo < $initialFrom) {
+        $initialTo = $initialFrom;
+    }
 @endphp
 
 <div
@@ -202,16 +211,16 @@
                                         'h-8' => $compact,
                                         'h-9' => ! $compact,
                                     ])>
-                                        <button type="button"
+                                                <button type="button"
                                                 x-show="cell"
                                                 @click="selectDay(cell.ymd)"
-                                                :disabled="cell && isBeforeMin(cell.ymd)"
+                                                :disabled="cell && isOutOfBounds(cell.ymd)"
                                                 @class([
                                                     'rounded-full font-normal transition-colors',
                                                     'h-8 w-8 text-sm' => $compact,
                                                     'h-9 w-9 text-sm' => ! $compact,
                                                 ])
-                                                :class="cell && isBeforeMin(cell.ymd) ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-40' : (cell && isEdge(cell.ymd) ? 'bg-velour-600 text-white hover:bg-velour-700' : (cell && inRange(cell.ymd) ? 'bg-velour-50 dark:bg-velour-950/50 text-velour-800 dark:text-velour-200' : (cell && cell.ymd > today ? 'text-gray-300 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800')))"
+                                                :class="cell && isOutOfBounds(cell.ymd) ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-40' : (cell && isEdge(cell.ymd) ? 'bg-velour-600 text-white hover:bg-velour-700' : (cell && inRange(cell.ymd) ? 'bg-velour-50 dark:bg-velour-950/50 text-velour-800 dark:text-velour-200' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'))"
                                                 x-text="cell ? cell.day : ''"></button>
                                     </div>
                                 </template>
@@ -379,8 +388,26 @@ document.addEventListener('alpine:init', () => {
             return ymd;
         },
 
+        clampToMax(ymd) {
+            if (!ymd) return ymd;
+            const max = this.allTimeTo || this.today;
+            if (max && ymd > max) {
+                return max;
+            }
+            return ymd;
+        },
+
         isBeforeMin(ymd) {
             return !!(ymd && this.allTimeFrom && ymd < this.allTimeFrom);
+        },
+
+        isAfterMax(ymd) {
+            const max = this.allTimeTo || this.today;
+            return !!(ymd && max && ymd > max);
+        },
+
+        isOutOfBounds(ymd) {
+            return this.isBeforeMin(ymd) || this.isAfterMax(ymd);
         },
 
         normalizeRange() {
@@ -391,8 +418,8 @@ document.addEventListener('alpine:init', () => {
                 this.from = this.to;
                 this.to = swap;
             }
-            this.from = this.clampToMin(this.from);
-            this.to = this.clampToMin(this.to);
+            this.from = this.clampToMax(this.clampToMin(this.from));
+            this.to = this.clampToMax(this.clampToMin(this.to));
             if (this.to < this.from) {
                 this.to = this.from;
             }
@@ -606,7 +633,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         selectDay(ymd) {
-            if (this.isBeforeMin(ymd)) {
+            if (this.isOutOfBounds(ymd)) {
                 return;
             }
             if (!this.awaitingEnd) {

@@ -692,7 +692,7 @@ function bookingApp() {
 
         totalBufferedMinutes() {
             return this.selected.services.reduce((a, s) => {
-                const buf = s.buffer_minutes != null ? parseInt(s.buffer_minutes, 10) : 15;
+                const buf = s.buffer_minutes != null ? parseInt(s.buffer_minutes, 10) : 0;
                 return a + (parseInt(s.duration_minutes, 10) || 0) + buf;
             }, 0);
         },

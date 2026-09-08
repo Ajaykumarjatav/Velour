@@ -64,10 +64,16 @@ final class PosInvoiceFormatting
         return PublicStorage::url($salon->logo);
     }
 
+    /** DomPDF needs GD to embed PNG/GIF; without it invoices crash. */
+    public static function canEmbedImagesInPdf(): bool
+    {
+        return extension_loaded('gd') && function_exists('imagecreatefrompng');
+    }
+
     /** Base64 data URI for DomPDF (remote/logo URLs often fail in PDF). */
     public static function logoDataUri(?Salon $salon): ?string
     {
-        if ($salon === null) {
+        if ($salon === null || ! self::canEmbedImagesInPdf()) {
             return null;
         }
 
@@ -90,6 +96,72 @@ final class PosInvoiceFormatting
         $mime = @mime_content_type($fullPath) ?: 'image/png';
 
         return 'data:'.$mime.';base64,'.base64_encode($bytes);
+    }
+
+    /** EasyGrox mark for invoice footers (screen / email absolute URL). */
+    public static function platformLogoUrl(): string
+    {
+        // Same artwork as PDF footer (JPEG is DomPDF-safe; PNG used on screen when preferred).
+        if (is_file(public_path('images/easygrox-logo-dark.png'))) {
+            return asset('images/easygrox-logo-dark.png');
+        }
+
+        return asset('images/easygrox-logo-invoice.jpg');
+    }
+
+    /**
+     * EasyGrox mark as data URI for DomPDF.
+     * Prefer JPEG — DomPDF embeds JPEG without GD; PNG needs GD and often looked different/failed.
+     */
+    public static function platformLogoDataUri(): ?string
+    {
+        $jpeg = public_path('images/easygrox-logo-invoice.jpg');
+        if (is_file($jpeg) && is_readable($jpeg)) {
+            $bytes = @file_get_contents($jpeg);
+            if ($bytes !== false && $bytes !== '') {
+                return 'data:image/jpeg;base64,'.base64_encode($bytes);
+            }
+        }
+
+        if (! self::canEmbedImagesInPdf()) {
+            return null;
+        }
+
+        foreach (['images/easygrox-logo-dark.png', 'images/easygrox-icon.png'] as $rel) {
+            $path = public_path($rel);
+            if (! is_file($path) || ! is_readable($path)) {
+                continue;
+            }
+            $bytes = @file_get_contents($path);
+            if ($bytes === false || $bytes === '') {
+                continue;
+            }
+            $mime = @mime_content_type($path) ?: 'image/png';
+
+            return 'data:'.$mime.';base64,'.base64_encode($bytes);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{
+     *   name: string,
+     *   email: string,
+     *   phone: string,
+     *   logo_url: string,
+     *   logo_data_uri: ?string
+     * }
+     */
+    public static function platformBrand(): array
+    {
+        return [
+            'name' => 'EasyGrox',
+            'email' => SupportContact::emailDisplay(),
+            'phone' => SupportContact::phoneDisplay(),
+            'logo_url' => self::platformLogoUrl(),
+            'logo_data_uri' => self::platformLogoDataUri(),
+        ];
     }
 
     public static function salonInitials(?Salon $salon): string
@@ -169,6 +241,7 @@ final class PosInvoiceFormatting
             'salonInitials' => self::salonInitials($salon),
             'footerNote'    => self::customerFooterNote($salon),
             'amountLabel'   => self::amountLabel($transaction),
+            'platform'      => self::platformBrand(),
             'fmt'           => fn (float $n): string => self::formatAmount($n, $salon),
             'fmtPdf'        => fn (float $n): string => self::formatAmountPdf($n, $salon),
         ];
@@ -301,6 +374,10 @@ final class PosInvoiceFormatting
         }
         $lines[] = '';
         $lines[] = self::customerFooterNote($salon);
+        $platform = self::platformBrand();
+        $lines[] = '';
+        $lines[] = 'Powered by *'.$platform['name'].'*';
+        $lines[] = 'Support: '.$platform['email'].' · '.$platform['phone'];
 
         return implode("\n", $lines);
     }
