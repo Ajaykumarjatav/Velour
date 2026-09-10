@@ -29,8 +29,8 @@ class SalonBufferRule extends Model
             'buffer_before_minutes' => 0,
             'buffer_after_minutes' => 0,
             'max_daily_bookings_per_staff' => 12, // UI disabled; retained for DB completeness
-            'advance_booking_days' => 0,
-            'last_minute_cutoff_hours' => 6,
+            'advance_booking_days' => 60,
+            'last_minute_cutoff_hours' => 0,
             'overbooking_percent' => 0,
         ];
     }
@@ -49,8 +49,8 @@ class SalonBufferRule extends Model
         'buffer_before_minutes' => 0,
         'buffer_after_minutes' => 0,
         'max_daily_bookings_per_staff' => 12,
-        'advance_booking_days' => 0,
-        'last_minute_cutoff_hours' => 6,
+        'advance_booking_days' => 60,
+        'last_minute_cutoff_hours' => 0,
         'overbooking_percent' => 0,
     ];
 

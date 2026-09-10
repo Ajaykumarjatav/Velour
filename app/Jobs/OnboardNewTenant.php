@@ -51,7 +51,7 @@ class OnboardNewTenant implements ShouldQueue, NotTenantAware
             'require_phone_for_booking'  => true,
             'new_booking_email_owner'    => true,
             'theme_color'                => '#B8943A',
-            'booking_advance_days'       => 0,
+            'booking_advance_days'       => 60,
             'booking_min_notice_hours'   => 2,
         ];
 

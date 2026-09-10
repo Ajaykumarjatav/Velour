@@ -606,7 +606,7 @@
                             <p class="text-xs text-muted leading-snug">How far ahead clients can schedule. 0 means today only.</p>
                         </div>
                         <input type="number" id="settings-booking-booking_advance_days" name="booking_advance_days"
-                               value="{{ old('booking_advance_days', $salon->booking_advance_days ?? 0) }}"
+                               value="{{ old('booking_advance_days', $salon->booking_advance_days ?? 60) }}"
                                min="0" max="365" required
                                class="form-input w-full sm:w-24 max-w-[8rem] text-right text-sm tabular-nums shrink-0 @error('booking_advance_days') form-input-error @enderror">
                     </div>

@@ -57,7 +57,7 @@ class SalonBookingRules
 
     public function advanceBookingDays(): int
     {
-        return max(0, (int) ($this->rule->advance_booking_days ?? $this->salon->booking_advance_days ?? 0));
+        return max(0, (int) ($this->rule->advance_booking_days ?? $this->salon->booking_advance_days ?? 60));
     }
 
     public function lastMinuteCutoffHours(): int

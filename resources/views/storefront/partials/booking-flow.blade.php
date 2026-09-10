@@ -514,7 +514,7 @@ function storefrontBooking(config) {
         get today() { return new Date().toISOString().slice(0, 10); },
         get maxDate() {
             const parsed = parseInt(this.advanceBookingDays, 10);
-            const days = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+            const days = Number.isFinite(parsed) ? Math.max(0, parsed) : 60;
             const d = new Date();
             d.setDate(d.getDate() + days);
             return d.toISOString().slice(0, 10);

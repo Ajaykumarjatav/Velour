@@ -70,7 +70,7 @@ return [
     */
     'booking' => [
         'slot_interval_minutes'   => 15,
-        'advance_booking_days'    => 0,
+        'advance_booking_days'    => 60,
         'cancellation_hours'      => 24,
         'hold_expiry_minutes'     => 10,
         'reminder_hours_before'   => [24, 2],
