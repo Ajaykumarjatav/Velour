@@ -64,7 +64,7 @@ class GuideController extends Controller
         $growth = array_values(array_filter([
             $show('marketing') ? ['title' => 'Marketing', 'hint' => 'Email / SMS campaigns. Audience follows client consent.', 'href' => route('marketing.growth')] : null,
             $show('reviews') ? ['title' => 'Reviews', 'hint' => 'Client feedback after visits.', 'href' => route('reviews.index')] : null,
-            $show('analytics') ? ['title' => 'Analytics', 'hint' => 'Trends across bookings and revenue.', 'href' => route('reports.analytics')] : null,
+            $show('analytics') ? ['title' => 'Analytics', 'hint' => 'Trends across bookings, revenue, and website traffic.', 'href' => route('reports.analytics')] : null,
             $show('reports_menu') ? ['title' => 'Reports', 'hint' => 'Revenue and other reports under Growth.', 'href' => route('reports.index')] : null,
             $show('growth_tips') ? ['title' => 'Growth Tips', 'hint' => 'Ideas to fill the calendar.', 'href' => route('reports.growth-tips')] : null,
         ]));

@@ -81,7 +81,10 @@ class MultiLocationController extends Controller
             $card = [
                 'id' => $salon->id,
                 'name' => $salon->name,
-                'address' => trim(implode(', ', array_filter([$salon->address_line1, $salon->city]))),
+                'address' => $salon->is_freelancer
+                    ? 'Freelancer — no physical store'
+                    : trim(implode(', ', array_filter([$salon->address_line1, $salon->city]))),
+                'is_freelancer' => (bool) $salon->is_freelancer,
                 'address_line1' => (string) ($salon->address_line1 ?? ''),
                 'city' => (string) ($salon->city ?? ''),
                 'timezone' => (string) ($salon->timezone ?? 'Asia/Kolkata'),

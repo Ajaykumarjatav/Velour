@@ -243,12 +243,14 @@ class SettingsController extends Controller
             'gst_number'         => ['nullable', 'string', 'max:30'],
             'booking_time_display' => ['nullable', 'in:business,customer'],
             'home_services_enabled' => ['sometimes', 'boolean'],
+            'is_freelancer' => ['sometimes', 'boolean'],
         ], \App\Support\SalonSlug::uniqueNameMessages('name'));
 
         $bookingTimeDisplay = $data['booking_time_display'] ?? 'business';
         unset($data['booking_time_display']);
 
         $data['home_services_enabled'] = $request->boolean('home_services_enabled');
+        $data['is_freelancer'] = $request->boolean('is_freelancer');
         $data['email'] = $salon->owner?->email ?: Auth::user()?->email;
         $data['awards_accolades'] = AwardsHtml::sanitize($data['awards_accolades'] ?? null);
         $data['awards_images'] = AwardsHtml::imagePaths($data['awards_accolades'], (int) $salon->id);
@@ -323,7 +325,7 @@ class SettingsController extends Controller
 
         $request->validate([
             'deposit_percentage' => ['required', 'numeric', 'min:1', 'max:100'],
-            'booking_advance_days' => ['required', 'integer', 'min:1', 'max:365'],
+            'booking_advance_days' => ['required', 'integer', 'min:0', 'max:365'],
             'cancellation_hours' => ['required', 'integer', 'min:0', 'max:168'],
         ]);
 
@@ -358,7 +360,7 @@ class SettingsController extends Controller
         $data = $request->validate([
             'buffer_before_minutes' => ['required', 'integer', 'min:0', 'max:240'],
             'buffer_after_minutes' => ['required', 'integer', 'min:0', 'max:240'],
-            'advance_booking_days' => ['required', 'integer', 'min:1', 'max:730'],
+            'advance_booking_days' => ['required', 'integer', 'min:0', 'max:730'],
             'last_minute_cutoff_hours' => ['required', 'integer', 'min:0', 'max:168'],
             'overbooking_percent' => ['required', 'integer', 'min:0', 'max:100'],
         ]);

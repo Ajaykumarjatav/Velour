@@ -7,6 +7,7 @@ use App\Services\SalonWebsitePayloadService;
 use App\Support\PublicSalonAccess;
 use App\Support\SocialShareClicks;
 use App\Support\StorefrontAssets;
+use App\Support\WebsiteTraffic;
 use App\Support\StorefrontTheme;
 use App\Support\StorefrontUrl;
 use Illuminate\Http\RedirectResponse;
@@ -16,7 +17,7 @@ use Illuminate\View\View;
 
 class StorefrontController extends Controller
 {
-    public function show(string $slug, ?string $path = null): Response|View|RedirectResponse
+    public function show(Request $request, string $slug, ?string $path = null): Response|View|RedirectResponse
     {
         $salon = PublicSalonAccess::findBySlug($slug);
 
@@ -57,6 +58,8 @@ class StorefrontController extends Controller
         }
 
         $payload = app(SalonWebsitePayloadService::class)->build($salon);
+
+        WebsiteTraffic::record($request, $salon, $path ? 'website/'.ltrim($path, '/') : 'website');
 
         return view(StorefrontTheme::viewName($theme), [
             'salon'    => $salon,

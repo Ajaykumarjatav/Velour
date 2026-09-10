@@ -194,7 +194,9 @@ class BookingController extends Controller
         $maxDays = \App\Support\SalonBookingRules::forSalon($salon)->advanceBookingDays();
         if ($date->diffInDays($today, false) < -$maxDays) {
             return response()->json([
-                'error' => "Bookings can only be made up to $maxDays days in advance",
+                'error' => $maxDays === 0
+                    ? 'Bookings can only be made for today.'
+                    : "Bookings can only be made up to $maxDays days in advance",
             ], 422);
         }
 

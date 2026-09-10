@@ -353,6 +353,8 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
              ->middleware('subscription:feature:reports');
         Route::get('reports/analytics', [ReportController::class, 'analytics'])->name('reports.analytics')
              ->middleware('subscription:feature:reports');
+        Route::get('reports/traffic', [ReportController::class, 'traffic'])->name('reports.traffic')
+             ->middleware('subscription:feature:reports');
         Route::get('reports/growth-tips', [ReportController::class, 'growthTips'])->name('reports.growth-tips')
              ->middleware('subscription:feature:reports');
         Route::get('reports/revenue/export', [ReportController::class, 'exportRevenue'])->name('reports.revenue.export')

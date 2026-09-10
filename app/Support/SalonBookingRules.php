@@ -57,12 +57,7 @@ class SalonBookingRules
 
     public function advanceBookingDays(): int
     {
-        $fromRule = (int) $this->rule->advance_booking_days;
-        if ($fromRule >= 1) {
-            return $fromRule;
-        }
-
-        return max(1, (int) ($this->salon->booking_advance_days ?? 60));
+        return max(0, (int) ($this->rule->advance_booking_days ?? $this->salon->booking_advance_days ?? 0));
     }
 
     public function lastMinuteCutoffHours(): int
@@ -115,7 +110,9 @@ class SalonBookingRules
             $days = $this->advanceBookingDays();
             $reasons[] = [
                 'code' => 'outside_advance_window',
-                'message' => "Bookings can only be made up to {$days} days in advance.",
+                'message' => $days === 0
+                    ? 'Bookings can only be made for today.'
+                    : "Bookings can only be made up to {$days} days in advance.",
             ];
         }
 

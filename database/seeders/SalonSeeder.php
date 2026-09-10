@@ -58,7 +58,7 @@ class SalonSeeder extends Seeder
                 'deposit_required'           => true,
                 'deposit_percentage'         => 20.00,
                 'instant_confirmation'       => false,
-                'booking_advance_days'       => 60,
+                'booking_advance_days'       => 0,
                 'cancellation_hours'         => 24,
                 'is_active'                  => true,
                 'opening_hours'              => [

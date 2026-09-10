@@ -181,6 +181,8 @@ class UserActivityLogger
                 'pos.store' => 'Completed POS sale',
                 'marketing.index' => 'Opened marketing',
                 'reports.index' => 'Opened reports',
+                'reports.analytics' => 'Opened analytics',
+                'reports.traffic' => 'Opened traffic analytics',
                 'settings.index' => 'Opened settings',
                 'settings.salon' => 'Updated salon settings',
                 'go-live' => 'Opened Go Live',

@@ -10,6 +10,7 @@ use App\Models\PosTransaction;
 use App\Models\Salon;
 use App\Support\SalonSetupProgress;
 use App\Support\SocialShareClicks;
+use App\Support\WebsiteTraffic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -33,6 +34,7 @@ use Illuminate\Support\Facades\Log;
  *   POST /api/v1/salon/share/customise     — Update booking page settings
  *   POST /api/v1/salon/share/track-click   — Record a social share click
  *   POST /api/v1/track/visit               — Public: record a booking page visit
+ *   POST /api/v1/track/click               — Public: record a website button click
  */
 class ShareController extends Controller
 {
@@ -48,13 +50,13 @@ class ShareController extends Controller
             $from = now()->startOfMonth();
             $to   = now()->endOfMonth();
 
-            $visits    = LinkVisit::where('salon_id', $salonId)->whereBetween('created_at', [$from, $to]);
+            $visits    = LinkVisit::where('salon_id', $salonId)->pageViews()->whereBetween('created_at', [$from, $to]);
             $total     = (clone $visits)->count();
             $converted = (clone $visits)->where('converted', true)->count();
 
             $prevFrom = now()->subMonth()->startOfMonth();
             $prevTo   = now()->subMonth()->endOfMonth();
-            $prevTotal = LinkVisit::where('salon_id', $salonId)->whereBetween('created_at', [$prevFrom, $prevTo])->count();
+            $prevTotal = LinkVisit::where('salon_id', $salonId)->pageViews()->whereBetween('created_at', [$prevFrom, $prevTo])->count();
             $visitTrend = $prevTotal > 0 ? round((($total - $prevTotal) / $prevTotal) * 100, 1) : 0;
 
             $bookings = Appointment::where('salon_id', $salonId)
@@ -99,6 +101,7 @@ class ShareController extends Controller
 
         $sources = Cache::remember("share:sources:{$salonId}", 300, function () use ($salonId) {
             $rows = LinkVisit::where('salon_id', $salonId)
+                ->pageViews()
                 ->last30Days()
                 ->selectRaw('source, COUNT(*) as visits, SUM(CASE WHEN converted THEN 1 ELSE 0 END) as conversions')
                 ->groupBy('source')
@@ -145,6 +148,7 @@ class ShareController extends Controller
                 $date = now()->subDays($daysAgo)->toDateString();
 
                 $visits = LinkVisit::where('salon_id', $salonId)
+                    ->pageViews()
                     ->whereDate('created_at', $date)
                     ->count();
 
@@ -175,6 +179,7 @@ class ShareController extends Controller
 
         $data = Cache::remember("share:devices:{$salonId}", 300, function () use ($salonId) {
             $rows = LinkVisit::where('salon_id', $salonId)
+                ->pageViews()
                 ->last30Days()
                 ->selectRaw('device, COUNT(*) as count')
                 ->groupBy('device')
@@ -276,7 +281,7 @@ class ShareController extends Controller
             'deposit_required'           => 'nullable|boolean',
             'deposit_percentage'         => 'nullable|numeric|min:1|max:100',
             'instant_confirmation'       => 'nullable|boolean',
-            'booking_advance_days'       => 'nullable|integer|min:1|max:365',
+            'booking_advance_days'       => 'nullable|integer|min:0|max:365',
             'cancellation_hours'         => 'nullable|integer|min:0|max:168',
         ]);
 
@@ -347,17 +352,38 @@ class ShareController extends Controller
             return response()->json(['tracked' => false]);
         }
 
-        LinkVisit::create([
-            'salon_id'     => $salon->id,
-            'source'       => $data['source'],
-            'page'         => $data['page'] ?? null,
-            'ip_address'   => $request->ip(),
-            'device'       => str_contains($request->userAgent() ?? '', 'Mobile') ? 'mobile' : 'desktop',
-            'utm_source'   => $data['utm_source'] ?? null,
-            'utm_medium'   => $data['utm_medium'] ?? null,
+        WebsiteTraffic::record($request, $salon, (string) ($data['page'] ?? 'booking'), [
+            'source' => $data['source'],
+            'utm_source' => $data['utm_source'] ?? null,
+            'utm_medium' => $data['utm_medium'] ?? null,
             'utm_campaign' => $data['utm_campaign'] ?? null,
-            'referrer'     => $request->header('Referer'),
         ]);
+
+        return response()->json(['tracked' => true]);
+    }
+
+    // ── Public: record a website button click ─────────────────────────────────
+
+    public function trackWebsiteClick(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'salon_slug' => 'required|string|max:100',
+            'name' => 'required|string|max:50',
+            'source' => 'nullable|string|max:50',
+        ]);
+
+        $salon = Salon::where('slug', $data['salon_slug'])->where('is_active', true)->first();
+
+        if (! $salon) {
+            return response()->json(['tracked' => false]);
+        }
+
+        $overrides = [];
+        if (! empty($data['source'])) {
+            $overrides['source'] = $data['source'];
+        }
+
+        WebsiteTraffic::recordClick($request, $salon, $data['name'], $overrides);
 
         return response()->json(['tracked' => true]);
     }

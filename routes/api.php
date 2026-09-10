@@ -111,6 +111,8 @@ Route::prefix('v1')->middleware(['sanitize'])->group(function () {
     // Link visit tracking (Go Live & Share analytics)
     Route::post('track/visit', [ShareController::class, 'trackVisit'])
          ->middleware('throttle:60,1');
+    Route::post('track/click', [ShareController::class, 'trackWebsiteClick'])
+         ->middleware('throttle:60,1');
     Route::post('track/social-click', [ShareController::class, 'trackPublicSocialClick'])
          ->middleware('throttle:60,1');
 

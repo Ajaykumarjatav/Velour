@@ -27,7 +27,7 @@ class UpdateSalonSettingsRequest extends FormRequest
             'opening_hours.*.closed'            => ['nullable', 'boolean'],
 
             // Booking settings
-            'booking_advance_days'              => ['nullable', 'integer', 'min:1', 'max:365'],
+            'booking_advance_days'              => ['nullable', 'integer', 'min:0', 'max:365'],
             'booking_slot_interval'             => ['nullable', 'integer', 'in:10,15,20,30,45,60'],
             'booking_lead_time_hours'           => ['nullable', 'integer', 'min:0', 'max:72'],
             'booking_cancellation_hours'        => ['nullable', 'integer', 'min:0', 'max:168'],

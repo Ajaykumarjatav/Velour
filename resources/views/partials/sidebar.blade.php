@@ -254,14 +254,17 @@
 
         {{-- GROWTH --}}
         @php
-            $isAnalyticsActive = request()->routeIs('reports.analytics');
             $isReportsMenuActive = request()->routeIs('reports.index', 'reports.show', 'revenue.index');
+            $isAnalyticsActive = request()->routeIs('reports.analytics', 'reports.traffic') || $isReportsMenuActive;
             $growthMenuActive = request()->routeIs(
                 'marketing.*',
-                'reviews.*', 'reports.analytics', 'reports.index', 'reports.show',
+                'reviews.*', 'reports.analytics', 'reports.traffic', 'reports.index', 'reports.show',
                 'revenue.index', 'reports.growth-tips'
             );
+            $analyticsOpen = $isAnalyticsActive;
             $reportsOpen = $isReportsMenuActive;
+            $reportsForUser = \App\Support\ReportCatalog::forUser(auth()->user());
+            $showReportsNav = $navShow('reports_menu') && count($reportsForUser) > 0;
         @endphp
         @if(\App\Support\SidebarNav::showGrowthGroup(auth()->user()))
         <x-sidebar-nav-submenu name="growth" label="Growth" icon="growth" :open="$growthMenuActive" :active="$growthMenuActive">
@@ -280,21 +283,57 @@
             </a>
             @endif
             @if($navShow('analytics'))
-            <a href="{{ route('reports.analytics') }}"
-               class="sidebar-sub-link {{ $isAnalyticsActive ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
-                @include('partials.sidebar-nav-icon', ['icon' => 'analytics', 'small' => true])
-                Analytics
-            </a>
-            @endif
-            @if($navShow('growth_tips'))
-            <a href="{{ route('reports.growth-tips') }}"
-               class="sidebar-sub-link {{ request()->routeIs('reports.growth-tips') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
-                @include('partials.sidebar-nav-icon', ['icon' => 'growth', 'small' => true])
-                Growth Tips
-            </a>
-            @endif
-            @php $reportsForUser = \App\Support\ReportCatalog::forUser(auth()->user()); @endphp
-            @if($navShow('reports_menu') && count($reportsForUser) > 0)
+            <div x-data="{ analyticsOpen: {{ $analyticsOpen ? 'true' : 'false' }} }" class="space-y-0.5">
+                <button type="button"
+                        @click.stop="analyticsOpen = !analyticsOpen"
+                        class="sidebar-sub-link w-full text-left {{ $isAnalyticsActive ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                    @include('partials.sidebar-nav-icon', ['icon' => 'analytics', 'small' => true])
+                    <span class="flex-1">Analytics</span>
+                    <svg class="w-3 h-3 flex-shrink-0 transition-transform duration-200" :class="analyticsOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div x-show="analyticsOpen" x-transition class="ml-3 space-y-0.5">
+                    <a href="{{ route('reports.analytics') }}"
+                       class="sidebar-sub-link text-sm {{ request()->routeIs('reports.analytics') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                        @include('partials.sidebar-nav-icon', ['icon' => 'analytics', 'small' => true])
+                        Overview
+                    </a>
+                    <a href="{{ route('reports.traffic') }}"
+                       class="sidebar-sub-link text-sm {{ request()->routeIs('reports.traffic') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                        @include('partials.sidebar-nav-icon', ['icon' => 'traffic', 'small' => true])
+                        Traffic
+                    </a>
+                    @if($showReportsNav)
+                    <div x-data="{ reportsOpen: {{ $reportsOpen ? 'true' : 'false' }} }" class="space-y-0.5">
+                        <button type="button"
+                                @click.stop="reportsOpen = !reportsOpen"
+                                class="sidebar-sub-link w-full text-left text-sm {{ $isReportsMenuActive ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                            @include('partials.sidebar-nav-icon', ['icon' => 'reports', 'small' => true])
+                            <span class="flex-1">Reports</span>
+                            <svg class="w-3 h-3 flex-shrink-0 transition-transform duration-200" :class="reportsOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="reportsOpen" x-transition class="ml-3 space-y-0.5">
+                            @foreach($reportsForUser as $report)
+                            @php
+                                $key = $report['key'];
+                                $label = $report['label'];
+                                $reportIcon = in_array($key, ['revenue', 'appointments', 'staff', 'clients', 'services', 'inventory', 'marketing'], true) ? $key : 'reports';
+                            @endphp
+                            <a href="{{ route('reports.show', $key) }}"
+                               class="sidebar-sub-link text-sm {{ request()->routeIs('reports.show') && request()->route('type') === $key ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                                @include('partials.sidebar-nav-icon', ['icon' => $reportIcon, 'small' => true])
+                                {{ $label }}
+                            </a>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @elseif($showReportsNav)
             <div x-data="{ reportsOpen: {{ $reportsOpen ? 'true' : 'false' }} }" class="space-y-0.5">
                 <button type="button"
                         @click.stop="reportsOpen = !reportsOpen"
@@ -320,6 +359,13 @@
                     @endforeach
                 </div>
             </div>
+            @endif
+            @if($navShow('growth_tips'))
+            <a href="{{ route('reports.growth-tips') }}"
+               class="sidebar-sub-link {{ request()->routeIs('reports.growth-tips') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
+                @include('partials.sidebar-nav-icon', ['icon' => 'growth', 'small' => true])
+                Growth Tips
+            </a>
             @endif
         </x-sidebar-nav-submenu>
         @endif

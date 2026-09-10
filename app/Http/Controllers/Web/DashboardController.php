@@ -10,10 +10,12 @@ use App\Models\PosTransaction;
 use App\Models\Review;
 use App\Models\SalonActionItem;
 use App\Models\SalonNotification;
+use App\Models\LinkVisit;
 use App\Models\Staff;
 use App\Models\StaffLeaveRequest;
 use App\Support\ProfileCompletion;
 use App\Support\SalonTime;
+use App\Support\WebsiteTraffic;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -208,8 +210,28 @@ class DashboardController extends Controller
                     ->where('start_date', '<=', $now->toDateString())
                     ->where('end_date', '>=', $now->toDateString())
                     ->count(),
-                'website_visits' => 0,
-                'website_views' => 0,
+                'website_visits' => (int) LinkVisit::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->pageViews()
+                    ->where('is_bot', false)
+                    ->whereBetween('created_at', [$pStart, $pEnd])
+                    ->count(),
+                'website_clicks' => (int) LinkVisit::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->clicks()
+                    ->whereBetween('created_at', [$pStart, $pEnd])
+                    ->count(),
+                'website_bots' => (int) LinkVisit::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->pageViews()
+                    ->where('is_bot', true)
+                    ->whereBetween('created_at', [$pStart, $pEnd])
+                    ->count(),
+                'website_views' => (int) LinkVisit::withoutGlobalScopes()
+                    ->where('salon_id', $salon->id)
+                    ->pageViews()
+                    ->whereBetween('created_at', [$pStart, $pEnd])
+                    ->count(),
                 'reviews_count' => Review::withoutGlobalScopes()->where('salon_id', $salon->id)
                     ->whereBetween('created_at', [$pStart, $pEnd])->count(),
                 'reviews_avg' => round((float) Review::withoutGlobalScopes()->where('salon_id', $salon->id)
@@ -307,6 +329,30 @@ class DashboardController extends Controller
                 'initials' => strtoupper(substr($s->first_name ?? '?', 0, 1)) . strtoupper(substr($s->last_name ?? '', 0, 1)),
             ]);
 
+        $detailTraffic = LinkVisit::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->where('created_at', '>=', $yearStartUtc)
+            ->orderByDesc('created_at')
+            ->limit(30)
+            ->get()
+            ->map(function ($v) {
+                $isClick = ($v->kind ?? 'visit') === 'click';
+
+                return [
+                    'kind' => $isClick ? 'click' : 'visit',
+                    'label' => $isClick
+                        ? WebsiteTraffic::clickLabel((string) $v->page)
+                        : WebsiteTraffic::sourceLabel((string) $v->source),
+                    'visitor' => $v->is_bot ? 'Bot' : 'Visitor',
+                    'subtitle' => $isClick
+                        ? ($v->is_bot ? 'Bot tap' : 'Tapped on your website')
+                        : ($v->is_bot ? 'Scanner / bot' : 'Opened your website'),
+                    'is_bot' => (bool) $v->is_bot,
+                    'date' => $v->created_at->toDateString(),
+                    'ago' => $v->created_at->diffForHumans(),
+                ];
+            });
+
         $detailLists = [
             'appointments' => $detailAppointments->values(),
             'tasks' => $detailTasks->values(),
@@ -314,6 +360,7 @@ class DashboardController extends Controller
             'reviews' => $detailReviews->values(),
             'sales' => $detailSales->values(),
             'staff' => $detailStaff->values(),
+            'traffic' => $detailTraffic->values(),
         ];
 
         $periodBounds = [

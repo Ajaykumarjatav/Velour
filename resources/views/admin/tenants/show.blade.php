@@ -15,6 +15,9 @@
         @else
           <span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-red-900/50 text-red-400 border border-red-800/50">Suspended</span>
         @endif
+        @if($salon->is_freelancer)
+          <span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-cyan-900/40 text-cyan-300 border border-cyan-800/40">Freelancer</span>
+        @endif
         <span class="px-2.5 py-1 rounded-xl text-xs font-semibold bg-gray-800 text-gray-400">
           {{ \App\Billing\Plan::labelFor($owner?->plan) }} plan
         </span>
@@ -144,7 +147,8 @@
         @foreach([
           'Email'    => $salon->email ?? '—',
           'Phone'    => $salon->phone ?? '—',
-          'City'     => $salon->city  ?? '—',
+          'Location type' => $salon->locationKindLabel(),
+          'City'     => $salon->is_freelancer ? '—' : ($salon->city  ?? '—'),
           'Country'  => $salon->country ?? '—',
           'Timezone' => $salon->timezone,
           'Currency' => strtoupper($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()),

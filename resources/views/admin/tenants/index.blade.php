@@ -82,7 +82,13 @@
       <td class="px-4 py-3 hidden sm:table-cell">
         <span class="px-2 py-0.5 rounded-lg text-xs font-semibold {{ $planColor }}">{{ \App\Billing\Plan::labelFor($account->plan) }}</span>
       </td>
-      <td class="px-4 py-3 text-right text-gray-300">{{ $account->stores_count }}</td>
+      <td class="px-4 py-3 text-right text-gray-300">
+        {{ $account->stores_count }}
+        @php $freelancerStores = $account->salons->where('is_freelancer', true)->count(); @endphp
+        @if($freelancerStores > 0)
+          <p class="text-[10px] text-cyan-400/90 font-medium">{{ $freelancerStores }} freelancer</p>
+        @endif
+      </td>
       <td class="px-4 py-3 hidden lg:table-cell text-right text-gray-300">{{ number_format((int) ($agg->clients_total ?? 0)) }}</td>
       <td class="px-4 py-3 hidden md:table-cell text-right text-gray-300">{{ number_format((int) ($agg->appointments_total ?? 0)) }}</td>
       <td class="px-4 py-3">

@@ -199,6 +199,7 @@ final class TenantModuleAccess
             'marketing.*' => 'marketing',
             'reviews.*' => 'reviews',
             'reports.analytics' => 'analytics',
+            'reports.traffic' => 'analytics',
             'reports.growth-tips' => 'growth_tips',
             'reports.*' => 'reports_menu',
             'revenue.*' => 'reports_menu',

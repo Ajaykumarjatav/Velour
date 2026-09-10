@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * LinkVisit — tracks visits to a salon's public booking page.
+ * LinkVisit — tracks visits to a salon's public website and booking links.
  *
  * Audit fix: removed duplicate brace syntax error + added scopes.
  */
@@ -16,12 +16,15 @@ class LinkVisit extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'salon_id', 'source', 'page', 'ip_address',
-        'country', 'device', 'converted', 'utm_source',
+        'salon_id', 'source', 'page', 'kind', 'ip_address',
+        'country', 'device', 'is_bot', 'user_agent', 'converted', 'utm_source',
         'utm_medium', 'utm_campaign', 'referrer',
     ];
 
-    protected $casts = ['converted' => 'boolean'];
+    protected $casts = [
+        'converted' => 'boolean',
+        'is_bot' => 'boolean',
+    ];
 
     // ── Relations ─────────────────────────────────────────────────────────────
 
@@ -45,5 +48,17 @@ class LinkVisit extends Model
     public function scopeConverted($query)
     {
         return $query->where('converted', true);
+    }
+
+    public function scopePageViews($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('kind', 'visit')->orWhereNull('kind');
+        });
+    }
+
+    public function scopeClicks($query)
+    {
+        return $query->where('kind', 'click');
     }
 }

@@ -31,6 +31,7 @@
                 <article role="button" tabindex="0"
                          x-data="{ expanded: false }"
                          :data-home-package="pkg.id"
+                         data-track-click="package"
                          @click="togglePackage(pkg.id)"
                          @keydown.enter.prevent="togglePackage(pkg.id)"
                          @keydown.space.prevent="togglePackage(pkg.id)"

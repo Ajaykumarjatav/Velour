@@ -91,7 +91,7 @@
             <h3 class="text-sm font-semibold text-heading" x-text="activeLabel()"></h3>
             <a :href="activeLink()" class="text-xs font-medium text-velour-600 dark:text-velour-400 hover:underline">View all &rarr;</a>
         </div>
-        <div class="max-h-[250px] overflow-y-auto p-4 sm:p-5">
+        <div class="max-h-[320px] overflow-y-auto p-4 sm:p-5">
             {{-- Appointments --}}
             <div x-show="active === 'appointments'">
                 <template x-if="filteredList('appointments').length === 0">
@@ -169,9 +169,65 @@
             </div>
 
             {{-- Website traffic --}}
-            <div x-show="active === 'website_traffic'" class="py-6 text-center">
-                <p class="text-sm text-muted">Website traffic tracking is not yet connected.</p>
-                <p class="text-xs text-muted mt-2">Connect Google Analytics or integrate a tracking pixel to see real visitor data here.</p>
+            <div x-show="active === 'website_traffic'" class="-m-4 sm:-m-5">
+                <div class="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-700 border-b border-gray-100 dark:border-gray-700">
+                    <div class="px-4 py-4 text-center sm:text-left sm:px-5">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Visitors</p>
+                        <p class="mt-1 text-2xl font-bold text-heading tabular-nums leading-none" x-text="data[period]?.website_visits ?? 0"></p>
+                        <p class="mt-1.5 text-[11px] text-muted">Real people</p>
+                    </div>
+                    <div class="px-4 py-4 text-center sm:text-left sm:px-5">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Clicks</p>
+                        <p class="mt-1 text-2xl font-bold text-heading tabular-nums leading-none" x-text="data[period]?.website_clicks ?? 0"></p>
+                        <p class="mt-1.5 text-[11px] text-muted">Book, call, WhatsApp</p>
+                    </div>
+                    <div class="px-4 py-4 text-center sm:text-left sm:px-5">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Bots</p>
+                        <p class="mt-1 text-2xl font-bold text-heading tabular-nums leading-none" x-text="data[period]?.website_bots ?? 0"></p>
+                        <p class="mt-1.5 text-[11px] text-muted">Scanners</p>
+                    </div>
+                </div>
+                <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-700" x-show="trafficHasViews()">
+                    <div class="flex items-center justify-between text-[11px] text-muted mb-1.5">
+                        <span>Traffic quality</span>
+                        <span class="tabular-nums" x-text="trafficHumanShare() + '% human'"></span>
+                    </div>
+                    <div class="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden flex">
+                        <div class="h-full bg-emerald-400" :style="'width:' + trafficHumanShare() + '%'"></div>
+                        <div class="h-full bg-amber-400" :style="'width:' + (100 - trafficHumanShare()) + '%'"></div>
+                    </div>
+                </div>
+                <div class="px-4 sm:px-5 py-3">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted mb-1">Recent activity</p>
+                    <template x-if="filteredList('traffic').length === 0">
+                        <p class="text-sm text-muted text-center py-6">No website visits yet. Numbers appear when customers open your booking site.</p>
+                    </template>
+                    <div class="divide-y divide-gray-100 dark:divide-gray-700/80">
+                        <template x-for="(item, idx) in filteredList('traffic')" :key="idx">
+                            <div class="flex items-center gap-3 py-2.5">
+                                <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                                      :class="item.kind === 'click'
+                                        ? 'bg-cyan-50 text-cyan-600 dark:bg-cyan-950/50 dark:text-cyan-300'
+                                        : 'bg-violet-50 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300'">
+                                    <svg x-show="item.kind !== 'click'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                                    <svg x-show="item.kind === 'click'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5-4-11 11 4-5 2z"/></svg>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-heading truncate" x-text="item.label"></p>
+                                    <p class="text-xs text-muted truncate" x-text="item.subtitle || item.visitor"></p>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
+                                          :class="item.kind === 'click'
+                                            ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300'
+                                            : 'bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300'"
+                                          x-text="item.kind === 'click' ? 'Click' : 'Visit'"></span>
+                                    <p class="text-[11px] text-muted mt-1" x-text="item.ago"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
 
             {{-- Reviews --}}
@@ -583,9 +639,12 @@ function analyticsSlider(serverData, detailLists, periodBounds) {
                 dataKey: 'website_visits',
                 icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>',
                 iconBg: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-300',
-                format: (v) => v > 0 ? String(v) : '—',
-                sub: () => 'Not connected yet',
-                link: @json(route('go-live')),
+                format: (v) => String(v),
+                sub: (d) => {
+                    const clicks = d?.website_clicks || 0;
+                    return clicks + ' button click' + (clicks === 1 ? '' : 's');
+                },
+                link: @json(route('reports.traffic')),
             },
             {
                 key: 'reviews',
@@ -613,6 +672,18 @@ function analyticsSlider(serverData, detailLists, periodBounds) {
             const startDate = this.bounds[this.period] || '';
             if (!startDate) return items;
             return items.filter(item => item.date >= startDate);
+        },
+        trafficHasViews() {
+            const d = this.data[this.period] || {};
+            return Number(d.website_views || 0) > 0;
+        },
+        trafficHumanShare() {
+            const d = this.data[this.period] || {};
+            const humans = Number(d.website_visits || 0);
+            const bots = Number(d.website_bots || 0);
+            const total = humans + bots;
+            if (total <= 0) return 0;
+            return Math.round((humans / total) * 100);
         },
         scrollLeft() {
             this.$refs.slider.scrollBy({ left: -266, behavior: 'smooth' });

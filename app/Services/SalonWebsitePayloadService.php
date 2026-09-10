@@ -151,12 +151,15 @@ class SalonWebsitePayloadService
                 'address_line2'       => $salon->address_line2,
                 'city'                => $salon->city,
                 'postcode'            => $salon->postcode,
-                'full_address'        => trim(implode(', ', array_filter([
-                    $salon->address_line1,
-                    $salon->address_line2,
-                    $salon->city,
-                    $salon->postcode,
-                ]))),
+                'full_address'        => $salon->is_freelancer
+                    ? 'Freelancer'
+                    : trim(implode(', ', array_filter([
+                        $salon->address_line1,
+                        $salon->address_line2,
+                        $salon->city,
+                        $salon->postcode,
+                    ]))),
+                'is_freelancer'       => (bool) $salon->is_freelancer,
                 'logo_url'            => $this->resolveLogoUrl($salon),
                 'cover_image_url'     => PublicStorage::url($salon->cover_image),
                 'currency'            => $currency,
@@ -166,7 +169,7 @@ class SalonWebsitePayloadService
                 'website_theme'       => $theme,
                 'website_theme_label' => StorefrontTheme::label($theme),
                 'whatsapp_url'        => $this->whatsappUrl($salon->whatsappNumberForSite()),
-                'map_url'             => $salon->map_url,
+                'map_url'             => $salon->is_freelancer ? null : $salon->map_url,
                 'gst_number'          => $salon->gst_number,
                 'opening_hours'       => $salon->opening_hours,
                 'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),
@@ -231,7 +234,7 @@ class SalonWebsitePayloadService
             ->get([
                 'id', 'name', 'slug', 'address_line1', 'address_line2',
                 'city', 'postcode', 'country', 'latitude', 'longitude', 'map_url', 'opening_hours',
-                'cover_image',
+                'cover_image', 'is_freelancer',
             ]);
 
         return $rows->map(fn (Salon $s) => $this->mapLocation($s, $current))->values()->all();
@@ -257,15 +260,18 @@ class SalonWebsitePayloadService
             'id'                  => $salon->id,
             'name'                => $salon->name,
             'slug'                => $salon->slug,
-            'address'             => trim(implode(', ', array_filter([
-                $salon->address_line1,
-                $salon->address_line2,
-                $salon->city,
-                $salon->postcode,
-            ]))),
+            'address'             => $salon->is_freelancer
+                ? 'Freelancer — no physical store'
+                : trim(implode(', ', array_filter([
+                    $salon->address_line1,
+                    $salon->address_line2,
+                    $salon->city,
+                    $salon->postcode,
+                ]))),
+            'is_freelancer'       => (bool) $salon->is_freelancer,
             'is_current'          => (int) $salon->id === (int) $current->id,
-            'map_url'             => $salon->map_url,
-            'map_embed_url'       => $this->mapEmbedUrl($salon),
+            'map_url'             => $salon->is_freelancer ? null : $salon->map_url,
+            'map_embed_url'       => $salon->is_freelancer ? null : $this->mapEmbedUrl($salon),
             'opening_hours_lines' => $this->openingHoursLines($salon->opening_hours),
             'photos'              => $photos,
             'banner_url'          => $bannerUrl,

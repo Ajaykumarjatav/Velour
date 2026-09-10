@@ -19,6 +19,8 @@ class LinkVisitFactory extends Factory
             'ip_address'   => $this->faker->ipv4(),
             'country'      => $this->faker->countryCode(),
             'device'       => $this->faker->randomElement(['mobile','desktop']),
+            'is_bot'       => false,
+            'user_agent'   => $this->faker->userAgent(),
             'converted'    => $this->faker->boolean(25),
             'utm_source'   => null,
             'utm_medium'   => null,

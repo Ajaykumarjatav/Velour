@@ -16,6 +16,7 @@ use App\Services\ReportService;
 use App\Support\ReportCatalog;
 use App\Support\SalonTime;
 use App\Support\StorefrontUrl;
+use App\Support\WebsiteTraffic;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -222,18 +223,18 @@ class ReportController extends Controller
 
         $trafficRows = LinkVisit::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
+            ->pageViews()
             ->whereBetween('created_at', [$from, $to])
-            ->selectRaw("COALESCE(NULLIF(source,''), 'direct') as source_label")
-            ->selectRaw("COALESCE(NULLIF(utm_medium,''), 'unknown') as medium_label")
+            ->select('source', 'utm_medium')
             ->selectRaw('COUNT(*) as visits')
-            ->groupBy('source_label', 'medium_label')
+            ->groupBy('source', 'utm_medium')
             ->orderByDesc('visits')
             ->limit(12)
             ->get();
         $trafficTotal = (int) $trafficRows->sum('visits');
         $trafficBreakdown = $trafficRows->map(function ($row) use ($trafficTotal) {
-            $source = (string) $row->source_label;
-            $medium = (string) $row->medium_label;
+            $source = strtolower(trim((string) $row->source)) ?: 'direct';
+            $medium = strtolower(trim((string) $row->utm_medium)) ?: 'unknown';
             return [
                 'source' => $source,
                 'medium' => $medium,
@@ -247,6 +248,7 @@ class ReportController extends Controller
             $date = now()->subDays($daysAgo)->toDateString();
             $visits = (int) LinkVisit::withoutGlobalScopes()
                 ->where('salon_id', $salon->id)
+                ->pageViews()
                 ->whereDate('created_at', $date)
                 ->count();
             $bookings = (int) Appointment::withoutGlobalScopes()
@@ -264,17 +266,18 @@ class ReportController extends Controller
 
         $deviceRows = LinkVisit::withoutGlobalScopes()
             ->where('salon_id', $salon->id)
+            ->pageViews()
             ->where('created_at', '>=', now()->subDays(30))
-            ->selectRaw("COALESCE(NULLIF(device,''), 'unknown') as device_label")
+            ->select('device')
             ->selectRaw('COUNT(*) as device_count')
-            ->groupBy('device_label')
+            ->groupBy('device')
             ->orderByDesc('device_count')
             ->get();
         $deviceTotal = (int) $deviceRows->sum('device_count');
         $deviceBreakdown = $deviceRows->map(function ($row) use ($deviceTotal) {
             $count = (int) $row->device_count;
             return [
-                'device' => (string) $row->device_label,
+                'device' => strtolower(trim((string) $row->device)) ?: 'unknown',
                 'count' => $count,
                 'percentage' => $deviceTotal > 0 ? round(($count / $deviceTotal) * 100, 1) : 0.0,
             ];
@@ -306,6 +309,179 @@ class ReportController extends Controller
             'trafficTotal',
             'visitTrendRows',
             'deviceBreakdown'
+        ));
+    }
+
+    public function traffic(Request $request)
+    {
+        $salon = $this->activeSalon();
+
+        $period = $request->get('period', '1m');
+        $days = match ($period) {
+            '7d' => 7,
+            '3m' => 90,
+            '12m' => 365,
+            default => 30,
+        };
+
+        $from = now()->subDays($days - 1)->startOfDay();
+        $to = now()->endOfDay();
+        $prevFrom = (clone $from)->subDays($days);
+        $prevTo = (clone $to)->subDays($days);
+
+        $base = LinkVisit::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->pageViews()
+            ->whereBetween('created_at', [$from, $to]);
+
+        $total = (int) (clone $base)->count();
+        $human = (int) (clone $base)->where('is_bot', false)->count();
+        $bot = (int) (clone $base)->where('is_bot', true)->count();
+        $direct = (int) (clone $base)->where('source', 'direct')->count();
+        $fromSource = max(0, $total - $direct);
+        $humanDirect = (int) (clone $base)->where('is_bot', false)->where('source', 'direct')->count();
+        $humanFromSource = max(0, $human - $humanDirect);
+
+        $prevBase = LinkVisit::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->pageViews()
+            ->whereBetween('created_at', [$prevFrom, $prevTo]);
+        $prevTotal = (int) (clone $prevBase)->count();
+        $prevHuman = (int) (clone $prevBase)->where('is_bot', false)->count();
+
+        $change = function (int $current, int $previous): ?float {
+            if ($previous <= 0) {
+                return null;
+            }
+
+            return round((($current - $previous) / $previous) * 100, 1);
+        };
+
+        $humanShare = $total > 0 ? round(($human / $total) * 100, 1) : 0.0;
+        $botShare = $total > 0 ? round(($bot / $total) * 100, 1) : 0.0;
+        $directShare = $total > 0 ? round(($direct / $total) * 100, 1) : 0.0;
+        $sourceShare = $total > 0 ? round(($fromSource / $total) * 100, 1) : 0.0;
+
+        $sourceRows = (clone $base)
+            ->select('source')
+            ->selectRaw('COUNT(*) as visits')
+            ->selectRaw('SUM(CASE WHEN is_bot = 0 THEN 1 ELSE 0 END) as humans')
+            ->selectRaw('SUM(CASE WHEN is_bot = 1 THEN 1 ELSE 0 END) as bots')
+            ->groupBy('source')
+            ->orderByDesc('visits')
+            ->get()
+            ->map(function ($row) {
+                $key = strtolower(trim((string) $row->source));
+                if ($key === '') {
+                    $key = 'direct';
+                }
+
+                return [
+                    'key' => $key,
+                    'visits' => (int) $row->visits,
+                    'humans' => (int) $row->humans,
+                    'bots' => (int) $row->bots,
+                ];
+            })
+            ->groupBy('key')
+            ->map(function ($rows, $key) use ($total) {
+                $visits = (int) $rows->sum('visits');
+
+                return [
+                    'key' => $key,
+                    'label' => WebsiteTraffic::sourceLabel($key),
+                    'visits' => $visits,
+                    'humans' => (int) $rows->sum('humans'),
+                    'bots' => (int) $rows->sum('bots'),
+                    'share' => $total > 0 ? round(($visits / $total) * 100, 1) : 0.0,
+                ];
+            })
+            ->sortByDesc('visits')
+            ->take(12)
+            ->values();
+
+        $clickBase = LinkVisit::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->clicks()
+            ->whereBetween('created_at', [$from, $to]);
+        $clickTotal = (int) (clone $clickBase)->count();
+        $clickRows = (clone $clickBase)
+            ->select('page')
+            ->selectRaw('COUNT(*) as clicks')
+            ->groupBy('page')
+            ->orderByDesc('clicks')
+            ->get()
+            ->map(function ($row) use ($clickTotal) {
+                $key = strtolower(trim((string) $row->page));
+                $clicks = (int) $row->clicks;
+
+                return [
+                    'key' => $key,
+                    'label' => WebsiteTraffic::clickLabel($key),
+                    'clicks' => $clicks,
+                    'share' => $clickTotal > 0 ? round(($clicks / $clickTotal) * 100, 1) : 0.0,
+                ];
+            })
+            ->values();
+
+        $byDay = LinkVisit::withoutGlobalScopes()
+            ->where('salon_id', $salon->id)
+            ->pageViews()
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw('DATE(created_at) as d, SUM(CASE WHEN is_bot = 0 THEN 1 ELSE 0 END) as humans, SUM(CASE WHEN is_bot = 1 THEN 1 ELSE 0 END) as bots')
+            ->groupByRaw('DATE(created_at)')
+            ->get()
+            ->keyBy('d');
+
+        $trendRows = collect(range($days - 1, 0))->map(function (int $daysAgo) use ($byDay, $days) {
+            $day = now()->subDays($daysAgo)->startOfDay();
+            $row = $byDay->get($day->toDateString());
+
+            return [
+                'label' => $day->format($days >= 180 ? 'M' : 'j M'),
+                'humans' => (int) ($row->humans ?? 0),
+                'bots' => (int) ($row->bots ?? 0),
+            ];
+        });
+
+        if ($days >= 180) {
+            $trendRows = $trendRows->groupBy('label')->map(function ($rows, $label) {
+                return [
+                    'label' => $label,
+                    'humans' => (int) $rows->sum('humans'),
+                    'bots' => (int) $rows->sum('bots'),
+                ];
+            })->values();
+        } else {
+            $trendRows = $trendRows->values();
+        }
+
+        $websiteUrl = StorefrontUrl::website($salon);
+        $totalDelta = $change($total, $prevTotal);
+        $humanDelta = $change($human, $prevHuman);
+
+        return view('reports.traffic', compact(
+            'salon',
+            'period',
+            'days',
+            'total',
+            'human',
+            'bot',
+            'direct',
+            'fromSource',
+            'humanDirect',
+            'humanFromSource',
+            'humanShare',
+            'botShare',
+            'directShare',
+            'sourceShare',
+            'sourceRows',
+            'trendRows',
+            'websiteUrl',
+            'totalDelta',
+            'humanDelta',
+            'clickTotal',
+            'clickRows'
         ));
     }
 

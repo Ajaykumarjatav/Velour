@@ -146,7 +146,13 @@
       <li class="px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-sm">
         <div class="min-w-0">
           <p class="text-gray-200 font-medium">{{ $salon->name }}</p>
-          <p class="text-xs text-gray-500">{{ $salon->city ?? '—' }} ·
+          <p class="text-xs text-gray-500">
+            @if($salon->is_freelancer)
+              <span class="text-cyan-300">Freelancer</span>
+            @else
+              {{ $salon->city ?? '—' }}
+            @endif
+            ·
             @if($salon->is_active)
               <span class="text-green-400">Active</span>
             @else

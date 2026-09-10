@@ -252,6 +252,7 @@
         'showPasswordModal' => $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation'),
         'open' => [],
         'profileCardOpen' => true,
+        'isFreelancer' => (bool) old('is_freelancer', $salon->is_freelancer ?? false),
     ];
 @endphp
 
@@ -410,7 +411,7 @@
                         <input id="settings-salon-whatsapp" type="tel" name="whatsapp_number" value="{{ $whatsappNumberValue }}" class="form-input" autocomplete="tel">
                         <p class="form-hint">Used on your public website WhatsApp button. Same as mobile keeps it in sync with Phone.</p>
                     </div>
-                    <div>
+                    <div x-show="!isFreelancer" x-cloak>
                         <label class="form-label" for="settings-salon-map-url">Map link or location</label>
                         <input id="settings-salon-map-url" type="text" name="map_url" value="{{ old('map_url', $salon->map_url) }}" class="form-input" placeholder="Google Maps link, Plus Code, or full address" maxlength="500" autocomplete="off">
                         <p class="form-hint">Paste a Google Maps URL, Plus Code (e.g. PRR9+5X6), or address — we turn it into a clickable map link for your website.</p>
@@ -476,6 +477,23 @@
                         </div>
                         <p class="form-hint">Used for emails and online booking messages. Internal calendar always uses business time.</p>
                     </div>
+                    <div class="md:col-span-2 min-w-0">
+                        <label class="flex items-start gap-3 sm:gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-4 sm:p-5 cursor-pointer hover:border-velour-300 dark:hover:border-velour-600 transition-colors"
+                               :class="isFreelancer ? 'border-cyan-400/70 dark:border-cyan-500/50 bg-cyan-50/40 dark:bg-cyan-950/20' : ''">
+                            <input type="checkbox" name="is_freelancer" value="1"
+                                   x-model="isFreelancer"
+                                   class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-velour-600 focus:ring-velour-500">
+                            <span class="min-w-0 flex-1">
+                                <span class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-sm font-semibold text-heading">No physical store</span>
+                                    <span x-show="isFreelancer" x-cloak class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-200">Freelancer</span>
+                                </span>
+                                <span class="mt-1 block text-xs sm:text-sm text-muted leading-5">
+                                    Tick this if you don’t have a salon or shop address. Your website and admin will show you as a freelancer.
+                                </span>
+                            </span>
+                        </label>
+                    </div>
                     <div class="md:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-3 sm:p-4 space-y-3 min-w-0">
                         <p class="text-sm font-semibold text-heading">Service delivery</p>
                         <label class="flex items-start gap-3 cursor-pointer">
@@ -509,19 +527,19 @@
                         </div>
                         <p class="form-hint">Shown on your profile and public site. You can type text and insert award or certification images in the same editor.</p>
                     </div>
-                    <div id="settings-salon-address" class="min-w-0">
+                    <div id="settings-salon-address" class="min-w-0" x-show="!isFreelancer" x-cloak>
                         <label class="form-label" for="settings-salon-address-input">Address line 1</label>
                         <input id="settings-salon-address-input" type="text" name="address_line1" value="{{ old('address_line1', $salon->address_line1) }}" class="form-input">
                     </div>
-                    <div>
+                    <div x-show="!isFreelancer" x-cloak>
                         <label class="form-label">Address line 2</label>
                         <input type="text" name="address_line2" value="{{ old('address_line2', $salon->address_line2) }}" class="form-input">
                     </div>
-                    <div>
+                    <div x-show="!isFreelancer" x-cloak>
                         <label class="form-label">City</label>
                         <input type="text" name="city" value="{{ old('city', $salon->city) }}" class="form-input">
                     </div>
-                    <div>
+                    <div x-show="!isFreelancer" x-cloak>
                         <label class="form-label">Postcode</label>
                         <input type="text" name="postcode" value="{{ old('postcode', $salon->postcode) }}" class="form-input">
                     </div>
@@ -585,11 +603,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start sm:items-center px-4 py-3.5 sm:px-5">
                         <div class="space-y-0.5 min-w-0 max-w-full">
                             <label for="settings-booking-booking_advance_days" class="text-sm font-medium text-heading block">Book up to (days)</label>
-                            <p class="text-xs text-muted leading-snug">How far ahead clients can schedule</p>
+                            <p class="text-xs text-muted leading-snug">How far ahead clients can schedule. 0 means today only.</p>
                         </div>
                         <input type="number" id="settings-booking-booking_advance_days" name="booking_advance_days"
-                               value="{{ old('booking_advance_days', $salon->booking_advance_days ?? 60) }}"
-                               min="1" max="365" required
+                               value="{{ old('booking_advance_days', $salon->booking_advance_days ?? 0) }}"
+                               min="0" max="365" required
                                class="form-input w-full sm:w-24 max-w-[8rem] text-right text-sm tabular-nums shrink-0 @error('booking_advance_days') form-input-error @enderror">
                     </div>
                     @error('booking_advance_days')<p class="px-4 sm:px-5 -mt-2 pb-2 text-xs text-red-600">{{ $message }}</p>@enderror
@@ -632,7 +650,7 @@
                     $bufferRows = [
                         ['buffer_before_minutes', 'Buffer before service', 'Prep time before each appointment.', 'min', 0, 240],
                         ['buffer_after_minutes', 'Buffer after service', 'Clean-up / turnaround time.', 'min', 0, 240],
-                        ['advance_booking_days', 'Advance booking window', 'How far ahead clients can book.', 'days', 1, 730],
+                        ['advance_booking_days', 'Advance booking window', 'How far ahead clients can book. 0 means today only.', 'days', 0, 730],
                         ['last_minute_cutoff_hours', 'Last-minute cut-off', 'Minimum notice before start time.', 'hours', 0, 168],
                         ['overbooking_percent', 'Overbooking allowance', 'Extra capacity on busy days.', '%', 0, 100],
                     ];

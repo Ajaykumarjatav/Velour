@@ -9,7 +9,8 @@
         @foreach([
             'Email' => $salon->email ?? '—',
             'Phone' => $salon->phone ?? '—',
-            'City' => $salon->city ?? '—',
+            'Location type' => $salon->locationKindLabel(),
+            'City' => $salon->is_freelancer ? '—' : ($salon->city ?? '—'),
             'Timezone' => $salon->timezone ?? '—',
             'Currency' => strtoupper($salon->currency ?? \App\Helpers\CurrencyHelper::defaultCode()),
             'Slug' => $salon->slug,

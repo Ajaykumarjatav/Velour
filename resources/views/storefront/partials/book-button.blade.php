@@ -4,7 +4,7 @@
     $class = $class ?? '';
 @endphp
 @if($enabled)
-<a href="#book" class="{{ $class }}">{!! $label !!}</a>
+<a href="#book" class="{{ $class }}" data-track-click="book">{!! $label !!}</a>
 @else
 <span class="{{ $class }} opacity-60 cursor-not-allowed" title="Online booking is currently offline" aria-disabled="true">{!! $label !!}</span>
 @endif

@@ -7,6 +7,7 @@
     role="button"
     tabindex="0"
     data-home-package="{{ (int) $pkg['id'] }}"
+    data-track-click="package"
     onclick="if (window.storefrontHomeCart) window.storefrontHomeCart.togglePackage({{ (int) $pkg['id'] }})"
     onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (window.storefrontHomeCart) window.storefrontHomeCart.togglePackage({{ (int) $pkg['id'] }}); }"
     class="sf-home-packages__card {{ $cardClass ?? '' }}"

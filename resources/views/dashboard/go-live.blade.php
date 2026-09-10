@@ -574,7 +574,7 @@ const _serverData = {
     deposit_required:        {{ $salon->deposit_required        ? 'true' : 'false' }},
     instant_confirmation:    {{ $salon->instant_confirmation    ? 'true' : 'false' }},
     deposit_percentage:      {{ $salon->deposit_percentage      ?? 20  }},
-    booking_advance_days:    {{ $salon->booking_advance_days    ?? 60  }},
+    booking_advance_days:    {{ $salon->booking_advance_days    ?? 0  }},
     cancellation_hours:      {{ $salon->cancellation_hours      ?? 24  }},
   },
   // Pre-loaded server-side stats so there's no flash

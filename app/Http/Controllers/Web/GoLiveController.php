@@ -332,7 +332,7 @@ class GoLiveController extends Controller
             'deposit_required'           => ['nullable', 'boolean'],
             'deposit_percentage'         => ['nullable', 'numeric', 'min:1', 'max:100'],
             'instant_confirmation'       => ['nullable', 'boolean'],
-            'booking_advance_days'       => ['nullable', 'integer', 'min:1', 'max:365'],
+            'booking_advance_days'       => ['nullable', 'integer', 'min:0', 'max:365'],
             'cancellation_hours'         => ['nullable', 'integer', 'min:0', 'max:168'],
         ]);
 

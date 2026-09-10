@@ -1256,6 +1256,38 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         window.__STOREFRONT_BOOKING_ENABLED__ = @json((bool) ($data['salon']['online_booking_enabled'] ?? $salon->online_booking_enabled ?? false));
+        window.__STOREFRONT_TRACK__ = {
+            slug: @json($salon->slug ?? ''),
+            apiBase: @json(isset($apiBase) ? rtrim((string) $apiBase, '/') : ''),
+        };
+        (function () {
+            var cfg = window.__STOREFRONT_TRACK__ || {};
+            if (!cfg.slug || !cfg.apiBase) return;
+            var url = cfg.apiBase + '/api/v1/track/click';
+            function track(name) {
+                if (!name) return;
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ salon_slug: cfg.slug, name: name }),
+                    keepalive: true,
+                }).catch(function () {});
+            }
+            window.storefrontTrackClick = track;
+            document.addEventListener('click', function (e) {
+                var el = e.target.closest('a, button, [data-track-click]');
+                if (!el) return;
+                var name = el.getAttribute('data-track-click');
+                if (!name) {
+                    var href = (el.getAttribute('href') || '').toLowerCase();
+                    if (href.indexOf('tel:') === 0) name = 'call';
+                    else if (href.indexOf('#book') !== -1) name = 'book';
+                    else if (href.indexOf('whatsapp') !== -1 || href.indexOf('wa.me') !== -1 || href.indexOf('/out/whatsapp') !== -1) name = 'whatsapp';
+                    else return;
+                }
+                track(name);
+            }, true);
+        })();
         (function () {
             function syncBookingHash() {
                 var open = window.location.hash === '#book' || window.location.hash.indexOf('#book') === 0;
@@ -1270,6 +1302,7 @@
             syncBookingHash();
             window.storefrontOpenBooking = function (opts) {
                 opts = opts || {};
+                if (window.storefrontTrackClick) window.storefrontTrackClick('book');
                 window.dispatchEvent(new CustomEvent('storefront-book-preselect', { detail: opts }));
                 if (window.location.hash !== '#book') {
                     window.location.hash = 'book';

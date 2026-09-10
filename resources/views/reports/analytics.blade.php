@@ -130,7 +130,7 @@
     <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold text-heading">Traffic Source / Medium</h2>
-            <span class="text-xs text-muted">Tracked in selected period</span>
+            <a href="{{ route('reports.traffic') }}" class="text-xs font-medium text-velour-700 dark:text-velour-300 hover:underline">Open Traffic →</a>
         </div>
         @if(($trafficBreakdown ?? collect())->count() > 0)
             <div class="space-y-3">
@@ -272,6 +272,7 @@
             <h3 class="text-xl font-semibold text-heading mb-3">Custom Report</h3>
             <p class="text-sm text-muted mb-4">Use existing detailed reports with date ranges:</p>
             <div class="grid grid-cols-2 gap-2">
+                <a href="{{ route('reports.traffic') }}" class="btn-outline text-center">Traffic</a>
                 @foreach(\App\Support\ReportCatalog::forUser(auth()->user()) as $report)
                 <a href="{{ route('reports.show', $report['key']) }}" class="btn-outline text-center">{{ $report['label'] }}</a>
                 @endforeach

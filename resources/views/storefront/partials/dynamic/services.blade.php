@@ -43,6 +43,7 @@
              class="sf-home-services__grid">
             <template x-for="service in activeServices" :key="service.id">
                 <button type="button"
+                        data-track-click="service"
                         @click="toggleService(service.id)"
                         :class="isPicked(service.id) ? 'is-selected' : ''"
                         class="sf-home-services__card">
