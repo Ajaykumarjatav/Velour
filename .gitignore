@@ -19,4 +19,11 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+.vscode/
+.kiro/
+docs/
+qa-report/
+test-result/
+test-result-qa/
+tests/
 *.zip
