@@ -477,9 +477,9 @@
                         alpine-model="client.phone"
                         required
                         :simple-select="true"
-                        input-class="input-field flex-1 min-w-0"
+                        input-class="input-field"
                         select-trigger-class="input-field"
-                        select-wrapper-class="w-[5.25rem] shrink-0 min-w-0 relative" />
+                        select-wrapper-class="relative" />
                 </div>
                 <div style="margin-bottom:18px;">
                     <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;">Notes (optional)</label>

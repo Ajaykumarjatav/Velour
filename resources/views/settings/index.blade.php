@@ -388,21 +388,22 @@
                                class="form-input bg-gray-50 dark:bg-gray-800/70 text-muted cursor-not-allowed">
                         <p class="text-xs text-muted mt-1">Taken from your signup account. To change it, contact support.</p>
                     </div>
-                    <div>
-                        <label class="form-label" for="settings-salon-phone-national">Phone</label>
+                    <div id="settings-salon-phone-field">
+                        <label class="form-label" for="settings-salon-phone-national">Phone <span class="required-asterisk">*</span></label>
                         <x-phone-input
                             name="phone"
                             id="settings-salon-phone"
                             :value="old('phone', $salon->phone)"
+                            required
                             detect-target />
-                        <p class="form-hint">Default country code is +91 (India). Number length follows the selected country.</p>
+                        <p class="form-hint">Required — clients and booking confirmations use this number. Default country code is +91 (India).</p>
                     </div>
                     @php
                         $whatsappSameAsPhone = filter_var(old('whatsapp_same_as_phone', $salon->whatsapp_same_as_phone ?? true), FILTER_VALIDATE_BOOLEAN);
                         $whatsappNumberValue = old('whatsapp_number', $whatsappSameAsPhone ? $salon->phone : $salon->whatsapp_number);
                     @endphp
-                    <div class="md:col-span-2 min-w-0" data-whatsapp-number-block>
-                        <label class="form-label">WhatsApp number</label>
+                    <div class="md:col-span-2 min-w-0" id="settings-salon-whatsapp-field" data-whatsapp-number-block>
+                        <label class="form-label">WhatsApp number <span class="required-asterisk">*</span></label>
                         <div class="flex flex-col sm:flex-row gap-3 mt-1 mb-2">
                             <label class="inline-flex items-center gap-2 text-sm text-body cursor-pointer">
                                 <input type="radio" name="whatsapp_same_as_phone" value="1" class="rounded-full border-gray-300 text-velour-600"
@@ -420,8 +421,9 @@
                         <x-phone-input
                             name="whatsapp_number"
                             id="settings-salon-whatsapp"
-                            :value="$whatsappNumberValue" />
-                        <p class="form-hint">Used on your public website WhatsApp button. Same as mobile keeps it in sync with Phone.</p>
+                            :value="$whatsappNumberValue"
+                            required />
+                        <p class="form-hint">Required — this powers the WhatsApp button on your public website. Same as mobile keeps it in sync with Phone.</p>
                     </div>
                     <div>
                         <label class="form-label" for="settings-salon-map-url">Map link or location</label>

@@ -58,6 +58,14 @@
 </style>
 @endpush
 
+@if(session('pos_sale_completed'))
+    @push('scripts')
+        @include('pos.partials.draft-store')
+        {{-- The sale went through, so the saved till cart is no longer needed. --}}
+        <script>window.PosDraft && window.PosDraft.clear();</script>
+    @endpush
+@endif
+
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
     @include('pos.partials.customer-invoice-screen', $invoice)

@@ -7,7 +7,9 @@
     window.__EASYGROX__ = {
         basePath: @json($easygroxBasePath),
         csrfCookieUrl: @json($easygroxCsrfCookiePath),
-        csrfTokenUrl: @json($easygroxCsrfTokenPath)
+        csrfTokenUrl: @json($easygroxCsrfTokenPath),
+        keepAlive: @json((bool) auth()->check()),
+        keepAliveMinutes: 10
     };
 </script>
-<script src="{{ asset('js/easygrox-http.js') }}?v=2"></script>
+<script src="{{ asset('js/easygrox-http.js') }}?v=3"></script>

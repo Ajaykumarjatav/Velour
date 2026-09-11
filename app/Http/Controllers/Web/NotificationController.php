@@ -183,6 +183,9 @@ class NotificationController extends Controller
         if ($label === 'go live' || $url === '/go-live') {
             return \App\Support\SalonUrl::route('go-live');
         }
+        if ($label === 'try a sale' || $url === '/pos/create') {
+            return \App\Support\SalonUrl::route('pos.create');
+        }
 
         if ($url === '') {
             return null;

@@ -149,13 +149,14 @@
 
         {{-- BUSINESS --}}
         @php
+            $showPosIntro = \App\Support\PosDiscovery::shouldShowForCurrentUser($currentSalon ?? null);
             $businessMenuActive = request()->routeIs(
                 'staff.*', 'services.*', 'service-packages.*', 'multi-location.*',
                 'availability.*', 'inventory.*', 'expenses.*', 'pos.*'
             );
         @endphp
         @if(\App\Support\SidebarNav::showBusinessGroup(auth()->user()))
-        <x-sidebar-nav-submenu name="business" label="Business" icon="business" :open="$businessMenuActive" :active="$businessMenuActive">
+        <x-sidebar-nav-submenu name="business" label="Business" icon="business" :open="$businessMenuActive || $showPosIntro" :active="$businessMenuActive" :badge="$showPosIntro ? 'Try' : null">
             @if($navShow('staff'))
             <a href="{{ route('staff.index') }}"
                class="sidebar-sub-link {{ request()->routeIs('staff.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
@@ -209,7 +210,10 @@
             <a href="{{ route('pos.index') }}"
                class="sidebar-sub-link {{ request()->routeIs('pos.*') ? 'bg-velour-50 dark:bg-velour-900/30 text-velour-700 dark:text-velour-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800' }}">
                 @include('partials.sidebar-nav-icon', ['icon' => 'pos', 'small' => true])
-                Point of Sale
+                <span class="flex-1">Point of Sale</span>
+                @if($showPosIntro)
+                <span class="sidebar-nav-badge bg-emerald-600 text-white">Try</span>
+                @endif
             </a>
             @endif
         </x-sidebar-nav-submenu>

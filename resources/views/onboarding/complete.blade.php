@@ -31,6 +31,10 @@
     <a href="{{ route('dashboard', ['store' => \App\Support\SalonUrl::key($salon)]) }}" class="auth-btn" style="text-decoration:none;text-align:center">
         <span>Go to Dashboard</span>
     </a>
+    <a href="{{ route('pos.create', ['store' => \App\Support\SalonUrl::key($salon)]) }}"
+       class="inline-flex items-center justify-center rounded-xl border border-emerald-300 dark:border-emerald-600/50 px-4 py-3 text-sm font-semibold text-emerald-800 dark:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors">
+        Try Point of Sale
+    </a>
     <a href="{{ route('setup-progress', ['store' => \App\Support\SalonUrl::key($salon)]) }}"
        class="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
         View Setup Progress

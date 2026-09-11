@@ -91,12 +91,12 @@ class SalonSetupProgress
             ],
             [
                 'key' => 'phone',
-                'label' => 'Phone number added',
-                'done' => (bool) $salon->phone,
+                'label' => 'Phone & WhatsApp number added',
+                'done' => (bool) $salon->phone && (bool) $salon->whatsappNumberForSite(),
                 'priority' => 'high',
-                'link' => self::urlWithFocus($settings(['tab' => 'salon']), 'settings-salon-phone'),
-                'focus' => 'settings-salon-phone',
-                'tip' => 'Required for booking confirmations.',
+                'link' => self::urlWithFocus($settings(['tab' => 'salon']), 'settings-salon-phone-field'),
+                'focus' => 'settings-salon-phone-field',
+                'tip' => 'Required for booking confirmations and the WhatsApp button on your website.',
             ],
             [
                 'key' => 'hours',

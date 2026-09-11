@@ -311,6 +311,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed'])->group(functi
 
         Route::resource('facilities', FacilityController::class);
 
+        Route::post('pos/intro/dismiss', [PosController::class, 'dismissIntro'])->name('pos.intro.dismiss');
         Route::get('pos/{po}/invoice.pdf', [PosController::class, 'invoicePdf'])->name('pos.invoice.pdf');
         Route::get('pos/{po}/invoice/print', [PosController::class, 'invoicePrint'])->name('pos.invoice.print');
         Route::resource('pos', PosController::class)->only(['index','create','store','show']);

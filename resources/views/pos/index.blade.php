@@ -12,6 +12,37 @@
         : $fromDt->format('d M') . ' – ' . $toDt->format('d M Y');
 @endphp
 
+@if(!empty($showPosIntro))
+<div class="rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/40 dark:to-gray-950 p-5 sm:p-6 mb-6">
+    <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Your till</p>
+    <h2 class="text-lg sm:text-xl font-semibold text-heading mt-1">Ring up a sale in about a minute</h2>
+    <p class="text-sm text-muted mt-1.5 max-w-2xl leading-snug">
+        Point of Sale is checkout for services, packages, and retail products.
+        Try a test sale — leave the customer as Walk-in if you don’t have a name yet.
+    </p>
+    <ol class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-sm">
+        <li class="rounded-xl border border-emerald-100 dark:border-emerald-900/50 bg-white/80 dark:bg-gray-900/50 px-3.5 py-3">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Step 1</p>
+            <p class="font-semibold text-heading mt-0.5">Tap a service</p>
+            <p class="text-xs text-muted mt-1">Add it to the current sale. Packages and retail work the same way.</p>
+        </li>
+        <li class="rounded-xl border border-emerald-100 dark:border-emerald-900/50 bg-white/80 dark:bg-gray-900/50 px-3.5 py-3">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Step 2</p>
+            <p class="font-semibold text-heading mt-0.5">Walk-in is fine</p>
+            <p class="text-xs text-muted mt-1">Attach a client when you can. You don’t need one to try the till.</p>
+        </li>
+        <li class="rounded-xl border border-emerald-100 dark:border-emerald-900/50 bg-white/80 dark:bg-gray-900/50 px-3.5 py-3">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Step 3</p>
+            <p class="font-semibold text-heading mt-0.5">Complete sale</p>
+            <p class="text-xs text-muted mt-1">Tick Payment received, then Complete sale. It shows in today’s revenue.</p>
+        </li>
+    </ol>
+    @unless(\App\Support\AuthPanel::isAdminStoreBrowse())
+    <a href="{{ route('pos.create') }}" class="btn-primary mt-4 inline-flex">Try a test sale</a>
+    @endunless
+</div>
+@endif
+
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-3xl">
     <div class="stat-card">
         <p class="stat-label">Today's Revenue</p>
@@ -118,7 +149,16 @@
             </td>
         </tr>
         @empty
-        <tr><td colspan="7" class="px-5 py-12 text-center text-sm text-muted">No transactions for the selected date range.</td></tr>
+        <tr><td colspan="7" class="px-5 py-12 text-center text-sm text-muted">
+            @if(!empty($showPosIntro))
+                No sales yet.
+                @unless(\App\Support\AuthPanel::isAdminStoreBrowse())
+                <a href="{{ route('pos.create') }}" class="text-link font-medium">Try a test sale</a>
+                @endunless
+            @else
+                No transactions for the selected date range.
+            @endif
+        </td></tr>
         @endforelse
         </tbody>
     </table>

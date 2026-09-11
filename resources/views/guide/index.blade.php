@@ -63,6 +63,34 @@
     </div>
     @endunless
 
+    @if(\App\Support\SidebarNav::show(auth()->user(), 'pos'))
+    <div class="rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/70 dark:bg-emerald-950/30 p-6">
+        <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Strong feature</p>
+        <h2 class="text-lg font-semibold text-heading mt-1">Point of Sale is your till</h2>
+        <p class="text-sm text-muted mt-1.5 max-w-2xl leading-snug">
+            When a client pays at the desk, you do not need a separate billing app.
+            Open POS, tap what they bought, take the money, done.
+        </p>
+        <ol class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-sm">
+            <li class="rounded-xl bg-white/80 dark:bg-gray-900/50 border border-emerald-100 dark:border-emerald-900/40 px-3.5 py-3">
+                <p class="font-semibold text-heading">1. Add items</p>
+                <p class="text-xs text-muted mt-1">Services, packages, or retail from the left.</p>
+            </li>
+            <li class="rounded-xl bg-white/80 dark:bg-gray-900/50 border border-emerald-100 dark:border-emerald-900/40 px-3.5 py-3">
+                <p class="font-semibold text-heading">2. Customer</p>
+                <p class="text-xs text-muted mt-1">Pick a client, or leave Walk-in to practise.</p>
+            </li>
+            <li class="rounded-xl bg-white/80 dark:bg-gray-900/50 border border-emerald-100 dark:border-emerald-900/40 px-3.5 py-3">
+                <p class="font-semibold text-heading">3. Complete</p>
+                <p class="text-xs text-muted mt-1">Tick Payment received, then Complete sale.</p>
+            </li>
+        </ol>
+        @unless(\App\Support\AuthPanel::isAdminStoreBrowse())
+        <a href="{{ route('pos.create') }}" class="btn-primary mt-4 inline-flex text-sm">Try a test sale</a>
+        @endunless
+    </div>
+    @endif
+
     <div class="card p-6">
         <h2 class="font-semibold text-heading">Daily routine</h2>
         <p class="text-sm text-muted mt-0.5 mb-4">Front desk and owners use the same three screens.</p>
@@ -75,7 +103,7 @@
             <div class="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4">
                 <p class="text-xs font-bold uppercase tracking-wide text-velour-600 dark:text-velour-400">Open hours</p>
                 <p class="font-semibold text-heading mt-1">During the day</p>
-                <p class="text-sm text-muted mt-2">Check in on Calendar. Charge in <a href="{{ route('pos.index') }}" class="text-link">POS</a> (services + retail).</p>
+                <p class="text-sm text-muted mt-2">Check in on Calendar. Charge in <a href="{{ route('pos.create') }}" class="text-link">POS</a> — tap a service, Walk-in is fine, tick Payment received, Complete sale.</p>
             </div>
             <div class="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4">
                 <p class="text-xs font-bold uppercase tracking-wide text-velour-600 dark:text-velour-400">Close</p>

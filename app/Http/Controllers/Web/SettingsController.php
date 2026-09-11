@@ -224,7 +224,7 @@ class SettingsController extends Controller
         $this->abortUnlessCanEditSettingsTab('salon');
         $salon = $this->salon();
 
-        $data = $request->validate(\App\Support\PhoneCountry::merge(
+        $rules = \App\Support\PhoneCountry::merge(
             \App\Support\PhoneCountry::merge([
             'name'                 => \App\Support\SalonSlug::uniqueNameRules((int) $salon->id),
             'whatsapp_same_as_phone' => ['required', 'in:0,1'],
@@ -241,9 +241,18 @@ class SettingsController extends Controller
             'map_url'            => ['nullable', 'string', 'max:500'],
             'gst_number'         => ['nullable', 'string', 'max:30'],
             'booking_time_display' => ['nullable', 'in:business,customer'],
-        ], 'phone'), 'whatsapp_number'),
-            \App\Support\SalonSlug::uniqueNameMessages('name')
-        );
+        ], 'phone', true), 'whatsapp_number');
+
+        // Only asked for when it differs from the salon phone — otherwise it is copied below.
+        array_unshift($rules['whatsapp_number'], 'required_if:whatsapp_same_as_phone,0');
+
+        $data = $request->validate($rules, array_merge(
+            \App\Support\SalonSlug::uniqueNameMessages('name'),
+            [
+                'phone.required' => 'Add your salon phone number — clients and booking confirmations need it.',
+                'whatsapp_number.required_if' => 'Add the WhatsApp number, or choose “Same as mobile number”.',
+            ]
+        ));
 
         $bookingTimeDisplay = $data['booking_time_display'] ?? 'business';
         unset($data['booking_time_display']);

@@ -56,5 +56,23 @@
             @endforeach
         </div>
     </div>
+
+    @if(\App\Support\SidebarNav::show(auth()->user(), 'pos'))
+    @php
+        $posUnlocked = (int) (($headerProfileCompletion['percentage'] ?? 0)) >= 100;
+    @endphp
+    <div class="rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/80 dark:bg-emerald-950/30 p-5 sm:p-6">
+        <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">After the profile bar</p>
+        <h2 class="text-base sm:text-lg font-semibold text-heading mt-1">Try Point of Sale</h2>
+        <p class="text-sm text-muted mt-1.5 leading-snug">
+            POS is your checkout for services, packages, and retail. Ring up a test sale — Walk-in is fine.
+        </p>
+        @if($posUnlocked)
+        <a href="{{ route('pos.create') }}" class="btn-primary mt-4 inline-flex text-sm">Try a test sale</a>
+        @else
+        <p class="mt-3 text-xs text-muted">Finish the salon profile bar at the top, then this till opens.</p>
+        @endif
+    </div>
+    @endif
 </div>
 @endsection

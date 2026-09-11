@@ -195,7 +195,7 @@ class OnboardingController extends Controller
 
     private function syncProgressFromData(int $userId, Salon $salon): void
     {
-        $hasSalonProfile = ! empty($salon->name) && (! empty($salon->phone) || ! empty($salon->address_line1));
+        $hasSalonProfile = ! empty($salon->name) && ! empty($salon->phone) && ! empty($salon->whatsappNumberForSite());
         $hasOpeningHours = ! empty($salon->opening_hours);
         $hasFirstService = Service::query()
             ->where('salon_id', $salon->id)
@@ -227,19 +227,19 @@ class OnboardingController extends Controller
     {
         $store = \App\Support\SalonUrl::key($salon);
         $onboardingStep = fn (string $s) => route('onboarding.step', ['store' => $store, 'step' => $s]);
-        $settings = fn (string $tab, string $returnStep) => route('settings.index', [
+        $settings = fn (string $tab, string $returnStep, ?string $focus = null) => \App\Support\SalonSetupProgress::urlWithFocus(route('settings.index', [
             'store' => $store,
             'tab' => $tab,
             'return_to' => $onboardingStep($returnStep),
-        ]);
+        ]), $focus ?? '');
 
         return match ($step) {
             'salon-profile' => [
                 'title' => 'Business profile',
-                'description' => 'Add core business details so customers can identify and contact you.',
+                'description' => 'Add your business name, phone and WhatsApp number so clients can reach you and booking confirmations go out.',
                 'done' => (bool) ($progress?->step_salon_profile ?? false),
-                'action_url' => $settings('salon', 'salon-profile'),
-                'action_label' => 'Open Business Settings',
+                'action_url' => $settings('salon', 'salon-profile', 'settings-salon-phone-field'),
+                'action_label' => 'Add phone & WhatsApp',
             ],
             'opening-hours' => [
                 'title' => 'Opening hours',

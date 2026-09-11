@@ -267,6 +267,7 @@
 @endsection
 
 @section('content')
+@include('partials.pos-checkout-hint')
 <div class="-mx-4 sm:-mx-6 lg:-mx-7 -mb-4 sm:-mb-6 lg:-mb-7">
 <div
     x-data="posApp()"
@@ -459,7 +460,8 @@
         <div class="pos-cart-scroll px-3 py-1.5">
             <template x-if="cart.length === 0">
                 <div class="py-10 text-center">
-                    <p class="text-sm text-muted">Select items to add</p>
+                    <p class="text-sm font-medium text-heading">Tap a service to start</p>
+                    <p class="text-xs text-muted mt-1 max-w-[12rem] mx-auto leading-snug">Walk-in is fine if you don’t have a client yet.</p>
                 </div>
             </template>
 
@@ -621,8 +623,9 @@
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                     <button type="button" @click="submitSale()"
-                            :disabled="cart.length === 0 || !paymentReceived"
-                            class="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-velour-600 hover:bg-velour-700 disabled:opacity-40 transition-colors">
+                            :disabled="cart.length === 0 || !paymentReceived || submitting"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-velour-600 hover:bg-velour-700 disabled:opacity-40 transition-colors"
+                            x-text="submitting ? 'Completing…' : 'Complete sale'">
                         Complete sale
                     </button>
                 </div>
@@ -706,6 +709,7 @@
 </div>
 
 @push('scripts')
+@include('pos.partials.draft-store')
 <script>
 const POS_ITEMS              = @json($allItems);
 const POS_TAX_RATE           = {{ $taxRate }};
@@ -744,6 +748,8 @@ function posApp() {
         staffList:       POS_STAFF,
         saleStaffId:     POS_DEFAULT_STAFF_ID ? String(POS_DEFAULT_STAFF_ID) : (POS_STAFF[0] ? String(POS_STAFF[0].id) : ''),
         mobileCheckout:  false,
+        submitting:      false,
+        draftClientId:   '',
 
         formatMoney(n) {
             const x = Number(n);
@@ -866,6 +872,18 @@ function posApp() {
         },
 
         init() {
+            const prefillLines = POS_PREFILL && Array.isArray(POS_PREFILL.lines) ? POS_PREFILL.lines : [];
+            // A sale started from an appointment always wins over an older saved cart.
+            if (prefillLines.length) {
+                this.clearDraft();
+            } else {
+                this.restoreDraft();
+            }
+            this.$watch('cart', () => this.saveDraft());
+            this.$watch('paymentMethod', () => this.saveDraft());
+            this.$watch('saleStaffId', () => this.saveDraft());
+            this.$watch('taxMode', () => this.saveDraft());
+
             const selectEl = document.getElementById('pos-client-select');
             if (!selectEl) return;
 
@@ -875,6 +893,7 @@ function posApp() {
             });
 
             this.$watch('clientId', (value) => {
+                this.saveDraft();
                 const normalized = value == null ? '' : String(value);
                 if (String(selectEl.value || '') === normalized) return;
                 selectEl.value = normalized;
@@ -907,6 +926,15 @@ function posApp() {
                     }
                     selectEl.dispatchEvent(new Event('input', { bubbles: true }));
                     selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                } else if (this.draftClientId) {
+                    const idStr = String(this.draftClientId);
+                    selectEl.value = idStr;
+                    // A deleted client leaves the select empty — then keep it as walk-in.
+                    if (String(selectEl.value || '') === idStr) {
+                        this.clientId = idStr;
+                        selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    this.draftClientId = '';
                 }
                 const hadPrefill = POS_PREFILL && Array.isArray(POS_PREFILL.lines) && POS_PREFILL.lines.length;
                 if (hadPrefill && this.cart.length > 0 && window.matchMedia('(max-width: 1279px)').matches) {
@@ -1055,7 +1083,48 @@ function posApp() {
             return Math.round((this.subtotal + this.gst) * 100) / 100;
         },
 
-        submitSale() {
+        saveDraft() {
+            if (!window.PosDraft) return;
+            window.PosDraft.write({
+                cart:          JSON.parse(JSON.stringify(this.cart)),
+                paymentMethod: this.paymentMethod,
+                clientId:      this.clientId,
+                saleStaffId:   this.saleStaffId,
+                taxMode:       this.taxMode,
+                section:       this.section,
+            });
+        },
+
+        clearDraft() {
+            if (window.PosDraft) window.PosDraft.clear();
+        },
+
+        restoreDraft() {
+            const draft = window.PosDraft ? window.PosDraft.read() : null;
+            if (!draft) return;
+
+            // Drop lines whose service/product no longer exists in the catalogue.
+            const lines = draft.cart.filter((line) =>
+                line && line.type && POS_ITEMS.some((i) => i.type === line.type && i.id === line.id)
+            );
+            if (lines.length === 0) {
+                this.clearDraft();
+                return;
+            }
+
+            this.cart = lines;
+            if (draft.paymentMethod) this.paymentMethod = draft.paymentMethod;
+            if (draft.taxMode) this.taxMode = draft.taxMode;
+            if (draft.section) this.section = draft.section;
+            if (draft.saleStaffId && POS_STAFF.some((s) => String(s.id) === String(draft.saleStaffId))) {
+                this.saleStaffId = String(draft.saleStaffId);
+            }
+            // Applied once the client select has rendered its options.
+            this.draftClientId = draft.clientId ? String(draft.clientId) : '';
+        },
+
+        async submitSale() {
+            if (this.submitting) return;
             if (this.cart.length === 0) return;
             if (!this.paymentReceived) {
                 alert('Confirm payment received before completing the sale.');
@@ -1070,7 +1139,27 @@ function posApp() {
                 alert('Add at least one active staff member before selling services or packages.');
                 return;
             }
-            document.getElementById('pos-form').submit();
+            const form = document.getElementById('pos-form');
+            if (!form) return;
+
+            this.submitting = true;
+            this.saveDraft();
+
+            // A till tab can sit open for hours: pull a fresh CSRF token into the form so
+            // checkout never dies on a stale one. Native submit() fires no submit event,
+            // so the global token sync does not run here.
+            if (window.EasyGroxHttp) {
+                try {
+                    // Never block checkout on a slow network — fall back to the token we hold.
+                    await Promise.race([
+                        window.EasyGroxHttp.refreshFormToken(form),
+                        new Promise((resolve) => setTimeout(resolve, 4000)),
+                    ]);
+                } catch (e) { /* offline: submit with the current token */ }
+                window.EasyGroxHttp.syncFormToken(form);
+            }
+
+            this.$nextTick(() => form.submit());
         },
     };
 }

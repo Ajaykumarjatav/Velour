@@ -88,8 +88,8 @@ export default function ClientRegister() {
           onChange={(phone) => setForm((p) => ({ ...p, phone }))}
           required
           error={fieldError(fieldErrors, 'phone')}
-          inputClassName={`flex-1 min-w-0 bg-[#1a1f2e] border rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 ${fieldError(fieldErrors, 'phone') ? 'border-red-500/60 focus:ring-red-500/40' : 'border-white/10 focus:ring-primary'}`}
-          selectClassName="w-[5.25rem] shrink-0 bg-[#1a1f2e] border border-white/10 rounded-xl px-2 py-3 text-white text-sm"
+          inputClassName={`bg-[#1a1f2e] border rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 ${fieldError(fieldErrors, 'phone') ? 'border-red-500/60 focus:ring-red-500/40' : 'border-white/10 focus:ring-primary'}`}
+          selectClassName="bg-[#1a1f2e] border border-white/10 rounded-xl px-2 py-3 text-white text-sm"
         />
         <PortalInput label="Password" type="password" value={form.password} onChange={set('password')} required autoComplete="new-password" error={fieldError(fieldErrors, 'password')} />
         <PortalInput label="Confirm password" type="password" value={form.password_confirmation} onChange={set('password_confirmation')} required autoComplete="new-password" error={fieldError(fieldErrors, 'password_confirmation')} />

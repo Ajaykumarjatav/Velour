@@ -9,9 +9,11 @@
     'alpineErrorField' => null,
     'detectTarget' => false,
     'simpleSelect' => false,
-    'inputClass' => 'form-input flex-1 min-w-0',
+    'inputClass' => 'form-input',
     'selectTriggerClass' => 'form-select w-full',
-    'selectWrapperClass' => 'w-[5.25rem] shrink-0 min-w-0 relative',
+    'selectWrapperClass' => 'relative',
+    /** Width of the country-code column. The number input always takes the rest of the row. */
+    'codeWidth' => '5.5rem',
     'placeholder' => null,
     'nationalClass' => '',
     'fullClass' => '',
@@ -45,10 +47,15 @@
      @if($required) data-phone-required="1" @endif
      @if($detectTarget) data-phone-detect-target="1" @endif
      @if($syncExpr) x-effect="if (window.syncPhoneCountryField) window.syncPhoneCountryField($el, {{ $syncExpr }})" @endif>
-    <div class="flex gap-2 min-w-0 items-stretch">
+    <div class="flex gap-2 min-w-0 items-stretch w-full">
+        {{-- Fixed code column + inline sizing: a width utility on the control itself
+             (e.g. form-select's w-full) would otherwise eat the whole row. --}}
+        <div class="{{ $selectWrapperClass }}"
+             style="flex:0 0 {{ $codeWidth }};width:{{ $codeWidth }};min-width:{{ $codeWidth }};max-width:{{ $codeWidth }}">
         @if($simpleSelect)
             <select id="{{ $id }}-country" name="{{ $countryName }}" data-phone-country
-                    class="{{ $selectTriggerClass }} {{ $selectWrapperClass }}">
+                    class="{{ $selectTriggerClass }}"
+                    style="width:100%;min-width:0;max-width:100%;height:100%">
                 @foreach(\App\Support\PhoneCountry::selectList() as $iso => $row)
                     <option value="{{ $iso }}" data-dial="{{ $row['dial'] }}" {{ $phoneIso === $iso ? 'selected' : '' }}>+{{ $row['dial'] }}</option>
                 @endforeach
@@ -57,7 +64,7 @@
             <x-searchable-select
                 :id="$id.'-country'"
                 :name="$countryName"
-                wrapper-class="{{ $selectWrapperClass }}"
+                wrapper-class="w-full min-w-0"
                 :search-url="null"
                 search-placeholder="Search code…"
                 trigger-class="{{ $selectTriggerClass }}"
@@ -67,12 +74,14 @@
                 @endforeach
             </x-searchable-select>
         @endif
+        </div>
         <input id="{{ $id }}-national" type="tel" inputmode="numeric" autocomplete="tel-national"
                data-phone-national
                value="{{ $phoneNational }}"
                maxlength="{{ $meta['max'] }}"
                @if($required) required @endif
                class="{{ $inputClass }} {{ $nationalClass }} {{ $hasError ? 'form-input-error' : '' }}"
+               style="flex:1 1 0%;min-width:0;width:auto"
                @if($alpineErrorField)
                    @input="clearDetailsError('{{ $alpineErrorField }}')"
                    :class="detailsFieldClass('{{ $alpineErrorField }}')"

@@ -16,6 +16,7 @@ use App\Mail\PosTransactionInvoiceMail;
 use App\Models\Tenant;
 use App\Services\PosWalkInAppointmentService;
 use App\Services\NotificationService;
+use App\Support\PosDiscovery;
 use App\Support\PurposeMail;
 use App\Support\SalonTime;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -64,6 +65,7 @@ class PosController extends Controller
         }
 
         $transactions = $query->paginate(25)->withQueryString();
+        $showPosIntro = PosDiscovery::shouldShowForCurrentUser($salon);
 
         [$todayStartUtc, $todayEndUtc] = SalonTime::dayRangeUtcFromYmd($salon, $salonToday);
         $todayRevenue  = PosTransaction::withoutGlobalScopes()
@@ -76,7 +78,7 @@ class PosController extends Controller
             ->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$todayStartUtc, $todayEndUtc])
             ->count();
 
-        return view('pos.index', compact('salon', 'transactions', 'search', 'from', 'to', 'method', 'staffId', 'todayRevenue', 'todayCount'));
+        return view('pos.index', compact('salon', 'transactions', 'search', 'from', 'to', 'method', 'staffId', 'todayRevenue', 'todayCount', 'showPosIntro'));
     }
 
     public function create(Request $request)
@@ -183,6 +185,8 @@ class PosController extends Controller
             $defaultStaffId = $staffMembers->first()->id;
         }
 
+        $showPosCheckoutHint = PosDiscovery::shouldShowForCurrentUser($salon);
+
         return view('pos.create', compact(
             'salon',
             'clients',
@@ -195,7 +199,19 @@ class PosController extends Controller
             'prefillFromAppointment',
             'staffMembers',
             'defaultStaffId',
+            'showPosCheckoutHint',
         ));
+    }
+
+    public function dismissIntro(Request $request)
+    {
+        PosDiscovery::dismissForCurrentUser($this->activeSalon());
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back();
     }
 
     public function store(Request $request)
@@ -482,7 +498,8 @@ class PosController extends Controller
 
         return redirect()
             ->route('pos.show', $transaction)
-            ->with('success', __('Sale completed. Confirm sharing the invoice below if needed.'));
+            ->with('success', __('Sale completed. Confirm sharing the invoice below if needed.'))
+            ->with('pos_sale_completed', true);
     }
 
     public function sendInvoiceEmail(Request $request, PosTransaction $po)

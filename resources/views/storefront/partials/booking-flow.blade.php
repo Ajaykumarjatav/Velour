@@ -448,9 +448,9 @@
                             alpine-error-field="phone"
                             required
                             :simple-select="true"
-                            input-class="flex-1 min-w-0"
+                            input-class="min-w-0"
                             select-trigger-class="w-full bg-white/10 border border-white/20 rounded-xl px-2 py-3 text-white text-sm"
-                            select-wrapper-class="w-[5.25rem] shrink-0 min-w-0 relative" />
+                            select-wrapper-class="relative" />
                         <p x-show="detailsErrors.phone" x-cloak class="text-xs text-red-400" x-text="detailsErrors.phone"></p>
                     </div>
                     <textarea placeholder="Notes (optional)" x-model="client.notes" rows="3" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"></textarea>

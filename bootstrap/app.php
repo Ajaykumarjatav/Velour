@@ -186,7 +186,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+        // Laravel rewrites TokenMismatchException into HttpException(419) before render
+        // callbacks run, so the handler is registered for both shapes below.
+        $sessionExpired = function (\Throwable $e, Request $request) {
             // Logout must always succeed even with a stale CSRF token / dead session.
             if ($request->is('logout') || $request->is('*/logout') || $request->routeIs('logout')) {
                 try {
@@ -220,7 +222,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return redirect()
                 ->to($fallback)
-                ->with('error', 'Your session expired for security. Please try that action again.');
+                ->with('error', 'Your session was refreshed for security. Nothing was lost — please try that again.');
+        };
+
+        $exceptions->render(function (TokenMismatchException $e, Request $request) use ($sessionExpired) {
+            return $sessionExpired($e, $request);
+        });
+
+        $exceptions->render(function (HttpException $e, Request $request) use ($sessionExpired) {
+            return $e->getStatusCode() === 419 ? $sessionExpired($e, $request) : null;
         });
 
         $exceptions->render(function (InvalidSignatureException $e, Request $request) {

@@ -23,6 +23,10 @@
 </div>
 @endif
 
+@if($salon && !($adminStoreBrowse ?? false) && \App\Support\PosDiscovery::shouldShowForCurrentUser($salon))
+    @include('partials.pos-try-callout', ['salon' => $salon])
+@endif
+
 @if(empty($stylistDashboardScoped) && $salon && !($adminStoreBrowse ?? false) && ! \App\Support\GoLiveDashboardHint::currentUserHasVisited($salon))
     @include('partials.booking-website-callout', ['salon' => $salon])
 @endif

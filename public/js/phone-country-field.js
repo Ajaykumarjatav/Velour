@@ -113,6 +113,12 @@
         }
 
         function validate(show) {
+            // Readonly fields are mirrored from another input (e.g. WhatsApp = phone),
+            // so the source field reports the problem instead.
+            if (national.readOnly) {
+                clearError();
+                return true;
+            }
             var iso = country.value || cfg.default_iso;
             var digits = digitsOnly(national.value);
             if (digits === '') {
@@ -170,7 +176,9 @@
 
         national.addEventListener('blur', function () {
             if (syncing) return;
-            validate(digitsOnly(national.value) !== '' || required);
+            // Only complain about what was typed. An untouched empty field is flagged on
+            // submit instead, so tabbing past it does not throw an error at the user.
+            validate(digitsOnly(national.value) !== '');
         });
 
         var form = root.closest('form');
@@ -182,7 +190,7 @@
                 form.querySelectorAll('[data-phone-country-field]').forEach(function (field) {
                     var nat = field.querySelector('[data-phone-national]');
                     var sel = countrySelect(field);
-                    if (!nat || !sel) return;
+                    if (!nat || !sel || nat.readOnly) return;
                     var iso = sel.value || cfg.default_iso;
                     var digits = digitsOnly(nat.value);
                     var need = field.getAttribute('data-phone-required') === '1';

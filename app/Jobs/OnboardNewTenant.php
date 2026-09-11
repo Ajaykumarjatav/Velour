@@ -80,6 +80,13 @@ class OnboardNewTenant implements ShouldQueue, NotTenantAware
             ],
             [
                 'type'       => 'onboarding',
+                'title'      => '💳 Try Point of Sale',
+                'body'       => 'POS is your till — take payment for services, packages, and retail. Try a test sale with Walk-in.',
+                'action_url' => '/pos/create',
+                'data'       => ['action_label' => 'Try a sale'],
+            ],
+            [
+                'type'       => 'onboarding',
                 'title'      => '🔗 Share your booking link',
                 'body'       => 'Your online booking widget is live. Share it with your clients.',
                 'action_url' => '/go-live',

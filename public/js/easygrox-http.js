@@ -144,6 +144,24 @@
     return request(url, opts, false);
   }
 
+  // Copy the live meta token into a form's hidden _token field. Native form.submit()
+  // fires no submit event, so long-lived pages must call this before submitting.
+  function syncFormToken(form) {
+    if (!form) return;
+    var tokenInput = form.querySelector('input[name="_token"]');
+    if (!tokenInput) return;
+    var live = metaToken();
+    if (live) tokenInput.value = live;
+  }
+
+  // Fetch a fresh token, then write it into the form so a native submit passes CSRF.
+  async function refreshFormToken(form) {
+    try {
+      await refreshCsrf();
+    } catch (e) { /* fall back to whatever token we already hold */ }
+    syncFormToken(form);
+  }
+
   // Keep HTML forms in sync: before submit, drop stale _token when XSRF cookie exists
   // and refresh the field from meta after a cookie refresh when needed.
   document.addEventListener('submit', function (event) {
@@ -151,13 +169,26 @@
     if (!form || form.tagName !== 'FORM') return;
     if ((form.method || 'get').toLowerCase() === 'get') return;
 
-    var tokenInput = form.querySelector('input[name="_token"]');
-    if (!tokenInput) return;
-
-    // Prefer live meta token over a possibly stale compiled value in the DOM.
-    var live = metaToken();
-    if (live) tokenInput.value = live;
+    syncFormToken(form);
   }, true);
+
+  // Sessions idle out after SESSION_LIFETIME. Tabs that stay open for hours (the till,
+  // the calendar) would otherwise fail their next POST with a 419, so ping while visible.
+  var keepAliveTimer = null;
+
+  function keepAlivePing() {
+    if (document.visibilityState !== 'visible') return;
+    refreshCsrf().catch(function () { /* offline or signed out — next ping retries */ });
+  }
+
+  function startKeepAlive(minutes) {
+    if (!csrfTokenUrl || keepAliveTimer) return;
+    var everyMs = Math.max(1, Number(minutes) || 10) * 60 * 1000;
+    keepAliveTimer = window.setInterval(keepAlivePing, everyMs);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') keepAlivePing();
+    });
+  }
 
   window.EasyGroxHttp = {
     metaToken: metaToken,
@@ -166,8 +197,15 @@
     sameOrigin: sameOrigin,
     csrfHeaders: csrfHeaders,
     refreshCsrf: refreshCsrf,
+    refreshFormToken: refreshFormToken,
+    syncFormToken: syncFormToken,
+    startKeepAlive: startKeepAlive,
     request: request,
     post: post,
     appendCsrfToFormData: appendCsrfToFormData,
   };
+
+  if (cfg.keepAlive) {
+    startKeepAlive(cfg.keepAliveMinutes);
+  }
 })(window, document);

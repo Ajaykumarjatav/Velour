@@ -45,7 +45,7 @@ class GuideController extends Controller
             $show('availability') ? ['title' => 'Availability & Resources', 'hint' => 'Working days, leave, and rooms. Leave blocks slots automatically.', 'href' => route('availability.index')] : null,
             $show('inventory') ? ['title' => 'Inventory & Retail', 'hint' => 'Stock, suppliers, and retail products for POS.', 'href' => route('inventory.index')] : null,
             $show('expenses') ? ['title' => 'Expenses', 'hint' => 'Salon costs and categories.', 'href' => route('expenses.index')] : null,
-            $show('pos') ? ['title' => 'Point of Sale', 'hint' => 'Checkout for services and products. Attach a client when you can.', 'href' => route('pos.index')] : null,
+            $show('pos') ? ['title' => 'Point of Sale', 'hint' => 'Your till: tap a service, take payment, done. Try a test sale with Walk-in.', 'href' => route('pos.create')] : null,
         ]));
         if ($business !== []) {
             $featureGroups[] = ['label' => 'Business', 'items' => $business];
@@ -113,8 +113,8 @@ class GuideController extends Controller
             [
                 'path' => 'guide/pos-checkout.png',
                 'title' => 'POS',
-                'caption' => 'Take payment for services and products.',
-                'link' => route('pos.index', ['store' => $store]),
+                'caption' => 'Your till — try a test sale with Walk-in.',
+                'link' => route('pos.create', ['store' => $store]),
             ],
             [
                 'path' => 'guide/go-live.png',

@@ -27,7 +27,7 @@
   <div class="body">
     <h1>Welcome, {{ $user->name }}.</h1>
     <p style="color:#888;font-size:16px;line-height:1.7;margin:0 0 32px;">
-      <strong style="color:#e0d5c5;">{{ $salon->name }}</strong> is ready. Here's how to get started in three steps.
+      <strong style="color:#e0d5c5;">{{ $salon->name }}</strong> is ready. Here's how to get started.
     </p>
 
     <div class="step">
@@ -48,6 +48,14 @@
 
     <div class="step">
       <div class="step-num">3</div>
+      <div class="step-text">
+        <h3>Try Point of Sale</h3>
+        <p>Your till for services, packages, and retail. Ring up a test sale with Walk-in — no client needed.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
       <div class="step-text">
         <h3>Go live with online booking</h3>
         <p>Share your booking link or embed the widget on your website.</p>

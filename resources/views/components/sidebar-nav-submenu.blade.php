@@ -4,6 +4,7 @@
     'name',
     'open' => false,
     'active' => false,
+    'badge' => null,
 ])
 
 @php
@@ -19,6 +20,9 @@
             class="sidebar-link w-full {{ $active ? 'active' : '' }}">
         @include('partials.sidebar-nav-icon', ['icon' => $icon])
         <span class="flex-1 text-left">{{ $label }}</span>
+        @if($badge)
+        <span class="sidebar-nav-badge bg-emerald-600 text-white">{{ $badge }}</span>
+        @endif
         <svg class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200"
              :class="openMenu === @js($name) ? 'rotate-180' : ''"
              fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

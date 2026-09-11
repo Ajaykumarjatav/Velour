@@ -133,8 +133,8 @@ export default function ClientProfile() {
             value={form.phone}
             onChange={(phone) => setForm((p) => ({ ...p, phone }))}
             required
-            inputClassName="flex-1 min-w-0 bg-[#1a1f2e] border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary"
-            selectClassName="w-[5.25rem] shrink-0 bg-[#1a1f2e] border border-white/10 rounded-xl px-2 py-3 text-white text-sm"
+            inputClassName="bg-[#1a1f2e] border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary"
+            selectClassName="bg-[#1a1f2e] border border-white/10 rounded-xl px-2 py-3 text-white text-sm"
           />
           <PortalInput label="Address" value={form.address} onChange={set('address')} />
           <PortalInput label="Date of birth" type="date" value={form.date_of_birth} onChange={set('date_of_birth')} />
