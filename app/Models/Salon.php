@@ -20,23 +20,18 @@ class Salon extends Model
         'address_line1','address_line2','city','county','postcode','country',
         'latitude','longitude','timezone','currency','locale',
         'logo','cover_image','social_links','booking_url','google_place_id','map_url','gst_number',
-        'stripe_account_id','online_booking_enabled','home_services_enabled','is_freelancer','new_client_booking_enabled',
+        'stripe_account_id','online_booking_enabled','new_client_booking_enabled',
         'deposit_required','deposit_percentage','instant_confirmation',
         'booking_advance_days','cancellation_hours','opening_hours','is_active',
         'suspension_reason','suspended_at','suspended_by',
     ];
     protected $casts = [
         'social_links'=>'array','opening_hours'=>'array','awards_images'=>'array',
-        'online_booking_enabled'=>'boolean','home_services_enabled'=>'boolean','is_freelancer'=>'boolean','new_client_booking_enabled'=>'boolean','whatsapp_same_as_phone'=>'boolean',
+        'online_booking_enabled'=>'boolean','new_client_booking_enabled'=>'boolean','whatsapp_same_as_phone'=>'boolean',
         'deposit_required'=>'boolean','instant_confirmation'=>'boolean','is_active'=>'boolean',
         'deposit_percentage'=>'decimal:2','latitude'=>'decimal:7','longitude'=>'decimal:7',
         'suspended_at'=>'datetime',
     ];
-    public function locationKindLabel(): string
-    {
-        return $this->is_freelancer ? 'Freelancer' : 'Physical location';
-    }
-
     public function whatsappNumberForSite(): ?string
     {
         if (! $this->whatsapp_same_as_phone) {

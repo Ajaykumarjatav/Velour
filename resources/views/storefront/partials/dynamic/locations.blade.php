@@ -6,7 +6,6 @@
             'id' => $salonData['id'] ?? 0,
             'name' => $salonData['name'] ?? '',
             'address' => $salonData['full_address'],
-            'is_freelancer' => ! empty($salonData['is_freelancer']),
             'is_current' => true,
             'map_url' => $salonData['map_url'] ?? null,
             'map_embed_url' => ! empty($salonData['map_url'])
@@ -19,16 +18,15 @@
     }
     $gallery = \App\Support\StorefrontAssets::assets($theme)['locationGallery'] ?? ['Rectangle 58.png', 'Rectangle 59.png', 'Rectangle 60.png'];
     $galleryFallback = array_map(fn ($f) => $asset($f), $gallery);
-    $allFreelance = collect($locations)->every(fn ($loc) => ! empty($loc['is_freelancer']));
 @endphp
 @if($salonData && count($locations) > 0)
 <section id="locations" class="w-full bg-white py-20 lg:py-24"
          x-data="locationsSection(@js($locations), @js($salonData), @js($galleryFallback))">
     <div class="max-w-[1360px] mx-auto px-4">
         <div class="text-center mb-12 md:mb-16">
-            <span class="text-primary font-manrope font-semibold text-sm uppercase tracking-widest block mb-2">{{ $allFreelance ? 'Freelancer' : 'Locations' }}</span>
+            <span class="text-primary font-manrope font-semibold text-sm uppercase tracking-widest block mb-2">Locations</span>
             <h2 class="font-manrope font-extrabold text-3xl md:text-[45px] md:leading-[55px] text-black tracking-tight">
-                {{ $allFreelance ? 'Freelance service — no storefront' : 'Locate Your Nearest Store' }}
+                Locate Your Nearest Store
             </h2>
         </div>
 
@@ -43,7 +41,7 @@
                             <span :class="activeId === loc.id ? 'text-white' : 'text-primary'">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="shrink-0 mt-0.5" aria-hidden><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                             </span>
-                            <span x-text="loc.is_freelancer ? 'Freelancer — no physical store' : (loc.address || 'Address coming soon')"></span>
+                            <span x-text="loc.address || 'Address coming soon'"></span>
                         </div>
                     </button>
                 </template>
@@ -55,7 +53,7 @@
                         <iframe :title="'Map — ' + (activeLocation?.name || '')" :src="mapSrc" class="w-full h-[200px] md:h-[240px] lg:h-[286px] border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
                     </template>
                     <template x-if="!mapSrc">
-                        <div class="w-full h-[200px] md:h-[240px] lg:h-[286px] flex items-center justify-center text-text-muted text-sm px-6 text-center" x-text="activeLocation?.is_freelancer ? 'Freelance service — no storefront address' : 'Map unavailable for this location'"></div>
+                        <div class="w-full h-[200px] md:h-[240px] lg:h-[286px] flex items-center justify-center text-text-muted text-sm px-6 text-center">Map unavailable for this location</div>
                     </template>
                     <template x-if="mapOpenUrl">
                         <a :href="mapOpenUrl" target="_blank" rel="noopener noreferrer"
@@ -120,14 +118,14 @@ function locationsSection(locations, salon, fallbackGallery) {
         },
         get mapSrc() {
             const loc = this.activeLocation;
-            if (!loc || loc.is_freelancer) return null;
+            if (!loc) return null;
             if (loc.map_embed_url) return loc.map_embed_url;
             if (loc.address) return 'https://www.google.com/maps?q=' + encodeURIComponent(loc.address) + '&z=15&output=embed';
             return null;
         },
         get mapOpenUrl() {
             const loc = this.activeLocation;
-            if (!loc || loc.is_freelancer) return null;
+            if (!loc) return null;
             if (loc.map_url) return loc.map_url;
             if (loc.address) return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc.address);
             return null;

@@ -27,11 +27,10 @@ class SalonController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'         => 'sometimes|string|max:255',
             'description'  => 'nullable|string|max:2000',
             'awards_accolades' => 'nullable|string|max:5000',
-            'phone'        => 'nullable|string|max:30',
             'email'        => 'nullable|email',
             'website'      => 'nullable|url',
             'address_line1'=> 'nullable|string|max:255',
@@ -42,7 +41,7 @@ class SalonController extends Controller
             'timezone'     => 'nullable|string|max:50',
             'currency'     => 'nullable|string|size:3',
             'social_links' => 'nullable|array',
-        ]);
+        ])));
 
         $salon = \App\Models\Salon::findOrFail($request->attributes->get('salon_id'));
         $salon->update($data);

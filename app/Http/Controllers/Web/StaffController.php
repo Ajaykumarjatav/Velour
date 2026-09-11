@@ -367,10 +367,9 @@ class StaffController extends Controller
     {
         $salon = $this->salon();
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'              => ['required', 'string', 'max:100'],
             'email'             => ['nullable', 'email', 'max:150'],
-            'phone'             => ['nullable', 'string', 'max:20'],
             'role'              => StaffJobRoles::validationRules(),
             'experience'        => ['nullable', 'string', 'max:120'],
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
@@ -380,7 +379,7 @@ class StaffController extends Controller
             'color'             => ['nullable', 'string', 'max:7'],
             'commission_rate'   => ['nullable', 'numeric', 'min:0', 'max:100'],
             'avatar'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
-        ]);
+        ])));
 
         $nameParts = explode(' ', trim($data['name']), 2);
         $avatarFile = $request->file('avatar');
@@ -459,10 +458,9 @@ class StaffController extends Controller
     {
         $this->authorise($staff);
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'            => ['required', 'string', 'max:100'],
             'email'           => ['nullable', 'email', 'max:150'],
-            'phone'           => ['nullable', 'string', 'max:20'],
             'role'            => StaffJobRoles::validationRules(),
             'experience'      => ['nullable', 'string', 'max:120'],
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
@@ -473,7 +471,7 @@ class StaffController extends Controller
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'is_active'       => ['sometimes', 'boolean'],
             'avatar'          => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
-        ]);
+        ])));
 
         // Split 'name' into first_name / last_name for the Staff model
         if (isset($data['name'])) {

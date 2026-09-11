@@ -1415,6 +1415,7 @@
             }
         })();
     </script>
+    @include('partials.phone-country')
     @stack('scripts')
     @include('partials.prevent-fouc-end')
 </body>

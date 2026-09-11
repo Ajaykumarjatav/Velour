@@ -94,14 +94,13 @@ class PaymentGatewayController extends Controller
             return back()->with('error', 'Payment gateway is not configured.');
         }
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'amount'       => ['required', 'numeric', 'min:1'],
             'currency'     => ['required', 'string', 'size:3'],
             'description'  => ['nullable', 'string', 'max:255'],
             'client_email' => ['nullable', 'email', 'max:255'],
-            'client_phone' => ['nullable', 'string', 'max:20'],
             'client_name'  => ['nullable', 'string', 'max:100'],
-        ]);
+        ], 'client_phone')));
 
         $cashfree = CashfreeService::forSalonGateway(
             (string) $gateway->publishable_key,

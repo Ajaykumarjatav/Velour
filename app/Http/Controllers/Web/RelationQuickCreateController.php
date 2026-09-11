@@ -35,18 +35,17 @@ class RelationQuickCreateController extends Controller
             'loyalty_tier_id' => $request->filled('loyalty_tier_id') ? $request->input('loyalty_tier_id') : null,
         ]);
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'              => ['nullable', 'string', 'max:200'],
             'first_name'        => ['nullable', 'string', 'max:100'],
             'last_name'         => ['nullable', 'string', 'max:100'],
             'email'             => ['nullable', 'email', 'max:150'],
-            'phone'             => ['required', 'string', 'max:20', 'regex:/^[\+\d\s\(\)\-]+$/'],
             'date_of_birth'     => ['nullable', 'date'],
             'gender'            => ['nullable', 'in:female,male,non_binary,prefer_not_to_say'],
             'address'           => ['nullable', 'string', 'max:500'],
             'notes'             => ['nullable', 'string', 'max:2000'],
             'loyalty_tier_id'   => ['nullable', 'integer', 'exists:loyalty_tiers,id'],
-        ]);
+        ], 'phone', true)));
 
         if ($request->filled('name')) {
             $parts = explode(' ', trim($data['name']), 2);
@@ -87,16 +86,15 @@ class RelationQuickCreateController extends Controller
 
         $salon = $this->activeSalon();
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'            => ['required', 'string', 'max:100'],
             'email'           => ['nullable', 'email', 'max:150'],
-            'phone'           => ['nullable', 'string', 'max:20'],
             'role'            => \App\Support\StaffJobRoles::validationRules(),
             'bio'             => ['nullable', 'string', 'max:1000'],
             'color'           => ['nullable', 'string', 'max:7'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'avatar'          => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
-        ]);
+        ])));
 
         $nameParts = explode(' ', trim($data['name']), 2);
         $avatarFile = $request->file('avatar');

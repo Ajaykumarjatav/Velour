@@ -50,15 +50,10 @@ class Service extends Model
     public function scopeActive($q) { return $q->where('status','active'); }
     public function scopeOnline($q) { return $q->where('online_bookable',true); }
 
-    /** On-site only, or home visits too when the salon has enabled them for public booking. */
+    /** On-site and home-visit services are both eligible for public booking. */
     public function scopeEligibleForPublicBooking($q, Salon $salon)
     {
-        return $q->where(function ($q2) use ($salon): void {
-            $q2->where('service_location', 'onsite');
-            if ($salon->home_services_enabled) {
-                $q2->orWhere('service_location', 'home');
-            }
-        });
+        return $q;
     }
 
     public function isHomeService(): bool

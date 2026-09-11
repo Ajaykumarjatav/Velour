@@ -71,12 +71,11 @@ class ClientController extends Controller
     /* ── POST /clients ──────────────────────────────────────────────────── */
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'              => 'nullable|string|max:200',
             'first_name'        => 'nullable|string|max:100',
             'last_name'         => 'nullable|string|max:100',
             'email'             => 'nullable|email|max:255',
-            'phone'             => 'required|string|max:30|regex:/^[\+\d\s\(\)\-]+$/',
             'date_of_birth'     => 'nullable|date|before:today',
             'tags'              => 'nullable|array',
             'is_vip'            => 'nullable|boolean',
@@ -88,7 +87,7 @@ class ClientController extends Controller
             'email_consent'     => 'nullable|boolean',
             'source'            => 'nullable|string|max:50',
             'notes'             => 'nullable|string|max:2000',
-        ]);
+        ], 'phone', true)));
 
         if ($request->filled('name')) {
             $parts = explode(' ', trim($data['name']), 2);
@@ -157,12 +156,11 @@ class ClientController extends Controller
     /* ── PUT /clients/{id} ──────────────────────────────────────────────── */
     public function update(Request $request, int $id): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'               => 'sometimes|string|max:200',
             'first_name'         => 'sometimes|string|max:100',
             'last_name'          => 'sometimes|string|max:100',
             'email'              => 'nullable|email|max:255',
-            'phone'              => 'required|string|max:30|regex:/^[\+\d\s\(\)\-]+$/',
             'date_of_birth'      => 'nullable|date|before:today',
             'tags'               => 'nullable|array',
             'is_vip'             => 'nullable|boolean',
@@ -173,7 +171,7 @@ class ClientController extends Controller
             'sms_consent'        => 'nullable|boolean',
             'email_consent'      => 'nullable|boolean',
             'status'             => 'nullable|in:active,inactive,blocked',
-        ]);
+        ], 'phone', true)));
 
         if ($request->filled('name')) {
             $parts = explode(' ', trim($data['name']), 2);

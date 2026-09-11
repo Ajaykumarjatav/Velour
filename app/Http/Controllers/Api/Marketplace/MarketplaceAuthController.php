@@ -14,12 +14,11 @@ class MarketplaceAuthController extends Controller
 {
     public function register(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name' => 'required|string|max:150',
             'email' => 'required|email|max:150|unique:marketplace_customers,email',
-            'phone' => 'required|string|max:30',
             'password' => ['required', 'string', PasswordRule::min(8)],
-        ]);
+        ], 'phone', true)));
 
         $customer = MarketplaceCustomer::create([
             'name' => trim($data['name']),
@@ -74,12 +73,11 @@ class MarketplaceAuthController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name' => 'sometimes|string|max:150',
-            'phone' => 'sometimes|string|max:30',
             'default_notes' => 'nullable|string|max:500',
             'marketing_consent' => 'nullable|boolean',
-        ]);
+        ])));
 
         /** @var MarketplaceCustomer $customer */
         $customer = $request->user();

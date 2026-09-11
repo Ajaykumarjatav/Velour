@@ -36,9 +36,7 @@
                 </div>
                 <div>
                     <label class="form-label">Phone</label>
-                    <input type="tel" name="phone" value="{{ old('phone', $staff->phone ?? '') }}"
-                           class="form-input @error('phone') form-input-error @enderror">
-                    @error('phone')<p class="form-error">{{ $message }}</p>@enderror
+                    <x-phone-input name="phone" id="staff-create-phone" :value="old('phone', $staff->phone ?? '')" />
                 </div>
                 <div>
                     <label class="form-label" for="staff-form-role-trigger">Role <span class="text-red-500">*</span></label>

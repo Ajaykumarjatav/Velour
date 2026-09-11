@@ -181,7 +181,9 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div><label class="form-label">Phone *</label><input name="phone" required class="form-input" placeholder="+91 98765 43210"></div>
+                    <div><label class="form-label">Phone *</label>
+                        <x-phone-input name="phone" id="ml-add-phone" required />
+                    </div>
                     <div><label class="form-label">Branch manager</label><input name="branch_manager" class="form-input" placeholder="Manager's name"></div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -216,7 +218,9 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div><label class="form-label">Phone *</label><input name="phone" required class="form-input" :value="selected?.phone ?? ''"></div>
+                    <div><label class="form-label">Phone *</label>
+                        <x-phone-input name="phone" id="ml-edit-phone" required alpine-sync="selected ? selected.phone : ''" :simple-select="true" />
+                    </div>
                     <div><label class="form-label">Branch manager</label><input name="branch_manager" class="form-input" :value="selected?.branch_manager ?? ''"></div>
                 </div>
                 <div>

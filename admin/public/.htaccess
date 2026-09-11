@@ -1,5 +1,0 @@
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    # Nested leftover copy — always use the real app front controller.
-    RewriteRule ^(.*)$ ../../public/index.php [QSA,L]
-</IfModule>

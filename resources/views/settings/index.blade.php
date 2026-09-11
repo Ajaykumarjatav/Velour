@@ -4,6 +4,11 @@
 
 @push('styles')
 <style>
+    [data-phone-country-field] .searchable-select-root [role="listbox"] {
+        min-width: 16rem;
+        width: max-content;
+        max-width: min(20rem, 80vw);
+    }
     @media (min-width: 1280px) {
         .settings-sidebar-panel {
             position: sticky;
@@ -252,7 +257,6 @@
         'showPasswordModal' => $errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation'),
         'open' => [],
         'profileCardOpen' => true,
-        'isFreelancer' => (bool) old('is_freelancer', $salon->is_freelancer ?? false),
     ];
 @endphp
 
@@ -385,8 +389,13 @@
                         <p class="text-xs text-muted mt-1">Taken from your signup account. To change it, contact support.</p>
                     </div>
                     <div>
-                        <label class="form-label" for="settings-salon-phone">Phone</label>
-                        <input id="settings-salon-phone" type="tel" name="phone" value="{{ old('phone', $salon->phone) }}" class="form-input">
+                        <label class="form-label" for="settings-salon-phone-national">Phone</label>
+                        <x-phone-input
+                            name="phone"
+                            id="settings-salon-phone"
+                            :value="old('phone', $salon->phone)"
+                            detect-target />
+                        <p class="form-hint">Default country code is +91 (India). Number length follows the selected country.</p>
                     </div>
                     @php
                         $whatsappSameAsPhone = filter_var(old('whatsapp_same_as_phone', $salon->whatsapp_same_as_phone ?? true), FILTER_VALIDATE_BOOLEAN);
@@ -408,10 +417,13 @@
                                 Different WhatsApp number
                             </label>
                         </div>
-                        <input id="settings-salon-whatsapp" type="tel" name="whatsapp_number" value="{{ $whatsappNumberValue }}" class="form-input" autocomplete="tel">
+                        <x-phone-input
+                            name="whatsapp_number"
+                            id="settings-salon-whatsapp"
+                            :value="$whatsappNumberValue" />
                         <p class="form-hint">Used on your public website WhatsApp button. Same as mobile keeps it in sync with Phone.</p>
                     </div>
-                    <div x-show="!isFreelancer" x-cloak>
+                    <div>
                         <label class="form-label" for="settings-salon-map-url">Map link or location</label>
                         <input id="settings-salon-map-url" type="text" name="map_url" value="{{ old('map_url', $salon->map_url) }}" class="form-input" placeholder="Google Maps link, Plus Code, or full address" maxlength="500" autocomplete="off">
                         <p class="form-hint">Paste a Google Maps URL, Plus Code (e.g. PRR9+5X6), or address — we turn it into a clickable map link for your website.</p>
@@ -477,34 +489,6 @@
                         </div>
                         <p class="form-hint">Used for emails and online booking messages. Internal calendar always uses business time.</p>
                     </div>
-                    <div class="md:col-span-2 min-w-0">
-                        <label class="flex items-start gap-3 sm:gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 p-4 sm:p-5 cursor-pointer hover:border-velour-300 dark:hover:border-velour-600 transition-colors"
-                               :class="isFreelancer ? 'border-cyan-400/70 dark:border-cyan-500/50 bg-cyan-50/40 dark:bg-cyan-950/20' : ''">
-                            <input type="checkbox" name="is_freelancer" value="1"
-                                   x-model="isFreelancer"
-                                   class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-velour-600 focus:ring-velour-500">
-                            <span class="min-w-0 flex-1">
-                                <span class="flex items-center gap-2 flex-wrap">
-                                    <span class="text-sm font-semibold text-heading">No physical store</span>
-                                    <span x-show="isFreelancer" x-cloak class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-200">Freelancer</span>
-                                </span>
-                                <span class="mt-1 block text-xs sm:text-sm text-muted leading-5">
-                                    Tick this if you don’t have a salon or shop address. Your website and admin will show you as a freelancer.
-                                </span>
-                            </span>
-                        </label>
-                    </div>
-                    <div class="md:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-3 sm:p-4 space-y-3 min-w-0">
-                        <p class="text-sm font-semibold text-heading">Service delivery</p>
-                        <label class="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" name="home_services_enabled" value="1" class="mt-1 rounded border-gray-300 text-velour-600"
-                                   {{ old('home_services_enabled', $salon->home_services_enabled ?? false) ? 'checked' : '' }}>
-                            <span class="text-sm text-body leading-relaxed min-w-0 break-words">
-                                <span class="font-medium text-heading">Enable home visits (client location)</span>
-                                — when on, services you mark as <strong>home visit</strong> appear on your public booking page and API. When off (default), you can still create and manage home services in your catalog; they stay hidden from online booking until you enable this.
-                            </span>
-                        </label>
-                    </div>
                     <div class="md:col-span-2">
                         <label class="form-label">Description</label>
                         <textarea name="description" rows="3" class="form-textarea">{{ old('description', $salon->description) }}</textarea>
@@ -527,19 +511,19 @@
                         </div>
                         <p class="form-hint">Shown on your profile and public site. You can type text and insert award or certification images in the same editor.</p>
                     </div>
-                    <div id="settings-salon-address" class="min-w-0" x-show="!isFreelancer" x-cloak>
+                    <div id="settings-salon-address" class="min-w-0">
                         <label class="form-label" for="settings-salon-address-input">Address line 1</label>
                         <input id="settings-salon-address-input" type="text" name="address_line1" value="{{ old('address_line1', $salon->address_line1) }}" class="form-input">
                     </div>
-                    <div x-show="!isFreelancer" x-cloak>
+                    <div>
                         <label class="form-label">Address line 2</label>
                         <input type="text" name="address_line2" value="{{ old('address_line2', $salon->address_line2) }}" class="form-input">
                     </div>
-                    <div x-show="!isFreelancer" x-cloak>
+                    <div>
                         <label class="form-label">City</label>
                         <input type="text" name="city" value="{{ old('city', $salon->city) }}" class="form-input">
                     </div>
-                    <div x-show="!isFreelancer" x-cloak>
+                    <div>
                         <label class="form-label">Postcode</label>
                         <input type="text" name="postcode" value="{{ old('postcode', $salon->postcode) }}" class="form-input">
                     </div>
@@ -1293,9 +1277,9 @@
                 <div>
                     <label class="form-label">Phone</label>
                     @if($profileStaff)
-                        <input type="tel" name="staff_phone" value="{{ old('staff_phone', $profileStaff->phone) }}" class="form-input" autocomplete="tel">
+                        <x-phone-input name="staff_phone" id="settings-profile-staff-phone" :value="old('staff_phone', $profileStaff->phone)" />
                     @else
-                        <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" class="form-input" autocomplete="tel">
+                        <x-phone-input name="phone" id="settings-profile-phone" :value="old('phone', $user->phone)" />
                     @endif
                 </div>
                 @if($profileStaff)
@@ -1527,8 +1511,12 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Phone</label>
-                                    <input type="tel" name="staff_members[0][phone]" value="{{ $st['phone'] ?? '' }}"
-                                           class="form-input settings-staff-field-phone">
+                                    <x-phone-input
+                                        name="staff_members[0][phone]"
+                                        id="settings-staff-0-phone"
+                                        :value="$st['phone'] ?? ''"
+                                        :simple-select="true"
+                                        full-class="settings-staff-field-phone" />
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-body mb-1">Role <span class="text-red-500">*</span></label>
@@ -1801,6 +1789,7 @@
             if (pickedTimezone) {
                 timezoneSelect.value = pickedTimezone;
                 timezone = pickedTimezone;
+                timezoneSelect.dispatchEvent(new Event('change', { bubbles: true }));
             }
 
             var currency = detectCurrencyByTimezone(timezone) || detectCurrencyByRegion(region);
@@ -1808,7 +1797,12 @@
                 var currencyOption = currencySelect.querySelector('option[value="' + currency + '"]');
                 if (currencyOption) {
                     currencySelect.value = currency;
+                    currencySelect.dispatchEvent(new Event('change', { bubbles: true }));
                 }
+            }
+
+            if (typeof window.applySettingsPhoneCountryFromLocation === 'function') {
+                window.applySettingsPhoneCountryFromLocation(region, timezone);
             }
 
             if (timezone && currency) {
@@ -1825,26 +1819,44 @@
 
     document.addEventListener('DOMContentLoaded', autoFillSalonLocationSettings);
 })();
-
+</script>
+<script>
 (function () {
     var phone = document.getElementById('settings-salon-phone');
     var whatsapp = document.getElementById('settings-salon-whatsapp');
     var block = document.querySelector('[data-whatsapp-number-block]');
     if (!phone || !whatsapp || !block) return;
+    var whatsappWrap = whatsapp.closest('[data-phone-country-field]');
 
     function sameAsPhone() {
         var checked = block.querySelector('input[name="whatsapp_same_as_phone"]:checked');
         return checked && checked.value === '1';
     }
 
+    function setWhatsappLocked(locked) {
+        var nat = whatsappWrap ? whatsappWrap.querySelector('[data-phone-national]') : null;
+        var country = whatsappWrap ? whatsappWrap.querySelector('select, [data-phone-country]') : null;
+        if (nat) {
+            nat.readOnly = locked;
+            nat.classList.toggle('bg-gray-50', locked);
+            nat.classList.toggle('dark:bg-gray-800/70', locked);
+            nat.classList.toggle('cursor-not-allowed', locked);
+        }
+        if (country) country.disabled = locked;
+        var trigger = whatsappWrap ? whatsappWrap.querySelector('[data-searchable-select] button') : null;
+        if (trigger) trigger.disabled = locked;
+    }
+
     function syncWhatsapp() {
         if (sameAsPhone()) {
-            whatsapp.value = phone.value;
-            whatsapp.readOnly = true;
-            whatsapp.classList.add('bg-gray-50', 'dark:bg-gray-800/70', 'cursor-not-allowed');
+            if (typeof window.syncPhoneCountryField === 'function' && whatsappWrap) {
+                window.syncPhoneCountryField(whatsappWrap, phone.value);
+            } else {
+                whatsapp.value = phone.value;
+            }
+            setWhatsappLocked(true);
         } else {
-            whatsapp.readOnly = false;
-            whatsapp.classList.remove('bg-gray-50', 'dark:bg-gray-800/70', 'cursor-not-allowed');
+            setWhatsappLocked(false);
         }
     }
 
@@ -1852,7 +1864,13 @@
         radio.addEventListener('change', syncWhatsapp);
     });
     phone.addEventListener('input', function () {
-        if (sameAsPhone()) whatsapp.value = phone.value;
+        if (sameAsPhone()) {
+            if (typeof window.syncPhoneCountryField === 'function' && whatsappWrap) {
+                window.syncPhoneCountryField(whatsappWrap, phone.value);
+            } else {
+                whatsapp.value = phone.value;
+            }
+        }
     });
     syncWhatsapp();
 })();
@@ -2083,6 +2101,7 @@
         var nameEl = row.querySelector('.settings-staff-field-name');
         var emailEl = row.querySelector('.settings-staff-field-email');
         var phoneEl = row.querySelector('.settings-staff-field-phone');
+        var phoneWrap = row.querySelector('[data-phone-country-field]');
         if (!nameEl || !emailEl || !phoneEl) return;
 
         if (checked) {
@@ -2092,16 +2111,24 @@
             var acct = accountDetails();
             nameEl.value = acct.name;
             emailEl.value = acct.email;
-            phoneEl.value = acct.phone;
+            if (phoneWrap && typeof window.syncPhoneCountryField === 'function') {
+                window.syncPhoneCountryField(phoneWrap, acct.phone);
+            } else {
+                phoneEl.value = acct.phone;
+                phoneEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
             nameEl.dispatchEvent(new Event('input', { bubbles: true }));
             emailEl.dispatchEvent(new Event('input', { bubbles: true }));
-            phoneEl.dispatchEvent(new Event('input', { bubbles: true }));
             return;
         }
 
         nameEl.value = checkbox.dataset.prevName != null ? checkbox.dataset.prevName : '';
         emailEl.value = checkbox.dataset.prevEmail != null ? checkbox.dataset.prevEmail : '';
-        phoneEl.value = checkbox.dataset.prevPhone != null ? checkbox.dataset.prevPhone : '';
+        if (phoneWrap && typeof window.syncPhoneCountryField === 'function') {
+            window.syncPhoneCountryField(phoneWrap, checkbox.dataset.prevPhone != null ? checkbox.dataset.prevPhone : '');
+        } else {
+            phoneEl.value = checkbox.dataset.prevPhone != null ? checkbox.dataset.prevPhone : '';
+        }
         delete checkbox.dataset.prevName;
         delete checkbox.dataset.prevEmail;
         delete checkbox.dataset.prevPhone;
@@ -2176,6 +2203,11 @@
             if (chev) chev.classList.remove('rotate-180');
         }
         if (body) body.classList.remove('hidden');
+        clone.querySelectorAll('[data-phone-country-field]').forEach(function (field) {
+            if (typeof window.prepareClonedPhoneCountryField === 'function') {
+                window.prepareClonedPhoneCountryField(field);
+            }
+        });
         container.appendChild(clone);
         renumberStaffRows();
     });

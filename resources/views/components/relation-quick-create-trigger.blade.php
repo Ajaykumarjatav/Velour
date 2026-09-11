@@ -82,6 +82,9 @@ document.addEventListener('alpine:init', () => {
                 if (el) {
                     el.value = '';
                 }
+                if (typeof window.initPhoneCountryFields === 'function') {
+                    window.initPhoneCountryFields(this.$el);
+                }
             });
         },
         closeModal() {
@@ -131,6 +134,22 @@ document.addEventListener('alpine:init', () => {
 
             this.loading = true;
             this.fieldErrors = {};
+            if (this.cfg.type === 'client' && typeof window.phoneCountryErrorForValue === 'function') {
+                const phoneErr = window.phoneCountryErrorForValue(this.qcPhone || '', true);
+                if (phoneErr) {
+                    this.fieldErrors = { phone: [phoneErr] };
+                    this.loading = false;
+                    return;
+                }
+            }
+            if (this.cfg.type === 'staff' && (this.qcStaffPhone || '') && typeof window.phoneCountryErrorForValue === 'function') {
+                const staffPhoneErr = window.phoneCountryErrorForValue(this.qcStaffPhone, false);
+                if (staffPhoneErr) {
+                    this.fieldErrors = { phone: [staffPhoneErr] };
+                    this.loading = false;
+                    return;
+                }
+            }
             const fd = new FormData();
             if (this.cfg.type === 'client') {
                 fd.append('name', this.qcClientName || '');
@@ -245,7 +264,7 @@ document.addEventListener('alpine:init', () => {
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="form-label">Mobile <span class="text-red-500">*</span></label>
-                                <input type="tel" x-model="qcPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''" autocomplete="tel" required>
+                                <x-phone-input name="phone" id="rqc-client-phone" alpine-model="qcPhone" required :simple-select="true" />
                                 <p class="form-error text-xs mt-0.5" x-show="err('phone')" x-text="err('phone')"></p>
                             </div>
                             <div>
@@ -330,7 +349,7 @@ document.addEventListener('alpine:init', () => {
                             </div>
                             <div>
                                 <label class="form-label">Phone</label>
-                                <input type="tel" x-model="qcStaffPhone" class="form-input" :class="err('phone') ? 'form-input-error' : ''" autocomplete="tel">
+                                <x-phone-input name="phone" id="rqc-staff-phone" alpine-model="qcStaffPhone" :simple-select="true" />
                                 <p class="form-error text-xs mt-0.5" x-show="err('phone')" x-text="err('phone')"></p>
                             </div>
                         </div>

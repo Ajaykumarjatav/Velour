@@ -48,7 +48,6 @@ class BookingController extends Controller
                     'cancellation_hours', 'opening_hours',
                 ]),
                 [
-                    'home_services_enabled' => (bool) $salon->home_services_enabled,
                     'booking_advance_days' => $rules->advanceBookingDays(),
                     'last_minute_cutoff_hours' => $rules->lastMinuteCutoffHours(),
                     'buffer_before_minutes' => $rules->bufferBeforeMinutes(),
@@ -283,16 +282,15 @@ class BookingController extends Controller
     /* ── POST /book/{slug}/confirm ──────────────────────────────────────── */
     public function confirm(Request $request, string $salonSlug): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'hold_token'      => 'required|string',
             'first_name'      => 'required|string|max:100',
             'last_name'       => 'nullable|string|max:100',
             'email'           => 'nullable|email',
-            'phone'           => 'required|string|max:30',
             'notes'           => 'nullable|string|max:500',
             'marketing_consent' => 'nullable|boolean',
             'stripe_payment_intent_id' => 'nullable|string',
-        ]);
+        ], 'phone', true)));
 
         $salon = PublicSalonAccess::findBySlugOrFail($salonSlug);
 

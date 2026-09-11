@@ -9,6 +9,7 @@
     @include('partials.prevent-fouc-start')
     @include('partials.easygrox-http')
     <script src="https://cdn.tailwindcss.com"></script>
+    @include('partials.phone-country')
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -470,7 +471,15 @@
                 </div>
                 <div style="margin-bottom:14px;">
                     <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;">Phone number *</label>
-                    <input type="tel" class="input-field" x-model="client.phone" placeholder="+44 7700 000000">
+                    <x-phone-input
+                        name="phone"
+                        id="booking-show-phone"
+                        alpine-model="client.phone"
+                        required
+                        :simple-select="true"
+                        input-class="input-field flex-1 min-w-0"
+                        select-trigger-class="input-field"
+                        select-wrapper-class="w-[5.25rem] shrink-0 min-w-0 relative" />
                 </div>
                 <div style="margin-bottom:18px;">
                     <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px;">Notes (optional)</label>
@@ -799,7 +808,17 @@ function bookingApp() {
                 this.detailsError = 'Please enter your email address.'; return;
             }
             if (!this.client.phone) {
-                this.detailsError = 'Please enter your phone number.'; return;
+                this.detailsError = (typeof window.phoneCountryErrorForValue === 'function')
+                    ? (window.phoneCountryErrorForValue('', true) || 'Please enter your phone number.')
+                    : 'Please enter your phone number.';
+                return;
+            }
+            if (typeof window.phoneCountryErrorForValue === 'function') {
+                const phoneErr = window.phoneCountryErrorForValue(this.client.phone, true);
+                if (phoneErr) {
+                    this.detailsError = phoneErr;
+                    return;
+                }
             }
             this.step = 4;
         },

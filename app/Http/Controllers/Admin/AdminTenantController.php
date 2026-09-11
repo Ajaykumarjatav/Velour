@@ -40,7 +40,7 @@ class AdminTenantController extends Controller
         $query = User::query()
             ->whereHas('salons', fn ($q) => $q->withoutGlobalScopes())
             ->withCount(['salons as stores_count'])
-            ->with(['salons' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'owner_id', 'name', 'is_active', 'phone', 'whatsapp_number', 'whatsapp_same_as_phone', 'is_freelancer')]);
+            ->with(['salons' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'owner_id', 'name', 'is_active', 'phone', 'whatsapp_number', 'whatsapp_same_as_phone')]);
 
         if ($search = $request->search) {
             $query->where(function ($q) use ($search) {
@@ -372,10 +372,10 @@ class AdminTenantController extends Controller
 
         $callback = function () use ($salons) {
             $h = fopen('php://output', 'w');
-            fputcsv($h, ['Name','Slug','Location type','City','Owner','Email','Plan','Staff','Clients','Appointments','Status','Created']);
+            fputcsv($h, ['Name','Slug','City','Owner','Email','Plan','Staff','Clients','Appointments','Status','Created']);
             foreach ($salons as $s) {
                 fputcsv($h, [
-                    $s->name, $s->slug, $s->locationKindLabel(), $s->is_freelancer ? '' : ($s->city ?? ''),
+                    $s->name, $s->slug, $s->city ?? '',
                     $s->owner?->name, $s->owner?->email, $s->owner?->plan,
                     $s->staff_count, $s->clients_count, $s->appointments_count,
                     $s->is_active ? 'Active' : 'Suspended',

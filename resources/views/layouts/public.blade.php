@@ -40,6 +40,7 @@
 <footer class="border-t border-gray-100 py-8 mt-16">
   <p class="text-center text-sm text-gray-400">© {{ date('Y') }} EasyGrox Salon SaaS. All rights reserved.</p>
 </footer>
+@include('partials.phone-country')
 @include('partials.form-client-validation')
 @include('partials.prevent-fouc-end')
 </body>

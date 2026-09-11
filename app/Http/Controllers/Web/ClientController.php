@@ -514,19 +514,18 @@ class ClientController extends Controller
     {
         $salon = $this->activeSalon();
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'         => ['nullable', 'string', 'max:200'],
             'first_name'   => ['nullable', 'string', 'max:100'],
             'last_name'    => ['nullable', 'string', 'max:100'],
             'email'        => ['nullable', 'email', 'max:150'],
-            'phone'        => ['required', 'string', 'max:20', 'regex:/^[\+\d\s\(\)\-]+$/'],
             'date_of_birth'=> ['nullable', 'date'],
             'gender'       => ['nullable', 'in:female,male,non_binary,prefer_not_to_say'],
             'address'      => ['nullable', 'string', 'max:500'],
             'notes'        => ['nullable', 'string', 'max:2000'],
             'marketing_consent' => ['boolean'],
             'loyalty_tier_id'   => ['nullable', 'integer', 'exists:loyalty_tiers,id'],
-        ]);
+        ], 'phone', true)));
 
         if ($request->filled('name')) {
             $parts = explode(' ', trim($data['name']), 2);
@@ -584,18 +583,17 @@ class ClientController extends Controller
         abort_if(Auth::user()->dashboardScopedStaffId() !== null, 403, 'Staff users cannot edit full client details.');
         $this->authorise($client);
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'         => ['nullable', 'string', 'max:200'],
             'first_name'   => ['nullable', 'string', 'max:100'],
             'last_name'    => ['nullable', 'string', 'max:100'],
             'email'        => ['nullable', 'email', 'max:150'],
-            'phone'        => ['required', 'string', 'max:20', 'regex:/^[\+\d\s\(\)\-]+$/'],
             'date_of_birth'=> ['nullable', 'date'],
             'gender'       => ['nullable', 'in:female,male,non_binary,prefer_not_to_say'],
             'address'      => ['nullable', 'string', 'max:500'],
             'notes'        => ['nullable', 'string', 'max:2000'],
             'marketing_consent' => ['boolean'],
-        ]);
+        ], 'phone', true)));
 
         if ($request->filled('name')) {
             $parts = explode(' ', trim($data['name']), 2);

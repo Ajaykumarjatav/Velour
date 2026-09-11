@@ -128,17 +128,13 @@ final class MarketplaceStorePresenter
             'id' => $salon->id,
             'slug' => $salon->slug,
             'name' => $salon->name,
-            'tagline' => $salon->is_freelancer
-                ? 'Freelance service — book online'
-                : ($salon->description ?: ($salon->city ? 'Trusted services in '.$salon->city : 'Book online')),
+            'tagline' => $salon->description ?: ($salon->city ? 'Trusted services in '.$salon->city : 'Book online'),
             'category_id' => $categorySlug,
             'category_label' => $meta['label'],
-            'address' => $salon->is_freelancer
-                ? 'Freelancer'
-                : (trim(implode(', ', array_filter([
+            'address' => trim(implode(', ', array_filter([
                     $salon->address_line1,
                     $salon->address_line2,
-                ]))) ?: ($salon->city ?? '')),
+                ]))) ?: ($salon->city ?? ''),
             'city' => $salon->city,
             'rating' => round((float) ($avg ?? 0), 1),
             'review_count' => $reviews->count(),
@@ -150,8 +146,6 @@ final class MarketplaceStorePresenter
             'logo_url' => PublicStorage::url($salon->logo),
             'cover_url' => PublicStorage::url($salon->cover_image),
             'online_booking_enabled' => (bool) $salon->online_booking_enabled,
-            'home_services_enabled' => (bool) $salon->home_services_enabled,
-            'is_freelancer' => (bool) $salon->is_freelancer,
         ];
     }
 

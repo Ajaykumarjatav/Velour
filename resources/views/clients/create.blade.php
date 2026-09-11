@@ -17,9 +17,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">Mobile <span class="text-red-500">*</span></label>
-                    <input type="tel" name="phone" value="{{ old('phone') }}" required
-                           class="form-input @error('phone') form-input-error @enderror" autocomplete="tel">
-                    @error('phone')<p class="form-error">{{ $message }}</p>@enderror
+                    <x-phone-input name="phone" id="client-create-phone" :value="old('phone')" required />
                 </div>
                 <div>
                     <label class="form-label">Email</label>

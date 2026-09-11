@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import PhoneCountryInput from './PhoneCountryInput'
+import { errorForValue } from '../lib/phoneCountry'
 import BookingDateCalendar from './BookingDateCalendar'
 import { useSalon } from '../context/SalonContext'
 import {
@@ -368,7 +370,12 @@ export default function BookingFlow() {
       return
     }
     if (!client.phone) {
-      setDetailsError('Please enter your phone number.')
+      setDetailsError(errorForValue('', true) || 'Please enter your phone number.')
+      return
+    }
+    const phoneErr = errorForValue(client.phone, true)
+    if (phoneErr) {
+      setDetailsError(phoneErr)
       return
     }
     setStep(4)
@@ -753,12 +760,10 @@ export default function BookingFlow() {
               onChange={(e) => setClient((c) => ({ ...c, email: e.target.value }))}
               className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"
             />
-            <input
-              type="tel"
-              placeholder="Phone"
+            <PhoneCountryInput
               value={client.phone}
-              onChange={(e) => setClient((c) => ({ ...c, phone: e.target.value }))}
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"
+              onChange={(phone) => setClient((c) => ({ ...c, phone }))}
+              required
             />
             <textarea
               placeholder="Notes (optional)"

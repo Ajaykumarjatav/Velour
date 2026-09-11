@@ -354,7 +354,7 @@
                     </div>
                     <div>
                         <label class="form-label">Mobile <span class="text-red-500">*</span></label>
-                        <input type="tel" name="phone" x-model="editForm.phone" required class="form-input">
+                        <x-phone-input name="phone" id="client-inline-edit-phone" alpine-model="editForm.phone" required :simple-select="true" />
                     </div>
                     <div>
                         <label class="form-label">Email</label>

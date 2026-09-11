@@ -441,9 +441,16 @@
                         <p x-show="detailsErrors.email" x-cloak class="text-xs text-red-400" x-text="detailsErrors.email"></p>
                     </div>
                     <div class="space-y-1">
-                        <input type="tel" placeholder="Phone" x-model="client.phone" autocomplete="tel"
-                               @input="clearDetailsError('phone')"
-                               :class="detailsFieldClass('phone')">
+                        <x-phone-input
+                            name="phone"
+                            id="storefront-book-phone"
+                            alpine-model="client.phone"
+                            alpine-error-field="phone"
+                            required
+                            :simple-select="true"
+                            input-class="flex-1 min-w-0"
+                            select-trigger-class="w-full bg-white/10 border border-white/20 rounded-xl px-2 py-3 text-white text-sm"
+                            select-wrapper-class="w-[5.25rem] shrink-0 min-w-0 relative" />
                         <p x-show="detailsErrors.phone" x-cloak class="text-xs text-red-400" x-text="detailsErrors.phone"></p>
                     </div>
                     <textarea placeholder="Notes (optional)" x-model="client.notes" rows="3" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40"></textarea>
@@ -1188,8 +1195,16 @@ function storefrontBooking(config) {
                 valid = false;
             }
             if (!this.client.phone?.trim()) {
-                this.detailsErrors.phone = 'Please enter your phone number.';
+                this.detailsErrors.phone = (typeof window.phoneCountryErrorForValue === 'function')
+                    ? (window.phoneCountryErrorForValue('', true) || 'Please enter your phone number.')
+                    : 'Please enter your phone number.';
                 valid = false;
+            } else if (typeof window.phoneCountryErrorForValue === 'function') {
+                var phoneErr = window.phoneCountryErrorForValue(this.client.phone, true);
+                if (phoneErr) {
+                    this.detailsErrors.phone = phoneErr;
+                    valid = false;
+                }
             }
             if (!valid) {
                 this.detailsError = this.detailsErrors.name || this.detailsErrors.email || this.detailsErrors.phone;

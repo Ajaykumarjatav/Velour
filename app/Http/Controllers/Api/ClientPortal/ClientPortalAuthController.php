@@ -21,17 +21,16 @@ class ClientPortalAuthController extends Controller
     {
         $salon = $request->attributes->get('salon') ?? PublicSalonAccess::findBySlugOrFail($salonSlug);
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'first_name'        => 'required|string|max:100',
             'last_name'         => 'required|string|max:100',
             'email'             => 'required|email|max:150',
-            'phone'             => 'required|string|max:30',
             'password'          => ['required', 'confirmed', PasswordRule::min(8)],
             'address'           => 'nullable|string|max:500',
             'date_of_birth'     => 'nullable|date',
             'gender'            => 'nullable|string|max:20',
             'marketing_consent' => 'nullable|boolean',
-        ]);
+        ], 'phone', true)));
 
         $existing = Client::withoutGlobalScope(TenantScope::class)
             ->where('salon_id', $salon->id)
@@ -140,16 +139,15 @@ class ClientPortalAuthController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'first_name'        => 'sometimes|string|max:100',
             'last_name'         => 'sometimes|string|max:100',
             'email'             => 'sometimes|email|max:150',
-            'phone'             => 'sometimes|string|max:30',
             'address'           => 'nullable|string|max:500',
             'date_of_birth'     => 'nullable|date',
             'gender'            => 'nullable|string|max:20',
             'marketing_consent' => 'nullable|boolean',
-        ]);
+        ])));
 
         /** @var Client $client */
         $client = $request->user();

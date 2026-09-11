@@ -109,7 +109,8 @@
 
     function syncTriggerLabel(select, labelEl) {
         const opt = select.selectedOptions[0];
-        const text = opt && opt.textContent ? opt.textContent.trim() : '';
+        const short = opt ? (opt.getAttribute('data-short') || '').trim() : '';
+        const text = short || (opt && opt.textContent ? opt.textContent.trim() : '');
         labelEl.textContent = text || 'Select…';
     }
 
@@ -195,10 +196,11 @@
                 .map((o) => ({
                     id: o.value,
                     label: o.textContent.trim(),
+                    search: ((o.getAttribute('data-search') || '') + ' ' + o.textContent + ' ' + o.value).toLowerCase(),
                 }))
                 .filter((row) => {
                     if (!q) return true;
-                    return row.label.toLowerCase().includes(q) || String(row.id).toLowerCase().includes(q);
+                    return row.search.includes(q) || row.label.toLowerCase().includes(q) || String(row.id).toLowerCase().includes(q);
                 });
             renderRows(rows);
         };

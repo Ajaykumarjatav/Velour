@@ -7,13 +7,11 @@
     $hourLines = !empty($salonData['opening_hours_lines'])
         ? $salonData['opening_hours_lines']
         : ['Contact us for opening hours'];
-    $locationDetails = !empty($salonData['is_freelancer'])
-        ? ['Freelancer — no physical store']
-        : (!empty($salonData['full_address']) ? [$salonData['full_address']] : []);
+    $locationDetails = !empty($salonData['full_address']) ? [$salonData['full_address']] : [];
     $cards = [
         ['title' => 'Contact', 'type' => 'contact', 'details' => $contactDetails ?: ['Contact details coming soon']],
         ['title' => 'Opening Hours', 'type' => 'hours', 'details' => $hourLines],
-        ['title' => !empty($salonData['is_freelancer']) ? 'Freelancer' : 'Location', 'type' => 'location', 'details' => $locationDetails ?: ['Address coming soon']],
+        ['title' => 'Location', 'type' => 'location', 'details' => $locationDetails ?: ['Address coming soon']],
     ];
 @endphp
 @if($salonData)

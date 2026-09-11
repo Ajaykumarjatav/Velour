@@ -21,14 +21,15 @@ class AuthController extends Controller
     /* ── Register ──────────────────────────────────────────────────────── */
     public function register(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(
+            \App\Support\PhoneCountry::merge(
+                \App\Support\PhoneCountry::merge([
             'name'                 => 'required|string|max:255',
             'email'                => 'required|email|unique:users,email',
             'password'             => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
             'salon_name'           => \App\Support\SalonSlug::uniqueNameRules(),
             'business_type_ids'    => 'required|array|min:1',
             'business_type_ids.*'  => 'integer|exists:business_types,id',
-            'salon_phone'          => 'nullable|string|max:30',
             'starter_categories'   => 'nullable|array',
             'starter_categories.*' => 'string',
             'starter_services'     => 'nullable|array',
@@ -36,13 +37,14 @@ class AuthController extends Controller
             'staff_members'          => 'nullable|array|max:10',
             'staff_members.*.name'   => 'nullable|string|max:100',
             'staff_members.*.email'  => 'nullable|email|max:150',
-            'staff_members.*.phone'  => 'nullable|string|max:20',
             'staff_members.*.role'   => 'nullable|in:'.implode(',', \App\Support\StaffJobRoles::slugs()),
             'staff_members.*.commission_rate' => 'nullable|numeric|min:0|max:100',
             'staff_members.*.bio'    => 'nullable|string|max:1000',
             'staff_members.*.color'  => 'nullable|string|max:7',
             'plan'                 => 'nullable|'.Plan::validationRule(),
-        ], \App\Support\SalonSlug::uniqueNameMessages('salon_name'));
+        ], 'salon_phone'), 'staff_members.*.phone'),
+            \App\Support\SalonSlug::uniqueNameMessages('salon_name')
+        ));
 
         $typeIds = array_values(array_unique(array_map('intval', $data['business_type_ids'])));
         $allowedCategoryKeys = RegistrationStarterServices::allowedCategoryKeysForTypeIds($typeIds);
@@ -188,11 +190,10 @@ class AuthController extends Controller
     /* ── Update profile ─────────────────────────────────────────────────── */
     public function update(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name'         => 'sometimes|string|max:255',
-            'phone'        => 'nullable|string|max:30',
             'password'     => ['nullable', 'confirmed', PasswordRule::min(8)],
-        ]);
+        ])));
 
         $user = $request->user();
         if (isset($data['password'])) {

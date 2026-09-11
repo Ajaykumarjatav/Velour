@@ -81,10 +81,7 @@ class MultiLocationController extends Controller
             $card = [
                 'id' => $salon->id,
                 'name' => $salon->name,
-                'address' => $salon->is_freelancer
-                    ? 'Freelancer — no physical store'
-                    : trim(implode(', ', array_filter([$salon->address_line1, $salon->city]))),
-                'is_freelancer' => (bool) $salon->is_freelancer,
+                'address' => trim(implode(', ', array_filter([$salon->address_line1, $salon->city]))),
                 'address_line1' => (string) ($salon->address_line1 ?? ''),
                 'city' => (string) ($salon->city ?? ''),
                 'timezone' => (string) ($salon->timezone ?? 'Asia/Kolkata'),
@@ -124,16 +121,15 @@ class MultiLocationController extends Controller
         $owner = Auth::user();
         $baseSalon = Salon::where('owner_id', $owner->id)->orderBy('id')->first();
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name' => ['required', 'string', 'max:150'],
             'address_line1' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:100'],
             'timezone' => ['required', 'string', 'max:100'],
-            'phone' => ['required', 'string', 'max:30'],
             'branch_manager' => ['nullable', 'string', 'max:100'],
             'online_booking_enabled' => ['nullable', 'boolean'],
             'notify_team_when_created' => ['nullable', 'boolean'],
-        ]);
+        ], 'phone', true)));
 
         $slug = \App\Support\SalonSlug::uniqueFromName($data['name']);
 
@@ -189,15 +185,14 @@ class MultiLocationController extends Controller
     {
         $this->authorise($location);
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'name' => ['required', 'string', 'max:150'],
             'address_line1' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:100'],
             'timezone' => ['required', 'string', 'max:100'],
-            'phone' => ['required', 'string', 'max:30'],
             'branch_manager' => ['nullable', 'string', 'max:100'],
             'online_booking_enabled' => ['nullable', 'boolean'],
-        ]);
+        ], 'phone', true)));
 
         $location->update([
             'name' => $data['name'],

@@ -35,9 +35,7 @@
         <div class="min-w-0">
           <h3 class="font-semibold text-white truncate">{{ $store->name }}</h3>
           <p class="text-xs text-gray-500 font-mono">{{ $store->slug }}.easygrox.com</p>
-          @if($store->is_freelancer)
-            <span class="inline-flex mt-1 px-2 py-0.5 text-[10px] font-bold rounded-lg bg-cyan-900/40 text-cyan-300">Freelancer</span>
-          @elseif($store->city)
+          @if($store->city)
             <p class="text-xs text-gray-600 mt-0.5">{{ $store->city }}</p>
           @endif
         </div>

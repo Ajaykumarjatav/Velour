@@ -84,7 +84,7 @@
             </div>
             <div>
                 <label class="form-label">Where is this service performed? <span class="text-red-500">*</span></label>
-                <p class="form-hint mb-3">On-site = at your salon. Home = you travel to the client (offered online only when <strong>Enable home visits</strong> is on under Settings → Salon).</p>
+                <p class="form-hint mb-3">On-site = at your salon. Home = you travel to the client.</p>
                 <div class="space-y-2">
                     <label class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 has-[:checked]:border-velour-400 dark:has-[:checked]:border-velour-600">
                         <input type="radio" name="service_location" value="onsite" class="mt-1 text-velour-600" {{ old('service_location', 'onsite') === 'onsite' ? 'checked' : '' }} required>
@@ -92,7 +92,7 @@
                     </label>
                     <label class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 has-[:checked]:border-velour-400 dark:has-[:checked]:border-velour-600">
                         <input type="radio" name="service_location" value="home" class="mt-1 text-velour-600" {{ old('service_location') === 'home' ? 'checked' : '' }}>
-                        <span class="text-sm"><span class="font-medium text-heading">Home visit (client’s location)</span><span class="block text-muted text-xs mt-0.5">You or your team travel to the client. @if(!($currentSalon->home_services_enabled ?? false))<span class="text-amber-700 dark:text-amber-300"> Not shown on public booking until home visits are enabled in Settings.</span>@endif</span></span>
+                        <span class="text-sm"><span class="font-medium text-heading">Home visit (client’s location)</span><span class="block text-muted text-xs mt-0.5">You or your team travel to the client.</span></span>
                     </label>
                 </div>
                 @error('service_location')<p class="form-error">{{ $message }}</p>@enderror

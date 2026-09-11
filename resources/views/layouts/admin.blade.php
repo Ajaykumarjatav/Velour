@@ -238,6 +238,7 @@
   }
   </style>
   @stack('styles')
+  @include('partials.phone-country')
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="h-full min-h-screen flex min-h-0"

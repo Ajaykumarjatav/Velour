@@ -19,11 +19,10 @@ class UpdateStaffRequest extends FormRequest
     {
         $staffId = $this->route('staff')?->id;
 
-        return [
+        return \App\Support\PhoneCountry::merge([
             'first_name'      => ['sometimes', 'string', 'max:100'],
             'last_name'       => ['sometimes', 'string', 'max:100'],
             'email'           => ['nullable', 'email', 'max:255', "unique:staff,email,{$staffId}"],
-            'phone'           => ['nullable', 'string', 'max:30', 'regex:/^[\+\d\s\(\)\-]+$/'],
             'role'            => ['sometimes', 'string', 'max:100'],
             'bio'             => ['nullable', 'string', 'max:1000'],
             'specialisms'     => ['nullable', 'array'],
@@ -37,6 +36,6 @@ class UpdateStaffRequest extends FormRequest
             'end_time'        => ['nullable', 'date_format:H:i', 'after:start_time'],
             'bookable_online' => ['nullable', 'boolean'],
             'is_active'       => ['nullable', 'boolean'],
-        ];
+        ]);
     }
 }

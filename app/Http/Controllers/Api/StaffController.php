@@ -33,11 +33,10 @@ class StaffController extends Controller
     /* ── POST /staff ────────────────────────────────────────────────────── */
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'first_name'      => 'required|string|max:100',
             'last_name'       => 'required|string|max:100',
             'email'           => 'nullable|email|max:255',
-            'phone'           => 'nullable|string|max:30',
             'role'            => 'nullable|string|max:100',
             'bio'             => 'nullable|string|max:2000',
             'awards_accolades' => 'nullable|string|max:5000',
@@ -50,7 +49,7 @@ class StaffController extends Controller
             'color'           => 'nullable|string|max:10',
             'hired_at'        => 'nullable|date',
             'bookable_online' => 'nullable|boolean',
-        ]);
+        ])));
 
         $data['salon_id']  = $request->attributes->get('salon_id');
         $data['initials']  = strtoupper(substr($data['first_name'], 0, 1) . substr($data['last_name'], 0, 1));
@@ -76,11 +75,10 @@ class StaffController extends Controller
     /* ── PUT /staff/{id} ────────────────────────────────────────────────── */
     public function update(Request $request, int $id): JsonResponse
     {
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'first_name'      => 'sometimes|string|max:100',
             'last_name'       => 'sometimes|string|max:100',
             'email'           => 'nullable|email|max:255',
-            'phone'           => 'nullable|string|max:30',
             'role'            => 'nullable|string|max:100',
             'bio'             => 'nullable|string|max:2000',
             'awards_accolades' => 'nullable|string|max:5000',
@@ -93,7 +91,7 @@ class StaffController extends Controller
             'color'           => 'nullable|string|max:10',
             'is_active'       => 'nullable|boolean',
             'bookable_online' => 'nullable|boolean',
-        ]);
+        ])));
 
         $staff = Staff::where('salon_id', $request->attributes->get('salon_id'))->findOrFail($id);
 

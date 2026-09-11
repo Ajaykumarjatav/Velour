@@ -3,6 +3,8 @@ import { useClientAuth } from '../../context/ClientAuthContext'
 import { useSalon } from '../../context/SalonContext'
 import { clientUpdatePassword, clientUpdateProfile, clientUploadAvatar } from '../../lib/clientApi'
 import { PortalButton, PortalInput } from './PortalShell'
+import PhoneCountryInput from '../PhoneCountryInput'
+import { errorForValue } from '../../lib/phoneCountry'
 
 export default function ClientProfile() {
   const { slug } = useSalon()
@@ -34,6 +36,11 @@ export default function ClientProfile() {
 
   const saveProfile = async (e) => {
     e.preventDefault()
+    const phoneErr = errorForValue(form.phone, true)
+    if (phoneErr) {
+      setError(phoneErr)
+      return
+    }
     setLoading(true)
     setError('')
     setMessage('')
@@ -121,7 +128,14 @@ export default function ClientProfile() {
             <PortalInput label="Last name" value={form.last_name} onChange={set('last_name')} required />
           </div>
           <PortalInput label="Email" type="email" value={form.email} onChange={set('email')} required />
-          <PortalInput label="Phone" type="tel" value={form.phone} onChange={set('phone')} required />
+          <PhoneCountryInput
+            label="Phone"
+            value={form.phone}
+            onChange={(phone) => setForm((p) => ({ ...p, phone }))}
+            required
+            inputClassName="flex-1 min-w-0 bg-[#1a1f2e] border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary"
+            selectClassName="w-[5.25rem] shrink-0 bg-[#1a1f2e] border border-white/10 rounded-xl px-2 py-3 text-white text-sm"
+          />
           <PortalInput label="Address" value={form.address} onChange={set('address')} />
           <PortalInput label="Date of birth" type="date" value={form.date_of_birth} onChange={set('date_of_birth')} />
           <label className="flex items-center gap-2 text-sm text-white/70">

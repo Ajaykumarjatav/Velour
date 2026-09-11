@@ -3,6 +3,8 @@ import { useClientAuth } from '../../context/ClientAuthContext'
 import { useSalon } from '../../context/SalonContext'
 import AuthModal from './AuthModal'
 import { fieldError } from '../../lib/apiErrors'
+import { errorForValue } from '../../lib/phoneCountry'
+import PhoneCountryInput from '../PhoneCountryInput'
 import { FormErrorList, PortalButton, PortalInput } from './PortalShell'
 
 export default function ClientRegister() {
@@ -43,6 +45,12 @@ export default function ClientRegister() {
       setFieldErrors({ password_confirmation: ['Passwords do not match.'] })
       return
     }
+    const phoneErr = errorForValue(form.phone, true)
+    if (phoneErr) {
+      setErrors([phoneErr])
+      setFieldErrors({ phone: [phoneErr] })
+      return
+    }
     setLoading(true)
     try {
       await register({
@@ -74,7 +82,15 @@ export default function ClientRegister() {
           <PortalInput label="Last name" value={form.last_name} onChange={set('last_name')} required error={fieldError(fieldErrors, 'last_name')} />
         </div>
         <PortalInput label="Email address" type="email" value={form.email} onChange={set('email')} required autoComplete="email" error={fieldError(fieldErrors, 'email')} />
-        <PortalInput label="Mobile number" type="tel" value={form.phone} onChange={set('phone')} required autoComplete="tel" error={fieldError(fieldErrors, 'phone')} />
+        <PhoneCountryInput
+          label="Mobile number"
+          value={form.phone}
+          onChange={(phone) => setForm((p) => ({ ...p, phone }))}
+          required
+          error={fieldError(fieldErrors, 'phone')}
+          inputClassName={`flex-1 min-w-0 bg-[#1a1f2e] border rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 ${fieldError(fieldErrors, 'phone') ? 'border-red-500/60 focus:ring-red-500/40' : 'border-white/10 focus:ring-primary'}`}
+          selectClassName="w-[5.25rem] shrink-0 bg-[#1a1f2e] border border-white/10 rounded-xl px-2 py-3 text-white text-sm"
+        />
         <PortalInput label="Password" type="password" value={form.password} onChange={set('password')} required autoComplete="new-password" error={fieldError(fieldErrors, 'password')} />
         <PortalInput label="Confirm password" type="password" value={form.password_confirmation} onChange={set('password_confirmation')} required autoComplete="new-password" error={fieldError(fieldErrors, 'password_confirmation')} />
 

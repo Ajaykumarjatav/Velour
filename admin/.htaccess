@@ -1,7 +1,0 @@
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-
-    # This nested folder is not the running Laravel app (no vendor/).
-    # Super-admin URLs like /vellor/admin/admin must use the parent front controller.
-    RewriteRule ^(.*)$ ../public/index.php [QSA,L]
-</IfModule>

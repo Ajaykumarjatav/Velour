@@ -224,10 +224,9 @@ class SettingsController extends Controller
         $this->abortUnlessCanEditSettingsTab('salon');
         $salon = $this->salon();
 
-        $data = $request->validate([
+        $data = $request->validate(\App\Support\PhoneCountry::merge(
+            \App\Support\PhoneCountry::merge([
             'name'                 => \App\Support\SalonSlug::uniqueNameRules((int) $salon->id),
-            'phone'              => ['nullable', 'string', 'max:20'],
-            'whatsapp_number'    => ['nullable', 'string', 'max:30'],
             'whatsapp_same_as_phone' => ['required', 'in:0,1'],
             'description'        => ['nullable', 'string', 'max:1000'],
             'awards_accolades'   => ['nullable', 'string', 'max:50000'],
@@ -242,15 +241,16 @@ class SettingsController extends Controller
             'map_url'            => ['nullable', 'string', 'max:500'],
             'gst_number'         => ['nullable', 'string', 'max:30'],
             'booking_time_display' => ['nullable', 'in:business,customer'],
-            'home_services_enabled' => ['sometimes', 'boolean'],
-            'is_freelancer' => ['sometimes', 'boolean'],
-        ], \App\Support\SalonSlug::uniqueNameMessages('name'));
+        ], 'phone'), 'whatsapp_number'),
+            \App\Support\SalonSlug::uniqueNameMessages('name')
+        );
 
         $bookingTimeDisplay = $data['booking_time_display'] ?? 'business';
         unset($data['booking_time_display']);
 
-        $data['home_services_enabled'] = $request->boolean('home_services_enabled');
-        $data['is_freelancer'] = $request->boolean('is_freelancer');
+        $data = \App\Support\PhoneCountry::exceptCountryFields($data);
+        $data['phone'] = trim((string) ($data['phone'] ?? '')) !== '' ? $data['phone'] : null;
+
         $data['email'] = $salon->owner?->email ?: Auth::user()?->email;
         $data['awards_accolades'] = AwardsHtml::sanitize($data['awards_accolades'] ?? null);
         $data['awards_images'] = AwardsHtml::imagePaths($data['awards_accolades'], (int) $salon->id);
@@ -615,11 +615,10 @@ class SettingsController extends Controller
 
         $langCodes = LanguageProficiency::allowedCodes();
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge(
+            \App\Support\PhoneCountry::merge([
             'name'      => ['required', 'string', 'max:100'],
             'email'     => ['required', 'email', 'unique:users,email,' . $user->id],
-            'phone'     => ['nullable', 'string', 'max:20'],
-            'staff_phone' => ['nullable', 'string', 'max:20'],
             'experience' => ['nullable', 'string', 'max:120'],
             'staff_experience' => ['nullable', 'string', 'max:120'],
             'language_proficiency'   => ['nullable', 'array', 'max:30'],
@@ -634,7 +633,7 @@ class SettingsController extends Controller
             'remove_avatar' => ['nullable', 'boolean'],
             'timezone'  => ['nullable', 'string', 'timezone:all'],
             'locale'    => ['nullable', 'string', 'in:' . implode(',', array_keys(\App\Support\DisplayFormatter::localeOptions()))],
-        ]);
+        ], 'phone'), 'staff_phone')));
         $staffPhone = $data['staff_phone'] ?? null;
         $staffExperience = $data['staff_experience'] ?? null;
         if ($staffPhone !== null) {
@@ -709,12 +708,11 @@ class SettingsController extends Controller
         $langCodes = LanguageProficiency::allowedCodes();
         $singleSave = $request->boolean('save_single_team_member');
 
-        $data = $request->validate([
+        $data = \App\Support\PhoneCountry::exceptCountryFields($request->validate(\App\Support\PhoneCountry::merge([
             'staff_members'          => [$singleSave ? 'required' : 'nullable', 'array', $singleSave ? 'max:1' : 'max:10'],
             'staff_members.*.id'     => ['nullable', 'integer'],
             'staff_members.*.name'   => ['nullable', 'string', 'max:100'],
             'staff_members.*.email'  => ['nullable', 'email', 'max:150'],
-            'staff_members.*.phone'  => ['nullable', 'string', 'max:20'],
             'staff_members.*.role'   => StaffJobRoles::validationRules(required: false),
             'staff_members.*.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'staff_members.*.bio'    => ['nullable', 'string', 'max:1000'],
@@ -725,7 +723,7 @@ class SettingsController extends Controller
             'staff_members.*.color'  => ['nullable', 'string', 'max:7'],
             'staff_member_avatar' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'staff_member_remove_avatar' => ['nullable', 'boolean'],
-        ]);
+        ], 'staff_members.*.phone')));
 
         $rows = $data['staff_members'] ?? [];
         $rows = array_values(array_filter($rows, fn ($row) => is_array($row)));

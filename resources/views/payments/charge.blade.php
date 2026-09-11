@@ -40,8 +40,7 @@
 
             <div>
                 <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Client phone</label>
-                <input type="text" name="client_phone" value="{{ old('client_phone') }}" placeholder="10-digit mobile"
-                       class="block w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" />
+                <x-phone-input name="client_phone" id="charge-client-phone" :value="old('client_phone')" />
             </div>
 
             <input type="hidden" name="currency" value="{{ strtoupper($salon->currency ?? 'INR') }}" />
