@@ -78,7 +78,11 @@ class CustomizationController extends Controller
         $newName = trim($validated['business_name']);
         $salon->name = $newName;
         if (\App\Support\SalonSlug::shouldSyncFromName($salon, $oldName, $newName)) {
-            $slug = \App\Support\SalonSlug::uniqueFromName($newName, (int) $salon->id);
+            $slug = \App\Support\SalonSlug::uniqueFromName(
+                $newName,
+                (int) $salon->id,
+                \App\Support\SalonSlug::contextForSalon($salon)
+            );
             \App\Support\SalonSlug::applyNewSlug($salon, $slug);
         }
         $salon->domain = $validated['custom_domain'] ?? $salon->domain;

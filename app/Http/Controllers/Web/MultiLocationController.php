@@ -131,25 +131,31 @@ class MultiLocationController extends Controller
             'notify_team_when_created' => ['nullable', 'boolean'],
         ], 'phone', true)));
 
-        $slug = \App\Support\SalonSlug::uniqueFromName($data['name']);
-
-        $salon = Salon::create([
-            'owner_id' => $owner->id,
-            'business_type_id' => $baseSalon?->business_type_id ?? BusinessType::defaultId(),
-            'name' => $data['name'],
-            'slug' => $slug,
-            'subdomain' => $slug,
-            'address_line1' => $data['address_line1'],
-            'city' => $data['city'],
-            'timezone' => $data['timezone'],
-            'phone' => $data['phone'],
-            'currency' => $baseSalon?->currency ?? \App\Helpers\CurrencyHelper::defaultCode(),
-            'country' => $baseSalon?->country,
-            'locale' => $baseSalon?->locale ?? 'en',
-            'is_active' => true,
-            'online_booking_enabled' => (bool) ($data['online_booking_enabled'] ?? false),
-            'new_client_booking_enabled' => (bool) ($data['online_booking_enabled'] ?? false),
-        ]);
+        $salon = \App\Support\SalonSlug::createWithUniqueSlug(
+            $data['name'],
+            [
+                'city' => $data['city'] ?? null,
+                'business_type' => $baseSalon?->businessType?->name,
+                'owner_name' => $owner->name,
+            ],
+            fn (string $slug) => Salon::create([
+                'owner_id' => $owner->id,
+                'business_type_id' => $baseSalon?->business_type_id ?? BusinessType::defaultId(),
+                'name' => $data['name'],
+                'slug' => $slug,
+                'subdomain' => $slug,
+                'address_line1' => $data['address_line1'],
+                'city' => $data['city'],
+                'timezone' => $data['timezone'],
+                'phone' => $data['phone'],
+                'currency' => $baseSalon?->currency ?? \App\Helpers\CurrencyHelper::defaultCode(),
+                'country' => $baseSalon?->country,
+                'locale' => $baseSalon?->locale ?? 'en',
+                'is_active' => true,
+                'online_booking_enabled' => (bool) ($data['online_booking_enabled'] ?? false),
+                'new_client_booking_enabled' => (bool) ($data['online_booking_enabled'] ?? false),
+            ])
+        );
 
         $typeIds = $baseSalon
             ? $baseSalon->businessTypes()->pluck('business_types.id')->map(fn ($id) => (int) $id)->all()

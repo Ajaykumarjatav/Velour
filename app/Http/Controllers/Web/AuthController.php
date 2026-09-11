@@ -175,7 +175,6 @@ class AuthController extends Controller
 
         // Salon name + storefront URL slug come from business name — never from the owner's personal name.
         $businessName = trim($data['business_name']);
-        $slug = \App\Support\SalonSlug::uniqueFromName($businessName);
         $defaultBusinessTypeId = (int) \App\Models\BusinessType::query()->orderBy('sort_order')->value('id');
         if ($defaultBusinessTypeId < 1) {
             $defaultBusinessTypeId = (int) \App\Models\BusinessType::query()->orderBy('id')->value('id');
@@ -186,18 +185,22 @@ class AuthController extends Controller
             ]);
         }
 
-        $salon = Salon::withoutGlobalScopes()->create([
-            'owner_id'         => $user->id,
-            'business_type_id' => $defaultBusinessTypeId,
-            'name'             => $businessName,
-            'slug'             => $slug,
-            'subdomain'        => $slug,
-            'email'            => $data['email'],
-            'phone'            => null,
-            'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
-            'timezone'         => \App\Support\SalonTime::defaultTimezone(),
-            'is_active'        => true,
-        ]);
+        $salon = \App\Support\SalonSlug::createWithUniqueSlug(
+            $businessName,
+            ['owner_name' => $user->name],
+            fn (string $slug) => Salon::withoutGlobalScopes()->create([
+                'owner_id'         => $user->id,
+                'business_type_id' => $defaultBusinessTypeId,
+                'name'             => $businessName,
+                'slug'             => $slug,
+                'subdomain'        => $slug,
+                'email'            => $data['email'],
+                'phone'            => null,
+                'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
+                'timezone'         => \App\Support\SalonTime::defaultTimezone(),
+                'is_active'        => true,
+            ])
+        );
 
         // Registered event queues/sends verification email — don't block signup if mail fails
         $verificationEmailSent = true;

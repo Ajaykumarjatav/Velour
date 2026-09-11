@@ -36,8 +36,6 @@ final class DefaultSalonProvisioner
         // Prefer a temporary business name from the owner's full name (not "{name}'s Salon").
         $ownerName = trim((string) $user->name);
         $defaultSalonName = $ownerName !== '' ? $ownerName : 'My Business';
-        $slug = SalonSlug::uniqueFromName($defaultSalonName);
-
         $defaultBusinessTypeId = (int) \App\Models\BusinessType::query()->orderBy('sort_order')->value('id');
         if ($defaultBusinessTypeId < 1) {
             $defaultBusinessTypeId = (int) \App\Models\BusinessType::query()->orderBy('id')->value('id');
@@ -47,17 +45,21 @@ final class DefaultSalonProvisioner
             return null;
         }
 
-        $salon = Salon::withoutGlobalScopes()->create([
-            'owner_id'         => $user->id,
-            'business_type_id' => $defaultBusinessTypeId,
-            'name'             => $defaultSalonName,
-            'slug'             => $slug,
-            'subdomain'        => $slug,
-            'phone'            => null,
-            'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
-            'timezone'         => SalonTime::defaultTimezone(),
-            'is_active'        => true,
-        ]);
+        $salon = SalonSlug::createWithUniqueSlug(
+            $defaultSalonName,
+            ['owner_name' => $ownerName],
+            fn (string $slug) => Salon::withoutGlobalScopes()->create([
+                'owner_id'         => $user->id,
+                'business_type_id' => $defaultBusinessTypeId,
+                'name'             => $defaultSalonName,
+                'slug'             => $slug,
+                'subdomain'        => $slug,
+                'phone'            => null,
+                'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
+                'timezone'         => SalonTime::defaultTimezone(),
+                'is_active'        => true,
+            ])
+        );
 
         dispatch(new OnboardNewTenant($user, $salon));
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\Salon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -14,32 +15,175 @@ use Illuminate\Support\Str;
  */
 final class SalonSlug
 {
-    /** Unique storefront slug from the business name (ajay-saloon, then ajay-saloon1, ajay-saloon2, …). */
-    public static function uniqueFromName(string $name, ?int $exceptSalonId = null): string
+    private const MAX_LENGTH = 63;
+
+    /**
+     * Unique storefront slug from the business name. When the name is already taken the
+     * slug gets a word from the business itself (dina-glow-saloon-jaipur), never a digit.
+     *
+     * @param  array{city?: ?string, area?: ?string, business_type?: ?string, owner_name?: ?string}  $context
+     */
+    public static function uniqueFromName(string $name, ?int $exceptSalonId = null, array $context = []): string
     {
         $base = Str::slug(trim($name)) ?: 'salon';
         if (in_array($base, SalonUrl::RESERVED, true)) {
             $base = 'salon-'.$base;
         }
 
-        $slug = $base;
-        $n = 1;
-
-        while (self::slugTaken($slug, $exceptSalonId)) {
-            $suffix = (string) $n;
-            $trimmed = $base;
-            $max = 63;
-            if (strlen($trimmed.$suffix) > $max) {
-                $trimmed = rtrim(substr($trimmed, 0, $max - strlen($suffix)), '-');
-                if ($trimmed === '') {
-                    $trimmed = 'salon';
-                }
-            }
-            $slug = $trimmed.$suffix;
-            $n++;
+        if (! self::slugTaken(self::capped($base), $exceptSalonId)) {
+            return self::capped($base);
         }
 
-        return $slug;
+        foreach (self::suffixCandidates($base, $context) as $suffix) {
+            $candidate = self::withSuffix($base, $suffix);
+            if (! self::slugTaken($candidate, $exceptSalonId)) {
+                return $candidate;
+            }
+        }
+
+        // Everything descriptive is taken — fall back to a short pronounceable token so
+        // the URL still reads like a word rather than ending in a counter.
+        for ($attempt = 0; $attempt < 40; $attempt++) {
+            $candidate = self::withSuffix($base, self::randomToken($attempt < 20 ? 2 : 3));
+            if (! self::slugTaken($candidate, $exceptSalonId)) {
+                return $candidate;
+            }
+        }
+
+        return self::withSuffix($base, self::randomToken(3).self::randomToken(2));
+    }
+
+    /**
+     * Insert a salon with a fresh slug, retrying when a simultaneous signup claimed the
+     * same slug a moment earlier. The unique indexes on salons.slug / salons.subdomain
+     * make that collision an error rather than a duplicate URL; the retry just picks the
+     * next suffix instead of showing the user a failed signup.
+     *
+     * @param  array<string, ?string>  $context
+     * @param  callable(string): Salon  $create  receives the slug to store
+     */
+    public static function createWithUniqueSlug(string $name, array $context, callable $create, int $attempts = 4): Salon
+    {
+        for ($attempt = 1; ; $attempt++) {
+            $slug = self::uniqueFromName($name, null, $context);
+
+            try {
+                return $create($slug);
+            } catch (QueryException $e) {
+                if ($attempt >= $attempts || ! self::isDuplicateSlugError($e)) {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    private static function isDuplicateSlugError(QueryException $e): bool
+    {
+        if ((string) $e->getCode() !== '23000') {
+            return false;
+        }
+
+        $message = strtolower($e->getMessage());
+
+        foreach (['salons_slug_unique', 'salons_subdomain_unique', 'salons.slug', 'salons.subdomain'] as $marker) {
+            if (str_contains($message, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Context for slug suffixes, read from the salon the slug belongs to.
+     *
+     * @return array{city: ?string, area: ?string, business_type: ?string, owner_name: ?string}
+     */
+    public static function contextForSalon(?Salon $salon): array
+    {
+        if (! $salon) {
+            return [];
+        }
+
+        return [
+            'city' => $salon->city,
+            'area' => $salon->address_line2,
+            'business_type' => $salon->businessType?->name,
+            'owner_name' => $salon->owner?->name,
+        ];
+    }
+
+    /**
+     * Suffixes ordered best-first: where the business is, what it is, then who runs it.
+     *
+     * @param  array<string, ?string>  $context
+     * @return list<string>
+     */
+    private static function suffixCandidates(string $base, array $context): array
+    {
+        $candidates = [];
+        $add = function (?string $value) use (&$candidates, $base): void {
+            $slug = Str::slug(trim((string) $value));
+            // Skip anything the name already says, so we never get dina-salon-salon.
+            if ($slug === '' || strlen($slug) > 20 || str_contains($base, $slug)) {
+                return;
+            }
+            $candidates[] = $slug;
+        };
+
+        $add($context['city'] ?? null);
+        $add($context['area'] ?? null);
+        $add($context['business_type'] ?? null);
+
+        $ownerFirstName = strtok(trim((string) ($context['owner_name'] ?? '')), ' ');
+        $add($ownerFirstName !== false ? $ownerFirstName : null);
+
+        foreach (['studio', 'boutique', 'official', 'prime', 'central', 'express', 'store', 'place'] as $word) {
+            $add($word);
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
+    /** Short pronounceable filler like "keli" or "vora". */
+    private static function randomToken(int $syllables = 2): string
+    {
+        $consonants = 'bcdfghjklmnprstvwz';
+        $vowels = 'aeiou';
+        $token = '';
+
+        for ($i = 0; $i < max(1, $syllables); $i++) {
+            $token .= $consonants[random_int(0, strlen($consonants) - 1)];
+            $token .= $vowels[random_int(0, strlen($vowels) - 1)];
+        }
+
+        return $token;
+    }
+
+    private static function capped(string $slug): string
+    {
+        if (strlen($slug) <= self::MAX_LENGTH) {
+            return $slug;
+        }
+        $trimmed = rtrim(substr($slug, 0, self::MAX_LENGTH), '-');
+
+        return $trimmed !== '' ? $trimmed : 'salon';
+    }
+
+    private static function withSuffix(string $base, string $suffix): string
+    {
+        $suffix = trim($suffix, '-');
+        if ($suffix === '') {
+            return self::capped($base);
+        }
+
+        $room = self::MAX_LENGTH - strlen($suffix) - 1;
+        $trimmed = $room > 0 ? rtrim(substr($base, 0, $room), '-') : '';
+        if ($trimmed === '') {
+            $trimmed = 'salon';
+        }
+
+        return $trimmed.'-'.$suffix;
     }
 
     public static function findSalonByAlias(string $slug): ?Salon
@@ -237,7 +381,10 @@ final class SalonSlug
         return array_values(array_unique($candidates));
     }
 
-    /** True when $slug is $base or $base plus an auto suffix (ajay-saloon1 or legacy ajay-saloon-1). */
+    /**
+     * True when $slug is $base or $base plus an auto suffix — the current word style
+     * (ajay-saloon-jaipur) as well as the legacy counters (ajay-saloon1, ajay-saloon-1).
+     */
     private static function slugLooksAutoGeneratedFrom(string $slug, string $base): bool
     {
         if ($base === '' || $slug === '') {
@@ -246,10 +393,9 @@ final class SalonSlug
         if ($slug === $base) {
             return true;
         }
-        if (str_starts_with($slug, $base) && preg_match('/^'.preg_quote($base, '/').'\d+$/', $slug)) {
-            return true;
-        }
 
-        return (bool) preg_match('/^'.preg_quote($base, '/').'-\d+$/', $slug);
+        $quoted = preg_quote($base, '/');
+
+        return (bool) preg_match('/^'.$quoted.'(\d+|-[a-z0-9]+(?:-[a-z0-9]+)?)$/', $slug);
     }
 }

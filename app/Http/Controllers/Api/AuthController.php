@@ -96,19 +96,24 @@ class AuthController extends Controller
             'signup_user_agent' => $signupDevice['signup_user_agent'],
         ]);
 
-        $slug = \App\Support\SalonSlug::uniqueFromName($data['salon_name']);
-
-        $salon = Salon::create([
-            'owner_id'         => $user->id,
-            'business_type_id' => $typeIds[0],
-            'name'             => trim($data['salon_name']),
-            'slug'             => $slug,
-            'subdomain'        => $slug,
-            'phone'            => $data['salon_phone'] ?? null,
-            'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
-            'timezone'         => \App\Support\SalonTime::defaultTimezone(),
-            'is_active'        => true,
-        ]);
+        $salon = \App\Support\SalonSlug::createWithUniqueSlug(
+            $data['salon_name'],
+            [
+                'business_type' => \App\Models\BusinessType::find($typeIds[0])?->name,
+                'owner_name' => $user->name,
+            ],
+            fn (string $slug) => Salon::create([
+                'owner_id'         => $user->id,
+                'business_type_id' => $typeIds[0],
+                'name'             => trim($data['salon_name']),
+                'slug'             => $slug,
+                'subdomain'        => $slug,
+                'phone'            => $data['salon_phone'] ?? null,
+                'currency'         => \App\Helpers\CurrencyHelper::defaultCode(),
+                'timezone'         => \App\Support\SalonTime::defaultTimezone(),
+                'is_active'        => true,
+            ])
+        );
 
         $salon->businessTypes()->sync($typeIds);
 
