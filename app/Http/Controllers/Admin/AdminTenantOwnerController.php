@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Billing\Plan;
+use App\Mail\AdminTenantSupportMail;
 use App\Models\SupportTicket;
 use App\Models\TenantPlanOverride;
 use App\Models\User;
 use App\Services\Admin\AdminTenantDataService;
 use App\Services\Admin\AdminPlanAssignmentService;
 use App\Services\Admin\TenantBlockService;
+use App\Services\AuditLogService;
 use App\Services\TenantWelcomeWhatsAppService;
+use App\Support\PurposeMail;
+use App\Support\SupportContact;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +29,7 @@ class AdminTenantOwnerController extends Controller
         private readonly TenantBlockService $blockService,
         private readonly AdminPlanAssignmentService $planAssignment,
         private readonly TenantWelcomeWhatsAppService $welcomeWhatsApp,
+        private readonly AuditLogService $audit,
     ) {}
 
     public function show(int $owner): View
@@ -250,5 +255,71 @@ class AdminTenantOwnerController extends Controller
             'message' => $result['message'],
             'hide_button' => true,
         ], $already && ! $markOnly ? 200 : 200);
+    }
+
+    public function sendSupportEmail(Request $request, int $owner): JsonResponse
+    {
+        $data = $request->validate([
+            'subject' => ['required', 'string', 'max:200'],
+            'body' => ['required', 'string', 'max:10000'],
+        ]);
+
+        $account = User::query()
+            ->whereHas('salons', fn ($q) => $q->withoutGlobalScopes())
+            ->findOrFail($owner);
+
+        $email = trim((string) $account->email);
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This account does not have a valid email address.',
+            ], 422);
+        }
+
+        $subject = trim($data['subject']);
+        $body = trim($data['body']);
+
+        try {
+            PurposeMail::send(
+                PurposeMail::SUPPORT,
+                $email,
+                new AdminTenantSupportMail(
+                    $account,
+                    $subject,
+                    $body,
+                )
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Email could not be sent. Check support mail settings and try again.',
+            ], 502);
+        }
+
+        $primarySalonId = (int) ($account->salons()
+            ->withoutGlobalScopes()
+            ->orderBy('id')
+            ->value('id') ?? 0);
+
+        $this->audit->admin(
+            'tenant.support_email.sent',
+            'Support email sent to '.$email.' ('.$account->name.') — subject: '.$subject,
+            $account,
+            [
+                'target_user_id' => $account->id,
+                'target_email' => $email,
+                'from' => SupportContact::emailDisplay(),
+                'subject' => $subject,
+                'body_preview' => mb_substr($body, 0, 280),
+                'salon_id' => $primarySalonId > 0 ? $primarySalonId : null,
+            ]
+        );
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Email sent to '.$email.' from '.SupportContact::emailDisplay().'.',
+        ]);
     }
 }

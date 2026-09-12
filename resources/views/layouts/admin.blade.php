@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-950 css-pending">
+<html lang="en" class="h-full overflow-hidden bg-gray-950 css-pending">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,6 +29,8 @@
       font-feature-settings: 'kern' 1, 'liga' 1, 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      height: 100%;
+      overflow: hidden;
     }
     .font-thin, .font-extralight, .font-light, .font-normal { font-weight: 400; }
     .font-medium { font-weight: 500; }
@@ -79,6 +81,7 @@
     width: 14rem;
     position: sticky;
     top: 0;
+    align-self: stretch;
     transition: width 0.2s ease;
     overflow: visible;
   }
@@ -241,7 +244,7 @@
   @include('partials.phone-country')
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="h-full min-h-screen flex min-h-0"
+<body class="h-full overflow-hidden flex w-full min-h-0"
       x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('admin-sidebar-collapsed') === '1' }"
       :class="{ 'admin-nav-open': sidebarOpen }"
       @keydown.escape.window="sidebarOpen = false"
@@ -259,7 +262,7 @@
 
   {{-- Sidebar --}}
   {{-- Positioning lives in CSS (sticky column on desktop, off-canvas drawer below lg). --}}
-  <aside class="admin-shell-sidebar flex-shrink-0 bg-gray-900 flex flex-col h-screen z-30 border-r border-gray-800/80">
+  <aside class="admin-shell-sidebar flex-shrink-0 bg-gray-900 flex flex-col h-full z-30 border-r border-gray-800/80">
     <div class="admin-sidebar-wrapper flex flex-col h-full min-h-0 overflow-visible">
     <div class="admin-sidebar-header border-b border-gray-800 px-5 py-5">
       <div class="admin-sidebar-header-inner">

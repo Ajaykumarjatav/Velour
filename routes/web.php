@@ -576,6 +576,7 @@ Route::middleware(['auth', 'verified', '2fa', 'password.changed', 'super_admin',
     Route::get('tenants/owners/{owner}',      [AdminTenantOwnerController::class, 'show'])->name('tenants.owners.show');
     Route::get('tenants/owners/{owner}/logs', [AdminTenantOwnerController::class, 'logs'])->name('tenants.owners.logs');
     Route::post('tenants/owners/{owner}/welcome-whatsapp', [AdminTenantOwnerController::class, 'sendWelcomeWhatsApp'])->name('tenants.owners.welcome-whatsapp');
+    Route::post('tenants/owners/{owner}/support-email', [AdminTenantOwnerController::class, 'sendSupportEmail'])->name('tenants.owners.support-email');
     Route::post('tenants/owners/{owner}/block',   [AdminTenantOwnerController::class, 'block'])->name('tenants.owners.block');
     Route::post('tenants/owners/{owner}/unblock', [AdminTenantOwnerController::class, 'unblock'])->name('tenants.owners.unblock');
     Route::post('tenants/owners/{owner}/plan',   [AdminTenantOwnerController::class, 'assignPlan'])->name('tenants.owners.plan');

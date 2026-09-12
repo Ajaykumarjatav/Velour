@@ -123,6 +123,19 @@
             </svg>
           </button>
           @endif
+          @if(filled($account->email))
+          <button type="button"
+                  class="js-tenant-email-open inline-flex items-center justify-center w-8 h-8 rounded-lg text-sky-400 hover:text-sky-300 hover:bg-gray-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                  data-url="{{ route('admin.tenants.owners.support-email', $account->id) }}"
+                  data-name="{{ $account->name }}"
+                  data-email="{{ $account->email }}"
+                  title="Email tenant from {{ \App\Support\SupportContact::emailDisplay() }}">
+            <span class="sr-only">Email tenant</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </button>
+          @endif
           <a href="{{ route('admin.tenants.owners.logs', $account->id) }}"
              class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-velour-300 hover:bg-gray-800/80"
              title="View all logs">
@@ -160,6 +173,48 @@
           role="menuitem">
     Already sent — mark &amp; hide
   </button>
+</div>
+
+{{-- Support email compose --}}
+<div id="tenant-email-modal"
+     class="hidden fixed inset-0 z-[10070] flex items-end sm:items-center justify-center p-4 bg-black/60"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="tenant-email-title">
+  <div class="w-full max-w-lg rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-800 flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h3 id="tenant-email-title" class="text-base font-semibold text-gray-100">Email tenant</h3>
+        <p class="text-xs text-gray-500 mt-1">
+          From <span class="text-gray-300">{{ \App\Support\SupportContact::emailDisplay() }}</span>
+          → <span id="tenant-email-to" class="text-gray-300"></span>
+        </p>
+      </div>
+      <button type="button" id="tenant-email-close" class="text-gray-500 hover:text-gray-200 text-xl leading-none p-1" aria-label="Close">&times;</button>
+    </div>
+    <form id="tenant-email-form" class="px-5 py-4 space-y-3">
+      <input type="hidden" id="tenant-email-url" value="">
+      <div>
+        <label for="tenant-email-subject" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Subject</label>
+        <input id="tenant-email-subject" type="text" maxlength="200" required
+               class="w-full px-3 py-2 text-sm rounded-xl bg-gray-800 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+               placeholder="Subject line…">
+      </div>
+      <div>
+        <label for="tenant-email-body" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Message</label>
+        <textarea id="tenant-email-body" rows="7" maxlength="10000" required
+                  class="w-full px-3 py-2 text-sm rounded-xl bg-gray-800 border border-gray-700 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                  placeholder="Write your message…"></textarea>
+      </div>
+      <p id="tenant-email-error" class="hidden text-xs text-red-300"></p>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" id="tenant-email-cancel"
+                class="px-4 py-2 text-sm font-medium rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800">Cancel</button>
+        <button type="submit" id="tenant-email-send"
+                class="px-4 py-2 text-sm font-semibold rounded-xl bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-60">Send email</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -296,6 +351,102 @@
   });
   window.addEventListener('resize', closeMenu);
   window.addEventListener('scroll', closeMenu, true);
+
+  // ── Support email modal ──
+  var emailModal = document.getElementById('tenant-email-modal');
+  var emailForm = document.getElementById('tenant-email-form');
+  var emailUrl = document.getElementById('tenant-email-url');
+  var emailTo = document.getElementById('tenant-email-to');
+  var emailSubject = document.getElementById('tenant-email-subject');
+  var emailBody = document.getElementById('tenant-email-body');
+  var emailError = document.getElementById('tenant-email-error');
+  var emailSend = document.getElementById('tenant-email-send');
+  var emailClose = document.getElementById('tenant-email-close');
+  var emailCancel = document.getElementById('tenant-email-cancel');
+
+  function openEmailModal(btn) {
+    closeMenu();
+    emailUrl.value = btn.getAttribute('data-url') || '';
+    emailTo.textContent = (btn.getAttribute('data-name') || '') + ' <' + (btn.getAttribute('data-email') || '') + '>';
+    emailSubject.value = '';
+    emailBody.value = '';
+    emailError.classList.add('hidden');
+    emailError.textContent = '';
+    emailModal.classList.remove('hidden');
+    setTimeout(function () { emailSubject.focus(); }, 50);
+  }
+
+  function closeEmailModal() {
+    emailModal.classList.add('hidden');
+    emailSend.disabled = false;
+  }
+
+  document.querySelectorAll('.js-tenant-email-open').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+      event.stopPropagation();
+      openEmailModal(btn);
+    });
+  });
+
+  emailClose.addEventListener('click', closeEmailModal);
+  emailCancel.addEventListener('click', closeEmailModal);
+  emailModal.addEventListener('click', function (event) {
+    if (event.target === emailModal) closeEmailModal();
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !emailModal.classList.contains('hidden')) {
+      closeEmailModal();
+    }
+  });
+
+  emailForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    var url = emailUrl.value;
+    var subject = (emailSubject.value || '').trim();
+    var body = (emailBody.value || '').trim();
+    if (!url || !subject || !body) {
+      emailError.textContent = 'Subject and message are required.';
+      emailError.classList.remove('hidden');
+      return;
+    }
+
+    var headers = window.EasyGroxHttp
+      ? window.EasyGroxHttp.csrfHeaders({ Accept: 'application/json', 'Content-Type': 'application/json' })
+      : {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        };
+
+    emailSend.disabled = true;
+    emailError.classList.add('hidden');
+
+    fetch(url, {
+      method: 'POST',
+      headers: headers,
+      credentials: 'same-origin',
+      body: JSON.stringify({ subject: subject, body: body }),
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        return { ok: res.ok, data: data };
+      });
+    }).then(function (result) {
+      var data = result.data || {};
+      if (result.ok) {
+        closeEmailModal();
+        showMsg(data.message || 'Email sent.', 'ok');
+        return;
+      }
+      emailError.textContent = data.message || 'Could not send email.';
+      emailError.classList.remove('hidden');
+      emailSend.disabled = false;
+    }).catch(function () {
+      emailError.textContent = 'Network error. Please try again.';
+      emailError.classList.remove('hidden');
+      emailSend.disabled = false;
+    });
+  });
 })();
 </script>
 @endsection
